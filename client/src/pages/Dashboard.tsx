@@ -3,13 +3,13 @@ import { ArrowUpRight, Mail, MousePointerClick, Send, Users } from "lucide-react
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const data = [
-  { name: "Mon", emails: 400, clicks: 240, referrals: 24 },
-  { name: "Tue", emails: 300, clicks: 139, referrals: 22 },
-  { name: "Wed", emails: 200, clicks: 980, referrals: 22 },
-  { name: "Thu", emails: 278, clicks: 390, referrals: 20 },
-  { name: "Fri", emails: 189, clicks: 480, referrals: 21 },
-  { name: "Sat", emails: 239, clicks: 380, referrals: 25 },
-  { name: "Sun", emails: 349, clicks: 430, referrals: 21 },
+  { name: "Mon", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Tue", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Wed", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Thu", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Fri", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Sat", emails: 0, clicks: 0, referrals: 0 },
+  { name: "Sun", emails: 0, clicks: 0, referrals: 0 },
 ];
 
 export default function Dashboard() {
@@ -22,9 +22,9 @@ export default function Dashboard() {
             <Mail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,248</div>
-            <p className="text-xs text-emerald-500 font-medium flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" /> +20.1% from last month
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground font-medium flex items-center mt-1">
+              No data available yet
             </p>
           </CardContent>
         </Card>
@@ -34,9 +34,9 @@ export default function Dashboard() {
             <MousePointerClick className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,234</div>
-            <p className="text-xs text-emerald-500 font-medium flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" /> +19% from last month
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground font-medium flex items-center mt-1">
+              No data available yet
             </p>
           </CardContent>
         </Card>
@@ -46,9 +46,9 @@ export default function Dashboard() {
             <Send className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">342</div>
-            <p className="text-xs text-emerald-500 font-medium flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" /> +5% from last month
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground font-medium flex items-center mt-1">
+              No data available yet
             </p>
           </CardContent>
         </Card>
@@ -58,9 +58,9 @@ export default function Dashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-emerald-500 font-medium flex items-center mt-1">
-              <ArrowUpRight className="h-3 w-3 mr-1" /> +2 from last month
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground font-medium flex items-center mt-1">
+              No data available yet
             </p>
           </CardContent>
         </Card>

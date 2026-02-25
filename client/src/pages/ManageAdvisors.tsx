@@ -7,12 +7,7 @@ import { Search, Plus, CreditCard, MoreVertical } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 
-const advisors = [
-  { id: 1, name: "Sarah Jenkins", email: "sarah@advisorconnect.com", status: "Active", clients: 124, lastLogin: "2 hours ago" },
-  { id: 2, name: "Michael Chang", email: "michael@advisorconnect.com", status: "Active", clients: 89, lastLogin: "1 day ago" },
-  { id: 3, name: "Emma Watson", email: "emma@advisorconnect.com", status: "Inactive", clients: 45, lastLogin: "2 weeks ago" },
-  { id: 4, name: "David Roberts", email: "david@advisorconnect.com", status: "Active", clients: 210, lastLogin: "5 mins ago" },
-];
+const advisors: any[] = [];
 
 export default function ManageAdvisors() {
   return (
@@ -36,13 +31,13 @@ export default function ManageAdvisors() {
         <Card className="bg-primary text-primary-foreground border-transparent">
           <CardContent className="p-6">
             <div className="text-sm font-medium opacity-80 mb-1">Total Active Apps</div>
-            <div className="text-3xl font-bold">3 <span className="text-lg opacity-60 font-normal">/ 4 Total</span></div>
+            <div className="text-3xl font-bold">0 <span className="text-lg opacity-60 font-normal">/ 0 Total</span></div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
             <div className="text-sm font-medium text-muted-foreground mb-1">Total Clients Managed</div>
-            <div className="text-3xl font-bold">468</div>
+            <div className="text-3xl font-bold">0</div>
           </CardContent>
         </Card>
         <Card className="border-border bg-muted/30">
@@ -79,34 +74,42 @@ export default function ManageAdvisors() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {advisors.map((advisor) => (
-                <TableRow key={advisor.id} className="border-border">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs">
-                        {advisor.name.split(' ').map(n => n[0]).join('')}
-                      </div>
-                      <div className="font-medium text-sm">{advisor.name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{advisor.email}</TableCell>
-                  <TableCell className="font-medium">{advisor.clients}</TableCell>
-                  <TableCell className="text-muted-foreground text-sm">{advisor.lastLogin}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={advisor.status === "Active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground"}>
-                      {advisor.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Switch checked={advisor.status === "Active"} className="data-[state=checked]:bg-primary" />
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+              {advisors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    No advisors configured yet.
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                advisors.map((advisor) => (
+                  <TableRow key={advisor.id} className="border-border">
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs">
+                          {advisor.name.split(' ').map((n: string) => n[0]).join('')}
+                        </div>
+                        <div className="font-medium text-sm">{advisor.name}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{advisor.email}</TableCell>
+                    <TableCell className="font-medium">{advisor.clients}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{advisor.lastLogin}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className={advisor.status === "Active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground"}>
+                        {advisor.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Switch checked={advisor.status === "Active"} className="data-[state=checked]:bg-primary" />
+                    </TableCell>
+                    <TableCell>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

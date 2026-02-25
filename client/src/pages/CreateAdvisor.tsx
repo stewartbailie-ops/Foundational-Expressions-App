@@ -10,8 +10,8 @@ import { ArrowLeft, Upload, Link as LinkIcon, Download } from "lucide-react";
 import { Link } from "wouter";
 
 export default function CreateAdvisor() {
-  const [name, setName] = useState("Jane Doe");
-  const [email, setEmail] = useState("jane.doe@advisorconnect.app");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   
   // Create a unique mockup URL based on the name
   const formattedName = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : "new-advisor";
