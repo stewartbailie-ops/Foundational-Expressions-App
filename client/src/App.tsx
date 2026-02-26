@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
+import HomePage from "@/pages/HomePage";
 import Dashboard from "@/pages/Dashboard";
 import CIV from "@/pages/CIV";
 import ManageAdvisors from "@/pages/ManageAdvisors";
@@ -14,7 +15,8 @@ function Router() {
   return (
     <AppLayout>
       <Switch>
-        <Route path="/" component={Dashboard}/>
+        <Route path="/" component={HomePage}/>
+        <Route path="/stats" component={Dashboard}/>
         <Route path="/civ" component={CIV}/>
         <Route path="/manage" component={ManageAdvisors}/>
         <Route path="/create" component={CreateAdvisor}/>
