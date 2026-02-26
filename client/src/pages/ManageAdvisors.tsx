@@ -3,13 +3,39 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CreditCard, MoreVertical } from "lucide-react";
+import { Search, Plus, CreditCard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
-
-const advisors: any[] = [];
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useState } from "react";
+import type { Advisor } from "@shared/schema";
 
 export default function ManageAdvisors() {
+  const [search, setSearch] = useState("");
+
+  const { data: advisors = [], isLoading } = useQuery<Advisor[]>({
+    queryKey: ["/api/advisors"],
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
+      await apiRequest("PATCH", `/api/advisors/${id}/toggle`, { active });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+    },
+  });
+
+  const activeCount = advisors.filter((a) => a.active).length;
+  const filtered = advisors.filter(
+    (a) =>
+      search === "" ||
+      a.name.toLowerCase().includes(search.toLowerCase()) ||
+      a.email.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -19,7 +45,7 @@ export default function ManageAdvisors() {
         </div>
         <div className="flex gap-3">
           <Link href="/create">
-            <Button className="gap-2">
+            <Button className="gap-2" data-testid="button-new-advisor">
               <Plus className="h-4 w-4" />
               New Advisor
             </Button>
@@ -31,13 +57,15 @@ export default function ManageAdvisors() {
         <Card className="bg-primary text-primary-foreground border-transparent">
           <CardContent className="p-6">
             <div className="text-sm font-medium opacity-80 mb-1">Total Active Apps</div>
-            <div className="text-3xl font-bold">0 <span className="text-lg opacity-60 font-normal">/ 0 Total</span></div>
+            <div className="text-3xl font-bold" data-testid="text-active-count">
+              {activeCount} <span className="text-lg opacity-60 font-normal">/ {advisors.length} Total</span>
+            </div>
           </CardContent>
         </Card>
         <Card className="border-border">
           <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Total Clients Managed</div>
-            <div className="text-3xl font-bold">0</div>
+            <div className="text-sm font-medium text-muted-foreground mb-1">Total Advisors</div>
+            <div className="text-3xl font-bold" data-testid="text-total-advisors">{advisors.length}</div>
           </CardContent>
         </Card>
         <Card className="border-border bg-muted/30">
@@ -55,7 +83,13 @@ export default function ManageAdvisors() {
       <div className="flex justify-between items-center mb-2 mt-8">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search advisors by name or email..." className="pl-8 bg-background border-border" />
+          <Input
+            placeholder="Search advisors by name or email..."
+            className="pl-8 bg-background border-border"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            data-testid="input-search-advisors"
+          />
         </div>
       </div>
 
@@ -66,46 +100,54 @@ export default function ManageAdvisors() {
               <TableRow className="border-border hover:bg-transparent">
                 <TableHead>Advisor Profile</TableHead>
                 <TableHead>Custom Email</TableHead>
-                <TableHead>Clients</TableHead>
-                <TableHead>Last Active</TableHead>
+                <TableHead>Entity Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Active</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {advisors.length === 0 ? (
+              {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                    No advisors configured yet.
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
+                </TableRow>
+              ) : filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                    {advisors.length === 0 ? "No advisors configured yet." : "No advisors match your search."}
                   </TableCell>
                 </TableRow>
               ) : (
-                advisors.map((advisor) => (
-                  <TableRow key={advisor.id} className="border-border">
+                filtered.map((advisor) => (
+                  <TableRow key={advisor.id} className="border-border" data-testid={`row-advisor-${advisor.id}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs">
-                          {advisor.name.split(' ').map((n: string) => n[0]).join('')}
+                          {advisor.name.split(" ").map((n) => n[0]).join("")}
                         </div>
                         <div className="font-medium text-sm">{advisor.name}</div>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{advisor.email}</TableCell>
-                    <TableCell className="font-medium">{advisor.clients}</TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{advisor.lastLogin}</TableCell>
+                    <TableCell className="text-sm capitalize">{advisor.entityType}</TableCell>
                     <TableCell>
-                      <Badge variant="outline" className={advisor.status === "Active" ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground"}>
-                        {advisor.status}
+                      <Badge
+                        variant="outline"
+                        className={
+                          advisor.active
+                            ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20"
+                            : "bg-muted text-muted-foreground"
+                        }
+                      >
+                        {advisor.active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Switch checked={advisor.status === "Active"} className="data-[state=checked]:bg-primary" />
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
+                      <Switch
+                        checked={advisor.active}
+                        onCheckedChange={(checked) => toggleMutation.mutate({ id: advisor.id, active: checked })}
+                        className="data-[state=checked]:bg-primary"
+                        data-testid={`switch-advisor-${advisor.id}`}
+                      />
                     </TableCell>
                   </TableRow>
                 ))

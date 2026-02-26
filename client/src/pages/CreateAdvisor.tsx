@@ -1,30 +1,75 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QRCodeSVG } from "qrcode.react";
-import { ArrowLeft, Upload, Link as LinkIcon, Download } from "lucide-react";
-import { Link } from "wouter";
+import { ArrowLeft, Upload, Link as LinkIcon, Download, Loader2 } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function CreateAdvisor() {
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  
-  // Create a unique mockup URL based on the name
-  const formattedName = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, '-') : "new-advisor";
-  const profileUrl = `https://advisorconnect.app/${formattedName}`;
+  const [bio, setBio] = useState("");
+  const [entityType, setEntityType] = useState("individual");
+  const [themeColor, setThemeColor] = useState("#000000");
+  const [font, setFont] = useState("inter");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
+
+  const formattedSlug = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "new-advisor";
+  const profileUrl = `https://advisorconnect.app/${formattedSlug}`;
+
+  const createMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/advisors", {
+        name,
+        email,
+        bio: bio || null,
+        entityType,
+        themeColor,
+        font,
+        linkedinUrl: linkedinUrl || null,
+        websiteUrl: websiteUrl || null,
+        profileSlug: formattedSlug,
+        active: true,
+      });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({ title: "Advisor created", description: `${name} has been deployed successfully.` });
+      navigate("/manage");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const colors = [
+    { value: "#000000", label: "Black" },
+    { value: "#0f172a", label: "Slate" },
+    { value: "#2563eb", label: "Blue" },
+    { value: "#047857", label: "Emerald" },
+  ];
+
+  const isValid = name.trim() !== "" && email.trim() !== "";
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-        <Link href="/manage">
-          <a className="hover:text-foreground flex items-center gap-1 transition-colors">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Manage
-          </a>
+        <Link href="/manage" className="hover:text-foreground flex items-center gap-1 transition-colors" data-testid="link-back-manage">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Manage
         </Link>
       </div>
 
@@ -34,20 +79,25 @@ export default function CreateAdvisor() {
           <p className="text-muted-foreground mt-1">Configure and generate a new profile based on the master template.</p>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">Save Draft</Button>
-          <Button>Deploy Profile</Button>
+          <Button
+            onClick={() => createMutation.mutate()}
+            disabled={!isValid || createMutation.isPending}
+            data-testid="button-deploy"
+          >
+            {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+            Deploy Profile
+          </Button>
         </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-4">
         <div className="xl:col-span-2 space-y-8">
-          {/* Step 1: Basic Info */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</div>
               <h3 className="text-lg font-semibold">Profile Details</h3>
             </div>
-            
+
             <Card className="border-border">
               <CardContent className="p-6 space-y-6">
                 <div className="flex flex-col sm:flex-row gap-6">
@@ -58,22 +108,23 @@ export default function CreateAdvisor() {
                     <span className="text-sm font-medium">Upload Cover</span>
                     <span className="text-xs text-muted-foreground text-center mt-1">PNG, JPG up to 5MB</span>
                   </div>
-                  
+
                   <div className="w-full sm:w-2/3 space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="name">Full Name / Practice Name</Label>
-                      <Input 
-                        id="name" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
-                        placeholder="e.g. Jane Doe" 
+                      <Input
+                        id="name"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Jane Doe"
                         className="bg-background"
+                        data-testid="input-advisor-name"
                       />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="type">Entity Type</Label>
-                      <Select defaultValue="individual">
-                        <SelectTrigger className="bg-background">
+                      <Select value={entityType} onValueChange={setEntityType}>
+                        <SelectTrigger className="bg-background" data-testid="select-entity-type">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
                         <SelectContent>
@@ -88,17 +139,19 @@ export default function CreateAdvisor() {
 
                 <div className="space-y-2">
                   <Label htmlFor="bio">Professional Biography</Label>
-                  <Textarea 
-                    id="bio" 
-                    placeholder="Enter professional background, specialties, and experience..." 
-                    className="min-h-[120px] bg-background resize-none" 
+                  <Textarea
+                    id="bio"
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Enter professional background, specialties, and experience..."
+                    className="min-h-[120px] bg-background resize-none"
+                    data-testid="textarea-bio"
                   />
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Step 2: Customization */}
           <div className="space-y-4">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</div>
@@ -111,17 +164,24 @@ export default function CreateAdvisor() {
                   <div className="space-y-2">
                     <Label>Theme Color</Label>
                     <div className="flex gap-3">
-                      <div className="w-10 h-10 rounded-full bg-black border cursor-pointer ring-2 ring-offset-2 ring-black" />
-                      <div className="w-10 h-10 rounded-full bg-[#0f172a] border cursor-pointer hover:scale-110 transition-transform" />
-                      <div className="w-10 h-10 rounded-full bg-blue-600 border cursor-pointer hover:scale-110 transition-transform" />
-                      <div className="w-10 h-10 rounded-full bg-emerald-700 border cursor-pointer hover:scale-110 transition-transform" />
+                      {colors.map((c) => (
+                        <div
+                          key={c.value}
+                          onClick={() => setThemeColor(c.value)}
+                          className={`w-10 h-10 rounded-full border cursor-pointer transition-transform hover:scale-110 ${
+                            themeColor === c.value ? "ring-2 ring-offset-2 ring-primary" : ""
+                          }`}
+                          style={{ backgroundColor: c.value }}
+                          data-testid={`color-${c.label.toLowerCase()}`}
+                        />
+                      ))}
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2 pt-2">
                     <Label>Typography / Font</Label>
-                    <Select defaultValue="inter">
-                      <SelectTrigger className="bg-background">
+                    <Select value={font} onValueChange={setFont}>
+                      <SelectTrigger className="bg-background" data-testid="select-font">
                         <SelectValue placeholder="Select font" />
                       </SelectTrigger>
                       <SelectContent>
@@ -136,12 +196,14 @@ export default function CreateAdvisor() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Custom Routing Email</Label>
-                    <Input 
-                      id="email" 
-                      type="email" 
+                    <Input
+                      id="email"
+                      type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="bg-background" 
+                      placeholder="advisor@example.com"
+                      className="bg-background"
+                      data-testid="input-advisor-email"
                     />
                     <p className="text-xs text-muted-foreground">Referrals and call-back requests will be sent here.</p>
                   </div>
@@ -149,8 +211,7 @@ export default function CreateAdvisor() {
               </CardContent>
             </Card>
           </div>
-          
-          {/* Step 3: Links */}
+
           <div className="space-y-4">
             <div className="flex items-center gap-2 border-b border-border pb-2">
               <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
@@ -161,18 +222,29 @@ export default function CreateAdvisor() {
               <CardContent className="p-6 space-y-4">
                 <div className="flex items-center gap-3">
                   <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="LinkedIn Profile URL" className="bg-background" />
+                  <Input
+                    placeholder="LinkedIn Profile URL"
+                    className="bg-background"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    data-testid="input-linkedin"
+                  />
                 </div>
                 <div className="flex items-center gap-3">
                   <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                  <Input placeholder="Personal Website URL" className="bg-background" />
+                  <Input
+                    placeholder="Personal Website URL"
+                    className="bg-background"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    data-testid="input-website"
+                  />
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        {/* Sidebar: Dynamic Generation */}
         <div className="space-y-6">
           <div className="sticky top-24 space-y-6">
             <Card className="border-border shadow-md overflow-hidden relative">
@@ -182,23 +254,22 @@ export default function CreateAdvisor() {
               </CardHeader>
               <CardContent className="flex flex-col items-center justify-center p-8 bg-card">
                 <div className="p-4 bg-white rounded-xl shadow-sm border border-border mb-6">
-                  {/* Generated QR Code based on dynamic URL */}
-                  <QRCodeSVG 
-                    value={profileUrl} 
-                    size={180} 
+                  <QRCodeSVG
+                    value={profileUrl}
+                    size={180}
                     level="H"
                     includeMargin={true}
                     fgColor="#000000"
                     bgColor="#ffffff"
                   />
                 </div>
-                
+
                 <div className="w-full space-y-3">
                   <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unique Profile Link</div>
-                  <div className="p-3 bg-muted rounded-md text-sm font-mono break-all border border-border">
+                  <div className="p-3 bg-muted rounded-md text-sm font-mono break-all border border-border" data-testid="text-profile-url">
                     {profileUrl}
                   </div>
-                  <Button variant="outline" className="w-full gap-2 mt-2 bg-background">
+                  <Button variant="outline" className="w-full gap-2 mt-2 bg-background" data-testid="button-download-qr">
                     <Download className="h-4 w-4" />
                     Download QR Asset
                   </Button>
