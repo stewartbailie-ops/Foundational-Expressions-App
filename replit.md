@@ -34,6 +34,7 @@ Grades can be manually overridden via dropdown in CIV.
 - `GET /api/dashboard/stats` - Dashboard summary counts
 - `GET /api/dashboard/activity` - Weekly activity data for chart
 - `GET /api/advisors` - List all advisors
+- `GET /api/advisors/slug/:slug` - Lookup advisor by profile slug
 - `POST /api/advisors` - Create advisor
 - `PATCH /api/advisors/:id` - Update advisor
 - `PATCH /api/advisors/:id/toggle` - Toggle active/inactive
@@ -43,6 +44,13 @@ Grades can be manually overridden via dropdown in CIV.
 - `POST /api/referral` - Direct referral API (advisor apps post client details here for auto-grading)
 - `POST /api/webhook/inbound-email` - SendGrid Inbound Parse webhook
 - `POST /api/stats/access` - Record app access event
+
+## Client-Facing Referral Form
+- Public page at `/refer/:slug` (no sidebar, standalone layout)
+- Looks up advisor by profile slug, shows branded form with advisor's theme color
+- Collects: name, email, phone, age, income range, industry, message
+- Posts to `/api/referral` for auto-grading
+- QR codes from Create Advisor page point to this form URL
 
 ## Email/Referral Integration Notes
 - SendGrid is configured for sending emails via `@sendgrid/mail`

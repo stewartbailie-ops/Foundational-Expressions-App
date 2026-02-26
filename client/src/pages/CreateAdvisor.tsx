@@ -26,7 +26,7 @@ export default function CreateAdvisor() {
   const [websiteUrl, setWebsiteUrl] = useState("");
 
   const formattedSlug = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "new-advisor";
-  const profileUrl = `https://advisorconnect.app/${formattedSlug}`;
+  const profileUrl = `${window.location.origin}/refer/${formattedSlug}`;
 
   const createMutation = useMutation({
     mutationFn: async () => {

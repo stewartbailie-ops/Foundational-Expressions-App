@@ -29,6 +29,12 @@ export async function registerRoutes(
     res.json(advisors);
   });
 
+  app.get("/api/advisors/slug/:slug", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    res.json(advisor);
+  });
+
   app.get("/api/advisors/:id", async (req, res) => {
     const advisor = await storage.getAdvisor(Number(req.params.id));
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });

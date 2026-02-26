@@ -5,6 +5,7 @@ import { eq, desc, sql, count } from "drizzle-orm";
 export interface IStorage {
   getAdvisors(): Promise<Advisor[]>;
   getAdvisor(id: number): Promise<Advisor | undefined>;
+  getAdvisorBySlug(slug: string): Promise<Advisor | undefined>;
   createAdvisor(advisor: InsertAdvisor): Promise<Advisor>;
   updateAdvisor(id: number, data: Partial<InsertAdvisor>): Promise<Advisor | undefined>;
   toggleAdvisorActive(id: number, active: boolean): Promise<Advisor | undefined>;
@@ -30,6 +31,11 @@ export class DatabaseStorage implements IStorage {
 
   async getAdvisor(id: number): Promise<Advisor | undefined> {
     const [advisor] = await db.select().from(advisors).where(eq(advisors.id, id));
+    return advisor;
+  }
+
+  async getAdvisorBySlug(slug: string): Promise<Advisor | undefined> {
+    const [advisor] = await db.select().from(advisors).where(eq(advisors.profileSlug, slug));
     return advisor;
   }
 

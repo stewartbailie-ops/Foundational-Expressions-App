@@ -10,19 +10,25 @@ import Dashboard from "@/pages/Dashboard";
 import CIV from "@/pages/CIV";
 import ManageAdvisors from "@/pages/ManageAdvisors";
 import CreateAdvisor from "@/pages/CreateAdvisor";
+import ReferralForm from "@/pages/ReferralForm";
 
 function Router() {
   return (
-    <AppLayout>
-      <Switch>
-        <Route path="/" component={HomePage}/>
-        <Route path="/stats" component={Dashboard}/>
-        <Route path="/civ" component={CIV}/>
-        <Route path="/manage" component={ManageAdvisors}/>
-        <Route path="/create" component={CreateAdvisor}/>
-        <Route component={NotFound} />
-      </Switch>
-    </AppLayout>
+    <Switch>
+      <Route path="/refer/:slug" component={ReferralForm} />
+      <Route>
+        <AppLayout>
+          <Switch>
+            <Route path="/" component={HomePage}/>
+            <Route path="/stats" component={Dashboard}/>
+            <Route path="/civ" component={CIV}/>
+            <Route path="/manage" component={ManageAdvisors}/>
+            <Route path="/create" component={CreateAdvisor}/>
+            <Route component={NotFound} />
+          </Switch>
+        </AppLayout>
+      </Route>
+    </Switch>
   );
 }
 
