@@ -16,22 +16,22 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-black flex text-white">
       <aside className="w-72 bg-black flex flex-col hidden md:flex border-r border-white/10">
-        <div className="flex flex-col items-center py-8 px-6">
-          <img src={logoImg} alt="Advisory Connect" className="w-[16.5rem] mb-2" />
-          <p className="text-lg text-white/50 tracking-wide uppercase font-medium">Control Panel</p>
+        <div className="flex flex-col items-start px-3 pt-6 pb-2">
+          <img src={logoImg} alt="Advisory Connect" className="w-full mb-1" />
+          <p className="text-lg text-white tracking-wide uppercase font-medium px-1">Control Panel</p>
         </div>
 
-        <nav className="flex-1 py-4 px-5 space-y-2 flex flex-col items-center">
+        <nav className="flex-1 py-4 px-3 space-y-2 flex flex-col items-start">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center justify-center gap-3 w-full px-5 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   isActive
                     ? "bg-white text-black"
-                    : "text-white/60 hover:bg-white/10 hover:text-white"
+                    : "text-white hover:bg-white/10"
                 }`}
                 data-testid={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               >

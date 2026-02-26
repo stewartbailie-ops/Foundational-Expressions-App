@@ -44,7 +44,7 @@ export default function HomePage() {
         <div className="inline-flex items-center justify-center bg-black rounded-2xl px-8 py-6 mb-6">
           <img src={logoImg} alt="Advisory Connect" className="h-24" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-black">Welcome to Advisory Connect</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-black">Advisory Connect - Control Panel</h1>
         <p className="text-black/50 mt-3 text-lg max-w-xl mx-auto">
           Your central hub for managing advisor profiles, tracking referrals, and monitoring activity.
         </p>
