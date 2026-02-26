@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { LayoutDashboard, Inbox, Users, UserPlus, ArrowRight } from "lucide-react";
+import logoImg from "@assets/Advisory_Connect_1772075164954.png";
 
 export default function HomePage() {
   const { data: stats } = useQuery<{
@@ -40,10 +41,10 @@ export default function HomePage() {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center pt-4 pb-2">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-black rounded-2xl mb-6">
-          <span className="text-white font-black text-3xl tracking-tighter">AC</span>
+        <div className="inline-flex items-center justify-center bg-black rounded-2xl px-8 py-6 mb-6">
+          <img src={logoImg} alt="Advisory Connect" className="h-16" />
         </div>
-        <h1 className="text-4xl font-bold tracking-tight text-black">Welcome to Advisor Connect</h1>
+        <h1 className="text-4xl font-bold tracking-tight text-black">Welcome to Advisory Connect</h1>
         <p className="text-black/50 mt-3 text-lg max-w-xl mx-auto">
           Your central hub for managing advisor profiles, tracking referrals, and monitoring activity.
         </p>

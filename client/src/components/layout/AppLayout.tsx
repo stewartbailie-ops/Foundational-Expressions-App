@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
 import { Home, LayoutDashboard, Users, UserPlus, Inbox, Settings } from "lucide-react";
+import logoImg from "@assets/Advisory_Connect_1772075164954.png";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -15,15 +16,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-black flex text-white">
       <aside className="w-72 bg-black flex flex-col hidden md:flex border-r border-white/10">
-        <div className="flex flex-col items-center py-8 px-6 border-b border-white/10">
-          <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center mb-3">
-            <span className="text-black font-black text-xl tracking-tighter">AC</span>
-          </div>
-          <h1 className="font-bold text-xl tracking-tight text-white">Advisor Connect</h1>
-          <p className="text-xs text-white/50 mt-1 tracking-wide uppercase">Control Panel</p>
+        <div className="flex flex-col items-center py-8 px-6">
+          <img src={logoImg} alt="Advisory Connect" className="w-44 mb-2" />
+          <p className="text-xs text-white/50 tracking-wide uppercase">Control Panel</p>
         </div>
 
-        <nav className="flex-1 py-6 px-5 space-y-2 flex flex-col items-center">
+        <nav className="flex-1 py-4 px-5 space-y-2 flex flex-col items-center">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
