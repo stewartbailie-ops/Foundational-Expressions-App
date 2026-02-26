@@ -17,7 +17,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-black flex text-white">
       <aside className="w-72 bg-black flex flex-col hidden md:flex border-r border-white/10">
         <div className="flex flex-col items-center py-8 px-6">
-          <img src={logoImg} alt="Advisory Connect" className="w-44 mb-2" />
+          <img src={logoImg} alt="Advisory Connect" className="w-[16.5rem] mb-2" />
           <p className="text-xs text-white/50 tracking-wide uppercase">Control Panel</p>
         </div>
 

@@ -42,7 +42,7 @@ export default function HomePage() {
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center pt-4 pb-2">
         <div className="inline-flex items-center justify-center bg-black rounded-2xl px-8 py-6 mb-6">
-          <img src={logoImg} alt="Advisory Connect" className="h-16" />
+          <img src={logoImg} alt="Advisory Connect" className="h-24" />
         </div>
         <h1 className="text-4xl font-bold tracking-tight text-black">Welcome to Advisory Connect</h1>
         <p className="text-black/50 mt-3 text-lg max-w-xl mx-auto">
