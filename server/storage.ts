@@ -59,6 +59,11 @@ export class DatabaseStorage implements IStorage {
         grade: emails.grade,
         subject: emails.subject,
         body: emails.body,
+        clientAge: emails.clientAge,
+        clientIncome: emails.clientIncome,
+        clientIndustry: emails.clientIndustry,
+        clientPhone: emails.clientPhone,
+        source: emails.source,
         receivedAt: emails.receivedAt,
         advisorName: advisors.name,
       })

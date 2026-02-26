@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAdvisorSchema, insertEmailSchema } from "@shared/schema";
+import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
 import { isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 
@@ -10,7 +10,6 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  // ---- Dashboard ----
   app.get("/api/dashboard/stats", async (_req, res) => {
     const stats = await storage.getDashboardStats();
     res.json(stats);
@@ -25,7 +24,6 @@ export async function registerRoutes(
     res.json({ sendgrid: isSendGridConfigured() });
   });
 
-  // ---- Advisors ----
   app.get("/api/advisors", async (_req, res) => {
     const advisors = await storage.getAdvisors();
     res.json(advisors);
@@ -66,7 +64,6 @@ export async function registerRoutes(
     res.json(updated);
   });
 
-  // ---- Emails / CIV ----
   app.get("/api/emails", async (_req, res) => {
     const emails = await storage.getEmails();
     res.json(emails);
@@ -77,21 +74,24 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
-    const email = await storage.createEmail(parsed.data);
+    const data = parsed.data;
+    if (!data.grade || data.grade === "Silver") {
+      data.grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
+    }
+    const email = await storage.createEmail(data);
     res.status(201).json(email);
   });
 
   app.patch("/api/emails/:id/grade", async (req, res) => {
     const { grade } = req.body;
-    if (!grade || !["A", "B", "C"].includes(grade)) {
-      return res.status(400).json({ message: "grade must be A, B, or C" });
+    if (!grade || !GRADE_OPTIONS.includes(grade)) {
+      return res.status(400).json({ message: `grade must be one of: ${GRADE_OPTIONS.join(", ")}` });
     }
     const updated = await storage.updateEmailGrade(Number(req.params.id), grade);
     if (!updated) return res.status(404).json({ message: "Email not found" });
     res.json(updated);
   });
 
-  // ---- SendGrid Inbound Parse Webhook ----
   app.post("/api/webhook/inbound-email", async (req, res) => {
     try {
       const { from, to, subject, text: body } = req.body;
@@ -114,12 +114,14 @@ export async function registerRoutes(
                           (subject || "").toLowerCase().includes("callback");
       const type = isCallBack ? "Call Back" : "Referral";
 
+      const grade = autoGradeClient(null, null, null);
+
       await storage.createEmail({
         advisorId: targetAdvisor.id,
         senderName,
         senderEmail,
         type,
-        grade: "B",
+        grade,
         subject: subject || "",
         body: body || "",
       });
@@ -131,7 +133,50 @@ export async function registerRoutes(
     }
   });
 
-  // ---- Stats ----
+  app.post("/api/referral", async (req, res) => {
+    try {
+      const schema = z.object({
+        advisorId: z.number(),
+        clientName: z.string().min(1),
+        clientEmail: z.string().email(),
+        clientAge: z.number().optional(),
+        clientIncome: z.string().optional(),
+        clientIndustry: z.string().optional(),
+        clientPhone: z.string().optional(),
+        message: z.string().optional(),
+        source: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      }
+
+      const data = parsed.data;
+      const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
+
+      const email = await storage.createEmail({
+        advisorId: data.advisorId,
+        senderName: data.clientName,
+        senderEmail: data.clientEmail,
+        type: "Referral",
+        grade,
+        subject: `Referral from ${data.source || "advisor app"}`,
+        body: data.message || "",
+        clientAge: data.clientAge,
+        clientIncome: data.clientIncome,
+        clientIndustry: data.clientIndustry,
+        clientPhone: data.clientPhone,
+        source: data.source,
+      });
+
+      res.status(201).json({ message: "Referral received", grade, email });
+    } catch (error) {
+      console.error("Referral error:", error);
+      res.status(500).json({ message: "Failed to process referral" });
+    }
+  });
+
   app.post("/api/stats/access", async (req, res) => {
     const { advisorId } = req.body;
     await storage.recordStat({ advisorId: advisorId || null, eventType: "app_access" });

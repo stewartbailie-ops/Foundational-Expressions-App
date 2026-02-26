@@ -32,9 +32,14 @@ export const emails = pgTable("emails", {
   senderName: text("sender_name").notNull(),
   senderEmail: text("sender_email").notNull(),
   type: text("type").notNull().default("Referral"),
-  grade: text("grade").default("B"),
+  grade: text("grade").default("Silver"),
   subject: text("subject"),
   body: text("body"),
+  clientAge: integer("client_age"),
+  clientIncome: text("client_income"),
+  clientIndustry: text("client_industry"),
+  clientPhone: text("client_phone"),
+  source: text("source"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
 });
 
@@ -44,6 +49,30 @@ export const insertEmailSchema = createInsertSchema(emails).omit({
 });
 export type InsertEmail = z.infer<typeof insertEmailSchema>;
 export type Email = typeof emails.$inferSelect;
+
+export const GRADE_OPTIONS = ["Gold", "Silver", "Bronze", "Development"] as const;
+export type GradeType = typeof GRADE_OPTIONS[number];
+
+export function autoGradeClient(age?: number | null, income?: string | null, industry?: string | null): GradeType {
+  const incomeNum = parseIncomeToNumber(income);
+
+  if (age && age >= 60) return "Development";
+  if (age && age >= 35 && age <= 55 && incomeNum >= 100000) return "Gold";
+  if (age && age >= 35 && incomeNum >= 100000) return "Gold";
+  if (industry && industry.toLowerCase().includes("it")) return "Gold";
+  if (age && age >= 27 && age <= 35 && incomeNum >= 65000) return "Silver";
+  if (age && age >= 18 && age <= 27 && incomeNum <= 25000) return "Bronze";
+  if (incomeNum >= 100000) return "Gold";
+  if (incomeNum >= 65000) return "Silver";
+  if (incomeNum > 0 && incomeNum <= 25000) return "Bronze";
+  return "Silver";
+}
+
+function parseIncomeToNumber(income?: string | null): number {
+  if (!income) return 0;
+  const cleaned = income.replace(/[^0-9.]/g, "");
+  return parseFloat(cleaned) || 0;
+}
 
 export const stats = pgTable("stats", {
   id: serial("id").primaryKey(),
