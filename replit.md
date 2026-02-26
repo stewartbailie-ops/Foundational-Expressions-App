@@ -38,25 +38,33 @@ Grades can be manually overridden via dropdown in CIV.
 - `POST /api/advisors` - Create advisor
 - `PATCH /api/advisors/:id` - Update advisor
 - `PATCH /api/advisors/:id/toggle` - Toggle active/inactive
-- `GET /api/emails` - List all emails with advisor names and client details
+- `GET /api/emails` - List all emails with advisor names and full client details
 - `POST /api/emails` - Create email record (auto-grades client)
 - `PATCH /api/emails/:id/grade` - Update email grade (Gold/Silver/Bronze/Development)
-- `POST /api/referral` - Direct referral API (advisor apps post client details here for auto-grading)
+- `POST /api/referral` - Referral API (accepts all Advisor Connect template fields + referrer info)
+- `POST /api/callback` - Callback request API (accepts all template fields)
+- `POST /api/webhook/zoho` - Zoho Mail webhook endpoint
 - `POST /api/webhook/inbound-email` - SendGrid Inbound Parse webhook
 - `POST /api/stats/access` - Record app access event
 
-## Client-Facing Referral Form
-- Public page at `/refer/:slug` (no sidebar, standalone layout)
-- Looks up advisor by profile slug, shows branded form with advisor's theme color
-- Collects: name, email, phone, age, income range, industry, message
-- Posts to `/api/referral` for auto-grading
-- QR codes from Create Advisor page point to this form URL
+## Client Data Fields (from Advisor Connect template)
+Core: name, email, phone, age, income range, industry
+Profile: married, children, vehicle, property
+Contact: preferred contact time, services requested
+Referrer: referrer name, email, phone, relationship
+
+## Integration Architecture
+- Each advisor gets a cloned Advisor Connect app (template: @stewartbailie/Advisor-Connect-Chris-Zeeman)
+- Advisor Connect apps use Zoho Mail for email
+- Zoho forwards email data to this control panel via `/api/webhook/zoho`
+- Advisor Connect apps POST form submissions directly to `/api/referral` and `/api/callback`
+- No built-in Zoho integration on Replit — Zoho Flow or forwarding rules push data to webhook URL
 
 ## Email/Referral Integration Notes
-- SendGrid is configured for sending emails via `@sendgrid/mail`
-- Inbound email webhook at `/api/webhook/inbound-email` ready for SendGrid Inbound Parse
-- Direct referral API at `/api/referral` for advisor apps to submit structured client data with auto-grading
-- The AgentMail integration was dismissed; using SendGrid API key directly instead
+- SendGrid configured for sending outbound emails via `@sendgrid/mail`
+- Zoho webhook at `/api/webhook/zoho` for inbound email processing
+- SendGrid webhook at `/api/webhook/inbound-email` as fallback
+- The AgentMail integration was dismissed
 
 ## File Structure
 - `shared/schema.ts` - Drizzle schema + autoGradeClient() logic

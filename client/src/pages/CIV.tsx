@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, User } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -24,6 +24,16 @@ type EmailRow = {
   clientIncome: string | null;
   clientIndustry: string | null;
   clientPhone: string | null;
+  clientMarried: boolean | null;
+  clientChildren: boolean | null;
+  clientVehicle: boolean | null;
+  clientProperty: boolean | null;
+  preferredContactTime: string | null;
+  servicesRequested: string | null;
+  referrerName: string | null;
+  referrerEmail: string | null;
+  referrerPhone: string | null;
+  referrerRelation: string | null;
   source: string | null;
   receivedAt: string;
   advisorName: string;
@@ -43,9 +53,20 @@ const gradeDot: Record<string, string> = {
   Development: "bg-blue-500",
 };
 
+function BoolBadge({ value, label }: { value: boolean | null; label: string }) {
+  if (value === null || value === undefined) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${value ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+      {value ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
+      {label}
+    </span>
+  );
+}
+
 export default function CIV() {
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: emails = [], isLoading } = useQuery<EmailRow[]>({
@@ -66,9 +87,11 @@ export default function CIV() {
       e.senderName.toLowerCase().includes(search.toLowerCase()) ||
       e.senderEmail.toLowerCase().includes(search.toLowerCase()) ||
       e.advisorName.toLowerCase().includes(search.toLowerCase()) ||
-      (e.clientIndustry || "").toLowerCase().includes(search.toLowerCase());
+      (e.clientIndustry || "").toLowerCase().includes(search.toLowerCase()) ||
+      (e.referrerName || "").toLowerCase().includes(search.toLowerCase());
     const matchGrade = gradeFilter === "all" || (e.grade || "").toLowerCase() === gradeFilter.toLowerCase();
-    return matchSearch && matchGrade;
+    const matchType = typeFilter === "all" || e.type === typeFilter;
+    return matchSearch && matchGrade && matchType;
   });
 
   const gradeCounts = {
@@ -78,13 +101,18 @@ export default function CIV() {
     Development: emails.filter(e => e.grade === "Development").length,
   };
 
+  const typeCounts = {
+    Referral: emails.filter(e => e.type === "Referral").length,
+    "Call Back": emails.filter(e => e.type === "Call Back").length,
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight" data-testid="text-civ-title">Client Information Viewer</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Sort and grade all incoming client referrals and feedback.
+            Sort and grade all incoming client referrals, callbacks, and feedback.
           </p>
         </div>
       </div>
@@ -114,20 +142,45 @@ export default function CIV() {
         ))}
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search clients, advisors, industry..."
+            placeholder="Search clients, advisors, referrers..."
             className="pl-8 bg-background border-border"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-civ"
           />
         </div>
-        {gradeFilter !== "all" && (
-          <Button variant="outline" size="sm" onClick={() => setGradeFilter("all")} data-testid="button-clear-filter">
-            Clear filter
+        <div className="flex gap-2">
+          <button
+            onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              typeFilter === "Referral" ? "bg-black text-white border-black" : "bg-background border-border hover:bg-muted"
+            }`}
+            data-testid="filter-type-referral"
+          >
+            Referrals ({typeCounts.Referral})
+          </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "Call Back" ? "all" : "Call Back")}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              typeFilter === "Call Back" ? "bg-black text-white border-black" : "bg-background border-border hover:bg-muted"
+            }`}
+            data-testid="filter-type-callback"
+          >
+            Call Backs ({typeCounts["Call Back"]})
+          </button>
+        </div>
+        {(gradeFilter !== "all" || typeFilter !== "all") && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { setGradeFilter("all"); setTypeFilter("all"); }}
+            data-testid="button-clear-filter"
+          >
+            Clear all filters
           </Button>
         )}
       </div>
@@ -144,7 +197,6 @@ export default function CIV() {
                 <TableHead>Type</TableHead>
                 <TableHead>Age</TableHead>
                 <TableHead>Income</TableHead>
-                <TableHead>Industry</TableHead>
                 <TableHead>Grade</TableHead>
                 <TableHead className="w-[40px]"></TableHead>
               </TableRow>
@@ -152,11 +204,11 @@ export default function CIV() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
                     {emails.length === 0 ? "No client submissions received yet." : "No entries match your filters."}
                   </TableCell>
                 </TableRow>
@@ -191,13 +243,10 @@ export default function CIV() {
                       </TableCell>
                       <TableCell className="text-sm">{email.clientAge ?? "—"}</TableCell>
                       <TableCell className="text-sm">{email.clientIncome || "—"}</TableCell>
-                      <TableCell className="text-sm">{email.clientIndustry || "—"}</TableCell>
                       <TableCell>
                         <Select
                           value={email.grade || "Silver"}
-                          onValueChange={(grade) => {
-                            gradeMutation.mutate({ id: email.id, grade });
-                          }}
+                          onValueChange={(grade) => gradeMutation.mutate({ id: email.id, grade })}
                         >
                           <SelectTrigger
                             className={`w-[120px] h-8 text-xs border ${gradeStyles[email.grade || "Silver"] || ""}`}
@@ -227,32 +276,75 @@ export default function CIV() {
                     </TableRow>
                     {expandedId === email.id && (
                       <TableRow key={`detail-${email.id}`} className="bg-muted/30 border-border">
-                        <TableCell colSpan={10}>
-                          <div className="py-3 px-2 space-y-3">
+                        <TableCell colSpan={9}>
+                          <div className="py-4 px-2 space-y-4">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-0.5">Phone</span>
-                                <span className="font-medium">{email.clientPhone || "Not provided"}</span>
+                                <span className="font-medium" data-testid={`text-phone-${email.id}`}>{email.clientPhone || "Not provided"}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs block mb-0.5">Industry</span>
+                                <span className="font-medium" data-testid={`text-industry-${email.id}`}>{email.clientIndustry || "Not specified"}</span>
+                              </div>
+                              <div>
+                                <span className="text-muted-foreground text-xs block mb-0.5">Preferred Contact Time</span>
+                                <span className="font-medium" data-testid={`text-contact-time-${email.id}`}>{email.preferredContactTime || "Not specified"}</span>
                               </div>
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-0.5">Source</span>
-                                <span className="font-medium">{email.source || "Not specified"}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground text-xs block mb-0.5">Subject</span>
-                                <span className="font-medium">{email.subject || "No subject"}</span>
-                              </div>
-                              <div>
-                                <span className="text-muted-foreground text-xs block mb-0.5">Received</span>
-                                <span className="font-medium">{format(new Date(email.receivedAt), "PPpp")}</span>
+                                <span className="font-medium" data-testid={`text-source-${email.id}`}>{email.source || "Not specified"}</span>
                               </div>
                             </div>
+
+                            <div className="flex flex-wrap gap-2" data-testid={`badges-profile-${email.id}`}>
+                              <BoolBadge value={email.clientMarried} label="Married" />
+                              <BoolBadge value={email.clientChildren} label="Children" />
+                              <BoolBadge value={email.clientVehicle} label="Vehicle" />
+                              <BoolBadge value={email.clientProperty} label="Property" />
+                            </div>
+
+                            {email.servicesRequested && (
+                              <div>
+                                <span className="text-muted-foreground text-xs block mb-1">Services Requested</span>
+                                <p className="text-sm font-medium" data-testid={`text-services-${email.id}`}>{email.servicesRequested}</p>
+                              </div>
+                            )}
+
+                            {(email.referrerName || email.referrerEmail) && (
+                              <div className="bg-background rounded-lg p-3 border">
+                                <span className="text-muted-foreground text-xs block mb-1.5">Referred By</span>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground text-xs">Name</span>
+                                    <div className="font-medium" data-testid={`text-referrer-name-${email.id}`}>{email.referrerName || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground text-xs">Email</span>
+                                    <div className="font-medium" data-testid={`text-referrer-email-${email.id}`}>{email.referrerEmail || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground text-xs">Phone</span>
+                                    <div className="font-medium" data-testid={`text-referrer-phone-${email.id}`}>{email.referrerPhone || "—"}</div>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground text-xs">Relationship</span>
+                                    <div className="font-medium" data-testid={`text-referrer-relation-${email.id}`}>{email.referrerRelation || "—"}</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {email.body && (
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-1">Message</span>
-                                <p className="text-sm bg-background rounded-lg p-3 border">{email.body}</p>
+                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-message-${email.id}`}>{email.body}</p>
                               </div>
                             )}
+
+                            <div className="text-xs text-muted-foreground">
+                              Received: {format(new Date(email.receivedAt), "PPpp")}
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
