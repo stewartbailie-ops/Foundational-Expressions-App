@@ -52,7 +52,7 @@ export default function CallbackForm() {
     vehicle: false,
     property: false,
     preferredContactTime: "",
-    servicesRequested: [] as string[],
+    servicesRequested: "",
     confirmOver18: false,
     confirmNotRobot: false,
   });
@@ -144,15 +144,6 @@ export default function CallbackForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const toggleService = (serviceName: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      servicesRequested: prev.servicesRequested.includes(serviceName)
-        ? prev.servicesRequested.filter((s) => s !== serviceName)
-        : [...prev.servicesRequested, serviceName],
-    }));
-  };
-
   const canSubmit =
     formData.firstName.trim() &&
     formData.surname.trim() &&
@@ -179,7 +170,7 @@ export default function CallbackForm() {
       clientVehicle: formData.vehicle,
       clientProperty: formData.property,
       preferredContactTime: formData.preferredContactTime,
-      servicesRequested: formData.servicesRequested.join(", "),
+      servicesRequested: formData.servicesRequested,
       source: "callback-form",
     });
   };
@@ -351,25 +342,17 @@ export default function CallbackForm() {
             {allServices.length > 0 && (
               <div>
                 <label style={labelStyle}>What would you like assistance with?</label>
-                <div className="space-y-2 mt-2">
+                <select
+                  value={formData.servicesRequested}
+                  onChange={(e) => update("servicesRequested", e.target.value)}
+                  style={selectStyle}
+                  data-testid="select-services"
+                >
+                  <option value="" style={optionStyle}>Select services...</option>
                   {allServices.map((s) => (
-                    <label
-                      key={s.key}
-                      className="flex items-center gap-2 text-sm cursor-pointer"
-                      style={{ color: textColor }}
-                      data-testid={`toggle-service-${s.key}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={formData.servicesRequested.includes(s.name)}
-                        onChange={() => toggleService(s.name)}
-                        className="w-4 h-4 rounded"
-                        data-testid={`checkbox-service-${s.key}`}
-                      />
-                      <span className="text-xs">{s.name}</span>
-                    </label>
+                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
           </div>

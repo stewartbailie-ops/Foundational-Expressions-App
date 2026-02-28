@@ -53,7 +53,7 @@ interface ReferralEntry {
   property: boolean;
   relationship: string;
   preferredContactTime: string;
-  servicesRequested: string[];
+  servicesRequested: string;
   confirmedOver18: boolean;
   confirmNotRobot: boolean;
 }
@@ -72,7 +72,7 @@ function emptyReferral(): ReferralEntry {
     property: false,
     relationship: "",
     preferredContactTime: "",
-    servicesRequested: [],
+    servicesRequested: "",
     confirmedOver18: false,
     confirmNotRobot: false,
   };
@@ -117,20 +117,6 @@ export default function ReferralForm() {
     setReferrals((prev) => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
-  };
-
-  const toggleReferralService = (index: number, serviceName: string) => {
-    setReferrals((prev) => {
-      const updated = [...prev];
-      const current = updated[index].servicesRequested;
-      updated[index] = {
-        ...updated[index],
-        servicesRequested: current.includes(serviceName)
-          ? current.filter((s) => s !== serviceName)
-          : [...current, serviceName],
-      };
       return updated;
     });
   };
@@ -183,7 +169,7 @@ export default function ReferralForm() {
           clientVehicle: ref.vehicle,
           clientProperty: ref.property,
           preferredContactTime: ref.preferredContactTime || undefined,
-          servicesRequested: ref.servicesRequested.join(", ") || undefined,
+          servicesRequested: ref.servicesRequested || undefined,
           referrerName: `${referrerFirstName} ${referrerSurname}`,
           referrerEmail: referrerEmail,
           referrerPhone: referrerPhone || undefined,
@@ -533,24 +519,17 @@ export default function ReferralForm() {
             {allServices.length > 0 && (
               <div>
                 <label style={labelStyle}>What you believe they may need help with</label>
-                <div className="space-y-2 mt-2">
+                <select
+                  value={ref.servicesRequested}
+                  onChange={(e) => updateReferral(index, "servicesRequested", e.target.value)}
+                  style={selectStyle}
+                  data-testid={`select-referral-services-${index}`}
+                >
+                  <option value="" style={optionStyle}>Select services...</option>
                   {allServices.map((s) => (
-                    <label
-                      key={s.key}
-                      className="flex items-center gap-2 text-xs cursor-pointer"
-                      style={{ color: textColor }}
-                      data-testid={`toggle-referral-service-${s.key}-${index}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={ref.servicesRequested.includes(s.name)}
-                        onChange={() => toggleReferralService(index, s.name)}
-                        className="w-4 h-4 rounded"
-                      />
-                      <span>{s.name}</span>
-                    </label>
+                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
                   ))}
-                </div>
+                </select>
               </div>
             )}
 
