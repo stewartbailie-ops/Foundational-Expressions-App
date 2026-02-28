@@ -9,10 +9,15 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/session",
   "/api/auth/logout",
+  "/uploads/",
 ];
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.path.startsWith("/api/")) {
+  if (!req.path.startsWith("/api/") && !req.path.startsWith("/uploads/")) {
+    return next();
+  }
+
+  if (req.path.startsWith("/uploads/")) {
     return next();
   }
 

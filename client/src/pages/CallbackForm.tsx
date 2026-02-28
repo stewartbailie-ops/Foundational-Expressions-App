@@ -4,6 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { getThemeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
   return name
@@ -92,15 +93,16 @@ export default function CallbackForm() {
     );
   }
 
-  const isDark = advisor.theme !== "pink";
-  const accentColor = isDark ? "#ffffff" : "#be185d";
-  const bgColor = isDark ? "#0a0a0a" : "#fff0f5";
-  const textColor = isDark ? "#ffffff" : "#1a1a1a";
-  const mutedText = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
-  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)";
-  const borderColor = isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)";
-  const inputBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.9)";
-  const inputBorder = isDark ? "rgba(255,255,255,0.2)" : "rgba(190,24,93,0.25)";
+  const tc = getThemeColors(advisor.theme);
+  const isDark = tc.isDark;
+  const accentColor = tc.accentColor;
+  const bgColor = tc.bgColor;
+  const textColor = tc.textColor;
+  const mutedText = tc.mutedText;
+  const cardBg = tc.cardBg;
+  const borderColor = tc.borderColor;
+  const inputBg = tc.inputBg;
+  const inputBorder = tc.inputBorder;
   const initials = getInitials(advisor.name);
 
   const allServices = [
@@ -156,7 +158,7 @@ export default function CallbackForm() {
     return (
       <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: bgColor, color: textColor }}>
         <div className="text-center space-y-4 max-w-sm">
-          <CheckCircle2 className="h-16 w-16 mx-auto" style={{ color: isDark ? "#22c55e" : "#be185d" }} />
+          <CheckCircle2 className="h-16 w-16 mx-auto" style={{ color: tc.successColor }} />
           <h2 className="text-2xl font-bold" data-testid="text-success-title">Request Submitted</h2>
           <p className="text-sm" style={{ color: mutedText }} data-testid="text-success-message">
             Thank you! {advisor.name} will be in touch with you shortly.
@@ -191,7 +193,7 @@ export default function CallbackForm() {
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.15)",
+                backgroundColor: tc.initialsCircleBg,
                 color: accentColor,
                 border: `1px solid ${borderColor}`,
               }}
@@ -295,7 +297,7 @@ export default function CallbackForm() {
           </div>
 
           <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: cardBg }}>
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: isDark ? "rgba(255,255,255,0.85)" : "#be185d" }}>
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>
               Your Situation
             </p>
             <div className="grid grid-cols-2 gap-3">
@@ -317,8 +319,8 @@ export default function CallbackForm() {
                     className="w-10 h-5 rounded-full relative transition-colors"
                     style={{
                       backgroundColor: formData[key]
-                        ? (isDark ? "#ffffff" : "#be185d")
-                        : (isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)"),
+                        ? tc.checkActive
+                        : tc.checkInactive,
                     }}
                     data-testid={`switch-${key}`}
                   >
@@ -326,8 +328,8 @@ export default function CallbackForm() {
                       className="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
                       style={{
                         backgroundColor: formData[key]
-                          ? (isDark ? "#000000" : "#ffffff")
-                          : (isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.3)"),
+                          ? tc.checkDotActive
+                          : tc.checkDotInactive,
                         left: formData[key] ? "calc(100% - 1.125rem)" : "0.125rem",
                       }}
                     />
@@ -396,8 +398,8 @@ export default function CallbackForm() {
             disabled={!formData.confirmOver18 || mutation.isPending}
             className="w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{
-              backgroundColor: isDark ? "#ffffff" : "#be185d",
-              color: isDark ? "#000000" : "#ffffff",
+              backgroundColor: tc.buttonBg,
+              color: tc.buttonText,
             }}
             data-testid="button-submit-callback"
           >

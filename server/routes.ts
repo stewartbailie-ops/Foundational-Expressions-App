@@ -4,6 +4,25 @@ import { storage } from "./storage";
 import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
 import { isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
+import multer from "multer";
+import path from "path";
+import { randomUUID } from "crypto";
+
+const uploadStorage = multer.diskStorage({
+  destination: "uploads/",
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `${randomUUID()}${ext}`);
+  },
+});
+const upload = multer({
+  storage: uploadStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    cb(null, allowed.includes(file.mimetype));
+  },
+});
 
 export async function registerRoutes(
   httpServer: Server,
@@ -31,6 +50,16 @@ export async function registerRoutes(
     req.session.destroy(() => {
       res.json({ authenticated: false });
     });
+  });
+
+  app.use("/uploads", (await import("express")).default.static("uploads"));
+
+  app.post("/api/upload/profile-pic", upload.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded or invalid file type" });
+    }
+    const url = `/uploads/${req.file.filename}`;
+    res.json({ url });
   });
 
   app.get("/api/dashboard/stats", async (_req, res) => {

@@ -5,6 +5,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Loader2, AlertCircle, CheckCircle2, Plus, Trash2, ArrowLeft } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { getThemeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
   return name
@@ -94,16 +95,17 @@ export default function ReferralForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
 
-  const isDark = advisor?.theme !== "pink";
-  const accentColor = isDark ? "#ffffff" : "#be185d";
-  const bgColor = isDark ? "#0a0a0a" : "#fff0f5";
-  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)";
-  const textColor = isDark ? "#ffffff" : "#1a1a1a";
-  const mutedText = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
-  const sectionTitle = isDark ? "rgba(255,255,255,0.85)" : "#be185d";
-  const inputBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.9)";
-  const inputBorder = isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)";
-  const inputText = isDark ? "#ffffff" : "#1a1a1a";
+  const tc = getThemeColors(advisor?.theme);
+  const isDark = tc.isDark;
+  const accentColor = tc.accentColor;
+  const bgColor = tc.bgColor;
+  const cardBg = tc.cardBg;
+  const textColor = tc.textColor;
+  const mutedText = tc.mutedText;
+  const sectionTitle = tc.sectionTitle;
+  const inputBg = tc.inputBg;
+  const inputBorder = tc.inputBorder;
+  const inputText = tc.textColor;
 
   const allServices = [
     ...INDIVIDUAL_SERVICES.filter((s) => advisor?.individualServices?.includes(s.key)),
@@ -229,7 +231,7 @@ export default function ReferralForm() {
             onClick={() => window.history.back()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium mt-4"
             style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.12)",
+              backgroundColor: tc.buttonSecondaryBg,
               color: accentColor,
             }}
             data-testid="button-back"
@@ -298,7 +300,7 @@ export default function ReferralForm() {
             <div
               className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.15)",
+                backgroundColor: tc.initialsCircleBg,
                 color: accentColor,
                 border: `1px solid ${inputBorder}`,
               }}
@@ -395,7 +397,7 @@ export default function ReferralForm() {
                 <button
                   onClick={() => removeReferral(index)}
                   className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-                  style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}
+                  style={{ color: mutedText }}
                   data-testid={`button-remove-referral-${index}`}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -590,7 +592,7 @@ export default function ReferralForm() {
             onClick={addReferral}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
             style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(190,24,93,0.08)",
+              backgroundColor: tc.buttonSecondaryBg,
               color: accentColor,
               border: `1px dashed ${inputBorder}`,
             }}
@@ -606,8 +608,8 @@ export default function ReferralForm() {
           disabled={!canSubmit || submitting}
           className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
           style={{
-            backgroundColor: isDark ? "#ffffff" : "#be185d",
-            color: isDark ? "#000000" : "#ffffff",
+            backgroundColor: tc.buttonBg,
+            color: tc.buttonText,
           }}
           data-testid="button-submit-referrals"
         >

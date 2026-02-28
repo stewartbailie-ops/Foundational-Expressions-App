@@ -5,6 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { getThemeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
   return name
@@ -17,12 +18,16 @@ function getInitials(name: string): string {
 
 function ServiceDropdown({
   service,
-  isDark,
-  accentColor,
+  borderColor,
+  cardBg,
+  textColor,
+  mutedText,
 }: {
   service: { key: string; name: string; description: string };
-  isDark: boolean;
-  accentColor: string;
+  borderColor: string;
+  cardBg: string;
+  textColor: string;
+  mutedText: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -30,15 +35,15 @@ function ServiceDropdown({
     <div
       className="border rounded-lg overflow-hidden"
       style={{
-        borderColor: isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)",
-        backgroundColor: isDark ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.6)",
+        borderColor,
+        backgroundColor: cardBg,
       }}
       data-testid={`service-${service.key}`}
     >
       <button
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between px-4 py-3 text-left"
-        style={{ color: isDark ? "#ffffff" : "#1a1a1a" }}
+        style={{ color: textColor }}
         data-testid={`button-toggle-${service.key}`}
       >
         <span className="font-medium text-sm">{service.name}</span>
@@ -47,7 +52,7 @@ function ServiceDropdown({
       {open && (
         <div
           className="px-4 pb-3 text-sm leading-relaxed"
-          style={{ color: isDark ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.65)" }}
+          style={{ color: mutedText }}
           data-testid={`description-${service.key}`}
         >
           {service.description}
@@ -103,13 +108,14 @@ export default function AdvisorProfile() {
     );
   }
 
-  const isDark = advisor.theme !== "pink";
-  const accentColor = isDark ? "#ffffff" : "#be185d";
-  const bgColor = isDark ? "#0a0a0a" : "#fff0f5";
-  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)";
-  const textColor = isDark ? "#ffffff" : "#1a1a1a";
-  const mutedText = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
-  const sectionTitle = isDark ? "rgba(255,255,255,0.85)" : "#be185d";
+  const tc = getThemeColors(advisor.theme);
+  const isDark = tc.isDark;
+  const accentColor = tc.accentColor;
+  const bgColor = tc.bgColor;
+  const cardBg = tc.cardBg;
+  const textColor = tc.textColor;
+  const mutedText = tc.mutedText;
+  const sectionTitle = tc.sectionTitle;
 
   const bioText =
     advisor.bioOption === "custom"
@@ -139,16 +145,16 @@ export default function AdvisorProfile() {
               src={advisor.profilePicUrl}
               alt={advisor.name}
               className="w-28 h-28 rounded-full object-cover border-2"
-              style={{ borderColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(190,24,93,0.3)" }}
+              style={{ borderColor: tc.initialsCircleBorder }}
               data-testid="img-profile-pic"
             />
           ) : (
             <div
               className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.15)",
+                backgroundColor: tc.initialsCircleBg,
                 color: accentColor,
-                border: `2px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(190,24,93,0.3)"}`,
+                border: `2px solid ${tc.initialsCircleBorder}`,
               }}
               data-testid="icon-initials"
             >
@@ -192,7 +198,7 @@ export default function AdvisorProfile() {
             </h2>
             <div className="space-y-2">
               {individualServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} isDark={isDark} accentColor={accentColor} />
+                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />
               ))}
             </div>
           </div>
@@ -208,7 +214,7 @@ export default function AdvisorProfile() {
             </h2>
             <div className="space-y-2">
               {corporateServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} isDark={isDark} accentColor={accentColor} />
+                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />
               ))}
             </div>
           </div>
@@ -222,9 +228,9 @@ export default function AdvisorProfile() {
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
               style={{
-                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.12)",
+                backgroundColor: tc.buttonSecondaryBg,
                 color: accentColor,
-                border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)"}`,
+                border: `1px solid ${tc.borderColor}`,
               }}
               data-testid="link-linkedin"
             >
@@ -241,9 +247,9 @@ export default function AdvisorProfile() {
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
             style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.12)",
+              backgroundColor: tc.buttonSecondaryBg,
               color: accentColor,
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)"}`,
+              border: `1px solid ${tc.borderColor}`,
             }}
             data-testid="link-website"
           >
@@ -257,8 +263,8 @@ export default function AdvisorProfile() {
             onClick={() => navigate(`/profile/${slug}/request-callback`)}
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: isDark ? "#ffffff" : "#be185d",
-              color: isDark ? "#000000" : "#ffffff",
+              backgroundColor: tc.buttonBg,
+              color: tc.buttonText,
             }}
             data-testid="button-request-callback"
           >
@@ -269,9 +275,9 @@ export default function AdvisorProfile() {
             onClick={() => navigate(`/profile/${slug}/referrals`)}
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
             style={{
-              backgroundColor: isDark ? "rgba(255,255,255,0.12)" : "rgba(190,24,93,0.15)",
+              backgroundColor: tc.buttonSecondaryBg,
               color: accentColor,
-              border: `1px solid ${isDark ? "rgba(255,255,255,0.2)" : "rgba(190,24,93,0.3)"}`,
+              border: `1px solid ${tc.initialsCircleBorder}`,
             }}
             data-testid="button-refer-friends"
           >

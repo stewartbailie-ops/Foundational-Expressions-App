@@ -1,18 +1,21 @@
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CreditCard } from "lucide-react";
+import { Search, Plus, CreditCard, ExternalLink, Pencil, Copy, Check } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import type { Advisor } from "@shared/schema";
 
 export default function ManageAdvisors() {
   const [search, setSearch] = useState("");
+  const [copiedId, setCopiedId] = useState<number | null>(null);
+  const { toast } = useToast();
 
   const { data: advisors = [], isLoading } = useQuery<Advisor[]>({
     queryKey: ["/api/advisors"],
@@ -35,6 +38,18 @@ export default function ManageAdvisors() {
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.email.toLowerCase().includes(search.toLowerCase())
   );
+
+  const copyLink = async (advisor: Advisor) => {
+    const url = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedId(advisor.id);
+      toast({ title: "Link Copied", description: `Profile link for ${advisor.name} copied to clipboard.` });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast({ title: "Copy Failed", description: url, variant: "destructive" });
+    }
+  };
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -102,17 +117,18 @@ export default function ManageAdvisors() {
                 <TableHead>Custom Email</TableHead>
                 <TableHead>Entity Type</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Actions</TableHead>
                 <TableHead className="text-right">Active</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
                     {advisors.length === 0 ? "No advisors configured yet." : "No advisors match your search."}
                   </TableCell>
                 </TableRow>
@@ -140,6 +156,30 @@ export default function ManageAdvisors() {
                       >
                         {advisor.active ? "Active" : "Inactive"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1">
+                        <Link href={`/edit/${advisor.id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Edit Profile" data-testid={`button-edit-${advisor.id}`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                        </Link>
+                        <a href={`/profile/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="View Profile" data-testid={`button-view-${advisor.id}`}>
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </Button>
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          title="Copy Profile Link"
+                          onClick={() => copyLink(advisor)}
+                          data-testid={`button-copy-${advisor.id}`}
+                        >
+                          {copiedId === advisor.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                      </div>
                     </TableCell>
                     <TableCell className="text-right">
                       <Switch

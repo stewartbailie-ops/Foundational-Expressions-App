@@ -11,6 +11,7 @@ import Dashboard from "@/pages/Dashboard";
 import CIV from "@/pages/CIV";
 import ManageAdvisors from "@/pages/ManageAdvisors";
 import CreateAdvisor from "@/pages/CreateAdvisor";
+import EditAdvisor from "@/pages/EditAdvisor";
 import AdvisorProfile from "@/pages/AdvisorProfile";
 import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
@@ -54,6 +55,7 @@ function Router() {
               <Route path="/civ" component={CIV}/>
               <Route path="/manage" component={ManageAdvisors}/>
               <Route path="/create" component={CreateAdvisor}/>
+            <Route path="/edit/:id" component={EditAdvisor}/>
               <Route component={NotFound} />
             </Switch>
           </AppLayout>

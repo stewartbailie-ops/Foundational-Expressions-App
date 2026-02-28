@@ -29,7 +29,8 @@ A master control panel / dashboard for managing Advisory Connect profiles, track
 - **Bio Options**: a (core focus), b (integrated strategic), c (clarity & structure), or custom
 - **Individual Services**: 7 services (tax-efficiency, tax-investment, personal-risk, retirement, medical-aid, short-term, wills-estates)
 - **Corporate Services**: 5 services (corporate-planning, group-risk, pension-provident, group-medical, corporate-short-term)
-- **Theme**: dark (black/white) or pink
+- **Theme**: dark (black/white), blue, or pink
+- **Profile Picture**: Uploaded via multer to `/uploads/` directory, URL stored as `profilePicUrl`
 - Services stored as key arrays, displayed by name via constants in schema.ts
 
 ## CIV Grading System
@@ -51,7 +52,7 @@ Clients are auto-graded based on demographics:
 
 ## Routes
 ### Control Panel (inside AppLayout)
-- `/` Home, `/stats` Dashboard, `/civ` CIV, `/manage` Manage Advisors, `/create` Create Advisor
+- `/` Home, `/stats` Dashboard, `/civ` CIV, `/manage` Manage Advisors, `/create` Create Advisor, `/edit/:id` Edit Advisor
 
 ### Public (standalone, no sidebar)
 - `/profile/:slug` - Advisor profile page
@@ -74,6 +75,7 @@ Clients are auto-graded based on demographics:
 - `POST /api/webhook/zoho` - Zoho Mail webhook
 - `POST /api/webhook/inbound-email` - SendGrid Inbound Parse
 - `POST /api/stats/access` - Record app access
+- `POST /api/upload/profile-pic` - Upload profile picture (returns URL)
 
 ## File Structure
 - `shared/schema.ts` - Drizzle schema, autoGradeClient(), BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, TITLE_OPTIONS
@@ -81,5 +83,6 @@ Clients are auto-graded based on demographics:
 - `server/storage.ts` - Storage interface with CRUD operations
 - `server/routes.ts` - Express API routes
 - `server/sendgrid.ts` - SendGrid email utility
-- `client/src/pages/` - HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, AdvisorProfile, CallbackForm, ReferralForm
+- `client/src/pages/` - HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, EditAdvisor, AdvisorProfile, CallbackForm, ReferralForm
+- `client/src/lib/themeUtils.ts` - Shared theme color utility (dark/blue/pink) used by all public pages
 - `client/src/components/layout/AppLayout.tsx` - Black sidebar with "Control Panel" text, no logo
