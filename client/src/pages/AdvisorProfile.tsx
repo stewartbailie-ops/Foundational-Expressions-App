@@ -356,9 +356,10 @@ function ServiceGroupDropdown({
 }
 
 export default function AdvisorProfile() {
-  const [, params] = useRoute("/profile/:slug");
+  const [, profileParams] = useRoute("/profile/:slug");
+  const [, directParams] = useRoute("/:slug");
   const [, navigate] = useLocation();
-  const slug = params?.slug || "";
+  const slug = profileParams?.slug || directParams?.slug || "";
 
   const { data: advisor, isLoading, error } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -548,7 +549,7 @@ export default function AdvisorProfile() {
 
         <div className="space-y-3 pt-2">
           <button
-            onClick={() => navigate(`/profile/${slug}/request-callback`)}
+            onClick={() => navigate(`/${slug}/request-callback`)}
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
             style={{
               backgroundColor: tc.buttonBg,
@@ -560,7 +561,7 @@ export default function AdvisorProfile() {
             Request a Call Back
           </button>
           <button
-            onClick={() => navigate(`/profile/${slug}/referrals`)}
+            onClick={() => navigate(`/${slug}/referrals`)}
             className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
             style={{
               backgroundColor: tc.buttonSecondaryBg,

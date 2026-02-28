@@ -32,8 +32,9 @@ const CONTACT_TIMES = [
 ];
 
 export default function CallbackForm() {
-  const [, params] = useRoute("/profile/:slug/request-callback");
-  const slug = params?.slug || "";
+  const [, profileParams] = useRoute("/profile/:slug/request-callback");
+  const [, directParams] = useRoute("/:slug/request-callback");
+  const slug = profileParams?.slug || directParams?.slug || "";
 
   const { data: advisor, isLoading, error } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],

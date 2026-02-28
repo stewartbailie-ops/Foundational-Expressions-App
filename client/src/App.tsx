@@ -40,22 +40,63 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function SlugProfile() {
+  return <AdvisorProfile />;
+}
+function SlugCallback() {
+  return <CallbackForm />;
+}
+function SlugReferral() {
+  return <ReferralForm />;
+}
+
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads"];
+
 function Router() {
   return (
     <Switch>
       <Route path="/profile/:slug/request-callback" component={CallbackForm} />
       <Route path="/profile/:slug/referrals" component={ReferralForm} />
       <Route path="/profile/:slug" component={AdvisorProfile} />
+      <Route path="/:slug/request-callback" component={SlugCallback} />
+      <Route path="/:slug/referrals" component={SlugReferral} />
+      <Route path="/:slug">
+        {(params) => {
+          if (RESERVED_PATHS.includes(params.slug)) {
+            return (
+              <AuthGate>
+                <AppLayout>
+                  <Switch>
+                    <Route path="/stats" component={Dashboard}/>
+                    <Route path="/civ" component={CIV}/>
+                    <Route path="/manage" component={ManageAdvisors}/>
+                    <Route path="/create" component={CreateAdvisor}/>
+                    <Route path="/edit/:id" component={EditAdvisor}/>
+                    <Route component={NotFound} />
+                  </Switch>
+                </AppLayout>
+              </AuthGate>
+            );
+          }
+          return <AdvisorProfile />;
+        }}
+      </Route>
+      <Route path="/">
+        <AuthGate>
+          <AppLayout>
+            <HomePage />
+          </AppLayout>
+        </AuthGate>
+      </Route>
       <Route>
         <AuthGate>
           <AppLayout>
             <Switch>
-              <Route path="/" component={HomePage}/>
               <Route path="/stats" component={Dashboard}/>
               <Route path="/civ" component={CIV}/>
               <Route path="/manage" component={ManageAdvisors}/>
               <Route path="/create" component={CreateAdvisor}/>
-            <Route path="/edit/:id" component={EditAdvisor}/>
+              <Route path="/edit/:id" component={EditAdvisor}/>
               <Route component={NotFound} />
             </Switch>
           </AppLayout>

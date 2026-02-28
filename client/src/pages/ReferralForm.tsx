@@ -79,8 +79,9 @@ function emptyReferral(): ReferralEntry {
 }
 
 export default function ReferralForm() {
-  const [, params] = useRoute("/profile/:slug/referrals");
-  const slug = params?.slug || "";
+  const [, profileParams] = useRoute("/profile/:slug/referrals");
+  const [, directParams] = useRoute("/:slug/referrals");
+  const slug = profileParams?.slug || directParams?.slug || "";
 
   const { data: advisor, isLoading, error } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
