@@ -5,6 +5,7 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
+import { storage } from "./storage";
 import fs from "fs";
 
 const app = express();
@@ -111,6 +112,44 @@ app.use((req, res, next) => {
     }
 
     return res.status(status).json({ message });
+  });
+
+  const RESERVED = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "assets"];
+  const CRAWLER_UA = /facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot|Discordbot|bot|crawler|spider|preview/i;
+
+  app.use(async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    if (!CRAWLER_UA.test(ua)) return next();
+
+    const slug = req.path.replace(/^\//, "").split("/")[0];
+    if (!slug || RESERVED.includes(slug)) return next();
+
+    try {
+      const advisor = await storage.getAdvisorBySlug(slug);
+      if (!advisor) return next();
+
+      const title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
+      const description = `Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`;
+      const siteUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+
+      res.status(200).set({ "Content-Type": "text/html" }).send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta property="og:title" content="${title}" />
+<meta property="og:description" content="${description}" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="${siteUrl}" />
+<meta name="twitter:card" content="summary" />
+<meta name="twitter:title" content="${title}" />
+<meta name="twitter:description" content="${description}" />
+<title>${title}</title>
+</head>
+<body></body>
+</html>`);
+    } catch {
+      next();
+    }
   });
 
   // importantly only setup vite in development and after

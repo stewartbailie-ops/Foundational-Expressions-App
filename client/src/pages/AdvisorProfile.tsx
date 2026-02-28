@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
@@ -365,6 +365,13 @@ export default function AdvisorProfile() {
     queryKey: [`/api/advisors/slug/${slug}`],
     enabled: !!slug,
   });
+
+  useEffect(() => {
+    if (advisor) {
+      document.title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
+    }
+    return () => { document.title = "Advisory Connect"; };
+  }, [advisor]);
 
   if (isLoading) {
     return (
