@@ -53,8 +53,9 @@ interface ReferralEntry {
   property: boolean;
   relationship: string;
   preferredContactTime: string;
-  servicesRequested: string;
+  servicesRequested: string[];
   confirmedOver18: boolean;
+  confirmNotRobot: boolean;
 }
 
 function emptyReferral(): ReferralEntry {
@@ -71,8 +72,9 @@ function emptyReferral(): ReferralEntry {
     property: false,
     relationship: "",
     preferredContactTime: "",
-    servicesRequested: "",
+    servicesRequested: [],
     confirmedOver18: false,
+    confirmNotRobot: false,
   };
 }
 
@@ -96,7 +98,6 @@ export default function ReferralForm() {
   const [submitError, setSubmitError] = useState("");
 
   const tc = getThemeColors(advisor?.theme);
-  const isDark = tc.isDark;
   const accentColor = tc.accentColor;
   const bgColor = tc.bgColor;
   const cardBg = tc.cardBg;
@@ -120,6 +121,20 @@ export default function ReferralForm() {
     });
   };
 
+  const toggleReferralService = (index: number, serviceName: string) => {
+    setReferrals((prev) => {
+      const updated = [...prev];
+      const current = updated[index].servicesRequested;
+      updated[index] = {
+        ...updated[index],
+        servicesRequested: current.includes(serviceName)
+          ? current.filter((s) => s !== serviceName)
+          : [...current, serviceName],
+      };
+      return updated;
+    });
+  };
+
   const addReferral = () => {
     if (referrals.length < 4) {
       setReferrals((prev) => [...prev, emptyReferral()]);
@@ -136,12 +151,17 @@ export default function ReferralForm() {
     referrerFirstName.trim() &&
     referrerSurname.trim() &&
     referrerEmail.trim() &&
+    referrerPhone.trim() &&
     referrals.every(
       (r) =>
         r.firstName.trim() &&
         r.surname.trim() &&
         r.email.trim() &&
-        r.confirmedOver18
+        r.phone.trim() &&
+        r.age.trim() &&
+        r.incomeRange &&
+        r.confirmedOver18 &&
+        r.confirmNotRobot
     );
 
   const handleSubmit = async () => {
@@ -163,7 +183,7 @@ export default function ReferralForm() {
           clientVehicle: ref.vehicle,
           clientProperty: ref.property,
           preferredContactTime: ref.preferredContactTime || undefined,
-          servicesRequested: ref.servicesRequested || undefined,
+          servicesRequested: ref.servicesRequested.join(", ") || undefined,
           referrerName: `${referrerFirstName} ${referrerSurname}`,
           referrerEmail: referrerEmail,
           referrerPhone: referrerPhone || undefined,
@@ -261,12 +281,6 @@ export default function ReferralForm() {
     ...inputStyle,
     appearance: "none" as const,
     WebkitAppearance: "none" as const,
-    backgroundImage: isDark
-      ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`
-      : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
-    backgroundRepeat: "no-repeat",
-    backgroundPosition: "right 0.75rem center",
-    paddingRight: "2rem",
   };
 
   const optionStyle: React.CSSProperties = {
@@ -277,7 +291,7 @@ export default function ReferralForm() {
   const labelStyle: React.CSSProperties = {
     color: mutedText,
     fontSize: "0.75rem",
-    fontWeight: 500,
+    fontWeight: 600,
     marginBottom: "0.25rem",
     display: "block",
   };
@@ -290,47 +304,17 @@ export default function ReferralForm() {
     fontSize: "0.875rem",
   };
 
+  const req = <span style={{ color: "#ef4444" }}>*</span>;
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="referral-form-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
-        <div className="flex items-center gap-3" data-testid="referral-advisor-header">
-          {advisor.profilePicUrl ? (
-            <img
-              src={advisor.profilePicUrl}
-              alt={advisor.name}
-              className="w-12 h-12 rounded-full object-cover border"
-              style={{ borderColor: inputBorder }}
-              data-testid="img-advisor-pic"
-            />
-          ) : (
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                backgroundColor: tc.initialsCircleBg,
-                color: accentColor,
-                border: `1px solid ${inputBorder}`,
-              }}
-              data-testid="icon-advisor-initials"
-            >
-              {initials}
-            </div>
-          )}
-          <div>
-            <h2 className="font-semibold text-sm" data-testid="text-advisor-name">{advisor.name}</h2>
-            {advisor.title && (
-              <p className="text-xs" style={{ color: mutedText }} data-testid="text-advisor-title">
-                {advisor.title}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <h1 className="text-xl font-bold tracking-tight" data-testid="text-page-title">
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             Refer Friends & Family
           </h1>
-          <p className="text-sm mt-1" style={{ color: mutedText }}>
-            Share the gift of professional financial advice with people you care about.
+          <p className="text-sm" style={{ color: mutedText }}>
+            The greatest compliment you can give us is a referral. I promise to treat your referrals with the same care and dedication I provide to you.
           </p>
         </div>
 
@@ -340,10 +324,10 @@ export default function ReferralForm() {
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={labelStyle}>First Name *</label>
+              <label style={labelStyle}>First Name {req}</label>
               <input
                 type="text"
-                placeholder="First name"
+                placeholder="Your Name"
                 value={referrerFirstName}
                 onChange={(e) => setReferrerFirstName(e.target.value)}
                 style={inputStyle}
@@ -351,10 +335,10 @@ export default function ReferralForm() {
               />
             </div>
             <div>
-              <label style={labelStyle}>Surname *</label>
+              <label style={labelStyle}>Surname {req}</label>
               <input
                 type="text"
-                placeholder="Surname"
+                placeholder="Your Surname"
                 value={referrerSurname}
                 onChange={(e) => setReferrerSurname(e.target.value)}
                 style={inputStyle}
@@ -364,7 +348,7 @@ export default function ReferralForm() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={labelStyle}>Email *</label>
+              <label style={labelStyle}>E-mail Address {req}</label>
               <input
                 type="email"
                 placeholder="you@email.com"
@@ -375,10 +359,10 @@ export default function ReferralForm() {
               />
             </div>
             <div>
-              <label style={labelStyle}>Phone</label>
+              <label style={labelStyle}>Phone Number {req}</label>
               <input
                 type="tel"
-                placeholder="+27 82 123 4567"
+                placeholder="082 123 4567"
                 value={referrerPhone}
                 onChange={(e) => setReferrerPhone(e.target.value)}
                 style={inputStyle}
@@ -397,13 +381,13 @@ export default function ReferralForm() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: sectionTitle }}>
-                Referral {referrals.length > 1 ? `#${index + 1}` : "Details"}
+                {index === 0 ? "First" : index === 1 ? "Second" : index === 2 ? "Third" : "Fourth"} Referral
               </h3>
               {referrals.length > 1 && (
                 <button
                   onClick={() => removeReferral(index)}
                   className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
-                  style={{ color: mutedText }}
+                  style={{ color: "#ef4444" }}
                   data-testid={`button-remove-referral-${index}`}
                 >
                   <Trash2 className="h-4 w-4" />
@@ -413,10 +397,10 @@ export default function ReferralForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>First Name *</label>
+                <label style={labelStyle}>First Name {req}</label>
                 <input
                   type="text"
-                  placeholder="First name"
+                  placeholder="John"
                   value={ref.firstName}
                   onChange={(e) => updateReferral(index, "firstName", e.target.value)}
                   style={inputStyle}
@@ -424,10 +408,10 @@ export default function ReferralForm() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Surname *</label>
+                <label style={labelStyle}>Surname {req}</label>
                 <input
                   type="text"
-                  placeholder="Surname"
+                  placeholder="Smith"
                   value={ref.surname}
                   onChange={(e) => updateReferral(index, "surname", e.target.value)}
                   style={inputStyle}
@@ -438,10 +422,10 @@ export default function ReferralForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Email *</label>
+                <label style={labelStyle}>Email {req}</label>
                 <input
                   type="email"
-                  placeholder="email@example.com"
+                  placeholder="john@example.com"
                   value={ref.email}
                   onChange={(e) => updateReferral(index, "email", e.target.value)}
                   style={inputStyle}
@@ -449,10 +433,10 @@ export default function ReferralForm() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Phone</label>
+                <label style={labelStyle}>Phone {req}</label>
                 <input
                   type="tel"
-                  placeholder="+27 82 123 4567"
+                  placeholder="082 123 4567"
                   value={ref.phone}
                   onChange={(e) => updateReferral(index, "phone", e.target.value)}
                   style={inputStyle}
@@ -463,10 +447,10 @@ export default function ReferralForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Age</label>
+                <label style={labelStyle}>Age {req}</label>
                 <input
                   type="number"
-                  placeholder="30"
+                  placeholder="e.g. 33"
                   min={18}
                   max={120}
                   value={ref.age}
@@ -476,14 +460,14 @@ export default function ReferralForm() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Income Range</label>
+                <label style={labelStyle}>Income Range {req}</label>
                 <select
                   value={ref.incomeRange}
                   onChange={(e) => updateReferral(index, "incomeRange", e.target.value)}
                   style={selectStyle}
                   data-testid={`select-referral-income-${index}`}
                 >
-                  <option value="" style={optionStyle}>Select range</option>
+                  <option value="" style={optionStyle}>Select income range</option>
                   {INCOME_OPTIONS.map((opt) => (
                     <option key={opt} value={opt} style={optionStyle}>{opt}</option>
                   ))}
@@ -491,67 +475,47 @@ export default function ReferralForm() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div style={checkboxRowStyle}>
-                <input
-                  type="checkbox"
-                  checked={ref.married}
-                  onChange={(e) => updateReferral(index, "married", e.target.checked)}
-                  className="rounded"
-                  data-testid={`checkbox-referral-married-${index}`}
-                />
-                <span>Married</span>
-              </div>
-              <div style={checkboxRowStyle}>
-                <input
-                  type="checkbox"
-                  checked={ref.children}
-                  onChange={(e) => updateReferral(index, "children", e.target.checked)}
-                  className="rounded"
-                  data-testid={`checkbox-referral-children-${index}`}
-                />
-                <span>Children</span>
-              </div>
-              <div style={checkboxRowStyle}>
-                <input
-                  type="checkbox"
-                  checked={ref.vehicle}
-                  onChange={(e) => updateReferral(index, "vehicle", e.target.checked)}
-                  className="rounded"
-                  data-testid={`checkbox-referral-vehicle-${index}`}
-                />
-                <span>Vehicle</span>
-              </div>
-              <div style={checkboxRowStyle}>
-                <input
-                  type="checkbox"
-                  checked={ref.property}
-                  onChange={(e) => updateReferral(index, "property", e.target.checked)}
-                  className="rounded"
-                  data-testid={`checkbox-referral-property-${index}`}
-                />
-                <span>Property</span>
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Relationship</label>
-              <select
-                value={ref.relationship}
-                onChange={(e) => updateReferral(index, "relationship", e.target.value)}
-                style={selectStyle}
-                data-testid={`select-referral-relationship-${index}`}
-              >
-                <option value="" style={optionStyle}>Select relationship</option>
-                {RELATIONSHIP_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt} style={optionStyle}>{opt}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-2">
+              {([
+                ["married", "Are they married"],
+                ["children", "Do they have children"],
+                ["vehicle", "Do they own a vehicle"],
+                ["property", "Do they own property"],
+              ] as [string, string][]).map(([key, label]) => (
+                <label
+                  key={key}
+                  className="flex items-center gap-2 text-xs cursor-pointer"
+                  style={{ color: textColor }}
+                  data-testid={`checkbox-referral-${key}-${index}`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={(ref as any)[key]}
+                    onChange={(e) => updateReferral(index, key as keyof ReferralEntry, e.target.checked)}
+                    className="w-4 h-4 rounded"
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Preferred Contact Time</label>
+                <label style={labelStyle}>Your Relation</label>
+                <select
+                  value={ref.relationship}
+                  onChange={(e) => updateReferral(index, "relationship", e.target.value)}
+                  style={selectStyle}
+                  data-testid={`select-referral-relationship-${index}`}
+                >
+                  <option value="" style={optionStyle}>Select relation</option>
+                  {RELATIONSHIP_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt} style={optionStyle}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Preferred Time To Contact</label>
                 <select
                   value={ref.preferredContactTime}
                   onChange={(e) => updateReferral(index, "preferredContactTime", e.target.value)}
@@ -564,31 +528,51 @@ export default function ReferralForm() {
                   ))}
                 </select>
               </div>
-              <div>
-                <label style={labelStyle}>Services</label>
-                <select
-                  value={ref.servicesRequested}
-                  onChange={(e) => updateReferral(index, "servicesRequested", e.target.value)}
-                  style={selectStyle}
-                  data-testid={`select-referral-services-${index}`}
-                >
-                  <option value="" style={optionStyle}>Select service</option>
-                  {allServices.map((s) => (
-                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
-                  ))}
-                </select>
-              </div>
             </div>
 
-            <div style={checkboxRowStyle}>
-              <input
-                type="checkbox"
-                checked={ref.confirmedOver18}
-                onChange={(e) => updateReferral(index, "confirmedOver18", e.target.checked)}
-                className="rounded"
-                data-testid={`checkbox-referral-over18-${index}`}
-              />
-              <span className="text-sm">I confirm this person is over 18 years of age *</span>
+            {allServices.length > 0 && (
+              <div>
+                <label style={labelStyle}>What you believe they may need help with</label>
+                <div className="space-y-2 mt-2">
+                  {allServices.map((s) => (
+                    <label
+                      key={s.key}
+                      className="flex items-center gap-2 text-xs cursor-pointer"
+                      style={{ color: textColor }}
+                      data-testid={`toggle-referral-service-${s.key}-${index}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={ref.servicesRequested.includes(s.name)}
+                        onChange={() => toggleReferralService(index, s.name)}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span>{s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-1">
+              <label style={checkboxRowStyle} data-testid={`checkbox-referral-over18-${index}`}>
+                <input
+                  type="checkbox"
+                  checked={ref.confirmedOver18}
+                  onChange={(e) => updateReferral(index, "confirmedOver18", e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+                <span className="text-sm">I confirm they are over 18 {req}</span>
+              </label>
+              <label style={checkboxRowStyle} data-testid={`checkbox-referral-not-robot-${index}`}>
+                <input
+                  type="checkbox"
+                  checked={ref.confirmNotRobot}
+                  onChange={(e) => updateReferral(index, "confirmNotRobot", e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+                <span className="text-sm">I'm not a robot {req}</span>
+              </label>
             </div>
           </div>
         ))}

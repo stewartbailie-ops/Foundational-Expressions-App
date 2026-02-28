@@ -124,7 +124,7 @@ function TaxCalculator({ borderColor, cardBg, textColor, mutedText, accentColor,
     <div className="mt-3 rounded-lg p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="tax-calculator">
       <div className="flex items-center gap-2" style={{ color: accentColor }}>
         <Calculator className="h-4 w-4" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Shock Factor - Tax Calculator</span>
+        <span className="text-xs font-semibold uppercase tracking-wider">Tax Calculator</span>
       </div>
       <p className="text-xs" style={{ color: mutedText }}>See how much tax you'll pay between now and retirement using SA 2024/2025 SARS brackets.</p>
 
@@ -294,6 +294,67 @@ function ServiceDropdown({
   );
 }
 
+function ServiceGroupDropdown({
+  title,
+  services,
+  borderColor,
+  cardBg,
+  textColor,
+  mutedText,
+  accentColor,
+  buttonBg,
+  buttonText,
+  testId,
+}: {
+  title: string;
+  services: { key: string; name: string; description: string }[];
+  borderColor: string;
+  cardBg: string;
+  textColor: string;
+  mutedText: string;
+  accentColor: string;
+  buttonBg: string;
+  buttonText: string;
+  testId: string;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div
+      className="border rounded-lg overflow-hidden"
+      style={{ borderColor, backgroundColor: cardBg }}
+      data-testid={testId}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+        style={{ color: textColor }}
+        data-testid={`button-toggle-${testId}`}
+      >
+        <span className="font-semibold text-sm">{title}</span>
+        <ChevronDown className={`h-4 w-4 flex-shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="px-4 pb-4 space-y-2">
+          {services.map((s) => (
+            <ServiceDropdown
+              key={s.key}
+              service={s}
+              borderColor={borderColor}
+              cardBg={cardBg}
+              textColor={textColor}
+              mutedText={mutedText}
+              accentColor={accentColor}
+              buttonBg={buttonBg}
+              buttonText={buttonText}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdvisorProfile() {
   const [, params] = useRoute("/profile/:slug");
   const [, navigate] = useLocation();
@@ -411,9 +472,6 @@ export default function AdvisorProfile() {
             style={{ backgroundColor: cardBg }}
             data-testid="section-bio"
           >
-            <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: sectionTitle }}>
-              Introduction
-            </h2>
             <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">
               {bioText}
             </p>
@@ -421,35 +479,33 @@ export default function AdvisorProfile() {
         )}
 
         {individualServices.length > 0 && (
-          <div data-testid="section-individual-services">
-            <h2
-              className="text-xs font-semibold uppercase tracking-wider mb-3 px-1"
-              style={{ color: sectionTitle }}
-            >
-              Individual Services
-            </h2>
-            <div className="space-y-2">
-              {individualServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={tc.buttonBg} buttonText={tc.buttonText} />
-              ))}
-            </div>
-          </div>
+          <ServiceGroupDropdown
+            title="Individual Services"
+            services={individualServices}
+            borderColor={tc.borderColor}
+            cardBg={cardBg}
+            textColor={textColor}
+            mutedText={mutedText}
+            accentColor={accentColor}
+            buttonBg={tc.buttonBg}
+            buttonText={tc.buttonText}
+            testId="section-individual-services"
+          />
         )}
 
         {corporateServices.length > 0 && (
-          <div data-testid="section-corporate-services">
-            <h2
-              className="text-xs font-semibold uppercase tracking-wider mb-3 px-1"
-              style={{ color: sectionTitle }}
-            >
-              Corporate Services
-            </h2>
-            <div className="space-y-2">
-              {corporateServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={tc.buttonBg} buttonText={tc.buttonText} />
-              ))}
-            </div>
-          </div>
+          <ServiceGroupDropdown
+            title="Corporate Services"
+            services={corporateServices}
+            borderColor={tc.borderColor}
+            cardBg={cardBg}
+            textColor={textColor}
+            mutedText={mutedText}
+            accentColor={accentColor}
+            buttonBg={tc.buttonBg}
+            buttonText={tc.buttonText}
+            testId="section-corporate-services"
+          />
         )}
 
         {advisor.linkedinUrl && (

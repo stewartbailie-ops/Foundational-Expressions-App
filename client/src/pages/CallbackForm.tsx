@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Send } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -52,8 +52,9 @@ export default function CallbackForm() {
     vehicle: false,
     property: false,
     preferredContactTime: "",
-    servicesRequested: "",
+    servicesRequested: [] as string[],
     confirmOver18: false,
+    confirmNotRobot: false,
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -94,7 +95,6 @@ export default function CallbackForm() {
   }
 
   const tc = getThemeColors(advisor.theme);
-  const isDark = tc.isDark;
   const accentColor = tc.accentColor;
   const bgColor = tc.bgColor;
   const textColor = tc.textColor;
@@ -106,8 +106,8 @@ export default function CallbackForm() {
   const initials = getInitials(advisor.name);
 
   const allServices = [
-    ...INDIVIDUAL_SERVICES.filter((s) => advisor.individualServices?.includes(s.key)).map((s) => s.name),
-    ...CORPORATE_SERVICES.filter((s) => advisor.corporateServices?.includes(s.key)).map((s) => s.name),
+    ...INDIVIDUAL_SERVICES.filter((s) => advisor.individualServices?.includes(s.key)),
+    ...CORPORATE_SERVICES.filter((s) => advisor.corporateServices?.includes(s.key)),
   ];
 
   const inputStyle: React.CSSProperties = {
@@ -135,7 +135,7 @@ export default function CallbackForm() {
   const labelStyle: React.CSSProperties = {
     color: mutedText,
     fontSize: "0.75rem",
-    fontWeight: 500,
+    fontWeight: 600,
     marginBottom: "0.25rem",
     display: "block",
   };
@@ -144,9 +144,28 @@ export default function CallbackForm() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const toggleService = (serviceName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      servicesRequested: prev.servicesRequested.includes(serviceName)
+        ? prev.servicesRequested.filter((s) => s !== serviceName)
+        : [...prev.servicesRequested, serviceName],
+    }));
+  };
+
+  const canSubmit =
+    formData.firstName.trim() &&
+    formData.surname.trim() &&
+    formData.email.trim() &&
+    formData.phone.trim() &&
+    formData.age.trim() &&
+    formData.incomeRange &&
+    formData.confirmOver18 &&
+    formData.confirmNotRobot;
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.confirmOver18) return;
+    if (!canSubmit) return;
 
     mutation.mutate({
       advisorId: advisor.id,
@@ -160,7 +179,7 @@ export default function CallbackForm() {
       clientVehicle: formData.vehicle,
       clientProperty: formData.property,
       preferredContactTime: formData.preferredContactTime,
-      servicesRequested: formData.servicesRequested,
+      servicesRequested: formData.servicesRequested.join(", "),
       source: "callback-form",
     });
   };
@@ -191,132 +210,108 @@ export default function CallbackForm() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="callback-form-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
-        <div className="flex items-center gap-3" data-testid="callback-advisor-header">
-          {advisor.profilePicUrl ? (
-            <img
-              src={advisor.profilePicUrl}
-              alt={advisor.name}
-              className="w-12 h-12 rounded-full object-cover border"
-              style={{ borderColor }}
-              data-testid="img-advisor-pic"
-            />
-          ) : (
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
-              style={{
-                backgroundColor: tc.initialsCircleBg,
-                color: accentColor,
-                border: `1px solid ${borderColor}`,
-              }}
-              data-testid="icon-advisor-initials"
-            >
-              {initials}
-            </div>
-          )}
-          <div>
-            <h2 className="font-semibold text-base" data-testid="text-advisor-name">{advisor.name}</h2>
-            {advisor.title && (
-              <p className="text-xs" style={{ color: mutedText }} data-testid="text-advisor-title">{advisor.title}</p>
-            )}
-          </div>
-        </div>
-
-        <div>
-          <h1 className="text-xl font-bold" data-testid="text-form-title">Request a Call Back</h1>
-          <p className="text-sm mt-1" style={{ color: mutedText }}>
-            Fill in your details and {advisor.name} will contact you.
+        <div className="text-center space-y-2">
+          <h1 className="text-2xl font-bold" data-testid="text-form-title">Request a Call Back</h1>
+          <p className="text-sm" style={{ color: mutedText }}>
+            Please fill in your details below and I will get back to you at your preferred time.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4" data-testid="callback-form">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>First Name <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  type="text"
+                  required
+                  placeholder="John"
+                  value={formData.firstName}
+                  onChange={(e) => update("firstName", e.target.value)}
+                  style={inputStyle}
+                  data-testid="input-first-name"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Surname <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Smith"
+                  value={formData.surname}
+                  onChange={(e) => update("surname", e.target.value)}
+                  style={inputStyle}
+                  data-testid="input-surname"
+                />
+              </div>
+            </div>
+
             <div>
-              <label style={labelStyle}>First Name *</label>
+              <label style={labelStyle}>E-mail Address <span style={{ color: "#ef4444" }}>*</span></label>
               <input
-                type="text"
+                type="email"
                 required
-                value={formData.firstName}
-                onChange={(e) => update("firstName", e.target.value)}
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={(e) => update("email", e.target.value)}
                 style={inputStyle}
-                data-testid="input-first-name"
+                data-testid="input-email"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>Phone Number <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="082 123 4567"
+                  value={formData.phone}
+                  onChange={(e) => update("phone", e.target.value)}
+                  style={inputStyle}
+                  data-testid="input-phone"
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Age <span style={{ color: "#ef4444" }}>*</span></label>
+                <input
+                  type="number"
+                  required
+                  min="18"
+                  max="120"
+                  placeholder="e.g. 33"
+                  value={formData.age}
+                  onChange={(e) => update("age", e.target.value)}
+                  style={inputStyle}
+                  data-testid="input-age"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
             <div>
-              <label style={labelStyle}>Surname *</label>
-              <input
-                type="text"
+              <label style={labelStyle}>Income Range <span style={{ color: "#ef4444" }}>*</span></label>
+              <select
+                value={formData.incomeRange}
+                onChange={(e) => update("incomeRange", e.target.value)}
                 required
-                value={formData.surname}
-                onChange={(e) => update("surname", e.target.value)}
-                style={inputStyle}
-                data-testid="input-surname"
-              />
+                style={selectStyle}
+                data-testid="select-income-range"
+              >
+                <option value="" style={optionStyle}>Select income range</option>
+                {INCOME_RANGES.map((r) => (
+                  <option key={r} value={r} style={optionStyle}>{r}</option>
+                ))}
+              </select>
             </div>
-          </div>
 
-          <div>
-            <label style={labelStyle}>Email *</label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => update("email", e.target.value)}
-              style={inputStyle}
-              data-testid="input-email"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label style={labelStyle}>Phone *</label>
-              <input
-                type="tel"
-                required
-                value={formData.phone}
-                onChange={(e) => update("phone", e.target.value)}
-                style={inputStyle}
-                data-testid="input-phone"
-              />
-            </div>
-            <div>
-              <label style={labelStyle}>Age</label>
-              <input
-                type="number"
-                min="18"
-                max="120"
-                value={formData.age}
-                onChange={(e) => update("age", e.target.value)}
-                style={inputStyle}
-                data-testid="input-age"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Income Range</label>
-            <select
-              value={formData.incomeRange}
-              onChange={(e) => update("incomeRange", e.target.value)}
-              style={selectStyle}
-              data-testid="select-income-range"
-            >
-              <option value="" style={optionStyle}>Select income range</option>
-              {INCOME_RANGES.map((r) => (
-                <option key={r} value={r} style={optionStyle}>{r}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: cardBg }}>
-            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>
-              Your Situation
-            </p>
             <div className="grid grid-cols-2 gap-3">
               {([
-                ["married", "Married"],
-                ["children", "Children"],
-                ["vehicle", "Vehicle"],
-                ["property", "Property"],
+                ["married", "Are you married"],
+                ["children", "Do you have children"],
+                ["vehicle", "Do you own a vehicle"],
+                ["property", "Do you own property"],
               ] as const).map(([key, label]) => (
                 <label
                   key={key}
@@ -324,79 +319,92 @@ export default function CallbackForm() {
                   style={{ color: textColor }}
                   data-testid={`toggle-${key}`}
                 >
-                  <button
-                    type="button"
-                    onClick={() => update(key, !formData[key])}
-                    className="w-10 h-5 rounded-full relative transition-colors"
-                    style={{
-                      backgroundColor: formData[key]
-                        ? tc.checkActive
-                        : tc.checkInactive,
-                    }}
-                    data-testid={`switch-${key}`}
-                  >
-                    <span
-                      className="absolute top-0.5 w-4 h-4 rounded-full transition-transform"
-                      style={{
-                        backgroundColor: formData[key]
-                          ? tc.checkDotActive
-                          : tc.checkDotInactive,
-                        left: formData[key] ? "calc(100% - 1.125rem)" : "0.125rem",
-                      }}
-                    />
-                  </button>
-                  {label}
+                  <input
+                    type="checkbox"
+                    checked={formData[key]}
+                    onChange={(e) => update(key, e.target.checked)}
+                    className="w-4 h-4 rounded"
+                    data-testid={`checkbox-${key}`}
+                  />
+                  <span className="text-xs">{label}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>Preferred Contact Time</label>
-            <select
-              value={formData.preferredContactTime}
-              onChange={(e) => update("preferredContactTime", e.target.value)}
-              style={selectStyle}
-              data-testid="select-contact-time"
-            >
-              <option value="" style={optionStyle}>Select preferred time</option>
-              {CONTACT_TIMES.map((t) => (
-                <option key={t} value={t} style={optionStyle}>{t}</option>
-              ))}
-            </select>
-          </div>
-
-          {allServices.length > 0 && (
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
             <div>
-              <label style={labelStyle}>Service of Interest</label>
+              <label style={labelStyle}>Preferred Time To Contact</label>
               <select
-                value={formData.servicesRequested}
-                onChange={(e) => update("servicesRequested", e.target.value)}
+                value={formData.preferredContactTime}
+                onChange={(e) => update("preferredContactTime", e.target.value)}
                 style={selectStyle}
-                data-testid="select-services"
+                data-testid="select-contact-time"
               >
-                <option value="" style={optionStyle}>Select a service</option>
-                {allServices.map((s) => (
-                  <option key={s} value={s} style={optionStyle}>{s}</option>
+                <option value="" style={optionStyle}>Select time</option>
+                {CONTACT_TIMES.map((t) => (
+                  <option key={t} value={t} style={optionStyle}>{t}</option>
                 ))}
               </select>
             </div>
-          )}
 
-          <label
-            className="flex items-start gap-3 text-sm cursor-pointer pt-2"
-            style={{ color: textColor }}
-            data-testid="toggle-confirm-18"
-          >
-            <input
-              type="checkbox"
-              checked={formData.confirmOver18}
-              onChange={(e) => update("confirmOver18", e.target.checked)}
-              className="mt-0.5 w-4 h-4"
-              data-testid="checkbox-confirm-18"
-            />
-            <span>I confirm that I am over 18 years of age *</span>
-          </label>
+            {allServices.length > 0 && (
+              <div>
+                <label style={labelStyle}>What would you like assistance with?</label>
+                <div className="space-y-2 mt-2">
+                  {allServices.map((s) => (
+                    <label
+                      key={s.key}
+                      className="flex items-center gap-2 text-sm cursor-pointer"
+                      style={{ color: textColor }}
+                      data-testid={`toggle-service-${s.key}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.servicesRequested.includes(s.name)}
+                        onChange={() => toggleService(s.name)}
+                        className="w-4 h-4 rounded"
+                        data-testid={`checkbox-service-${s.key}`}
+                      />
+                      <span className="text-xs">{s.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            <label
+              className="flex items-center gap-3 text-sm cursor-pointer"
+              style={{ color: textColor }}
+              data-testid="toggle-confirm-18"
+            >
+              <input
+                type="checkbox"
+                checked={formData.confirmOver18}
+                onChange={(e) => update("confirmOver18", e.target.checked)}
+                className="w-4 h-4"
+                data-testid="checkbox-confirm-18"
+              />
+              <span>I confirm I am over 18 <span style={{ color: "#ef4444" }}>*</span></span>
+            </label>
+
+            <label
+              className="flex items-center gap-3 text-sm cursor-pointer"
+              style={{ color: textColor }}
+              data-testid="toggle-confirm-not-robot"
+            >
+              <input
+                type="checkbox"
+                checked={formData.confirmNotRobot}
+                onChange={(e) => update("confirmNotRobot", e.target.checked)}
+                className="w-4 h-4"
+                data-testid="checkbox-confirm-not-robot"
+              />
+              <span>I'm not a robot <span style={{ color: "#ef4444" }}>*</span></span>
+            </label>
+          </div>
 
           {mutation.isError && (
             <div className="text-red-400 text-sm text-center" data-testid="text-error">
@@ -406,8 +414,8 @@ export default function CallbackForm() {
 
           <button
             type="submit"
-            disabled={!formData.confirmOver18 || mutation.isPending}
-            className="w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-40"
+            disabled={!canSubmit || mutation.isPending}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-40"
             style={{
               backgroundColor: tc.buttonBg,
               color: tc.buttonText,
@@ -417,7 +425,10 @@ export default function CallbackForm() {
             {mutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin mx-auto" />
             ) : (
-              "Submit Request"
+              <>
+                Request Call Back
+                <Send className="h-4 w-4" />
+              </>
             )}
           </button>
         </form>
