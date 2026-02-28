@@ -7,8 +7,17 @@ A master control panel / dashboard for managing Advisory Connect profiles, track
 - **Frontend**: React + Vite + Tailwind CSS v4 + shadcn/ui components
 - **Backend**: Express.js with TypeScript
 - **Database**: PostgreSQL with Drizzle ORM
+- **Auth**: Session-based (express-session + connect-pg-simple), password stored as `ADMIN_PASSWORD` secret
 - **Email Service**: SendGrid (API key stored as secret `SENDGRID_API_KEY`)
 - **QR Codes**: `qrcode.react` for dynamic barcode generation
+
+## Authentication
+- Control panel routes are protected behind a login screen (password-only)
+- Sessions stored in PostgreSQL via `connect-pg-simple` (auto-creates `session` table)
+- Session lasts 7 days
+- Public routes (profile pages, callback/referral forms, webhooks) are NOT protected
+- Login: `POST /api/auth/login`, Session check: `GET /api/auth/session`, Logout: `POST /api/auth/logout`
+- Auth middleware in `server/auth.ts`, session setup in `server/index.ts`
 
 ## Database Tables
 - `advisors` - Advisor profiles (name, email, title, bio, bioOption, customBio, entityType, theme, themeColor, font, profilePicUrl, coverImageUrl, linkedinUrl, websiteUrl, profileSlug, individualServices[], corporateServices[], active, createdAt)

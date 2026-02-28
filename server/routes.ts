@@ -10,6 +10,29 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  app.post("/api/auth/login", async (req, res) => {
+    const { password } = req.body;
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminPassword) {
+      return res.status(500).json({ message: "Admin password not configured" });
+    }
+    if (password !== adminPassword) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+    (req.session as any).authenticated = true;
+    res.json({ authenticated: true });
+  });
+
+  app.get("/api/auth/session", async (req, res) => {
+    res.json({ authenticated: !!(req.session as any)?.authenticated });
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    req.session.destroy(() => {
+      res.json({ authenticated: false });
+    });
+  });
+
   app.get("/api/dashboard/stats", async (_req, res) => {
     const stats = await storage.getDashboardStats();
     res.json(stats);

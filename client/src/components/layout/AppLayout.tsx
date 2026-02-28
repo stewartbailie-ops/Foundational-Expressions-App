@@ -1,5 +1,6 @@
 import { Link, useLocation } from "wouter";
-import { Home, LayoutDashboard, Users, Inbox, Settings } from "lucide-react";
+import { Home, LayoutDashboard, Users, Inbox, LogOut } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -10,6 +11,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/civ", label: "Client Information Viewer", icon: Inbox },
     { href: "/stats", label: "Stats Tracker", icon: LayoutDashboard },
   ];
+
+  const handleLogout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/session"] });
+  };
 
   return (
     <div className="min-h-screen bg-black flex text-white">
@@ -47,8 +53,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="text-sm font-medium text-white/80">Admin</div>
             </div>
-            <button className="text-white/40 hover:text-white transition-colors p-1">
-              <Settings className="h-4 w-4" />
+            <button
+              onClick={handleLogout}
+              className="text-white/40 hover:text-red-400 transition-colors p-1"
+              title="Sign Out"
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
