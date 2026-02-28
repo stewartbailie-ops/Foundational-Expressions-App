@@ -34,8 +34,7 @@ export default function HomePage() {
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center pt-4 pb-2">
-        <h1 className="text-4xl font-bold tracking-tight text-black">Advisory Connect</h1>
-        <p className="text-lg text-black/40 font-medium mt-1">Control Panel</p>
+        <h1 className="text-4xl font-bold tracking-tight text-black">Control Panel</h1>
         <p className="text-black/50 mt-3 text-base max-w-xl mx-auto">
           Your central hub for managing advisor profiles, tracking referrals, and monitoring activity.
         </p>
