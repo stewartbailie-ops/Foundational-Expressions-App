@@ -250,7 +250,7 @@ export default function EditAdvisor() {
                   <Textarea value={customBio} onChange={(e) => setCustomBio(e.target.value)} placeholder="Write a personalized biography..." className="min-h-[150px] resize-none" data-testid="textarea-custom-bio" />
                 </div>
               ) : (
-                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border">{BIO_OPTIONS[bioOption]}</div>
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border whitespace-pre-line">{BIO_OPTIONS[bioOption]}</div>
               )}
             </CardContent>
           </Card>

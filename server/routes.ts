@@ -122,6 +122,12 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.delete("/api/advisors/:id", async (req, res) => {
+    const deleted = await storage.deleteAdvisor(Number(req.params.id));
+    if (!deleted) return res.status(404).json({ message: "Advisor not found" });
+    res.json({ success: true });
+  });
+
   app.get("/api/emails", async (_req, res) => {
     const emails = await storage.getEmails();
     res.json(emails);

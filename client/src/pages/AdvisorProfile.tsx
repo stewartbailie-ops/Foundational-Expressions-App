@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -16,18 +16,105 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
+const SA_TAX_BRACKETS_2025 = [
+  { min: 0, max: 237100, rate: 18, base: 0 },
+  { min: 237101, max: 370500, rate: 26, base: 42678 },
+  { min: 370501, max: 512800, rate: 31, base: 77362 },
+  { min: 512801, max: 673000, rate: 36, base: 121475 },
+  { min: 673001, max: 857900, rate: 39, base: 179147 },
+  { min: 857901, max: 1817000, rate: 41, base: 251258 },
+  { min: 1817001, max: Infinity, rate: 45, base: 644489 },
+];
+
+function calculateSATax(annualIncome: number): { tax: number; effectiveRate: number; monthlyTax: number } {
+  if (annualIncome <= 0) return { tax: 0, effectiveRate: 0, monthlyTax: 0 };
+  const rebate = 17235;
+  let tax = 0;
+  for (const bracket of SA_TAX_BRACKETS_2025) {
+    if (annualIncome >= bracket.min) {
+      if (annualIncome <= bracket.max) {
+        tax = bracket.base + ((annualIncome - bracket.min + 1) * bracket.rate) / 100;
+        break;
+      }
+    }
+  }
+  tax = Math.max(0, tax - rebate);
+  const effectiveRate = annualIncome > 0 ? (tax / annualIncome) * 100 : 0;
+  return { tax: Math.round(tax), effectiveRate: Math.round(effectiveRate * 10) / 10, monthlyTax: Math.round(tax / 12) };
+}
+
+function TaxCalculator({ borderColor, cardBg, textColor, mutedText, accentColor, buttonBg, buttonText }: {
+  borderColor: string; cardBg: string; textColor: string; mutedText: string; accentColor: string; buttonBg: string; buttonText: string;
+}) {
+  const [income, setIncome] = useState("");
+  const annualIncome = Number(income.replace(/[^0-9]/g, "")) || 0;
+  const result = useMemo(() => calculateSATax(annualIncome), [annualIncome]);
+
+  const formatCurrency = (n: number) => `R ${n.toLocaleString("en-ZA")}`;
+
+  return (
+    <div className="mt-3 rounded-lg p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="tax-calculator">
+      <div className="flex items-center gap-2" style={{ color: accentColor }}>
+        <Calculator className="h-4 w-4" />
+        <span className="text-xs font-semibold uppercase tracking-wider">Tax Calculator</span>
+      </div>
+      <p className="text-xs" style={{ color: mutedText }}>Enter your annual income to see an estimate of your tax liability (SA 2024/2025 rates).</p>
+      <input
+        type="text"
+        inputMode="numeric"
+        placeholder="e.g. 500000"
+        value={income}
+        onChange={(e) => setIncome(e.target.value.replace(/[^0-9]/g, ""))}
+        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+        style={{ backgroundColor: `${cardBg}`, border: `1px solid ${borderColor}`, color: textColor }}
+        data-testid="input-tax-income"
+      />
+      {annualIncome > 0 && (
+        <div className="space-y-2 pt-1">
+          <div className="flex justify-between text-xs">
+            <span style={{ color: mutedText }}>Annual Income</span>
+            <span style={{ color: textColor }} data-testid="text-tax-income">{formatCurrency(annualIncome)}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span style={{ color: mutedText }}>Estimated Annual Tax</span>
+            <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-annual">{formatCurrency(result.tax)}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span style={{ color: mutedText }}>Estimated Monthly Tax</span>
+            <span style={{ color: textColor }} data-testid="text-tax-monthly">{formatCurrency(result.monthlyTax)}</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span style={{ color: mutedText }}>Effective Tax Rate</span>
+            <span style={{ color: textColor }} data-testid="text-tax-rate">{result.effectiveRate}%</span>
+          </div>
+          <div className="flex justify-between text-xs pt-1" style={{ borderTop: `1px solid ${borderColor}` }}>
+            <span style={{ color: mutedText }}>Take-home (After Tax)</span>
+            <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-takehome">{formatCurrency(annualIncome - result.tax)}</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ServiceDropdown({
   service,
   borderColor,
   cardBg,
   textColor,
   mutedText,
+  accentColor,
+  buttonBg,
+  buttonText,
 }: {
   service: { key: string; name: string; description: string };
   borderColor: string;
   cardBg: string;
   textColor: string;
   mutedText: string;
+  accentColor: string;
+  buttonBg: string;
+  buttonText: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -50,12 +137,17 @@ function ServiceDropdown({
         {open ? <ChevronUp className="h-4 w-4 flex-shrink-0" /> : <ChevronDown className="h-4 w-4 flex-shrink-0" />}
       </button>
       {open && (
-        <div
-          className="px-4 pb-3 text-sm leading-relaxed"
-          style={{ color: mutedText }}
-          data-testid={`description-${service.key}`}
-        >
-          {service.description}
+        <div className="px-4 pb-3">
+          <div
+            className="text-sm leading-relaxed"
+            style={{ color: mutedText }}
+            data-testid={`description-${service.key}`}
+          >
+            {service.description}
+          </div>
+          {service.key === "tax-efficiency" && (
+            <TaxCalculator borderColor={borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={buttonBg} buttonText={buttonText} />
+          )}
         </div>
       )}
     </div>
@@ -144,13 +236,13 @@ export default function AdvisorProfile() {
             <img
               src={advisor.profilePicUrl}
               alt={advisor.name}
-              className="w-28 h-28 rounded-full object-cover border-2"
+              className="w-44 h-44 rounded-full object-cover border-4"
               style={{ borderColor: tc.initialsCircleBorder }}
               data-testid="img-profile-pic"
             />
           ) : (
             <div
-              className="w-28 h-28 rounded-full flex items-center justify-center text-3xl font-bold"
+              className="w-44 h-44 rounded-full flex items-center justify-center text-5xl font-bold"
               style={{
                 backgroundColor: tc.initialsCircleBg,
                 color: accentColor,
@@ -182,7 +274,7 @@ export default function AdvisorProfile() {
             <h2 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: sectionTitle }}>
               Introduction
             </h2>
-            <p className="text-sm leading-relaxed" style={{ color: mutedText }} data-testid="text-bio">
+            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">
               {bioText}
             </p>
           </div>
@@ -198,7 +290,7 @@ export default function AdvisorProfile() {
             </h2>
             <div className="space-y-2">
               {individualServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />
+                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={tc.buttonBg} buttonText={tc.buttonText} />
               ))}
             </div>
           </div>
@@ -214,7 +306,7 @@ export default function AdvisorProfile() {
             </h2>
             <div className="space-y-2">
               {corporateServices.map((s) => (
-                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />
+                <ServiceDropdown key={s.key} service={s} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={tc.buttonBg} buttonText={tc.buttonText} />
               ))}
             </div>
           </div>

@@ -44,11 +44,12 @@ Clients are auto-graded based on demographics:
 1. **Home** - Welcome message, quick stats summary, navigation cards
 2. **Stat's Tracker** - Real-time stats from database with weekly activity chart
 3. **CIV (Client Information Viewer)** - Client table with grade cards, search, filter, expandable detail rows, inline grade override
-4. **Manage Advisors** - List advisors with active/inactive toggles, "New Advisor" button
+4. **Manage Advisors** - List advisors with active/inactive toggles, edit/view/copy/delete buttons, "New Advisor" button
 5. **Create New Advisor** - Full form with header, profile pic, bio options, services checkboxes, theme selection, QR code preview
-6. **Public Profile Page** (`/profile/:slug`) - Mobile-optimized, dark/pink themed, expandable services, callback/referral buttons, QR code
-7. **Callback Form** (`/profile/:slug/request-callback`) - Client details form with income, situation toggles, service selection
-8. **Referral Form** (`/profile/:slug/referrals`) - Referrer details + up to 4 referral entries
+6. **Edit Advisor** (`/edit/:id`) - Full editing of existing advisor profiles
+7. **Public Profile Page** (`/profile/:slug`) - Mobile-optimized, dark/blue/pink themed, expandable services, tax calculator, callback/referral buttons, QR code, large profile pictures
+8. **Callback Form** (`/profile/:slug/request-callback`) - Client details form with income, situation toggles, service selection
+9. **Referral Form** (`/profile/:slug/referrals`) - Referrer details + up to 4 referral entries
 
 ## Routes
 ### Control Panel (inside AppLayout)

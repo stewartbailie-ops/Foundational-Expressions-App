@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CreditCard, ExternalLink, Pencil, Copy, Check } from "lucide-react";
+import { Search, Plus, CreditCard, ExternalLink, Pencil, Copy, Check, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -30,6 +30,26 @@ export default function ManageAdvisors() {
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/advisors/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      toast({ title: "Advisor Deleted", description: "The advisor profile has been permanently removed." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleDelete = (advisor: Advisor) => {
+    if (window.confirm(`Are you sure you want to permanently delete ${advisor.name}'s profile? This action cannot be undone.`)) {
+      deleteMutation.mutate(advisor.id);
+    }
+  };
 
   const activeCount = advisors.filter((a) => a.active).length;
   const filtered = advisors.filter(
@@ -178,6 +198,16 @@ export default function ManageAdvisors() {
                           data-testid={`button-copy-${advisor.id}`}
                         >
                           {copiedId === advisor.id ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                          title="Delete Advisor"
+                          onClick={() => handleDelete(advisor)}
+                          data-testid={`button-delete-${advisor.id}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </TableCell>

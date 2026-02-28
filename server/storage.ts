@@ -9,6 +9,7 @@ export interface IStorage {
   createAdvisor(advisor: InsertAdvisor): Promise<Advisor>;
   updateAdvisor(id: number, data: Partial<InsertAdvisor>): Promise<Advisor | undefined>;
   toggleAdvisorActive(id: number, active: boolean): Promise<Advisor | undefined>;
+  deleteAdvisor(id: number): Promise<boolean>;
 
   getEmails(): Promise<(Email & { advisorName: string })[]>;
   createEmail(email: InsertEmail): Promise<Email>;
@@ -52,6 +53,11 @@ export class DatabaseStorage implements IStorage {
   async toggleAdvisorActive(id: number, active: boolean): Promise<Advisor | undefined> {
     const [updated] = await db.update(advisors).set({ active }).where(eq(advisors.id, id)).returning();
     return updated;
+  }
+
+  async deleteAdvisor(id: number): Promise<boolean> {
+    const result = await db.delete(advisors).where(eq(advisors.id, id)).returning();
+    return result.length > 0;
   }
 
   async getEmails(): Promise<(Email & { advisorName: string })[]> {

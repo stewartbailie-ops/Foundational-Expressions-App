@@ -231,7 +231,7 @@ export default function CreateAdvisor() {
                   />
                 </div>
               ) : (
-                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border" data-testid="text-bio-preview">
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border whitespace-pre-line" data-testid="text-bio-preview">
                   {BIO_OPTIONS[bioOption]}
                 </div>
               )}
