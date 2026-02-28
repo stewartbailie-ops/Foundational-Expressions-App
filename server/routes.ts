@@ -5,18 +5,9 @@ import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS 
 import { isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
-import path from "path";
-import { randomUUID } from "crypto";
 
-const uploadStorage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${randomUUID()}${ext}`);
-  },
-});
 const upload = multer({
-  storage: uploadStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/webp"];
@@ -58,7 +49,8 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded or invalid file type" });
     }
-    const url = `/uploads/${req.file.filename}`;
+    const base64 = req.file.buffer.toString("base64");
+    const url = `data:${req.file.mimetype};base64,${base64}`;
     res.json({ url });
   });
 
