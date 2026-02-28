@@ -7,14 +7,21 @@ export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
+  title: text("title").default("Financial Advisor"),
   bio: text("bio"),
+  bioOption: text("bio_option").default("a"),
+  customBio: text("custom_bio"),
   entityType: text("entity_type").notNull().default("individual"),
   themeColor: text("theme_color").default("#000000"),
+  theme: text("theme").default("dark"),
   font: text("font").default("inter"),
+  profilePicUrl: text("profile_pic_url"),
   coverImageUrl: text("cover_image_url"),
   linkedinUrl: text("linkedin_url"),
   websiteUrl: text("website_url"),
   profileSlug: text("profile_slug").notNull().unique(),
+  individualServices: text("individual_services").array(),
+  corporateServices: text("corporate_services").array(),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -25,6 +32,85 @@ export const insertAdvisorSchema = createInsertSchema(advisors).omit({
 });
 export type InsertAdvisor = z.infer<typeof insertAdvisorSchema>;
 export type Advisor = typeof advisors.$inferSelect;
+
+export const TITLE_OPTIONS = [
+  "Executive Financial Planner",
+  "Financial Planner",
+  "Executive Financial Advisor",
+  "Financial Advisor",
+] as const;
+
+export const BIO_OPTIONS: Record<string, string> = {
+  a: "I appreciate the opportunity to share a short overview of the value I aim to provide. My core focus is a single point of contact for all your financial management & wealth creation needs, please use the below drop-downs for a concise summary of my services. Should you, or members of your professional network, wish to explore how our advisory framework may add measurable value, we welcome the opportunity to arrange a consultation at your convenience. We look forward to engaging further.",
+  b: "Thank you for the opportunity to share a brief overview of the value our firm delivers to clients. I provide an integrated, strategic approach to financial management, wealth structuring, and long-term planning, serving as a central, trusted advisory partner across all aspects of my clients' financial affairs. For a concise summary of my services and solutions, please refer to the drop-down sections below. Should you, or anyone within your network, feel that they may benefit from my services, you are most welcome to forward this link, share a referral, or request a call-back at a time that best suits you. I would be pleased to connect and assist further.",
+  c: "Thank you for the opportunity to share a brief overview of the value I strive to deliver to my clients. My objective is to deliver clarity, structure, and sustainable growth through disciplined strategy and professional oversight. A concise outline of my services is available in the sections below. Should you, or anyone within your network, wish to explore how our services may add value, you are welcome to share this link, request a consultation, or arrange a call at a time that suits you. We look forward to connecting and assisting further.",
+};
+
+export const INDIVIDUAL_SERVICES = [
+  {
+    key: "tax-efficiency",
+    name: "Optimize Tax Efficiency",
+    description: "Strategic tax planning to minimize your tax burden while maintaining full compliance. We analyze your financial situation to identify legitimate tax-saving opportunities and implement structures that optimize your after-tax returns.",
+  },
+  {
+    key: "tax-investment",
+    name: "Tax-efficient Investment",
+    description: "Investment strategies designed to maximize returns while minimizing tax impact. We structure portfolios using tax-advantaged vehicles and timing strategies to help grow your wealth more efficiently.",
+  },
+  {
+    key: "personal-risk",
+    name: "Personal Risk Cover",
+    description: "Comprehensive risk assessment and insurance solutions to protect you and your family. We evaluate your unique circumstances to recommend appropriate life, disability, and income protection cover.",
+  },
+  {
+    key: "retirement",
+    name: "Retirement",
+    description: "End-to-end retirement planning from accumulation through to comfortable retirement. We help you set realistic goals, choose appropriate retirement vehicles, and plan for a sustainable income in retirement.",
+  },
+  {
+    key: "medical-aid",
+    name: "Medical Aid",
+    description: "Expert guidance on selecting the right medical aid plan for your needs and budget. We compare options across providers to ensure you get comprehensive healthcare coverage at the best possible value.",
+  },
+  {
+    key: "short-term",
+    name: "Short-term Insurance",
+    description: "Protection for your assets including home, vehicle, and personal belongings. We assess your risk profile and recommend tailored short-term insurance solutions that provide adequate cover without overpaying.",
+  },
+  {
+    key: "wills-estates",
+    name: "Will & Estates",
+    description: "Professional estate planning and will drafting to ensure your wishes are clearly documented and support effective estate planning and legacy protection. As part of our commitment to supporting your long-term wellbeing, we offer a complimentary Will.",
+  },
+] as const;
+
+export const CORPORATE_SERVICES = [
+  {
+    key: "corporate-planning",
+    name: "Corporate Planning",
+    description: "Strategic financial planning for businesses. Our solutions help businesses attract, retain, and protect their most valuable assets: their people.",
+  },
+  {
+    key: "group-risk",
+    name: "Group Risk Cover",
+    description: "Comprehensive group life, disability, and income protection solutions to safeguard employees and ensure business continuity in the event of unforeseen circumstances.",
+  },
+  {
+    key: "pension-provident",
+    name: "Pension/Provident Funds",
+    description: "End-to-end retirement fund setup plans that allow employees to build their futures with contributions held in an acceptable structure.",
+  },
+  {
+    key: "group-medical",
+    name: "Group Medical Aid",
+    description: "Access to a central healthcare solution for employees. The process includes analysis to determine the best group medical aid provider.",
+  },
+  {
+    key: "corporate-short-term",
+    name: "Corporate Short-Term Insurance",
+    description: "Tailored coverage for company vehicles, equipment, offices, and facilities, with competitive premiums and comprehensive protection.",
+  },
+] as const;
 
 export const emails = pgTable("emails", {
   id: serial("id").primaryKey(),

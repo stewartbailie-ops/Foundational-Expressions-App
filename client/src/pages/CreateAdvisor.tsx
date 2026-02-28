@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QRCodeSVG } from "qrcode.react";
 import { ArrowLeft, Upload, Link as LinkIcon, Download, Loader2 } from "lucide-react";
@@ -11,6 +12,7 @@ import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 
 export default function CreateAdvisor() {
   const [, navigate] = useLocation();
@@ -18,28 +20,39 @@ export default function CreateAdvisor() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [bio, setBio] = useState("");
+  const [title, setTitle] = useState("Financial Advisor");
+  const [bioOption, setBioOption] = useState("a");
+  const [customBio, setCustomBio] = useState("");
   const [entityType, setEntityType] = useState("individual");
-  const [themeColor, setThemeColor] = useState("#000000");
-  const [font, setFont] = useState("inter");
+  const [theme, setTheme] = useState("dark");
   const [linkedinUrl, setLinkedinUrl] = useState("");
   const [websiteUrl, setWebsiteUrl] = useState("");
+  const [selectedIndividual, setSelectedIndividual] = useState<string[]>([]);
+  const [selectedCorporate, setSelectedCorporate] = useState<string[]>([]);
 
   const formattedSlug = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "new-advisor";
-  const profileUrl = `${window.location.origin}/refer/${formattedSlug}`;
+  const profileUrl = `https://advisoryconnect.pro/${formattedSlug}`;
+  const initials = name.trim() ? name.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "NA";
+
+  const bioText = bioOption === "custom" ? customBio : BIO_OPTIONS[bioOption] || "";
 
   const createMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/advisors", {
         name,
         email,
-        bio: bio || null,
+        title,
+        bio: bioText,
+        bioOption,
+        customBio: bioOption === "custom" ? customBio : null,
         entityType,
-        themeColor,
-        font,
+        themeColor: theme === "dark" ? "#1a1a1a" : "#d4738a",
+        theme,
         linkedinUrl: linkedinUrl || null,
         websiteUrl: websiteUrl || null,
         profileSlug: formattedSlug,
+        individualServices: selectedIndividual,
+        corporateServices: selectedCorporate,
         active: true,
       });
       return res.json();
@@ -47,7 +60,7 @@ export default function CreateAdvisor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/advisors"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Advisor created", description: `${name} has been deployed successfully.` });
+      toast({ title: "Profile Created", description: `${name}'s profile has been deployed successfully.` });
       navigate("/manage");
     },
     onError: (error: Error) => {
@@ -55,12 +68,9 @@ export default function CreateAdvisor() {
     },
   });
 
-  const colors = [
-    { value: "#000000", label: "Black" },
-    { value: "#0f172a", label: "Slate" },
-    { value: "#2563eb", label: "Blue" },
-    { value: "#047857", label: "Emerald" },
-  ];
+  const toggleService = (list: string[], setList: (v: string[]) => void, key: string) => {
+    setList(list.includes(key) ? list.filter(s => s !== key) : [...list, key]);
+  };
 
   const isValid = name.trim() !== "" && email.trim() !== "";
 
@@ -69,194 +79,235 @@ export default function CreateAdvisor() {
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
         <Link href="/manage" className="hover:text-foreground flex items-center gap-1 transition-colors" data-testid="link-back-manage">
           <ArrowLeft className="h-4 w-4" />
-          Back to Manage
+          Back to Manage Advisors
         </Link>
       </div>
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Create New Advisor</h2>
-          <p className="text-muted-foreground mt-1">Configure and generate a new profile based on the master template.</p>
+          <p className="text-muted-foreground mt-1">Configure all profile details below. The profile will be live at advisoryconnect.pro/{formattedSlug}</p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={() => createMutation.mutate()}
-            disabled={!isValid || createMutation.isPending}
-            data-testid="button-deploy"
-          >
-            {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            Deploy Profile
-          </Button>
-        </div>
+        <Button
+          onClick={() => createMutation.mutate()}
+          disabled={!isValid || createMutation.isPending}
+          data-testid="button-deploy"
+        >
+          {createMutation.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          Deploy Profile
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-4">
-        <div className="xl:col-span-2 space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">1</div>
-              <h3 className="text-lg font-semibold">Profile Details</h3>
-            </div>
+        <div className="xl:col-span-2 space-y-6">
 
-            <Card className="border-border">
-              <CardContent className="p-6 space-y-6">
-                <div className="flex flex-col sm:flex-row gap-6">
-                  <div className="w-full sm:w-1/3 flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-6 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
-                    <div className="h-16 w-16 rounded-full bg-background border border-border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                    <span className="text-sm font-medium">Upload Cover</span>
-                    <span className="text-xs text-muted-foreground text-center mt-1">PNG, JPG up to 5MB</span>
-                  </div>
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-5">
+              <h3 className="text-lg font-semibold border-b pb-2">Header</h3>
 
-                  <div className="w-full sm:w-2/3 space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name / Practice Name</Label>
-                      <Input
-                        id="name"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="e.g. Jane Doe"
-                        className="bg-background"
-                        data-testid="input-advisor-name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="type">Entity Type</Label>
-                      <Select value={entityType} onValueChange={setEntityType}>
-                        <SelectTrigger className="bg-background" data-testid="select-entity-type">
-                          <SelectValue placeholder="Select type" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="individual">Individual Advisor</SelectItem>
-                          <SelectItem value="corporate">Corporate Practice</SelectItem>
-                          <SelectItem value="team">Team / Group</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-6">
+                <div className={`h-20 w-20 rounded-full flex items-center justify-center text-2xl font-bold shrink-0 ${theme === "pink" ? "bg-pink-800 text-pink-100" : "bg-neutral-800 text-white"}`} data-testid="preview-initials">
+                  {initials}
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="bio">Professional Biography</Label>
-                  <Textarea
-                    id="bio"
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    placeholder="Enter professional background, specialties, and experience..."
-                    className="min-h-[120px] bg-background resize-none"
-                    data-testid="textarea-bio"
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">2</div>
-              <h3 className="text-lg font-semibold">Appearance & Settings</h3>
-            </div>
-
-            <Card className="border-border">
-              <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Theme Color</Label>
-                    <div className="flex gap-3">
-                      {colors.map((c) => (
-                        <div
-                          key={c.value}
-                          onClick={() => setThemeColor(c.value)}
-                          className={`w-10 h-10 rounded-full border cursor-pointer transition-transform hover:scale-110 ${
-                            themeColor === c.value ? "ring-2 ring-offset-2 ring-primary" : ""
-                          }`}
-                          style={{ backgroundColor: c.value }}
-                          data-testid={`color-${c.label.toLowerCase()}`}
-                        />
-                      ))}
-                    </div>
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-1.5">
+                    <Label>Full Name</Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Chris Zeeman" data-testid="input-advisor-name" />
                   </div>
-
-                  <div className="space-y-2 pt-2">
-                    <Label>Typography / Font</Label>
-                    <Select value={font} onValueChange={setFont}>
-                      <SelectTrigger className="bg-background" data-testid="select-font">
-                        <SelectValue placeholder="Select font" />
+                  <div className="space-y-1.5">
+                    <Label>Title</Label>
+                    <Select value={title} onValueChange={setTitle}>
+                      <SelectTrigger data-testid="select-title">
+                        <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="inter">Inter (Modern)</SelectItem>
-                        <SelectItem value="roboto">Roboto (Corporate)</SelectItem>
-                        <SelectItem value="playfair">Playfair Display (Classic)</SelectItem>
+                        {TITLE_OPTIONS.map(t => (
+                          <SelectItem key={t} value={t}>{t}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Custom Routing Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="advisor@example.com"
-                      className="bg-background"
-                      data-testid="input-advisor-email"
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Profile Picture</h3>
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-border rounded-lg p-8 bg-muted/30 hover:bg-muted/50 transition-colors cursor-pointer group">
+                <div className="h-20 w-20 rounded-full bg-background border border-border flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
+                  <Upload className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <span className="text-sm font-medium">Upload Profile Picture</span>
+                <span className="text-xs text-muted-foreground text-center mt-1">PNG, JPG up to 5MB. Image will be rounded.</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Introduction, Overview & Bio</h3>
+              <div className="space-y-1.5">
+                <Label>Pre-scripted Introduction</Label>
+                <Select value={bioOption} onValueChange={setBioOption}>
+                  <SelectTrigger data-testid="select-bio-option">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="a">Option A - Core focus overview</SelectItem>
+                    <SelectItem value="b">Option B - Integrated strategic approach</SelectItem>
+                    <SelectItem value="c">Option C - Clarity & structure focus</SelectItem>
+                    <SelectItem value="custom">Custom Biography</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {bioOption === "custom" ? (
+                <div className="space-y-1.5">
+                  <Label>Custom Biography</Label>
+                  <Textarea
+                    value={customBio}
+                    onChange={(e) => setCustomBio(e.target.value)}
+                    placeholder="Write a personalized biography..."
+                    className="min-h-[150px] resize-none"
+                    data-testid="textarea-custom-bio"
+                  />
+                </div>
+              ) : (
+                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border" data-testid="text-bio-preview">
+                  {BIO_OPTIONS[bioOption]}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Individual Services & Descriptions</h3>
+              <p className="text-sm text-muted-foreground">Select which services to show on this advisor's profile.</p>
+              <div className="space-y-3">
+                {INDIVIDUAL_SERVICES.map(service => (
+                  <label key={service.key} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
+                    <Checkbox
+                      checked={selectedIndividual.includes(service.key)}
+                      onCheckedChange={() => toggleService(selectedIndividual, setSelectedIndividual, service.key)}
+                      data-testid={`check-individual-${service.key}`}
                     />
-                    <p className="text-xs text-muted-foreground">Referrals and call-back requests will be sent here.</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{service.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{service.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 border-b border-border pb-2">
-              <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</div>
-              <h3 className="text-lg font-semibold">Integrations</h3>
-            </div>
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Corporate Services & Descriptions</h3>
+              <p className="text-sm text-muted-foreground">Select which corporate services to show on this advisor's profile.</p>
+              <div className="space-y-3">
+                {CORPORATE_SERVICES.map(service => (
+                  <label key={service.key} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
+                    <Checkbox
+                      checked={selectedCorporate.includes(service.key)}
+                      onCheckedChange={() => toggleService(selectedCorporate, setSelectedCorporate, service.key)}
+                      data-testid={`check-corporate-${service.key}`}
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{service.name}</div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{service.description}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-            <Card className="border-border">
-              <CardContent className="p-6 space-y-4">
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Links to Socials</h3>
+              <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="LinkedIn Profile URL"
-                    className="bg-background"
-                    value={linkedinUrl}
-                    onChange={(e) => setLinkedinUrl(e.target.value)}
-                    data-testid="input-linkedin"
-                  />
+                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input placeholder="LinkedIn Profile URL" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} data-testid="input-linkedin" />
                 </div>
                 <div className="flex items-center gap-3">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Personal Website URL"
-                    className="bg-background"
-                    value={websiteUrl}
-                    onChange={(e) => setWebsiteUrl(e.target.value)}
-                    data-testid="input-website"
-                  />
+                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input placeholder="Personal Website URL" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} data-testid="input-website" />
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-5">
+              <h3 className="text-lg font-semibold border-b pb-2">Settings</h3>
+
+              <div className="space-y-1.5">
+                <Label>Email Address</Label>
+                <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="advisor@example.com" data-testid="input-advisor-email" />
+                <p className="text-xs text-muted-foreground">This is the advisor's preferred email. Referral summaries will be sent here daily.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Theme</Label>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => setTheme("dark")}
+                    className={`flex-1 rounded-xl border-2 p-4 text-center transition-all ${theme === "dark" ? "border-black ring-2 ring-black/20" : "border-border hover:border-black/30"}`}
+                    data-testid="theme-dark"
+                  >
+                    <div className="w-full h-16 rounded-lg bg-neutral-900 mb-2 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">Dark</span>
+                    </div>
+                    <span className="text-sm font-medium">Black & White</span>
+                  </button>
+                  <button
+                    onClick={() => setTheme("pink")}
+                    className={`flex-1 rounded-xl border-2 p-4 text-center transition-all ${theme === "pink" ? "border-pink-500 ring-2 ring-pink-500/20" : "border-border hover:border-pink-300"}`}
+                    data-testid="theme-pink"
+                  >
+                    <div className="w-full h-16 rounded-lg bg-gradient-to-br from-pink-400 to-pink-700 mb-2 flex items-center justify-center">
+                      <span className="text-white text-xs font-medium">Pink</span>
+                    </div>
+                    <span className="text-sm font-medium">Pink</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Entity Type</Label>
+                <Select value={entityType} onValueChange={setEntityType}>
+                  <SelectTrigger data-testid="select-entity-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="individual">Individual Advisor</SelectItem>
+                    <SelectItem value="corporate">Corporate Practice</SelectItem>
+                    <SelectItem value="team">Team / Group</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="space-y-6">
           <div className="sticky top-24 space-y-6">
-            <Card className="border-border shadow-md overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-primary/50 to-primary"></div>
-              <CardHeader className="bg-muted/30 pb-4 border-b border-border text-center">
-                <CardTitle className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Live Barcode</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col items-center justify-center p-8 bg-card">
-                <div className="p-4 bg-white rounded-xl shadow-sm border border-border mb-6">
+            <Card className="border-border shadow-md overflow-hidden">
+              <CardContent className="flex flex-col items-center justify-center p-8">
+                <div className={`h-24 w-24 rounded-full flex items-center justify-center text-3xl font-bold mb-4 ${theme === "pink" ? "bg-pink-800 text-pink-100" : "bg-neutral-800 text-white"}`}>
+                  {initials}
+                </div>
+                <h3 className="text-lg font-bold text-center" data-testid="preview-name">{name || "Advisor Name"}</h3>
+                <p className="text-sm text-muted-foreground">{title}</p>
+
+                <div className="mt-6 p-4 bg-white rounded-xl shadow-sm border border-border">
                   <QRCodeSVG
                     value={profileUrl}
-                    size={180}
+                    size={200}
                     level="H"
                     includeMargin={true}
                     fgColor="#000000"
@@ -264,14 +315,14 @@ export default function CreateAdvisor() {
                   />
                 </div>
 
-                <div className="w-full space-y-3">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Unique Profile Link</div>
-                  <div className="p-3 bg-muted rounded-md text-sm font-mono break-all border border-border" data-testid="text-profile-url">
+                <div className="w-full mt-4 space-y-2">
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Profile URL</div>
+                  <div className="p-2 bg-muted rounded-md text-xs font-mono break-all border" data-testid="text-profile-url">
                     {profileUrl}
                   </div>
-                  <Button variant="outline" className="w-full gap-2 mt-2 bg-background" data-testid="button-download-qr">
-                    <Download className="h-4 w-4" />
-                    Download QR Asset
+                  <Button variant="outline" className="w-full gap-2 text-xs" data-testid="button-download-qr">
+                    <Download className="h-3 w-3" />
+                    Download QR Code
                   </Button>
                 </div>
               </CardContent>
@@ -279,10 +330,13 @@ export default function CreateAdvisor() {
 
             <Card className="border-border bg-muted/30">
               <CardContent className="p-5">
-                <h4 className="text-sm font-semibold mb-2">How it works</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  As you type the advisor's name, their unique profile URL is automatically generated. The barcode updates in real-time to match this URL, ensuring it stays 100% unique to them.
-                </p>
+                <h4 className="text-sm font-semibold mb-2">Profile Preview</h4>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>Individual Services: {selectedIndividual.length} selected</p>
+                  <p>Corporate Services: {selectedCorporate.length} selected</p>
+                  <p>Theme: {theme === "dark" ? "Black & White" : "Pink"}</p>
+                  <p>Bio: Option {bioOption.toUpperCase()}</p>
+                </div>
               </CardContent>
             </Card>
           </div>

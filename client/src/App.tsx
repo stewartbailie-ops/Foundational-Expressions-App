@@ -10,12 +10,16 @@ import Dashboard from "@/pages/Dashboard";
 import CIV from "@/pages/CIV";
 import ManageAdvisors from "@/pages/ManageAdvisors";
 import CreateAdvisor from "@/pages/CreateAdvisor";
+import AdvisorProfile from "@/pages/AdvisorProfile";
+import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/refer/:slug" component={ReferralForm} />
+      <Route path="/profile/:slug/request-callback" component={CallbackForm} />
+      <Route path="/profile/:slug/referrals" component={ReferralForm} />
+      <Route path="/profile/:slug" component={AdvisorProfile} />
       <Route>
         <AppLayout>
           <Switch>

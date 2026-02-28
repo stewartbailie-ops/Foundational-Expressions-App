@@ -1,6 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, LayoutDashboard, Users, UserPlus, Inbox, Settings } from "lucide-react";
-import logoImg from "@assets/Advisory_Connect_1772075164954.png";
+import { Home, LayoutDashboard, Users, Inbox, Settings } from "lucide-react";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
@@ -10,15 +9,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     { href: "/stats", label: "Stat's Tracker", icon: LayoutDashboard },
     { href: "/civ", label: "CIV (Client Info)", icon: Inbox },
     { href: "/manage", label: "Manage Advisors", icon: Users },
-    { href: "/create", label: "Create New Advisor", icon: UserPlus },
   ];
 
   return (
     <div className="min-h-screen bg-black flex text-white">
       <aside className="w-72 bg-black flex flex-col hidden md:flex border-r border-white/10">
-        <div className="flex flex-col items-start px-3 pt-6 pb-2">
-          <img src={logoImg} alt="Advisory Connect" className="w-full mb-1" />
-          <p className="text-lg text-white tracking-wide uppercase font-medium px-1">Control Panel</p>
+        <div className="flex flex-col items-start px-4 pt-8 pb-4">
+          <p className="text-lg text-white tracking-wide uppercase font-medium">Control Panel</p>
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-2 flex flex-col items-start">
@@ -60,7 +57,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white text-black">
         <header className="h-14 flex items-center justify-between px-8 border-b border-black/10 bg-white sticky top-0 z-10">
           <h2 className="text-base font-semibold tracking-tight text-black">
-            {navItems.find((item) => item.href === location)?.label || "Home"}
+            {navItems.find((item) => item.href === location)?.label || "Advisory Connect"}
           </h2>
           <div className="flex items-center gap-4 text-sm text-black/50">
             <span>Server: <strong className="text-emerald-600">Online</strong></span>

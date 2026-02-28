@@ -1,7 +1,6 @@
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { LayoutDashboard, Inbox, Users, UserPlus, ArrowRight } from "lucide-react";
-import logoImg from "@assets/Advisory_Connect_1772075164954.png";
+import { LayoutDashboard, Inbox, Users, ArrowRight } from "lucide-react";
 
 export default function HomePage() {
   const { data: stats } = useQuery<{
@@ -21,31 +20,23 @@ export default function HomePage() {
     {
       href: "/civ",
       label: "Client Information Viewer",
-      description: "Sort, organize, and grade all incoming client emails.",
+      description: "Sort, organize, and grade all incoming client submissions.",
       icon: Inbox,
     },
     {
       href: "/manage",
       label: "Manage Advisors",
-      description: "View, activate, and deactivate advisor applications.",
+      description: "View, create, activate, and deactivate advisor profiles.",
       icon: Users,
-    },
-    {
-      href: "/create",
-      label: "Create New Advisor",
-      description: "Deploy a new advisor profile with a unique QR code.",
-      icon: UserPlus,
     },
   ];
 
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center pt-4 pb-2">
-        <div className="inline-flex items-center justify-center bg-black rounded-2xl px-8 py-6 mb-6">
-          <img src={logoImg} alt="Advisory Connect" className="h-24" />
-        </div>
-        <h1 className="text-4xl font-bold tracking-tight text-black">Advisory Connect - Control Panel</h1>
-        <p className="text-black/50 mt-3 text-lg max-w-xl mx-auto">
+        <h1 className="text-4xl font-bold tracking-tight text-black">Advisory Connect</h1>
+        <p className="text-lg text-black/40 font-medium mt-1">Control Panel</p>
+        <p className="text-black/50 mt-3 text-base max-w-xl mx-auto">
           Your central hub for managing advisor profiles, tracking referrals, and monitoring activity.
         </p>
       </div>
@@ -69,7 +60,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-3xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
         {quickLinks.map((link) => (
           <Link
             key={link.href}

@@ -2,95 +2,185 @@ import { useState } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, Loader2, AlertCircle } from "lucide-react";
-import logoImg from "@assets/Advisory_Connect_1772075164954.png";
+import { Loader2, AlertCircle, CheckCircle2, Plus, Trash2, ArrowLeft } from "lucide-react";
+import type { Advisor } from "@shared/schema";
+import { INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 
-type Advisor = {
-  id: number;
-  name: string;
-  email: string;
-  bio: string | null;
-  themeColor: string | null;
-  profileSlug: string;
-  active: boolean;
-};
+function getInitials(name: string): string {
+  return name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+}
 
-const INDUSTRY_OPTIONS = [
-  "IT",
-  "Finance",
-  "Healthcare",
-  "Engineering",
-  "Education",
-  "Legal",
-  "Retail",
-  "Manufacturing",
-  "Agriculture",
-  "Construction",
-  "Government",
+const INCOME_OPTIONS = [
+  "R0k - R15k",
+  "R15k - R30k",
+  "R30k - R45k",
+  "R45k - R60k",
+  "R60k - R75k",
+  "R75k+",
+];
+
+const RELATIONSHIP_OPTIONS = [
+  "Friend",
+  "Family Member",
+  "Colleague",
+  "Client",
   "Other",
 ];
 
-const INCOME_OPTIONS = [
-  "R0 - R25,000",
-  "R25,000 - R65,000",
-  "R65,000 - R100,000",
-  "R100,000 - R200,000",
-  "R200,000 - R500,000",
-  "R500,000+",
+const CONTACT_TIME_OPTIONS = [
+  "Morning (8am - 12pm)",
+  "Afternoon (12pm - 5pm)",
+  "Evening (5pm - 8pm)",
+  "Any Time",
 ];
 
+interface ReferralEntry {
+  firstName: string;
+  surname: string;
+  email: string;
+  phone: string;
+  age: string;
+  incomeRange: string;
+  married: boolean;
+  children: boolean;
+  vehicle: boolean;
+  property: boolean;
+  relationship: string;
+  preferredContactTime: string;
+  servicesRequested: string;
+  confirmedOver18: boolean;
+}
+
+function emptyReferral(): ReferralEntry {
+  return {
+    firstName: "",
+    surname: "",
+    email: "",
+    phone: "",
+    age: "",
+    incomeRange: "",
+    married: false,
+    children: false,
+    vehicle: false,
+    property: false,
+    relationship: "",
+    preferredContactTime: "",
+    servicesRequested: "",
+    confirmedOver18: false,
+  };
+}
+
 export default function ReferralForm() {
-  const [, params] = useRoute("/refer/:slug");
+  const [, params] = useRoute("/profile/:slug/referrals");
   const slug = params?.slug || "";
 
-  const { data: advisor, isLoading: loadingAdvisor, error } = useQuery<Advisor>({
+  const { data: advisor, isLoading, error } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
     enabled: !!slug,
   });
 
-  const [clientName, setClientName] = useState("");
-  const [clientEmail, setClientEmail] = useState("");
-  const [clientPhone, setClientPhone] = useState("");
-  const [clientAge, setClientAge] = useState("");
-  const [clientIncome, setClientIncome] = useState("");
-  const [clientIndustry, setClientIndustry] = useState("");
-  const [message, setMessage] = useState("");
+  const [referrerFirstName, setReferrerFirstName] = useState("");
+  const [referrerSurname, setReferrerSurname] = useState("");
+  const [referrerEmail, setReferrerEmail] = useState("");
+  const [referrerPhone, setReferrerPhone] = useState("");
+
+  const [referrals, setReferrals] = useState<ReferralEntry[]>([emptyReferral()]);
   const [submitted, setSubmitted] = useState(false);
-  const [assignedGrade, setAssignedGrade] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
-  const submitMutation = useMutation({
-    mutationFn: async () => {
-      const res = await apiRequest("POST", "/api/referral", {
-        advisorId: advisor!.id,
-        clientName,
-        clientEmail,
-        clientAge: clientAge ? parseInt(clientAge) : undefined,
-        clientIncome: clientIncome || undefined,
-        clientIndustry: clientIndustry || undefined,
-        clientPhone: clientPhone || undefined,
-        message: message || undefined,
-        source: `referral-form-${slug}`,
-      });
-      return res.json();
-    },
-    onSuccess: (data) => {
-      setAssignedGrade(data.grade);
+  const isDark = advisor?.theme !== "pink";
+  const accentColor = isDark ? "#ffffff" : "#be185d";
+  const bgColor = isDark ? "#0a0a0a" : "#fff0f5";
+  const cardBg = isDark ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.8)";
+  const textColor = isDark ? "#ffffff" : "#1a1a1a";
+  const mutedText = isDark ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.55)";
+  const sectionTitle = isDark ? "rgba(255,255,255,0.85)" : "#be185d";
+  const inputBg = isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.9)";
+  const inputBorder = isDark ? "rgba(255,255,255,0.15)" : "rgba(190,24,93,0.2)";
+  const inputText = isDark ? "#ffffff" : "#1a1a1a";
+
+  const allServices = [
+    ...INDIVIDUAL_SERVICES.filter((s) => advisor?.individualServices?.includes(s.key)),
+    ...CORPORATE_SERVICES.filter((s) => advisor?.corporateServices?.includes(s.key)),
+  ];
+
+  const updateReferral = (index: number, field: keyof ReferralEntry, value: any) => {
+    setReferrals((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  const addReferral = () => {
+    if (referrals.length < 4) {
+      setReferrals((prev) => [...prev, emptyReferral()]);
+    }
+  };
+
+  const removeReferral = (index: number) => {
+    if (referrals.length > 1) {
+      setReferrals((prev) => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const canSubmit =
+    referrerFirstName.trim() &&
+    referrerSurname.trim() &&
+    referrerEmail.trim() &&
+    referrals.every(
+      (r) =>
+        r.firstName.trim() &&
+        r.surname.trim() &&
+        r.email.trim() &&
+        r.confirmedOver18
+    );
+
+  const handleSubmit = async () => {
+    if (!advisor || !canSubmit) return;
+    setSubmitting(true);
+    setSubmitError("");
+
+    try {
+      for (const ref of referrals) {
+        await apiRequest("POST", "/api/referral", {
+          advisorId: advisor.id,
+          clientName: `${ref.firstName} ${ref.surname}`,
+          clientEmail: ref.email,
+          clientPhone: ref.phone || undefined,
+          clientAge: ref.age ? parseInt(ref.age) : undefined,
+          clientIncome: ref.incomeRange || undefined,
+          clientMarried: ref.married,
+          clientChildren: ref.children,
+          clientVehicle: ref.vehicle,
+          clientProperty: ref.property,
+          preferredContactTime: ref.preferredContactTime || undefined,
+          servicesRequested: ref.servicesRequested || undefined,
+          referrerName: `${referrerFirstName} ${referrerSurname}`,
+          referrerEmail: referrerEmail,
+          referrerPhone: referrerPhone || undefined,
+          referrerRelation: ref.relationship || undefined,
+          source: `referral-form-${slug}`,
+        });
+      }
       setSubmitted(true);
-    },
-  });
+    } catch (err) {
+      setSubmitError("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-  const themeColor = advisor?.themeColor || "#000000";
-
-  if (loadingAdvisor) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-neutral-400" />
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0a0a0a" }}>
+        <Loader2 className="h-8 w-8 animate-spin text-white/40" />
       </div>
     );
   }
@@ -98,15 +188,13 @@ export default function ReferralForm() {
   if (error || !advisor) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
-            <h2 className="text-xl font-bold" data-testid="text-not-found">Advisor Not Found</h2>
-            <p className="text-muted-foreground text-sm" data-testid="text-not-found-message">
-              The advisor profile you're looking for doesn't exist or is no longer available.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto" />
+          <h2 className="text-xl font-bold" data-testid="text-not-found">Advisor Not Found</h2>
+          <p className="text-muted-foreground text-sm" data-testid="text-not-found-message">
+            The advisor profile you're looking for doesn't exist or is no longer available.
+          </p>
+        </div>
       </div>
     );
   }
@@ -114,173 +202,432 @@ export default function ReferralForm() {
   if (!advisor.active) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
-            <h2 className="text-xl font-bold" data-testid="text-unavailable">Advisor Unavailable</h2>
-            <p className="text-muted-foreground text-sm" data-testid="text-unavailable-message">
-              This advisor is not currently accepting new referrals.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center space-y-4">
+          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
+          <h2 className="text-xl font-bold" data-testid="text-unavailable">Advisor Unavailable</h2>
+          <p className="text-muted-foreground text-sm" data-testid="text-unavailable-message">
+            This advisor is not currently accepting referrals.
+          </p>
+        </div>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-8 text-center space-y-4">
-            <CheckCircle2 className="h-16 w-16 mx-auto" style={{ color: themeColor }} />
-            <h2 className="text-2xl font-bold" data-testid="text-success-title">Thank You!</h2>
-            <p className="text-muted-foreground" data-testid="text-success-message">
-              Your details have been submitted to <strong>{advisor.name}</strong>. They will be in touch with you shortly.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: bgColor }}>
+        <div className="text-center space-y-4 max-w-md">
+          <CheckCircle2 className="h-16 w-16 mx-auto" style={{ color: accentColor }} />
+          <h2 className="text-2xl font-bold" style={{ color: textColor }} data-testid="text-success-title">
+            Thank You!
+          </h2>
+          <p className="text-sm" style={{ color: mutedText }} data-testid="text-success-message">
+            Your referral{referrals.length > 1 ? "s have" : " has"} been submitted to{" "}
+            <strong style={{ color: textColor }}>{advisor.name}</strong>. They will be in touch shortly.
+          </p>
+          <button
+            onClick={() => window.history.back()}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium mt-4"
+            style={{
+              backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.12)",
+              color: accentColor,
+            }}
+            data-testid="button-back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Profile
+          </button>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="w-full py-6" style={{ backgroundColor: themeColor }}>
-        <div className="max-w-lg mx-auto px-6 flex items-center gap-4">
-          <img src={logoImg} alt="Advisory Connect" className="h-10" />
-        </div>
-      </div>
+  const initials = getInitials(advisor.name);
 
-      <div className="max-w-lg mx-auto px-6 py-8">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-bold tracking-tight" data-testid="text-advisor-name">
-            Connect with {advisor.name}
-          </h1>
-          {advisor.bio && (
-            <p className="text-muted-foreground text-sm mt-2" data-testid="text-advisor-bio">{advisor.bio}</p>
+  const inputStyle: React.CSSProperties = {
+    backgroundColor: inputBg,
+    border: `1px solid ${inputBorder}`,
+    color: inputText,
+    borderRadius: "0.5rem",
+    padding: "0.625rem 0.75rem",
+    fontSize: "0.875rem",
+    width: "100%",
+    outline: "none",
+  };
+
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    appearance: "none" as const,
+    backgroundImage: isDark
+      ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`
+      : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
+    backgroundRepeat: "no-repeat",
+    backgroundPosition: "right 0.75rem center",
+    paddingRight: "2rem",
+  };
+
+  const labelStyle: React.CSSProperties = {
+    color: mutedText,
+    fontSize: "0.75rem",
+    fontWeight: 500,
+    marginBottom: "0.25rem",
+    display: "block",
+  };
+
+  const checkboxRowStyle: React.CSSProperties = {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    color: textColor,
+    fontSize: "0.875rem",
+  };
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="referral-form-container">
+      <div className="max-w-md mx-auto px-5 py-8 space-y-6">
+        <div className="flex items-center gap-3" data-testid="referral-advisor-header">
+          {advisor.profilePicUrl ? (
+            <img
+              src={advisor.profilePicUrl}
+              alt={advisor.name}
+              className="w-12 h-12 rounded-full object-cover border"
+              style={{ borderColor: inputBorder }}
+              data-testid="img-advisor-pic"
+            />
+          ) : (
+            <div
+              className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold"
+              style={{
+                backgroundColor: isDark ? "rgba(255,255,255,0.1)" : "rgba(190,24,93,0.15)",
+                color: accentColor,
+                border: `1px solid ${inputBorder}`,
+              }}
+              data-testid="icon-advisor-initials"
+            >
+              {initials}
+            </div>
           )}
-          <p className="text-muted-foreground text-sm mt-3">
-            Fill in your details below and {advisor.name} will get back to you.
+          <div>
+            <h2 className="font-semibold text-sm" data-testid="text-advisor-name">{advisor.name}</h2>
+            {advisor.title && (
+              <p className="text-xs" style={{ color: mutedText }} data-testid="text-advisor-title">
+                {advisor.title}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div>
+          <h1 className="text-xl font-bold tracking-tight" data-testid="text-page-title">
+            Refer Friends & Family
+          </h1>
+          <p className="text-sm mt-1" style={{ color: mutedText }}>
+            Share the gift of professional financial advice with people you care about.
           </p>
         </div>
 
-        <Card className="shadow-sm">
-          <CardContent className="pt-6 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="name">Full Name *</Label>
-                <Input
-                  id="name"
-                  placeholder="John Smith"
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  data-testid="input-client-name"
+        <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }} data-testid="section-referrer-details">
+          <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: sectionTitle }}>
+            Your Details
+          </h3>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>First Name *</label>
+              <input
+                type="text"
+                placeholder="First name"
+                value={referrerFirstName}
+                onChange={(e) => setReferrerFirstName(e.target.value)}
+                style={inputStyle}
+                data-testid="input-referrer-firstname"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Surname *</label>
+              <input
+                type="text"
+                placeholder="Surname"
+                value={referrerSurname}
+                onChange={(e) => setReferrerSurname(e.target.value)}
+                style={inputStyle}
+                data-testid="input-referrer-surname"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>Email *</label>
+              <input
+                type="email"
+                placeholder="you@email.com"
+                value={referrerEmail}
+                onChange={(e) => setReferrerEmail(e.target.value)}
+                style={inputStyle}
+                data-testid="input-referrer-email"
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Phone</label>
+              <input
+                type="tel"
+                placeholder="+27 82 123 4567"
+                value={referrerPhone}
+                onChange={(e) => setReferrerPhone(e.target.value)}
+                style={inputStyle}
+                data-testid="input-referrer-phone"
+              />
+            </div>
+          </div>
+        </div>
+
+        {referrals.map((ref, index) => (
+          <div
+            key={index}
+            className="rounded-xl p-5 space-y-4"
+            style={{ backgroundColor: cardBg }}
+            data-testid={`section-referral-${index}`}
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: sectionTitle }}>
+                Referral {referrals.length > 1 ? `#${index + 1}` : "Details"}
+              </h3>
+              {referrals.length > 1 && (
+                <button
+                  onClick={() => removeReferral(index)}
+                  className="p-1.5 rounded-lg transition-opacity hover:opacity-70"
+                  style={{ color: isDark ? "rgba(255,255,255,0.4)" : "rgba(0,0,0,0.4)" }}
+                  data-testid={`button-remove-referral-${index}`}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>First Name *</label>
+                <input
+                  type="text"
+                  placeholder="First name"
+                  value={ref.firstName}
+                  onChange={(e) => updateReferral(index, "firstName", e.target.value)}
+                  style={inputStyle}
+                  data-testid={`input-referral-firstname-${index}`}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email Address *</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="john@example.com"
-                  value={clientEmail}
-                  onChange={(e) => setClientEmail(e.target.value)}
-                  data-testid="input-client-email"
+              <div>
+                <label style={labelStyle}>Surname *</label>
+                <input
+                  type="text"
+                  placeholder="Surname"
+                  value={ref.surname}
+                  onChange={(e) => updateReferral(index, "surname", e.target.value)}
+                  style={inputStyle}
+                  data-testid={`input-referral-surname-${index}`}
                 />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  placeholder="+27 82 123 4567"
-                  value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
-                  data-testid="input-client-phone"
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>Email *</label>
+                <input
+                  type="email"
+                  placeholder="email@example.com"
+                  value={ref.email}
+                  onChange={(e) => updateReferral(index, "email", e.target.value)}
+                  style={inputStyle}
+                  data-testid={`input-referral-email-${index}`}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="age">Age</Label>
-                <Input
-                  id="age"
+              <div>
+                <label style={labelStyle}>Phone</label>
+                <input
+                  type="tel"
+                  placeholder="+27 82 123 4567"
+                  value={ref.phone}
+                  onChange={(e) => updateReferral(index, "phone", e.target.value)}
+                  style={inputStyle}
+                  data-testid={`input-referral-phone-${index}`}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>Age</label>
+                <input
                   type="number"
                   placeholder="30"
                   min={18}
                   max={120}
-                  value={clientAge}
-                  onChange={(e) => setClientAge(e.target.value)}
-                  data-testid="input-client-age"
+                  value={ref.age}
+                  onChange={(e) => updateReferral(index, "age", e.target.value)}
+                  style={inputStyle}
+                  data-testid={`input-referral-age-${index}`}
                 />
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Monthly Income</Label>
-                <Select value={clientIncome} onValueChange={setClientIncome}>
-                  <SelectTrigger data-testid="select-client-income">
-                    <SelectValue placeholder="Select range" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INCOME_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Industry</Label>
-                <Select value={clientIndustry} onValueChange={setClientIndustry}>
-                  <SelectTrigger data-testid="select-client-industry">
-                    <SelectValue placeholder="Select industry" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {INDUSTRY_OPTIONS.map((opt) => (
-                      <SelectItem key={opt} value={opt}>{opt}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div>
+                <label style={labelStyle}>Income Range</label>
+                <select
+                  value={ref.incomeRange}
+                  onChange={(e) => updateReferral(index, "incomeRange", e.target.value)}
+                  style={selectStyle}
+                  data-testid={`select-referral-income-${index}`}
+                >
+                  <option value="">Select range</option>
+                  {INCOME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="message">Message (optional)</Label>
-              <Textarea
-                id="message"
-                placeholder="Tell us a bit about what you're looking for..."
-                rows={3}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                data-testid="input-client-message"
+            <div className="grid grid-cols-2 gap-3">
+              <div style={checkboxRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ref.married}
+                  onChange={(e) => updateReferral(index, "married", e.target.checked)}
+                  className="rounded"
+                  data-testid={`checkbox-referral-married-${index}`}
+                />
+                <span>Married</span>
+              </div>
+              <div style={checkboxRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ref.children}
+                  onChange={(e) => updateReferral(index, "children", e.target.checked)}
+                  className="rounded"
+                  data-testid={`checkbox-referral-children-${index}`}
+                />
+                <span>Children</span>
+              </div>
+              <div style={checkboxRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ref.vehicle}
+                  onChange={(e) => updateReferral(index, "vehicle", e.target.checked)}
+                  className="rounded"
+                  data-testid={`checkbox-referral-vehicle-${index}`}
+                />
+                <span>Vehicle</span>
+              </div>
+              <div style={checkboxRowStyle}>
+                <input
+                  type="checkbox"
+                  checked={ref.property}
+                  onChange={(e) => updateReferral(index, "property", e.target.checked)}
+                  className="rounded"
+                  data-testid={`checkbox-referral-property-${index}`}
+                />
+                <span>Property</span>
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Relationship</label>
+              <select
+                value={ref.relationship}
+                onChange={(e) => updateReferral(index, "relationship", e.target.value)}
+                style={selectStyle}
+                data-testid={`select-referral-relationship-${index}`}
+              >
+                <option value="">Select relationship</option>
+                {RELATIONSHIP_OPTIONS.map((opt) => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>Preferred Contact Time</label>
+                <select
+                  value={ref.preferredContactTime}
+                  onChange={(e) => updateReferral(index, "preferredContactTime", e.target.value)}
+                  style={selectStyle}
+                  data-testid={`select-referral-contact-time-${index}`}
+                >
+                  <option value="">Select time</option>
+                  {CONTACT_TIME_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Services</label>
+                <select
+                  value={ref.servicesRequested}
+                  onChange={(e) => updateReferral(index, "servicesRequested", e.target.value)}
+                  style={selectStyle}
+                  data-testid={`select-referral-services-${index}`}
+                >
+                  <option value="">Select service</option>
+                  {allServices.map((s) => (
+                    <option key={s.key} value={s.name}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div style={checkboxRowStyle}>
+              <input
+                type="checkbox"
+                checked={ref.confirmedOver18}
+                onChange={(e) => updateReferral(index, "confirmedOver18", e.target.checked)}
+                className="rounded"
+                data-testid={`checkbox-referral-over18-${index}`}
               />
+              <span className="text-sm">I confirm this person is over 18 years of age *</span>
             </div>
+          </div>
+        ))}
 
-            <Button
-              className="w-full h-11 text-sm font-semibold"
-              style={{ backgroundColor: themeColor }}
-              disabled={!clientName.trim() || !clientEmail.trim() || submitMutation.isPending}
-              onClick={() => submitMutation.mutate()}
-              data-testid="button-submit-referral"
-            >
-              {submitMutation.isPending ? (
-                <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Submitting...</>
-              ) : (
-                "Submit My Details"
-              )}
-            </Button>
+        {referrals.length < 4 && (
+          <button
+            onClick={addReferral}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+            style={{
+              backgroundColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(190,24,93,0.08)",
+              color: accentColor,
+              border: `1px dashed ${inputBorder}`,
+            }}
+            data-testid="button-add-referral"
+          >
+            <Plus className="h-4 w-4" />
+            Add Another Referral ({referrals.length}/4)
+          </button>
+        )}
 
-            {submitMutation.isError && (
-              <p className="text-red-500 text-sm text-center" data-testid="text-error">
-                Something went wrong. Please try again.
-              </p>
-            )}
-          </CardContent>
-        </Card>
+        <button
+          onClick={handleSubmit}
+          disabled={!canSubmit || submitting}
+          className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90 disabled:opacity-50"
+          style={{
+            backgroundColor: isDark ? "#ffffff" : "#be185d",
+            color: isDark ? "#000000" : "#ffffff",
+          }}
+          data-testid="button-submit-referrals"
+        >
+          {submitting ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            `Submit Referral${referrals.length > 1 ? "s" : ""}`
+          )}
+        </button>
 
-        <p className="text-center text-xs text-muted-foreground mt-6">
+        {submitError && (
+          <p className="text-red-500 text-sm text-center" data-testid="text-error">
+            {submitError}
+          </p>
+        )}
+
+        <p className="text-center text-xs pt-4 pb-2" style={{ color: mutedText }}>
           Powered by Advisory Connect
         </p>
       </div>
