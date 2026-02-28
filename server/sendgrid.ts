@@ -12,7 +12,7 @@ export async function sendEmail(to: string, subject: string, html: string, from?
 
   const msg = {
     to,
-    from: from || "noreply@advisorconnect.app",
+    from: from || "info@advisoryconnect.pro",
     subject,
     html,
   };
