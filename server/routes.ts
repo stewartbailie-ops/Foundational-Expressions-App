@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
-import { isSendGridConfigured } from "./sendgrid";
+import { sendEmail, isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
 
@@ -211,6 +211,33 @@ export async function registerRoutes(
         source: data.source,
       });
 
+      const advisor = await storage.getAdvisor(data.advisorId);
+      if (advisor?.email && isSendGridConfigured()) {
+        try {
+          const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
+          const referrerText = data.referrerName ? `<p><strong>Referred by:</strong> ${data.referrerName} (${data.referrerEmail || "no email"})</p>` : "";
+          await sendEmail(
+            advisor.email,
+            `New Referral: ${data.clientName}`,
+            `<h2>New Referral Received</h2>
+            <p><strong>Client:</strong> ${data.clientName}</p>
+            <p><strong>Email:</strong> ${data.clientEmail}</p>
+            <p><strong>Phone:</strong> ${data.clientPhone || "Not provided"}</p>
+            <p><strong>Age:</strong> ${data.clientAge || "Not provided"}</p>
+            <p><strong>Income:</strong> ${data.clientIncome || "Not provided"}</p>
+            <p><strong>Industry:</strong> ${data.clientIndustry || "Not provided"}</p>
+            <p><strong>Grade:</strong> ${grade}</p>
+            ${servicesText}
+            ${referrerText}
+            <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
+            <hr/>
+            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+          );
+        } catch (emailErr) {
+          console.error("Failed to send referral notification email:", emailErr);
+        }
+      }
+
       res.status(201).json({ message: "Referral received", grade, email });
     } catch (error) {
       console.error("Referral error:", error);
@@ -226,6 +253,7 @@ export async function registerRoutes(
         clientEmail: z.string().email(),
         clientAge: z.number().optional(),
         clientIncome: z.string().optional(),
+        clientIndustry: z.string().optional(),
         clientPhone: z.string().optional(),
         clientMarried: z.boolean().optional(),
         clientChildren: z.boolean().optional(),
@@ -243,7 +271,7 @@ export async function registerRoutes(
       }
 
       const data = parsed.data;
-      const grade = autoGradeClient(data.clientAge, data.clientIncome, null);
+      const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry || null);
 
       const email = await storage.createEmail({
         advisorId: data.advisorId,
@@ -255,6 +283,7 @@ export async function registerRoutes(
         body: data.message || "",
         clientAge: data.clientAge,
         clientIncome: data.clientIncome,
+        clientIndustry: data.clientIndustry,
         clientPhone: data.clientPhone,
         clientMarried: data.clientMarried,
         clientChildren: data.clientChildren,
@@ -264,6 +293,31 @@ export async function registerRoutes(
         servicesRequested: data.servicesRequested,
         source: data.source,
       });
+
+      const advisor = await storage.getAdvisor(data.advisorId);
+      if (advisor?.email && isSendGridConfigured()) {
+        try {
+          const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
+          await sendEmail(
+            advisor.email,
+            `New Call Back Request: ${data.clientName}`,
+            `<h2>New Call Back Request</h2>
+            <p><strong>Client:</strong> ${data.clientName}</p>
+            <p><strong>Email:</strong> ${data.clientEmail}</p>
+            <p><strong>Phone:</strong> ${data.clientPhone || "Not provided"}</p>
+            <p><strong>Age:</strong> ${data.clientAge || "Not provided"}</p>
+            <p><strong>Income:</strong> ${data.clientIncome || "Not provided"}</p>
+            <p><strong>Industry:</strong> ${data.clientIndustry || "Not provided"}</p>
+            <p><strong>Grade:</strong> ${grade}</p>
+            ${servicesText}
+            <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
+            <hr/>
+            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+          );
+        } catch (emailErr) {
+          console.error("Failed to send callback notification email:", emailErr);
+        }
+      }
 
       res.status(201).json({ message: "Callback request received", grade, email });
     } catch (error) {

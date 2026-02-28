@@ -31,6 +31,16 @@ const CONTACT_TIMES = [
   "Any Time",
 ];
 
+const INDUSTRIES = [
+  "Information Technology",
+  "Finance & Banking",
+  "Healthcare",
+  "Engineering",
+  "Education",
+  "Legal",
+  "Other",
+];
+
 export default function CallbackForm() {
   const [, profileParams] = useRoute("/profile/:slug/request-callback");
   const [, directParams] = useRoute("/:slug/request-callback");
@@ -48,12 +58,13 @@ export default function CallbackForm() {
     phone: "",
     age: "",
     incomeRange: "",
+    industry: "",
     married: false,
     children: false,
     vehicle: false,
     property: false,
     preferredContactTime: "",
-    servicesRequested: "",
+    selectedServices: [] as string[],
     confirmOver18: false,
     confirmNotRobot: false,
   });
@@ -101,7 +112,6 @@ export default function CallbackForm() {
   const textColor = tc.textColor;
   const mutedText = tc.mutedText;
   const cardBg = tc.cardBg;
-  const borderColor = tc.borderColor;
   const inputBg = tc.inputBg;
   const inputBorder = tc.inputBorder;
   const initials = getInitials(advisor.name);
@@ -129,8 +139,8 @@ export default function CallbackForm() {
   };
 
   const optionStyle: React.CSSProperties = {
-    backgroundColor: "#1a1a1a",
-    color: "#ffffff",
+    backgroundColor: tc.isDark ? "#1a1a1a" : "#ffffff",
+    color: tc.isDark ? "#ffffff" : "#1a1a1a",
   };
 
   const labelStyle: React.CSSProperties = {
@@ -143,6 +153,15 @@ export default function CallbackForm() {
 
   const update = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleService = (serviceName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedServices: prev.selectedServices.includes(serviceName)
+        ? prev.selectedServices.filter((s) => s !== serviceName)
+        : [...prev.selectedServices, serviceName],
+    }));
   };
 
   const canSubmit =
@@ -166,12 +185,13 @@ export default function CallbackForm() {
       clientPhone: formData.phone,
       clientAge: formData.age ? parseInt(formData.age) : undefined,
       clientIncome: formData.incomeRange,
+      clientIndustry: formData.industry || undefined,
       clientMarried: formData.married,
       clientChildren: formData.children,
       clientVehicle: formData.vehicle,
       clientProperty: formData.property,
       preferredContactTime: formData.preferredContactTime,
-      servicesRequested: formData.servicesRequested,
+      servicesRequested: formData.selectedServices.join(", "),
       source: "callback-form",
     });
   };
@@ -243,7 +263,7 @@ export default function CallbackForm() {
               <input
                 type="email"
                 required
-                placeholder="john@example.com"
+                placeholder="john@example.co.za"
                 value={formData.email}
                 onChange={(e) => update("email", e.target.value)}
                 style={inputStyle}
@@ -282,20 +302,36 @@ export default function CallbackForm() {
           </div>
 
           <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
-            <div>
-              <label style={labelStyle}>Income Range <span style={{ color: "#ef4444" }}>*</span></label>
-              <select
-                value={formData.incomeRange}
-                onChange={(e) => update("incomeRange", e.target.value)}
-                required
-                style={selectStyle}
-                data-testid="select-income-range"
-              >
-                <option value="" style={optionStyle}>Select income range</option>
-                {INCOME_RANGES.map((r) => (
-                  <option key={r} value={r} style={optionStyle}>{r}</option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>Income Range <span style={{ color: "#ef4444" }}>*</span></label>
+                <select
+                  value={formData.incomeRange}
+                  onChange={(e) => update("incomeRange", e.target.value)}
+                  required
+                  style={selectStyle}
+                  data-testid="select-income-range"
+                >
+                  <option value="" style={optionStyle}>Select income range</option>
+                  {INCOME_RANGES.map((r) => (
+                    <option key={r} value={r} style={optionStyle}>{r}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Industry</label>
+                <select
+                  value={formData.industry}
+                  onChange={(e) => update("industry", e.target.value)}
+                  style={selectStyle}
+                  data-testid="select-industry"
+                >
+                  <option value="" style={optionStyle}>Select industry</option>
+                  {INDUSTRIES.map((ind) => (
+                    <option key={ind} value={ind} style={optionStyle}>{ind}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -342,18 +378,25 @@ export default function CallbackForm() {
 
             {allServices.length > 0 && (
               <div>
-                <label style={labelStyle}>What would you like assistance with?</label>
-                <select
-                  value={formData.servicesRequested}
-                  onChange={(e) => update("servicesRequested", e.target.value)}
-                  style={selectStyle}
-                  data-testid="select-services"
-                >
-                  <option value="" style={optionStyle}>Select services...</option>
+                <label style={labelStyle}>What would you like assistance with? (select all that apply)</label>
+                <div className="space-y-2 mt-2">
                   {allServices.map((s) => (
-                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
+                    <label
+                      key={s.key}
+                      className="flex items-center gap-2.5 cursor-pointer text-sm"
+                      style={{ color: textColor }}
+                      data-testid={`checkbox-service-${s.key}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={formData.selectedServices.includes(s.name)}
+                        onChange={() => toggleService(s.name)}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span>{s.name}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
             )}
           </div>

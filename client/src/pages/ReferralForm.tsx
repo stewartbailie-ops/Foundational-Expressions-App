@@ -40,6 +40,16 @@ const CONTACT_TIME_OPTIONS = [
   "Any Time",
 ];
 
+const INDUSTRIES = [
+  "Information Technology",
+  "Finance & Banking",
+  "Healthcare",
+  "Engineering",
+  "Education",
+  "Legal",
+  "Other",
+];
+
 interface ReferralEntry {
   firstName: string;
   surname: string;
@@ -47,13 +57,14 @@ interface ReferralEntry {
   phone: string;
   age: string;
   incomeRange: string;
+  industry: string;
   married: boolean;
   children: boolean;
   vehicle: boolean;
   property: boolean;
   relationship: string;
   preferredContactTime: string;
-  servicesRequested: string;
+  selectedServices: string[];
   confirmedOver18: boolean;
   confirmNotRobot: boolean;
 }
@@ -66,13 +77,14 @@ function emptyReferral(): ReferralEntry {
     phone: "",
     age: "",
     incomeRange: "",
+    industry: "",
     married: false,
     children: false,
     vehicle: false,
     property: false,
     relationship: "",
     preferredContactTime: "",
-    servicesRequested: "",
+    selectedServices: [],
     confirmedOver18: false,
     confirmNotRobot: false,
   };
@@ -122,6 +134,20 @@ export default function ReferralForm() {
     });
   };
 
+  const toggleReferralService = (index: number, serviceName: string) => {
+    setReferrals((prev) => {
+      const updated = [...prev];
+      const current = updated[index].selectedServices;
+      updated[index] = {
+        ...updated[index],
+        selectedServices: current.includes(serviceName)
+          ? current.filter((s) => s !== serviceName)
+          : [...current, serviceName],
+      };
+      return updated;
+    });
+  };
+
   const addReferral = () => {
     if (referrals.length < 4) {
       setReferrals((prev) => [...prev, emptyReferral()]);
@@ -165,12 +191,13 @@ export default function ReferralForm() {
           clientPhone: ref.phone || undefined,
           clientAge: ref.age ? parseInt(ref.age) : undefined,
           clientIncome: ref.incomeRange || undefined,
+          clientIndustry: ref.industry || undefined,
           clientMarried: ref.married,
           clientChildren: ref.children,
           clientVehicle: ref.vehicle,
           clientProperty: ref.property,
           preferredContactTime: ref.preferredContactTime || undefined,
-          servicesRequested: ref.servicesRequested || undefined,
+          servicesRequested: ref.selectedServices.join(", ") || undefined,
           referrerName: `${referrerFirstName} ${referrerSurname}`,
           referrerEmail: referrerEmail,
           referrerPhone: referrerPhone || undefined,
@@ -271,8 +298,8 @@ export default function ReferralForm() {
   };
 
   const optionStyle: React.CSSProperties = {
-    backgroundColor: "#1a1a1a",
-    color: "#ffffff",
+    backgroundColor: tc.isDark ? "#1a1a1a" : "#ffffff",
+    color: tc.isDark ? "#ffffff" : "#1a1a1a",
   };
 
   const labelStyle: React.CSSProperties = {
@@ -338,7 +365,7 @@ export default function ReferralForm() {
               <label style={labelStyle}>E-mail Address {req}</label>
               <input
                 type="email"
-                placeholder="you@email.com"
+                placeholder="john@example.co.za"
                 value={referrerEmail}
                 onChange={(e) => setReferrerEmail(e.target.value)}
                 style={inputStyle}
@@ -412,7 +439,7 @@ export default function ReferralForm() {
                 <label style={labelStyle}>Email {req}</label>
                 <input
                   type="email"
-                  placeholder="john@example.com"
+                  placeholder="john@example.co.za"
                   value={ref.email}
                   onChange={(e) => updateReferral(index, "email", e.target.value)}
                   style={inputStyle}
@@ -460,6 +487,21 @@ export default function ReferralForm() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>Industry</label>
+              <select
+                value={ref.industry}
+                onChange={(e) => updateReferral(index, "industry", e.target.value)}
+                style={selectStyle}
+                data-testid={`select-referral-industry-${index}`}
+              >
+                <option value="" style={optionStyle}>Select industry</option>
+                {INDUSTRIES.map((ind) => (
+                  <option key={ind} value={ind} style={optionStyle}>{ind}</option>
+                ))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-x-3 gap-y-2">
@@ -519,18 +561,25 @@ export default function ReferralForm() {
 
             {allServices.length > 0 && (
               <div>
-                <label style={labelStyle}>What you believe they may need help with</label>
-                <select
-                  value={ref.servicesRequested}
-                  onChange={(e) => updateReferral(index, "servicesRequested", e.target.value)}
-                  style={selectStyle}
-                  data-testid={`select-referral-services-${index}`}
-                >
-                  <option value="" style={optionStyle}>Select services...</option>
+                <label style={labelStyle}>What you believe they may need help with (select all that apply)</label>
+                <div className="space-y-2 mt-2">
                   {allServices.map((s) => (
-                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
+                    <label
+                      key={s.key}
+                      className="flex items-center gap-2.5 cursor-pointer text-sm"
+                      style={{ color: textColor }}
+                      data-testid={`checkbox-referral-service-${s.key}-${index}`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={ref.selectedServices.includes(s.name)}
+                        onChange={() => toggleReferralService(index, s.name)}
+                        className="w-4 h-4 rounded"
+                      />
+                      <span>{s.name}</span>
+                    </label>
                   ))}
-                </select>
+                </div>
               </div>
             )}
 
