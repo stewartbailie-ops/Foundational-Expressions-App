@@ -5,9 +5,18 @@ import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
+import fs from "fs";
 
 const app = express();
 const httpServer = createServer(app);
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
+
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads", { recursive: true });
+}
 
 declare module "http" {
   interface IncomingMessage {
@@ -26,17 +35,22 @@ app.use(
 app.use(express.urlencoded({ extended: false }));
 
 const PgSession = connectPgSimple(session);
+const pgStore = new PgSession({
+  conString: process.env.DATABASE_URL,
+  createTableIfMissing: true,
+  errorLog: (err: Error) => {
+    console.error("Session store error:", err.message);
+  },
+});
 app.use(
   session({
-    store: new PgSession({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: true,
-    }),
+    store: pgStore,
     secret: process.env.ADMIN_PASSWORD || "fallback-secret-key",
     resave: false,
     saveUninitialized: false,
+    proxy: process.env.NODE_ENV === "production",
     cookie: {
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
       sameSite: "lax",
