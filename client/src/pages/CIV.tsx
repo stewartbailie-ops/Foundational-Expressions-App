@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, Check, X } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Check, X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -81,6 +81,22 @@ export default function CIV() {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/emails/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
+      setExpandedId(null);
+    },
+  });
+
+  const handleDelete = (id: number, name: string) => {
+    if (window.confirm(`Delete entry #${id} (${name})? This cannot be undone.`)) {
+      deleteMutation.mutate(id);
+    }
+  };
 
   const filtered = emails.filter((e) => {
     const matchSearch = search === "" ||
@@ -342,8 +358,21 @@ export default function CIV() {
                               </div>
                             )}
 
-                            <div className="text-xs text-muted-foreground">
-                              Received: {format(new Date(email.receivedAt), "PPpp")}
+                            <div className="flex items-center justify-between">
+                              <div className="text-xs text-muted-foreground">
+                                Received: {format(new Date(email.receivedAt), "PPpp")}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                                onClick={(e) => { e.stopPropagation(); handleDelete(email.id, email.senderName); }}
+                                disabled={deleteMutation.isPending}
+                                data-testid={`button-delete-${email.id}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                                Delete
+                              </Button>
                             </div>
                           </div>
                         </TableCell>

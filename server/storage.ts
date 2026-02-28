@@ -14,6 +14,7 @@ export interface IStorage {
   getEmails(): Promise<(Email & { advisorName: string })[]>;
   createEmail(email: InsertEmail): Promise<Email>;
   updateEmailGrade(id: number, grade: string): Promise<Email | undefined>;
+  deleteEmail(id: number): Promise<boolean>;
 
   getDashboardStats(): Promise<{
     totalEmails: number;
@@ -111,6 +112,11 @@ export class DatabaseStorage implements IStorage {
   async updateEmailGrade(id: number, grade: string): Promise<Email | undefined> {
     const [updated] = await db.update(emails).set({ grade }).where(eq(emails.id, id)).returning();
     return updated;
+  }
+
+  async deleteEmail(id: number): Promise<boolean> {
+    const [deleted] = await db.delete(emails).where(eq(emails.id, id)).returning();
+    return !!deleted;
   }
 
   async getDashboardStats() {

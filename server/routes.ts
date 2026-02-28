@@ -156,6 +156,12 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.delete("/api/emails/:id", async (req, res) => {
+    const deleted = await storage.deleteEmail(Number(req.params.id));
+    if (!deleted) return res.status(404).json({ message: "Email not found" });
+    res.json({ message: "Deleted" });
+  });
+
   app.post("/api/referral", async (req, res) => {
     try {
       const schema = z.object({
