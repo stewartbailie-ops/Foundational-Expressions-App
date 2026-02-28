@@ -212,14 +212,15 @@ export async function registerRoutes(
       });
 
       const advisor = await storage.getAdvisor(data.advisorId);
-      if (advisor?.email && isSendGridConfigured()) {
+      if (isSendGridConfigured()) {
         try {
           const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
           const referrerText = data.referrerName ? `<p><strong>Referred by:</strong> ${data.referrerName} (${data.referrerEmail || "no email"})</p>` : "";
           await sendEmail(
-            advisor.email,
-            `New Referral: ${data.clientName}`,
+            "info@advisoryconnect.pro",
+            `New Referral: ${data.clientName} (Advisor: ${advisor?.name || "Unknown"})`,
             `<h2>New Referral Received</h2>
+            <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
             <p><strong>Client:</strong> ${data.clientName}</p>
             <p><strong>Email:</strong> ${data.clientEmail}</p>
             <p><strong>Phone:</strong> ${data.clientPhone || "Not provided"}</p>
@@ -295,13 +296,14 @@ export async function registerRoutes(
       });
 
       const advisor = await storage.getAdvisor(data.advisorId);
-      if (advisor?.email && isSendGridConfigured()) {
+      if (isSendGridConfigured()) {
         try {
           const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
           await sendEmail(
-            advisor.email,
-            `New Call Back Request: ${data.clientName}`,
+            "info@advisoryconnect.pro",
+            `New Call Back Request: ${data.clientName} (Advisor: ${advisor?.name || "Unknown"})`,
             `<h2>New Call Back Request</h2>
+            <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
             <p><strong>Client:</strong> ${data.clientName}</p>
             <p><strong>Email:</strong> ${data.clientEmail}</p>
             <p><strong>Phone:</strong> ${data.clientPhone || "Not provided"}</p>
