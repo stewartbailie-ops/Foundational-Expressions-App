@@ -16,81 +16,221 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-const SA_TAX_BRACKETS_2025 = [
-  { min: 0, max: 237100, rate: 18, base: 0 },
-  { min: 237101, max: 370500, rate: 26, base: 42678 },
-  { min: 370501, max: 512800, rate: 31, base: 77362 },
-  { min: 512801, max: 673000, rate: 36, base: 121475 },
-  { min: 673001, max: 857900, rate: 39, base: 179147 },
-  { min: 857901, max: 1817000, rate: 41, base: 251258 },
-  { min: 1817001, max: Infinity, rate: 45, base: 644489 },
+const INCOME_RANGES_TAX = [
+  { label: "R0k - R21k p/m", annual: 252000 },
+  { label: "R21k - R32k p/m", annual: 384000 },
+  { label: "R32k - R44k p/m", annual: 528000 },
+  { label: "R44k - R56k p/m", annual: 672000 },
+  { label: "R56k - R72k p/m", annual: 864000 },
+  { label: "R72k - R150k p/m", annual: 1332000 },
+  { label: "R150k+ p/m", annual: 1900000 },
 ];
 
-function calculateSATax(annualIncome: number): { tax: number; effectiveRate: number; monthlyTax: number } {
-  if (annualIncome <= 0) return { tax: 0, effectiveRate: 0, monthlyTax: 0 };
-  const rebate = 17235;
+function calculateAnnualTax(annualIncome: number, age: number): number {
+  if (annualIncome <= 0) return 0;
   let tax = 0;
-  for (const bracket of SA_TAX_BRACKETS_2025) {
-    if (annualIncome >= bracket.min) {
-      if (annualIncome <= bracket.max) {
-        tax = bracket.base + ((annualIncome - bracket.min + 1) * bracket.rate) / 100;
-        break;
-      }
+  const brackets = [
+    { min: 0, max: 237100, rate: 0.18, base: 0 },
+    { min: 237101, max: 370500, rate: 0.26, base: 42678 },
+    { min: 370501, max: 512800, rate: 0.31, base: 77362 },
+    { min: 512801, max: 673000, rate: 0.36, base: 121475 },
+    { min: 673001, max: 857900, rate: 0.39, base: 179147 },
+    { min: 857901, max: 1817000, rate: 0.41, base: 251258 },
+    { min: 1817001, max: Infinity, rate: 0.45, base: 644489 },
+  ];
+  for (const b of brackets) {
+    if (annualIncome >= b.min && annualIncome <= b.max) {
+      tax = b.base + (annualIncome - b.min) * b.rate;
+      break;
+    }
+    if (annualIncome > b.max && b.max === Infinity) {
+      tax = b.base + (annualIncome - b.min) * b.rate;
     }
   }
-  tax = Math.max(0, tax - rebate);
-  const effectiveRate = annualIncome > 0 ? (tax / annualIncome) * 100 : 0;
-  return { tax: Math.round(tax), effectiveRate: Math.round(effectiveRate * 10) / 10, monthlyTax: Math.round(tax / 12) };
+  const rebate = age < 65 ? 17235 : age < 75 ? 26679 : 29824;
+  return Math.max(0, Math.round(tax - rebate));
+}
+
+interface TaxResult {
+  totalTaxPaid: number;
+  yearsToRetirement: number;
+  totalEarned: number;
+  totalTakeHome: number;
+  yearlyBreakdown: { year: number; age: number; income: number; tax: number; takeHome: number }[];
+}
+
+function calculateLifetimeTax(currentAge: number, retirementAge: number, annualIncome: number, growthRate: number, inflationRate: number): TaxResult {
+  const years = retirementAge - currentAge;
+  if (years <= 0 || annualIncome <= 0) return { totalTaxPaid: 0, yearsToRetirement: 0, totalEarned: 0, totalTakeHome: 0, yearlyBreakdown: [] };
+  let totalTax = 0;
+  let totalEarned = 0;
+  let income = annualIncome;
+  const breakdown: TaxResult["yearlyBreakdown"] = [];
+  for (let i = 0; i < years; i++) {
+    const age = currentAge + i;
+    const tax = calculateAnnualTax(income, age);
+    totalTax += tax;
+    totalEarned += income;
+    breakdown.push({ year: i + 1, age, income: Math.round(income), tax, takeHome: Math.round(income - tax) });
+    income = income * (1 + (growthRate - inflationRate) / 100);
+  }
+  return { totalTaxPaid: Math.round(totalTax), yearsToRetirement: years, totalEarned: Math.round(totalEarned), totalTakeHome: Math.round(totalEarned - totalTax), yearlyBreakdown: breakdown };
 }
 
 function TaxCalculator({ borderColor, cardBg, textColor, mutedText, accentColor, buttonBg, buttonText }: {
   borderColor: string; cardBg: string; textColor: string; mutedText: string; accentColor: string; buttonBg: string; buttonText: string;
 }) {
-  const [income, setIncome] = useState("");
-  const annualIncome = Number(income.replace(/[^0-9]/g, "")) || 0;
-  const result = useMemo(() => calculateSATax(annualIncome), [annualIncome]);
+  const [currentAge, setCurrentAge] = useState("");
+  const [retirementAge, setRetirementAge] = useState("65");
+  const [selectedIncome, setSelectedIncome] = useState("");
+  const [growthRate, setGrowthRate] = useState("5");
+  const [inflationRate, setInflationRate] = useState("5");
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
+  const annualIncome = selectedIncome ? INCOME_RANGES_TAX.find(r => r.label === selectedIncome)?.annual || 0 : 0;
+  const age = Number(currentAge) || 0;
+  const retirement = Number(retirementAge) || 65;
+  const growth = Number(growthRate) || 0;
+  const inflation = Number(inflationRate) || 0;
+
+  const result = useMemo(() => calculateLifetimeTax(age, retirement, annualIncome, growth, inflation), [age, retirement, annualIncome, growth, inflation]);
+  const currentYearTax = useMemo(() => age > 0 && annualIncome > 0 ? calculateAnnualTax(annualIncome, age) : 0, [age, annualIncome]);
 
   const formatCurrency = (n: number) => `R ${n.toLocaleString("en-ZA")}`;
+
+  const inputStyleCalc: React.CSSProperties = {
+    backgroundColor: cardBg,
+    border: `1px solid ${borderColor}`,
+    color: textColor,
+    borderRadius: "0.5rem",
+    padding: "0.5rem 0.75rem",
+    fontSize: "0.8125rem",
+    width: "100%",
+    outline: "none",
+  };
+
+  const selectStyleCalc: React.CSSProperties = {
+    ...inputStyleCalc,
+    appearance: "none" as const,
+    WebkitAppearance: "none" as const,
+  };
+
+  const optionStyleCalc: React.CSSProperties = {
+    backgroundColor: "#1a1a1a",
+    color: "#ffffff",
+  };
 
   return (
     <div className="mt-3 rounded-lg p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="tax-calculator">
       <div className="flex items-center gap-2" style={{ color: accentColor }}>
         <Calculator className="h-4 w-4" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Tax Calculator</span>
+        <span className="text-xs font-semibold uppercase tracking-wider">Shock Factor - Tax Calculator</span>
       </div>
-      <p className="text-xs" style={{ color: mutedText }}>Enter your annual income to see an estimate of your tax liability (SA 2024/2025 rates).</p>
-      <input
-        type="text"
-        inputMode="numeric"
-        placeholder="e.g. 500000"
-        value={income}
-        onChange={(e) => setIncome(e.target.value.replace(/[^0-9]/g, ""))}
-        className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-        style={{ backgroundColor: `${cardBg}`, border: `1px solid ${borderColor}`, color: textColor }}
-        data-testid="input-tax-income"
-      />
-      {annualIncome > 0 && (
-        <div className="space-y-2 pt-1">
+      <p className="text-xs" style={{ color: mutedText }}>See how much tax you'll pay between now and retirement using SA 2024/2025 SARS brackets.</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs mb-1" style={{ color: mutedText }}>Current Age</label>
+          <input type="number" min="18" max="80" placeholder="e.g. 30" value={currentAge} onChange={(e) => setCurrentAge(e.target.value)} style={inputStyleCalc} data-testid="input-tax-age" />
+        </div>
+        <div>
+          <label className="block text-xs mb-1" style={{ color: mutedText }}>Retirement Age</label>
+          <input type="number" min="50" max="80" value={retirementAge} onChange={(e) => setRetirementAge(e.target.value)} style={inputStyleCalc} data-testid="input-tax-retirement" />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-xs mb-1" style={{ color: mutedText }}>Income Range (Monthly)</label>
+        <select value={selectedIncome} onChange={(e) => setSelectedIncome(e.target.value)} style={selectStyleCalc} data-testid="select-tax-income">
+          <option value="" style={optionStyleCalc}>Select your income range</option>
+          {INCOME_RANGES_TAX.map(r => (
+            <option key={r.label} value={r.label} style={optionStyleCalc}>{r.label}</option>
+          ))}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="block text-xs mb-1" style={{ color: mutedText }}>Income Growth % p.a.</label>
+          <input type="number" min="0" max="20" step="0.5" value={growthRate} onChange={(e) => setGrowthRate(e.target.value)} style={inputStyleCalc} data-testid="input-tax-growth" />
+        </div>
+        <div>
+          <label className="block text-xs mb-1" style={{ color: mutedText }}>Inflation Rate %</label>
+          <input type="number" min="0" max="20" step="0.5" value={inflationRate} onChange={(e) => setInflationRate(e.target.value)} style={inputStyleCalc} data-testid="input-tax-inflation" />
+        </div>
+      </div>
+
+      {age > 0 && annualIncome > 0 && (
+        <div className="space-y-2 pt-2">
+          <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: accentColor }}>Current Year</div>
           <div className="flex justify-between text-xs">
             <span style={{ color: mutedText }}>Annual Income</span>
             <span style={{ color: textColor }} data-testid="text-tax-income">{formatCurrency(annualIncome)}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span style={{ color: mutedText }}>Estimated Annual Tax</span>
-            <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-annual">{formatCurrency(result.tax)}</span>
+            <span style={{ color: mutedText }}>Annual Tax</span>
+            <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-annual">{formatCurrency(currentYearTax)}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span style={{ color: mutedText }}>Estimated Monthly Tax</span>
-            <span style={{ color: textColor }} data-testid="text-tax-monthly">{formatCurrency(result.monthlyTax)}</span>
+            <span style={{ color: mutedText }}>Monthly Tax</span>
+            <span style={{ color: textColor }} data-testid="text-tax-monthly">{formatCurrency(Math.round(currentYearTax / 12))}</span>
           </div>
           <div className="flex justify-between text-xs">
-            <span style={{ color: mutedText }}>Effective Tax Rate</span>
-            <span style={{ color: textColor }} data-testid="text-tax-rate">{result.effectiveRate}%</span>
+            <span style={{ color: mutedText }}>Effective Rate</span>
+            <span style={{ color: textColor }} data-testid="text-tax-rate">{annualIncome > 0 ? (currentYearTax / annualIncome * 100).toFixed(1) : 0}%</span>
           </div>
-          <div className="flex justify-between text-xs pt-1" style={{ borderTop: `1px solid ${borderColor}` }}>
-            <span style={{ color: mutedText }}>Take-home (After Tax)</span>
-            <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-takehome">{formatCurrency(annualIncome - result.tax)}</span>
-          </div>
+
+          {result.yearsToRetirement > 0 && (
+            <>
+              <div className="mt-3 pt-3" style={{ borderTop: `1px solid ${borderColor}` }}>
+                <div className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: accentColor }}>Until Retirement ({result.yearsToRetirement} years)</div>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span style={{ color: mutedText }}>Total Tax Paid</span>
+                <span className="font-bold text-sm" style={{ color: accentColor }} data-testid="text-tax-total">{formatCurrency(result.totalTaxPaid)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span style={{ color: mutedText }}>Total Earned</span>
+                <span style={{ color: textColor }} data-testid="text-tax-total-earned">{formatCurrency(result.totalEarned)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span style={{ color: mutedText }}>Total Take-home</span>
+                <span className="font-semibold" style={{ color: accentColor }} data-testid="text-tax-total-takehome">{formatCurrency(result.totalTakeHome)}</span>
+              </div>
+
+              <button
+                onClick={() => setShowBreakdown(!showBreakdown)}
+                className="w-full text-xs mt-2 py-1.5 rounded-lg transition-opacity hover:opacity-80"
+                style={{ backgroundColor: borderColor, color: textColor }}
+                data-testid="button-toggle-breakdown"
+              >
+                {showBreakdown ? "Hide" : "Show"} Year-by-Year Breakdown
+              </button>
+
+              {showBreakdown && (
+                <div className="mt-2 max-h-48 overflow-y-auto rounded-lg text-xs" style={{ border: `1px solid ${borderColor}` }}>
+                  <table className="w-full">
+                    <thead>
+                      <tr style={{ backgroundColor: borderColor }}>
+                        <th className="px-2 py-1.5 text-left" style={{ color: textColor }}>Age</th>
+                        <th className="px-2 py-1.5 text-right" style={{ color: textColor }}>Income</th>
+                        <th className="px-2 py-1.5 text-right" style={{ color: textColor }}>Tax</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {result.yearlyBreakdown.map((row) => (
+                        <tr key={row.year} style={{ borderTop: `1px solid ${borderColor}` }}>
+                          <td className="px-2 py-1" style={{ color: mutedText }}>{row.age}</td>
+                          <td className="px-2 py-1 text-right" style={{ color: textColor }}>{formatCurrency(row.income)}</td>
+                          <td className="px-2 py-1 text-right font-medium" style={{ color: accentColor }}>{formatCurrency(row.tax)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -236,13 +376,13 @@ export default function AdvisorProfile() {
             <img
               src={advisor.profilePicUrl}
               alt={advisor.name}
-              className="w-44 h-44 rounded-full object-cover border-4"
+              className="w-56 h-56 rounded-full object-cover border-4"
               style={{ borderColor: tc.initialsCircleBorder }}
               data-testid="img-profile-pic"
             />
           ) : (
             <div
-              className="w-44 h-44 rounded-full flex items-center justify-center text-5xl font-bold"
+              className="w-56 h-56 rounded-full flex items-center justify-center text-6xl font-bold"
               style={{
                 backgroundColor: tc.initialsCircleBg,
                 color: accentColor,

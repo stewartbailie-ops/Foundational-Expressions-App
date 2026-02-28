@@ -121,6 +121,17 @@ export default function CallbackForm() {
     outline: "none",
   };
 
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    appearance: "none" as const,
+    WebkitAppearance: "none" as const,
+  };
+
+  const optionStyle: React.CSSProperties = {
+    backgroundColor: "#1a1a1a",
+    color: "#ffffff",
+  };
+
   const labelStyle: React.CSSProperties = {
     color: mutedText,
     fontSize: "0.75rem",
@@ -286,12 +297,12 @@ export default function CallbackForm() {
             <select
               value={formData.incomeRange}
               onChange={(e) => update("incomeRange", e.target.value)}
-              style={inputStyle}
+              style={selectStyle}
               data-testid="select-income-range"
             >
-              <option value="">Select income range</option>
+              <option value="" style={optionStyle}>Select income range</option>
               {INCOME_RANGES.map((r) => (
-                <option key={r} value={r}>{r}</option>
+                <option key={r} value={r} style={optionStyle}>{r}</option>
               ))}
             </select>
           </div>
@@ -345,12 +356,12 @@ export default function CallbackForm() {
             <select
               value={formData.preferredContactTime}
               onChange={(e) => update("preferredContactTime", e.target.value)}
-              style={inputStyle}
+              style={selectStyle}
               data-testid="select-contact-time"
             >
-              <option value="">Select preferred time</option>
+              <option value="" style={optionStyle}>Select preferred time</option>
               {CONTACT_TIMES.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t} style={optionStyle}>{t}</option>
               ))}
             </select>
           </div>
@@ -361,12 +372,12 @@ export default function CallbackForm() {
               <select
                 value={formData.servicesRequested}
                 onChange={(e) => update("servicesRequested", e.target.value)}
-                style={inputStyle}
+                style={selectStyle}
                 data-testid="select-services"
               >
-                <option value="">Select a service</option>
+                <option value="" style={optionStyle}>Select a service</option>
                 {allServices.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                  <option key={s} value={s} style={optionStyle}>{s}</option>
                 ))}
               </select>
             </div>

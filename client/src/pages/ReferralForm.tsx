@@ -260,12 +260,18 @@ export default function ReferralForm() {
   const selectStyle: React.CSSProperties = {
     ...inputStyle,
     appearance: "none" as const,
+    WebkitAppearance: "none" as const,
     backgroundImage: isDark
       ? `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='white' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`
       : `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 8L1 3h10z'/%3E%3C/svg%3E")`,
     backgroundRepeat: "no-repeat",
     backgroundPosition: "right 0.75rem center",
     paddingRight: "2rem",
+  };
+
+  const optionStyle: React.CSSProperties = {
+    backgroundColor: "#1a1a1a",
+    color: "#ffffff",
   };
 
   const labelStyle: React.CSSProperties = {
@@ -477,9 +483,9 @@ export default function ReferralForm() {
                   style={selectStyle}
                   data-testid={`select-referral-income-${index}`}
                 >
-                  <option value="">Select range</option>
+                  <option value="" style={optionStyle}>Select range</option>
                   {INCOME_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt} style={optionStyle}>{opt}</option>
                   ))}
                 </select>
               </div>
@@ -536,9 +542,9 @@ export default function ReferralForm() {
                 style={selectStyle}
                 data-testid={`select-referral-relationship-${index}`}
               >
-                <option value="">Select relationship</option>
+                <option value="" style={optionStyle}>Select relationship</option>
                 {RELATIONSHIP_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt} style={optionStyle}>{opt}</option>
                 ))}
               </select>
             </div>
@@ -552,9 +558,9 @@ export default function ReferralForm() {
                   style={selectStyle}
                   data-testid={`select-referral-contact-time-${index}`}
                 >
-                  <option value="">Select time</option>
+                  <option value="" style={optionStyle}>Select time</option>
                   {CONTACT_TIME_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>{opt}</option>
+                    <option key={opt} value={opt} style={optionStyle}>{opt}</option>
                   ))}
                 </select>
               </div>
@@ -566,9 +572,9 @@ export default function ReferralForm() {
                   style={selectStyle}
                   data-testid={`select-referral-services-${index}`}
                 >
-                  <option value="">Select service</option>
+                  <option value="" style={optionStyle}>Select service</option>
                   {allServices.map((s) => (
-                    <option key={s.key} value={s.name}>{s.name}</option>
+                    <option key={s.key} value={s.name} style={optionStyle}>{s.name}</option>
                   ))}
                 </select>
               </div>
