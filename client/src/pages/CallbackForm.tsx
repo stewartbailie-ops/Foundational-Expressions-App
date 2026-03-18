@@ -21,7 +21,8 @@ const INCOME_RANGES = [
   "R30k - R45k",
   "R45k - R60k",
   "R60k - R75k",
-  "R75k+",
+  "R75k - R100k",
+  "R100k+",
 ];
 
 const CONTACT_TIMES = [
@@ -66,7 +67,6 @@ export default function CallbackForm() {
     preferredContactTime: "",
     selectedServices: [] as string[],
     confirmOver18: false,
-    confirmNotRobot: false,
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -167,12 +167,9 @@ export default function CallbackForm() {
   const canSubmit =
     formData.firstName.trim() &&
     formData.surname.trim() &&
-    formData.email.trim() &&
     formData.phone.trim() &&
-    formData.age.trim() &&
     formData.incomeRange &&
-    formData.confirmOver18 &&
-    formData.confirmNotRobot;
+    formData.confirmOver18;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -222,10 +219,20 @@ export default function CallbackForm() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="callback-form-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-sm font-medium mb-2"
+          style={{ color: mutedText }}
+          data-testid="button-back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold" data-testid="text-form-title">Request a Call Back</h1>
           <p className="text-sm" style={{ color: mutedText }}>
-            Please fill in your details below and I will get back to you at your preferred time.
+            Please complete the details below. The more information you provide, the better I can assist you. I will contact you at your preferred time.
           </p>
         </div>
 
@@ -259,10 +266,9 @@ export default function CallbackForm() {
             </div>
 
             <div>
-              <label style={labelStyle}>E-mail Address <span style={{ color: "#ef4444" }}>*</span></label>
+              <label style={labelStyle}>E-mail Address</label>
               <input
                 type="email"
-                required
                 placeholder="john@example.co.za"
                 value={formData.email}
                 onChange={(e) => update("email", e.target.value)}
@@ -285,10 +291,9 @@ export default function CallbackForm() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Age <span style={{ color: "#ef4444" }}>*</span></label>
+                <label style={labelStyle}>Age</label>
                 <input
                   type="number"
-                  required
                   min="18"
                   max="120"
                   placeholder="e.g. 33"
@@ -417,20 +422,6 @@ export default function CallbackForm() {
               <span>I confirm I am over 18 <span style={{ color: "#ef4444" }}>*</span></span>
             </label>
 
-            <label
-              className="flex items-center gap-3 text-sm cursor-pointer"
-              style={{ color: textColor }}
-              data-testid="toggle-confirm-not-robot"
-            >
-              <input
-                type="checkbox"
-                checked={formData.confirmNotRobot}
-                onChange={(e) => update("confirmNotRobot", e.target.checked)}
-                className="w-4 h-4"
-                data-testid="checkbox-confirm-not-robot"
-              />
-              <span>I'm not a robot <span style={{ color: "#ef4444" }}>*</span></span>
-            </label>
           </div>
 
           {mutation.isError && (

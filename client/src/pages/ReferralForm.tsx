@@ -22,7 +22,8 @@ const INCOME_OPTIONS = [
   "R30k - R45k",
   "R45k - R60k",
   "R60k - R75k",
-  "R75k+",
+  "R75k - R100k",
+  "R100k+",
 ];
 
 const RELATIONSHIP_OPTIONS = [
@@ -66,7 +67,6 @@ interface ReferralEntry {
   preferredContactTime: string;
   selectedServices: string[];
   confirmedOver18: boolean;
-  confirmNotRobot: boolean;
 }
 
 function emptyReferral(): ReferralEntry {
@@ -86,7 +86,6 @@ function emptyReferral(): ReferralEntry {
     preferredContactTime: "",
     selectedServices: [],
     confirmedOver18: false,
-    confirmNotRobot: false,
   };
 }
 
@@ -163,18 +162,14 @@ export default function ReferralForm() {
   const canSubmit =
     referrerFirstName.trim() &&
     referrerSurname.trim() &&
-    referrerEmail.trim() &&
     referrerPhone.trim() &&
     referrals.every(
       (r) =>
         r.firstName.trim() &&
         r.surname.trim() &&
-        r.email.trim() &&
         r.phone.trim() &&
-        r.age.trim() &&
         r.incomeRange &&
-        r.confirmedOver18 &&
-        r.confirmNotRobot
+        r.confirmedOver18
     );
 
   const handleSubmit = async () => {
@@ -323,6 +318,16 @@ export default function ReferralForm() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="referral-form-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
+        <button
+          onClick={() => window.history.back()}
+          className="flex items-center gap-1.5 text-sm font-medium mb-2"
+          style={{ color: mutedText }}
+          data-testid="button-back"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             Refer Friends & Family
@@ -362,7 +367,7 @@ export default function ReferralForm() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label style={labelStyle}>E-mail Address {req}</label>
+              <label style={labelStyle}>E-mail Address</label>
               <input
                 type="email"
                 placeholder="john@example.co.za"
@@ -436,7 +441,7 @@ export default function ReferralForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Email {req}</label>
+                <label style={labelStyle}>Email</label>
                 <input
                   type="email"
                   placeholder="john@example.co.za"
@@ -461,7 +466,7 @@ export default function ReferralForm() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Age {req}</label>
+                <label style={labelStyle}>Age</label>
                 <input
                   type="number"
                   placeholder="e.g. 33"
@@ -592,15 +597,6 @@ export default function ReferralForm() {
                   className="w-4 h-4 rounded"
                 />
                 <span className="text-sm">I confirm they are over 18 {req}</span>
-              </label>
-              <label style={checkboxRowStyle} data-testid={`checkbox-referral-not-robot-${index}`}>
-                <input
-                  type="checkbox"
-                  checked={ref.confirmNotRobot}
-                  onChange={(e) => updateReferral(index, "confirmNotRobot", e.target.checked)}
-                  className="w-4 h-4 rounded"
-                />
-                <span className="text-sm">I'm not a robot {req}</span>
               </label>
             </div>
           </div>
