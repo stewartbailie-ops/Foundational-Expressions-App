@@ -32,6 +32,9 @@ export default function CreateAdvisor() {
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>([]);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [showCallbackLink, setShowCallbackLink] = useState(true);
+  const [showReferralsLink, setShowReferralsLink] = useState(true);
+  const [showQrCode, setShowQrCode] = useState(true);
 
   const formattedSlug = name.trim() ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "new-advisor";
   const profileUrl = `https://advisoryconnect.pro/${formattedSlug}`;
@@ -77,6 +80,9 @@ export default function CreateAdvisor() {
         profilePicUrl: profilePicUrl || null,
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
+        showCallbackLink,
+        showReferralsLink,
+        showQrCode,
         active: true,
       });
       return res.json();
@@ -356,6 +362,45 @@ export default function CreateAdvisor() {
                     <SelectItem value="team">Team / Group</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Profile Features</Label>
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={showCallbackLink}
+                      onCheckedChange={(v) => setShowCallbackLink(!!v)}
+                      data-testid="check-show-callback"
+                    />
+                    <div>
+                      <div className="text-sm font-medium">Show Call-back Link</div>
+                      <div className="text-xs text-muted-foreground">Display the "Request a Call Back" button on the profile</div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={showReferralsLink}
+                      onCheckedChange={(v) => setShowReferralsLink(!!v)}
+                      data-testid="check-show-referrals"
+                    />
+                    <div>
+                      <div className="text-sm font-medium">Show Referrals Link</div>
+                      <div className="text-xs text-muted-foreground">Display the "Refer Friends & Family" button on the profile</div>
+                    </div>
+                  </label>
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <Checkbox
+                      checked={showQrCode}
+                      onCheckedChange={(v) => setShowQrCode(!!v)}
+                      data-testid="check-show-qr"
+                    />
+                    <div>
+                      <div className="text-sm font-medium">Show QR Code / Barcode</div>
+                      <div className="text-xs text-muted-foreground">Display the QR code on the profile for easy sharing</div>
+                    </div>
+                  </label>
+                </div>
               </div>
             </CardContent>
           </Card>

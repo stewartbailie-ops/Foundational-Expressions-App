@@ -1,5 +1,4 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, boolean, timestamp, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -22,6 +21,9 @@ export const advisors = pgTable("advisors", {
   profileSlug: text("profile_slug").notNull().unique(),
   individualServices: text("individual_services").array(),
   corporateServices: text("corporate_services").array(),
+  showCallbackLink: boolean("show_callback_link").default(true),
+  showReferralsLink: boolean("show_referrals_link").default(true),
+  showQrCode: boolean("show_qr_code").default(true),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -41,8 +43,8 @@ export const TITLE_OPTIONS = [
 ] as const;
 
 export const BIO_OPTIONS: Record<string, string> = {
-  a: "I appreciate the opportunity to share a short overview of the value I aim to provide.\n\nMy core focus is a single point of contact for all your financial management & wealth creation needs, please use the below drop-downs for a concise summary of my services.\n\nShould you, or members of your professional network, wish to explore how our advisory framework may add measurable value, we welcome the opportunity to arrange a consultation at your convenience. We look forward to engaging further.",
-  b: "Thank you for the opportunity to share a brief overview of the value our firm delivers to clients.\n\nI provide an integrated, strategic approach to financial management, wealth structuring, and long-term planning, serving as a central, trusted advisory partner across all aspects of my clients' financial affairs. For a concise summary of my services and solutions, please refer to the drop-down sections below.\n\nShould you, or anyone within your network, feel that they may benefit from my services, you are most welcome to forward this link, share a referral, or request a call-back at a time that best suits you. I would be pleased to connect and assist further.",
+  a: "Your single point of contact for all your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services provided.\n\nShould you wish to explore how our advisory services may add value, you are welcome to arrange a consultation at your convenience.",
+  b: "Your single point of contact for your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services and solutions available. Should you, or anyone within your network, wish to discuss your requirements further, you are welcome to request a call-back or consultation at a convenient time.",
   c: "Thank you for the opportunity to share a brief overview of the value I strive to deliver to my clients.\n\nMy objective is to deliver clarity, structure, and sustainable growth through disciplined strategy and professional oversight. A concise outline of my services is available in the sections below.\n\nShould you, or anyone within your network, wish to explore how our services may add value, you are welcome to share this link, request a consultation, or arrange a call at a time that suits you. We look forward to connecting and assisting further.",
 };
 

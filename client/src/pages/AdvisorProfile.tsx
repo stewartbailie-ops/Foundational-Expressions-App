@@ -554,50 +554,58 @@ export default function AdvisorProfile() {
           </a>
         )}
 
-        <div className="space-y-3 pt-2">
-          <button
-            onClick={() => navigate(`/${slug}/request-callback`)}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{
-              backgroundColor: tc.buttonBg,
-              color: tc.buttonText,
-            }}
-            data-testid="button-request-callback"
-          >
-            <Phone className="h-4 w-4" />
-            Request a Call Back
-          </button>
-          <button
-            onClick={() => navigate(`/${slug}/referrals`)}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{
-              backgroundColor: tc.buttonSecondaryBg,
-              color: accentColor,
-              border: `1px solid ${tc.initialsCircleBorder}`,
-            }}
-            data-testid="button-refer-friends"
-          >
-            <Users className="h-4 w-4" />
-            Refer Friends & Family
-          </button>
-        </div>
-
-        <div className="flex flex-col items-center pt-4 space-y-3" data-testid="section-qr">
-          <div
-            className="p-4 rounded-xl"
-            style={{ backgroundColor: "#ffffff" }}
-          >
-            <QRCodeSVG
-              value={`https://${profileUrl}`}
-              size={200}
-              level="M"
-              data-testid="qr-code"
-            />
+        {(advisor.showCallbackLink !== false || advisor.showReferralsLink !== false) && (
+          <div className="space-y-3 pt-2">
+            {advisor.showCallbackLink !== false && (
+              <button
+                onClick={() => navigate(`/${slug}/request-callback`)}
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: tc.buttonBg,
+                  color: tc.buttonText,
+                }}
+                data-testid="button-request-callback"
+              >
+                <Phone className="h-4 w-4" />
+                Request a Call Back
+              </button>
+            )}
+            {advisor.showReferralsLink !== false && (
+              <button
+                onClick={() => navigate(`/${slug}/referrals`)}
+                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{
+                  backgroundColor: tc.buttonSecondaryBg,
+                  color: accentColor,
+                  border: `1px solid ${tc.initialsCircleBorder}`,
+                }}
+                data-testid="button-refer-friends"
+              >
+                <Users className="h-4 w-4" />
+                Refer Friends & Family
+              </button>
+            )}
           </div>
-          <p className="text-xs" style={{ color: mutedText }} data-testid="text-profile-url">
-            {profileUrl}
-          </p>
-        </div>
+        )}
+
+        {advisor.showQrCode !== false && (
+          <div className="flex flex-col items-center pt-4 space-y-3" data-testid="section-qr">
+            <div
+              className="p-4 rounded-xl"
+              style={{ backgroundColor: "#ffffff" }}
+            >
+              <QRCodeSVG
+                value={`https://${profileUrl}`}
+                size={200}
+                level="M"
+                data-testid="qr-code"
+              />
+            </div>
+            <p className="text-xs" style={{ color: mutedText }} data-testid="text-profile-url">
+              {profileUrl}
+            </p>
+          </div>
+        )}
 
         <p className="text-center text-xs pt-4 pb-2" style={{ color: mutedText }}>
           Powered by Advisory Connect
