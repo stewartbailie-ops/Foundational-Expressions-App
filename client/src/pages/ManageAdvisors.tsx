@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, CreditCard, ExternalLink, Pencil, Copy, Check, Trash2 } from "lucide-react";
+import { Search, Plus, CreditCard, ExternalLink, Pencil, Copy, Check, Trash2, LayoutDashboard } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -137,7 +137,7 @@ export default function ManageAdvisors() {
                 <TableHead>Custom Email</TableHead>
                 <TableHead>Entity Type</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>Actions <span className="text-xs font-normal text-muted-foreground ml-1">(Edit · Panel · Profile · Copy · Delete)</span></TableHead>
                 <TableHead className="text-right">Active</TableHead>
               </TableRow>
             </TableHeader>
@@ -184,8 +184,13 @@ export default function ManageAdvisors() {
                             <Pencil className="h-3.5 w-3.5" />
                           </Button>
                         </Link>
-                        <a href={`/profile/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="View Profile" data-testid={`button-view-${advisor.id}`}>
+                        <a href={`/advisor/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="Advisor Control Panel" data-testid={`button-panel-${advisor.id}`}>
+                            <LayoutDashboard className="h-3.5 w-3.5" />
+                          </Button>
+                        </a>
+                        <a href={`/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="View Public Profile" data-testid={`button-view-${advisor.id}`}>
                             <ExternalLink className="h-3.5 w-3.5" />
                           </Button>
                         </a>
