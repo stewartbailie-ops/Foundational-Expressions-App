@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
+import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
 import { sendEmail, isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
@@ -74,6 +74,11 @@ export async function registerRoutes(
     res.json(advisors);
   });
 
+  app.get("/api/advisors/profile-counts", async (_req, res) => {
+    const counts = await storage.getAdvisorProfileCounts();
+    res.json(counts);
+  });
+
   app.get("/api/advisors/slug/:slug", async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
@@ -121,6 +126,54 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/advisors/:id/profiles", async (req, res) => {
+    const profiles = await storage.getAdvisorProfiles(Number(req.params.id));
+    res.json(profiles);
+  });
+
+  app.post("/api/advisors/:id/profiles", async (req, res) => {
+    const parsed = insertAdvisorProfileSchema.safeParse({ ...req.body, advisorId: Number(req.params.id) });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    }
+    const existing = await storage.getAdvisorProfiles(Number(req.params.id));
+    if (existing.length >= 2) {
+      return res.status(400).json({ message: "Maximum of 3 profiles (1 primary + 2 additional) per advisor." });
+    }
+    try {
+      const profile = await storage.createAdvisorProfile(parsed.data);
+      res.status(201).json(profile);
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "That profile URL is already taken. Please choose a different one." });
+      }
+      throw err;
+    }
+  });
+
+  app.patch("/api/advisors/:id/profiles/:profileId", async (req, res) => {
+    const partial = insertAdvisorProfileSchema.partial().safeParse(req.body);
+    if (!partial.success) {
+      return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
+    }
+    try {
+      const updated = await storage.updateAdvisorProfile(Number(req.params.profileId), partial.data);
+      if (!updated) return res.status(404).json({ message: "Profile not found" });
+      res.json(updated);
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "That profile URL is already taken. Please choose a different one." });
+      }
+      throw err;
+    }
+  });
+
+  app.delete("/api/advisors/:id/profiles/:profileId", async (req, res) => {
+    const deleted = await storage.deleteAdvisorProfile(Number(req.params.profileId));
+    if (!deleted) return res.status(404).json({ message: "Profile not found" });
+    res.json({ success: true });
+  });
+
   app.get("/api/emails", async (_req, res) => {
     const emails = await storage.getEmails();
     res.json(emails);
@@ -160,7 +213,7 @@ export async function registerRoutes(
       const schema = z.object({
         advisorId: z.number(),
         clientName: z.string().min(1),
-        clientEmail: z.string().email(),
+        clientEmail: z.string().optional(),
         clientAge: z.number().optional(),
         clientIncome: z.string().optional(),
         clientIndustry: z.string().optional(),
@@ -190,7 +243,7 @@ export async function registerRoutes(
       const email = await storage.createEmail({
         advisorId: data.advisorId,
         senderName: data.clientName,
-        senderEmail: data.clientEmail,
+        senderEmail: data.clientEmail || "",
         type: "Referral",
         grade,
         subject: `Referral from ${data.source || "advisor app"}`,
@@ -252,7 +305,7 @@ export async function registerRoutes(
       const schema = z.object({
         advisorId: z.number(),
         clientName: z.string().min(1),
-        clientEmail: z.string().email(),
+        clientEmail: z.string().optional(),
         clientAge: z.number().optional(),
         clientIncome: z.string().optional(),
         clientIndustry: z.string().optional(),
@@ -278,7 +331,7 @@ export async function registerRoutes(
       const email = await storage.createEmail({
         advisorId: data.advisorId,
         senderName: data.clientName,
-        senderEmail: data.clientEmail,
+        senderEmail: data.clientEmail || "",
         type: "Call Back",
         grade,
         subject: `Call back request from ${data.source || "advisor app"}`,

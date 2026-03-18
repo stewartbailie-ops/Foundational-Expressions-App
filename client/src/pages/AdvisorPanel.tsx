@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { getThemeColors } from "@/lib/themeUtils";
-import type { Advisor, Email } from "@shared/schema";
+import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -586,13 +586,357 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   );
 }
 
+function ProfileCard({
+  profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick,
+}: {
+  profileSlug: string; title: string; theme: string; tc: ReturnType<typeof getThemeColors>;
+  label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
+}) {
+  const url = `advisoryconnect.pro/${profileSlug}`;
+  const themeDot = theme === "dark" ? "#555" : theme === "blue" ? "#3b82f6" : "#be185d";
+  const themeLabel = theme === "dark" ? "Black & White" : theme === "blue" ? "Blue" : "Pink";
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>{label}</span>
+        {isPrimary && (
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Primary</span>
+        )}
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: themeDot }} />
+        <span className="text-xs" style={{ color: tc.mutedText }}>{title} · {themeLabel}</span>
+      </div>
+      <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
+        <span className="text-xs flex-1 truncate font-mono" style={{ color: tc.textColor }}>{url}</span>
+        <a href={`/${profileSlug}`} target="_blank" rel="noopener noreferrer" title="View profile">
+          <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.accentColor }} />
+        </a>
+      </div>
+      <div className="flex gap-2">
+        <button onClick={onEditClick} className="flex-1 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+          {isPrimary ? "Edit in Profile tab" : "Edit"}
+        </button>
+        {!isPrimary && onDeleteClick && (
+          <button onClick={onDeleteClick} className="px-3 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
+            style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AdditionalProfileForm({
+  advisorId, baseSlug, tc, existingProfile, label, onDone,
+}: {
+  advisorId: number; baseSlug: string; tc: ReturnType<typeof getThemeColors>;
+  existingProfile?: AdvisorProfile; label: string; onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [profileSlug, setProfileSlug] = useState(existingProfile?.profileSlug || "");
+  const [title, setTitle] = useState(existingProfile?.title || "Financial Advisor");
+  const [bioOption, setBioOption] = useState(existingProfile?.bioOption || "a");
+  const [customBio, setCustomBio] = useState(existingProfile?.customBio || "");
+  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(existingProfile?.profilePicUrl || null);
+  const [linkedinUrl, setLinkedinUrl] = useState(existingProfile?.linkedinUrl || "");
+  const [websiteUrl, setWebsiteUrl] = useState(existingProfile?.websiteUrl || "");
+  const [selectedIndividual, setSelectedIndividual] = useState<string[]>(existingProfile?.individualServices || []);
+  const [selectedCorporate, setSelectedCorporate] = useState<string[]>(existingProfile?.corporateServices || []);
+  const [theme, setTheme] = useState(existingProfile?.theme || "dark");
+
+  const isEditing = !!existingProfile;
+  const slugValid = profileSlug.length > 0 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(profileSlug);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const data = {
+        profileSlug: profileSlug.trim(),
+        title, bioOption,
+        bio: bioOption === "custom" ? customBio : BIO_OPTIONS[bioOption] || "",
+        customBio: bioOption === "custom" ? customBio : null,
+        profilePicUrl: profilePicUrl || null,
+        linkedinUrl: linkedinUrl || null,
+        websiteUrl: websiteUrl || null,
+        individualServices: selectedIndividual,
+        corporateServices: selectedCorporate,
+        theme,
+        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#1e3a5f" : "#d4738a",
+        active: true,
+      };
+      if (isEditing) {
+        const res = await apiRequest("PATCH", `/api/advisors/${advisorId}/profiles/${existingProfile!.id}`, data);
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to update"); }
+        return res.json();
+      } else {
+        const res = await apiRequest("POST", `/api/advisors/${advisorId}/profiles`, data);
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to create"); }
+        return res.json();
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisorId}/profiles`] });
+      toast({ title: isEditing ? "Profile Updated" : "Profile Created", description: isEditing ? "Changes saved." : `Profile live at advisoryconnect.pro/${profileSlug}` });
+      onDone();
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
+      if (!res.ok) throw new Error("Upload failed");
+      const data = await res.json();
+      setProfilePicUrl(data.url);
+    } catch { toast({ title: "Upload Failed", variant: "destructive" }); }
+    finally { setUploading(false); }
+  };
+
+  const toggleService = (list: string[], setList: (v: string[]) => void, key: string) =>
+    setList(list.includes(key) ? list.filter(s => s !== key) : [...list, key]);
+
+  return (
+    <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+      <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: tc.cardBg, borderBottom: `1px solid ${tc.borderColor}` }}>
+        <span className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>
+          {isEditing ? `Editing ${label}` : `Create ${label}`}
+        </span>
+        <button onClick={onDone} className="text-xs px-2 py-1 rounded" style={{ color: tc.mutedText, backgroundColor: tc.inputBg }}>Cancel</button>
+      </div>
+      <div className="p-4 space-y-4" style={{ backgroundColor: tc.bgColor }}>
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile URL</label>
+          <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${profileSlug && !slugValid ? "#ef4444" : tc.inputBorder}`, backgroundColor: tc.inputBg }}>
+            <span className="px-2 py-2 text-xs flex-shrink-0" style={{ color: tc.mutedText, borderRight: `1px solid ${tc.inputBorder}` }}>advisoryconnect.pro/</span>
+            <input value={profileSlug} onChange={e => setProfileSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              placeholder={`${baseSlug}-2`} className="flex-1 px-2 py-2 text-xs bg-transparent outline-none" style={{ color: tc.textColor }} data-testid="input-profile-slug" />
+          </div>
+          {profileSlug && !slugValid && <p className="text-xs" style={{ color: "#ef4444" }}>Lowercase letters, numbers and hyphens only. Must not start/end with a hyphen.</p>}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Title</label>
+          <select value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
+            {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Picture</label>
+          <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
+          {profilePicUrl ? (
+            <div className="flex items-center gap-3">
+              <img src={profilePicUrl} alt="Profile" className="h-12 w-12 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
+              <div className="flex gap-2">
+                <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Change</button>
+                <button onClick={() => setProfilePicUrl(null)} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Remove</button>
+              </div>
+            </div>
+          ) : (
+            <div onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 py-4 rounded-lg cursor-pointer" style={{ border: `2px dashed ${tc.borderColor}` }}>
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: tc.mutedText }} /> : <Upload className="h-4 w-4" style={{ color: tc.mutedText }} />}
+              <span className="text-xs" style={{ color: tc.mutedText }}>{uploading ? "Uploading..." : "Upload photo"}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction & Bio</label>
+          <select value={bioOption} onChange={e => setBioOption(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
+            <option value="a">Option A – Core focus overview</option>
+            <option value="b">Option B – Integrated strategic approach</option>
+            <option value="c">Option C – Clarity & structure focus</option>
+            <option value="custom">Custom Biography</option>
+          </select>
+          {bioOption === "custom" ? (
+            <textarea value={customBio} onChange={e => setCustomBio(e.target.value)} rows={4} className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          ) : (
+            <div className="p-2 rounded-lg text-xs leading-relaxed whitespace-pre-line" style={{ backgroundColor: tc.inputBg, color: tc.mutedText }}>{BIO_OPTIONS[bioOption]}</div>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
+          <div className="space-y-1.5">
+            {INDIVIDUAL_SERVICES.map(s => (
+              <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                <input type="checkbox" checked={selectedIndividual.includes(s.key)} onChange={() => toggleService(selectedIndividual, setSelectedIndividual, s.key)} className="flex-shrink-0" />
+                <span className="text-xs" style={{ color: tc.textColor }}>{s.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
+          <div className="space-y-1.5">
+            {CORPORATE_SERVICES.map(s => (
+              <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                <input type="checkbox" checked={selectedCorporate.includes(s.key)} onChange={() => toggleService(selectedCorporate, setSelectedCorporate, s.key)} className="flex-shrink-0" />
+                <span className="text-xs" style={{ color: tc.textColor }}>{s.name}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Social Links (optional)</label>
+          <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="LinkedIn URL" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="Website URL" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme</label>
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { key: "dark", label: "Black & White", bg: "#1a1a1a" },
+              { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #3b82f6, #1e3a5f)" },
+              { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+            ].map(t => (
+              <button key={t.key} onClick={() => setTheme(t.key)} className="rounded-lg border-2 p-2 text-center transition-all"
+                style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}>
+                <div className="w-full h-8 rounded mb-1" style={{ background: t.bg }} />
+                <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onDone} className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>Cancel</button>
+          <button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending || !slugValid}
+            className="flex-1 py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-opacity"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, opacity: !slugValid ? 0.5 : 1 }}>
+            {saveMutation.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            {isEditing ? "Save Changes" : "Create Profile"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+  const [showNewForm, setShowNewForm] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
+
+  const { data: additionalProfiles = [] } = useQuery<AdvisorProfile[]>({
+    queryKey: [`/api/advisors/${advisor.id}/profiles`],
+  });
+
+  const deleteProfileMutation = useMutation({
+    mutationFn: async (profileId: number) => {
+      const res = await apiRequest("DELETE", `/api/advisors/${advisor.id}/profiles/${profileId}`);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to delete"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisor.id}/profiles`] });
+      toast({ title: "Profile Deleted" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const totalProfiles = 1 + additionalProfiles.length;
+  const canAddMore = totalProfiles < 3 && !showNewForm;
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between mb-1">
+          <span className="text-sm font-semibold" style={{ color: tc.textColor }}>My Profiles</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 3</span>
+        </div>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences.</p>
+      </div>
+
+      <ProfileCard
+        profileSlug={advisor.profileSlug}
+        title={advisor.title || "Financial Advisor"}
+        theme={advisor.theme || "dark"}
+        tc={tc}
+        label="Profile 1 (Primary)"
+        isPrimary={true}
+        onEditClick={() => {}}
+      />
+
+      {additionalProfiles.map((profile, index) =>
+        editingProfileId === profile.id ? (
+          <AdditionalProfileForm
+            key={profile.id}
+            advisorId={advisor.id}
+            baseSlug={advisor.profileSlug}
+            tc={tc}
+            existingProfile={profile}
+            label={`Profile ${index + 2}`}
+            onDone={() => setEditingProfileId(null)}
+          />
+        ) : (
+          <ProfileCard
+            key={profile.id}
+            profileSlug={profile.profileSlug}
+            title={profile.title || "Financial Advisor"}
+            theme={profile.theme || "dark"}
+            tc={tc}
+            label={`Profile ${index + 2}`}
+            isPrimary={false}
+            onEditClick={() => setEditingProfileId(profile.id)}
+            onDeleteClick={() => {
+              if (window.confirm(`Delete Profile ${index + 2}? This cannot be undone.`)) {
+                deleteProfileMutation.mutate(profile.id);
+              }
+            }}
+          />
+        )
+      )}
+
+      {showNewForm && (
+        <AdditionalProfileForm
+          advisorId={advisor.id}
+          baseSlug={advisor.profileSlug}
+          tc={tc}
+          label={`Profile ${totalProfiles + 1}`}
+          onDone={() => setShowNewForm(false)}
+        />
+      )}
+
+      {canAddMore && (
+        <button onClick={() => setShowNewForm(true)}
+          className="w-full py-3.5 rounded-xl text-sm font-medium flex items-center justify-center gap-2 transition-opacity hover:opacity-80"
+          style={{ border: `2px dashed ${tc.borderColor}`, color: tc.mutedText, backgroundColor: "transparent" }}
+          data-testid="button-add-profile">
+          <Plus className="h-4 w-4" />
+          Add Profile {totalProfiles + 1} of 3
+        </button>
+      )}
+
+      {!canAddMore && !showNewForm && totalProfiles >= 3 && (
+        <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          Maximum 3 profiles reached. Delete one to add a new profile.
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdvisorPanel() {
   const [, params] = useRoute("/advisor/:slug");
   const [, navigate] = useLocation();
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "set-password" | "login" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"profile" | "leads" | "stats">("leads");
+  const [activeTab, setActiveTab] = useState<"leads" | "stats" | "profiles" | "profile">("leads");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -656,7 +1000,8 @@ export default function AdvisorPanel() {
   const tabs = [
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
-    { key: "profile" as const, label: "Profile", icon: User },
+    { key: "profiles" as const, label: "Profiles", icon: Layers },
+    { key: "profile" as const, label: "Edit", icon: User },
   ];
 
   return (
@@ -722,6 +1067,7 @@ export default function AdvisorPanel() {
         <div className="p-5 pb-12">
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
+          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
           {activeTab === "profile" && <ProfileTab slug={slug} advisor={advisor} tc={tc} />}
         </div>
       </div>

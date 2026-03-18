@@ -2,6 +2,35 @@ import { pgTable, text, integer, boolean, timestamp, serial } from "drizzle-orm/
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export const advisorProfiles = pgTable("advisor_profiles", {
+  id: serial("id").primaryKey(),
+  advisorId: integer("advisor_id").notNull(),
+  profileSlug: text("profile_slug").notNull().unique(),
+  title: text("title").default("Financial Advisor"),
+  bioOption: text("bio_option").default("a"),
+  customBio: text("custom_bio"),
+  bio: text("bio"),
+  individualServices: text("individual_services").array(),
+  corporateServices: text("corporate_services").array(),
+  theme: text("theme").default("dark"),
+  themeColor: text("theme_color").default("#000000"),
+  profilePicUrl: text("profile_pic_url"),
+  linkedinUrl: text("linkedin_url"),
+  websiteUrl: text("website_url"),
+  showCallbackLink: boolean("show_callback_link").default(true),
+  showReferralsLink: boolean("show_referrals_link").default(true),
+  showQrCode: boolean("show_qr_code").default(true),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAdvisorProfileSchema = createInsertSchema(advisorProfiles).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertAdvisorProfile = z.infer<typeof insertAdvisorProfileSchema>;
+export type AdvisorProfile = typeof advisorProfiles.$inferSelect;
+
 export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),

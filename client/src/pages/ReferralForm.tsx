@@ -328,6 +328,20 @@ export default function ReferralForm() {
           Back
         </button>
 
+        <div className="flex items-center gap-4 rounded-xl px-4 py-3" style={{ backgroundColor: cardBg }} data-testid="advisor-header">
+          {advisor.profilePicUrl ? (
+            <img src={advisor.profilePicUrl} alt={advisor.name} className="h-12 w-12 rounded-full object-cover border-2 flex-shrink-0" style={{ borderColor: tc.initialsCircleBorder }} />
+          ) : (
+            <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: accentColor, border: `2px solid ${tc.initialsCircleBorder}` }}>
+              {initials}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-semibold text-sm truncate" style={{ color: textColor }}>{advisor.name}</p>
+            {advisor.title && <p className="text-xs truncate" style={{ color: mutedText }}>{advisor.title}</p>}
+          </div>
+        </div>
+
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold tracking-tight" data-testid="text-page-title">
             Refer Friends & Family

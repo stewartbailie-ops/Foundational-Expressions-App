@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { advisors, emails, stats, type Advisor, type InsertAdvisor, type Email, type InsertEmail, type Stat, type InsertStat } from "@shared/schema";
+import { advisors, advisorProfiles, emails, stats, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat } from "@shared/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 
 export interface IStorage {
@@ -10,6 +10,12 @@ export interface IStorage {
   updateAdvisor(id: number, data: Partial<InsertAdvisor>): Promise<Advisor | undefined>;
   toggleAdvisorActive(id: number, active: boolean): Promise<Advisor | undefined>;
   deleteAdvisor(id: number): Promise<boolean>;
+
+  getAdvisorProfiles(advisorId: number): Promise<AdvisorProfile[]>;
+  getAdvisorProfileCounts(): Promise<Record<number, number>>;
+  createAdvisorProfile(profile: InsertAdvisorProfile): Promise<AdvisorProfile>;
+  updateAdvisorProfile(id: number, data: Partial<InsertAdvisorProfile>): Promise<AdvisorProfile | undefined>;
+  deleteAdvisorProfile(id: number): Promise<boolean>;
 
   getEmails(): Promise<(Email & { advisorName: string })[]>;
   getEmailsByAdvisor(advisorId: number): Promise<Email[]>;
@@ -40,7 +46,32 @@ export class DatabaseStorage implements IStorage {
 
   async getAdvisorBySlug(slug: string): Promise<Advisor | undefined> {
     const [advisor] = await db.select().from(advisors).where(eq(advisors.profileSlug, slug));
-    return advisor;
+    if (advisor) return advisor;
+    const [profile] = await db
+      .select({ profile: advisorProfiles, advisor: advisors })
+      .from(advisorProfiles)
+      .innerJoin(advisors, eq(advisorProfiles.advisorId, advisors.id))
+      .where(eq(advisorProfiles.profileSlug, slug));
+    if (!profile) return undefined;
+    return {
+      ...profile.advisor,
+      profileSlug: profile.profile.profileSlug,
+      title: profile.profile.title ?? profile.advisor.title,
+      bio: profile.profile.bio ?? profile.advisor.bio,
+      bioOption: profile.profile.bioOption ?? profile.advisor.bioOption,
+      customBio: profile.profile.customBio ?? profile.advisor.customBio,
+      individualServices: profile.profile.individualServices ?? profile.advisor.individualServices,
+      corporateServices: profile.profile.corporateServices ?? profile.advisor.corporateServices,
+      theme: profile.profile.theme ?? profile.advisor.theme,
+      themeColor: profile.profile.themeColor ?? profile.advisor.themeColor,
+      profilePicUrl: profile.profile.profilePicUrl ?? profile.advisor.profilePicUrl,
+      linkedinUrl: profile.profile.linkedinUrl ?? profile.advisor.linkedinUrl,
+      websiteUrl: profile.profile.websiteUrl ?? profile.advisor.websiteUrl,
+      showCallbackLink: profile.profile.showCallbackLink ?? profile.advisor.showCallbackLink,
+      showReferralsLink: profile.profile.showReferralsLink ?? profile.advisor.showReferralsLink,
+      showQrCode: profile.profile.showQrCode ?? profile.advisor.showQrCode,
+      active: profile.profile.active,
+    };
   }
 
   async createAdvisor(advisor: InsertAdvisor): Promise<Advisor> {
@@ -59,8 +90,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAdvisor(id: number): Promise<boolean> {
+    await db.delete(advisorProfiles).where(eq(advisorProfiles.advisorId, id));
     const result = await db.delete(advisors).where(eq(advisors.id, id)).returning();
     return result.length > 0;
+  }
+
+  async getAdvisorProfiles(advisorId: number): Promise<AdvisorProfile[]> {
+    return db.select().from(advisorProfiles).where(eq(advisorProfiles.advisorId, advisorId)).orderBy(advisorProfiles.createdAt);
+  }
+
+  async createAdvisorProfile(profile: InsertAdvisorProfile): Promise<AdvisorProfile> {
+    const [created] = await db.insert(advisorProfiles).values(profile).returning();
+    return created;
+  }
+
+  async updateAdvisorProfile(id: number, data: Partial<InsertAdvisorProfile>): Promise<AdvisorProfile | undefined> {
+    const [updated] = await db.update(advisorProfiles).set(data).where(eq(advisorProfiles.id, id)).returning();
+    return updated;
+  }
+
+  async deleteAdvisorProfile(id: number): Promise<boolean> {
+    const result = await db.delete(advisorProfiles).where(eq(advisorProfiles.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getAdvisorProfileCounts(): Promise<Record<number, number>> {
+    const rows = await db
+      .select({ advisorId: advisorProfiles.advisorId, cnt: count() })
+      .from(advisorProfiles)
+      .groupBy(advisorProfiles.advisorId);
+    return Object.fromEntries(rows.map((r) => [r.advisorId, Number(r.cnt)]));
   }
 
   async getEmails(): Promise<(Email & { advisorName: string })[]> {

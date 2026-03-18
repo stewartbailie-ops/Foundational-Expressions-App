@@ -21,6 +21,10 @@ export default function ManageAdvisors() {
     queryKey: ["/api/advisors"],
   });
 
+  const { data: profileCounts = {} } = useQuery<Record<number, number>>({
+    queryKey: ["/api/advisors/profile-counts"],
+  });
+
   const toggleMutation = useMutation({
     mutationFn: async ({ id, active }: { id: number; active: boolean }) => {
       await apiRequest("PATCH", `/api/advisors/${id}/toggle`, { active });
@@ -157,10 +161,15 @@ export default function ManageAdvisors() {
                   <TableRow key={advisor.id} className="border-border" data-testid={`row-advisor-${advisor.id}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs">
+                        <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs shrink-0">
                           {advisor.name.split(" ").map((n) => n[0]).join("")}
                         </div>
-                        <div className="font-medium text-sm">{advisor.name}</div>
+                        <div>
+                          <div className="font-medium text-sm">{advisor.name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5">
+                            {1 + (profileCounts[advisor.id] || 0)} profile{(1 + (profileCounts[advisor.id] || 0)) !== 1 ? "s" : ""}
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">{advisor.email}</TableCell>
