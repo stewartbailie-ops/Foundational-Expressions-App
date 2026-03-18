@@ -30,22 +30,42 @@ function getInitials(name: string) {
   return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }
 
+function passwordRules(pw: string) {
+  return {
+    length: pw.length >= 10,
+    uppercase: /[A-Z]/.test(pw),
+    number: /[0-9]/.test(pw),
+    special: /[^A-Za-z0-9]/.test(pw),
+  };
+}
+
 function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void }) {
   const { toast } = useToast();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const { data: advisor } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
   });
 
   const tc = getThemeColors(advisor?.theme);
+  const rules = passwordRules(password);
+  const allRulesMet = rules.length && rules.uppercase && rules.number && rules.special;
+  const passwordsMatch = confirm.length > 0 && password === confirm;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password.length < 6) { toast({ title: "Password too short", description: "Minimum 6 characters", variant: "destructive" }); return; }
-    if (password !== confirm) { toast({ title: "Passwords don't match", variant: "destructive" }); return; }
+    if (!allRulesMet) {
+      toast({ title: "Password too weak", description: "Please meet all password requirements.", variant: "destructive" });
+      return;
+    }
+    if (password !== confirm) {
+      toast({ title: "Passwords don't match", variant: "destructive" });
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/advisor-auth/${slug}/set-password`, {
@@ -61,6 +81,16 @@ function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void 
     } finally { setLoading(false); }
   };
 
+  const RuleRow = ({ met, label }: { met: boolean; label: string }) => (
+    <div className="flex items-center gap-2">
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${met ? "bg-emerald-500 text-white" : "border-2"}`}
+        style={!met ? { borderColor: tc.mutedText } : {}}>
+        {met ? "✓" : ""}
+      </div>
+      <span className="text-xs transition-colors" style={{ color: met ? "#10b981" : tc.mutedText }}>{label}</span>
+    </div>
+  );
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
       <div className="w-full max-w-sm space-y-6">
@@ -73,40 +103,79 @@ function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void 
             </div>
           )}
           <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Advisor"}</h1>
-          <p className="text-sm" style={{ color: tc.mutedText }}>Create your panel password to get started.</p>
+          <p className="text-sm" style={{ color: tc.mutedText }}>Create a strong password to secure your control panel.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: tc.textColor }}>New Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Minimum 6 characters"
-                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-new-password"
-              />
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min. 10 characters"
+                  className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm outline-none"
+                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+                  data-testid="input-new-password"
+                />
+                <button type="button" onClick={() => setShowPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
+                  style={{ color: tc.mutedText }}>
+                  {showPw ? "Hide" : "Show"}
+                </button>
+              </div>
             </div>
+
+            {password.length > 0 && (
+              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: tc.mutedText }}>Password requirements:</p>
+                <RuleRow met={rules.length} label="At least 10 characters" />
+                <RuleRow met={rules.uppercase} label="At least 1 uppercase letter" />
+                <RuleRow met={rules.number} label="At least 1 number" />
+                <RuleRow met={rules.special} label="At least 1 special character (!@#$...)" />
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: tc.textColor }}>Confirm Password</label>
-              <input
-                type="password"
-                value={confirm}
-                onChange={e => setConfirm(e.target.value)}
-                placeholder="Repeat password"
-                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-confirm-password"
-              />
+              <div className="relative">
+                <input
+                  type={showConfirm ? "text" : "password"}
+                  value={confirm}
+                  onChange={e => setConfirm(e.target.value)}
+                  placeholder="Repeat password"
+                  className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm outline-none"
+                  style={{
+                    backgroundColor: tc.inputBg,
+                    border: `1px solid ${confirm.length > 0 ? (passwordsMatch ? "#10b981" : "#ef4444") : tc.inputBorder}`,
+                    color: tc.textColor
+                  }}
+                  data-testid="input-confirm-password"
+                />
+                <button type="button" onClick={() => setShowConfirm(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
+                  style={{ color: tc.mutedText }}>
+                  {showConfirm ? "Hide" : "Show"}
+                </button>
+              </div>
+              {confirm.length > 0 && (
+                <p className="text-xs" style={{ color: passwordsMatch ? "#10b981" : "#ef4444" }}>
+                  {passwordsMatch ? "✓ Passwords match" : "✗ Passwords do not match"}
+                </p>
+              )}
             </div>
           </div>
           <button
             type="submit"
-            disabled={loading}
-            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            disabled={loading || !allRulesMet || !passwordsMatch}
+            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-opacity"
+            style={{
+              backgroundColor: tc.buttonBg,
+              color: tc.buttonText,
+              opacity: (!allRulesMet || !passwordsMatch) ? 0.5 : 1,
+              cursor: (!allRulesMet || !passwordsMatch) ? "not-allowed" : "pointer"
+            }}
             data-testid="button-set-password"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
