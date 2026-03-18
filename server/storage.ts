@@ -12,9 +12,11 @@ export interface IStorage {
   deleteAdvisor(id: number): Promise<boolean>;
 
   getEmails(): Promise<(Email & { advisorName: string })[]>;
+  getEmailsByAdvisor(advisorId: number): Promise<Email[]>;
   createEmail(email: InsertEmail): Promise<Email>;
   updateEmailGrade(id: number, grade: string): Promise<Email | undefined>;
   deleteEmail(id: number): Promise<boolean>;
+  getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }>;
 
   getDashboardStats(): Promise<{
     totalEmails: number;
@@ -98,6 +100,31 @@ export class DatabaseStorage implements IStorage {
       ...r,
       advisorName: r.advisorName ?? "Unknown",
     }));
+  }
+
+  async getEmailsByAdvisor(advisorId: number): Promise<Email[]> {
+    return db.select().from(emails).where(eq(emails.advisorId, advisorId)).orderBy(desc(emails.receivedAt));
+  }
+
+  async getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }> {
+    const [totalLeads] = await db.select({ value: count() }).from(emails).where(eq(emails.advisorId, advisorId));
+    const [totalReferrals] = await db.select({ value: count() }).from(emails).where(sql`${emails.advisorId} = ${advisorId} AND ${emails.type} = 'Referral'`);
+    const [totalCallbacks] = await db.select({ value: count() }).from(emails).where(sql`${emails.advisorId} = ${advisorId} AND ${emails.type} = 'Call Back'`);
+
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const weeklyActivity: { name: string; leads: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStart = new Date(d); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(d); dayEnd.setHours(23, 59, 59, 999);
+      const [leadsDay] = await db.select({ value: count() }).from(emails).where(
+        sql`${emails.advisorId} = ${advisorId} AND ${emails.receivedAt} >= ${dayStart} AND ${emails.receivedAt} <= ${dayEnd}`
+      );
+      weeklyActivity.push({ name: days[d.getDay()], leads: leadsDay.value });
+    }
+
+    return { totalLeads: totalLeads.value, totalReferrals: totalReferrals.value, totalCallbacks: totalCallbacks.value, weeklyActivity };
   }
 
   async createEmail(email: InsertEmail): Promise<Email> {

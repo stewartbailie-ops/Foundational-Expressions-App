@@ -24,6 +24,8 @@ export const advisors = pgTable("advisors", {
   showCallbackLink: boolean("show_callback_link").default(true),
   showReferralsLink: boolean("show_referrals_link").default(true),
   showQrCode: boolean("show_qr_code").default(true),
+  advisorPasswordHash: text("advisor_password_hash"),
+  advisorPasswordSet: boolean("advisor_password_set").default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

@@ -15,6 +15,7 @@ import EditAdvisor from "@/pages/EditAdvisor";
 import AdvisorProfile from "@/pages/AdvisorProfile";
 import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
+import AdvisorPanel from "@/pages/AdvisorPanel";
 import Login from "@/pages/Login";
 import { Loader2 } from "lucide-react";
 
@@ -50,11 +51,12 @@ function SlugReferral() {
   return <ReferralForm />;
 }
 
-const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads"];
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor"];
 
 function Router() {
   return (
     <Switch>
+      <Route path="/advisor/:slug" component={AdvisorPanel} />
       <Route path="/profile/:slug/request-callback" component={CallbackForm} />
       <Route path="/profile/:slug/referrals" component={ReferralForm} />
       <Route path="/profile/:slug" component={AdvisorProfile} />

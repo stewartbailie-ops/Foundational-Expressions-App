@@ -5,6 +5,7 @@ import { insertAdvisorSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS 
 import { sendEmail, isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
+import bcrypt from "bcryptjs";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -422,6 +423,69 @@ export async function registerRoutes(
     const { advisorId } = req.body;
     await storage.recordStat({ advisorId: advisorId || null, eventType: "app_access" });
     res.json({ success: true });
+  });
+
+  app.get("/api/advisor-auth/:slug/status", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    res.json({ passwordSet: advisor.advisorPasswordSet ?? false });
+  });
+
+  app.post("/api/advisor-auth/:slug/set-password", async (req, res) => {
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters" });
+    }
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (advisor.advisorPasswordSet) {
+      return res.status(400).json({ message: "Password already set" });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await storage.updateAdvisor(advisor.id, { advisorPasswordHash: hash, advisorPasswordSet: true });
+    (req.session as any)[`advisor_${req.params.slug}`] = true;
+    res.json({ success: true });
+  });
+
+  app.post("/api/advisor-auth/:slug/login", async (req, res) => {
+    const { password } = req.body;
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor.advisorPasswordHash) return res.status(401).json({ message: "Password not set" });
+    const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
+    if (!valid) return res.status(401).json({ message: "Invalid password" });
+    (req.session as any)[`advisor_${req.params.slug}`] = true;
+    res.json({ authenticated: true });
+  });
+
+  app.post("/api/advisor-auth/:slug/logout", async (req, res) => {
+    (req.session as any)[`advisor_${req.params.slug}`] = false;
+    res.json({ authenticated: false });
+  });
+
+  app.get("/api/advisor-auth/:slug/session", async (req, res) => {
+    const authenticated = !!(req.session as any)?.[`advisor_${req.params.slug}`];
+    res.json({ authenticated });
+  });
+
+  app.get("/api/advisors/:slug/emails", async (req, res) => {
+    const slug = req.params.slug;
+    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated;
+    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
+    const advisor = await storage.getAdvisorBySlug(slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    const allEmails = await storage.getEmailsByAdvisor(advisor.id);
+    res.json(allEmails);
+  });
+
+  app.get("/api/advisors/:slug/stats", async (req, res) => {
+    const slug = req.params.slug;
+    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated;
+    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
+    const advisor = await storage.getAdvisorBySlug(slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    const advisorStats = await storage.getAdvisorStats(advisor.id);
+    res.json(advisorStats);
   });
 
   return httpServer;
