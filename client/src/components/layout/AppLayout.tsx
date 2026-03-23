@@ -75,12 +75,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white text-black">
-        <header className="h-14 flex items-center justify-between px-8 border-b border-black/10 bg-white sticky top-0 z-10">
-          <h2 className="text-base font-semibold tracking-tight text-black">
+      <main className="flex-1 flex flex-col h-screen overflow-hidden bg-white text-foreground">
+        <header className="h-14 flex items-center justify-between px-8 border-b border-primary/15 bg-white sticky top-0 z-10">
+          <h2 className="text-base font-semibold tracking-tight text-foreground">
             {navItems.find((item) => item.href === location)?.label || "Control Panel"}
           </h2>
-          <div className="flex items-center gap-4 text-sm text-black/50">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Server: <strong className="text-emerald-600">Online</strong></span>
           </div>
         </header>

@@ -139,7 +139,7 @@ export default function CIV() {
             key={g}
             onClick={() => setGradeFilter(gradeFilter === g ? "all" : g)}
             className={`rounded-xl p-4 text-left border transition-all ${
-              gradeFilter === g ? "ring-2 ring-black shadow-md" : "hover:shadow-sm"
+              gradeFilter === g ? "ring-2 ring-primary shadow-md" : "hover:shadow-sm"
             }`}
             data-testid={`filter-grade-${g.toLowerCase()}`}
           >
@@ -173,7 +173,7 @@ export default function CIV() {
           <button
             onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Referral" ? "bg-black text-white border-black" : "bg-background border-border hover:bg-muted"
+              typeFilter === "Referral" ? "bg-primary text-white border-primary" : "bg-background border-border hover:bg-muted"
             }`}
             data-testid="filter-type-referral"
           >
@@ -182,7 +182,7 @@ export default function CIV() {
           <button
             onClick={() => setTypeFilter(typeFilter === "Call Back" ? "all" : "Call Back")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Call Back" ? "bg-black text-white border-black" : "bg-background border-border hover:bg-muted"
+              typeFilter === "Call Back" ? "bg-primary text-white border-primary" : "bg-background border-border hover:bg-muted"
             }`}
             data-testid="filter-type-callback"
           >
