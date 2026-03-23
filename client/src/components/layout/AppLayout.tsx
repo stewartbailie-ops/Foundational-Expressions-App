@@ -2,6 +2,10 @@ import { Link, useLocation } from "wouter";
 import { Home, LayoutDashboard, Users, Inbox, LogOut } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 
+const BRAND_BLUE = "#4a8db5";
+const BRAND_BLUE_DARK = "#3a7095";
+const BRAND_BLUE_LIGHT = "rgba(255,255,255,0.15)";
+
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
 
@@ -18,23 +22,28 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-black flex text-white">
-      <aside className="w-72 bg-black flex flex-col hidden md:flex border-r border-white/10">
-        <div className="flex flex-col items-start px-4 pt-8 pb-4">
-          <p className="text-lg text-white tracking-wide uppercase font-medium">Control Panel</p>
+    <div className="min-h-screen flex text-white" style={{ backgroundColor: "#f5f7fa" }}>
+      <aside className="w-72 flex flex-col hidden md:flex" style={{ backgroundColor: BRAND_BLUE }}>
+        <div className="flex flex-col items-start px-5 pt-6 pb-4">
+          <img
+            src="/advisory-connect-logo.png"
+            alt="Advisory Connect"
+            className="w-full max-w-[200px] rounded-xl mb-4 object-contain"
+          />
+          <p className="text-base text-white/90 tracking-wide uppercase font-semibold">Control Panel</p>
         </div>
 
-        <nav className="flex-1 py-4 px-3 space-y-2 flex flex-col items-start">
+        <nav className="flex-1 py-4 px-3 space-y-1.5 flex flex-col items-start">
           {navItems.map((item) => {
             const isActive = location === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 w-full px-4 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                className={`flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 ${
                   isActive
-                    ? "bg-white text-black"
-                    : "text-white hover:bg-white/10"
+                    ? "bg-white text-[#4a8db5]"
+                    : "text-white/90 hover:bg-white/15"
                 }`}
                 data-testid={`nav-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
               >
@@ -45,23 +54,24 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="p-5 border-t border-white/10">
-          <div className="flex items-center justify-between">
+        <div className="px-5 py-4" style={{ borderTop: "1px solid rgba(255,255,255,0.2)" }}>
+          <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center text-white/70 text-xs font-bold border border-white/20">
+              <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold border" style={{ backgroundColor: "rgba(255,255,255,0.2)", borderColor: "rgba(255,255,255,0.3)", color: "#fff" }}>
                 AD
               </div>
-              <div className="text-sm font-medium text-white/80">Admin</div>
+              <div className="text-sm font-medium text-white/85">Admin</div>
             </div>
             <button
               onClick={handleLogout}
-              className="text-white/40 hover:text-red-400 transition-colors p-1"
+              className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
               title="Sign Out"
               data-testid="button-logout"
             >
-              <LogOut className="h-4 w-4" />
+              <LogOut className="h-4 w-4 text-white/70" />
             </button>
           </div>
+          <p className="text-xs text-white/50 text-center">Powered by Advisory Connect</p>
         </div>
       </aside>
 
