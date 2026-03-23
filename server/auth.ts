@@ -2,6 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 
 const PUBLIC_API_ROUTES = [
   "/api/advisors/slug/",
+  "/api/advisor-auth/",
   "/api/referral",
   "/api/callback",
   "/api/webhook/",
@@ -9,6 +10,7 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/session",
   "/api/auth/logout",
+  "/api/upload/profile-pic",
   "/uploads/",
 ];
 
@@ -27,9 +29,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
   }
 
-  if (!(req.session as any)?.authenticated) {
-    return res.status(401).json({ message: "Unauthorized" });
+  if ((req.session as any)?.authenticated) {
+    return next();
   }
 
-  next();
+  const session = req.session as any;
+  const hasAdvisorSession = Object.keys(session || {}).some(
+    (key) => key.startsWith("advisor_") && session[key] === true
+  );
+  if (hasAdvisorSession) {
+    return next();
+  }
+
+  return res.status(401).json({ message: "Unauthorized" });
 }
