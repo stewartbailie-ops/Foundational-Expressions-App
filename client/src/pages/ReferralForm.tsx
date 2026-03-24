@@ -148,7 +148,7 @@ export default function ReferralForm() {
   };
 
   const addReferral = () => {
-    if (referrals.length < 4) {
+    if (referrals.length < 10) {
       setReferrals((prev) => [...prev, emptyReferral()]);
     }
   };
@@ -616,7 +616,7 @@ export default function ReferralForm() {
           </div>
         ))}
 
-        {referrals.length < 4 && (
+        {referrals.length < 10 && (
           <button
             onClick={addReferral}
             className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
@@ -628,7 +628,7 @@ export default function ReferralForm() {
             data-testid="button-add-referral"
           >
             <Plus className="h-4 w-4" />
-            Add Another Referral ({referrals.length}/4)
+            Add Another Referral ({referrals.length}/10)
           </button>
         )}
 

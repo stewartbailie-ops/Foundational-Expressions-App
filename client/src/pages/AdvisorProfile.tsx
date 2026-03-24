@@ -432,6 +432,9 @@ export default function AdvisorProfile() {
 
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
+  const [inDevClicked, setInDevClicked] = useState<string | null>(null);
+  const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
+  const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
 
   const hasContactDetails = advisor.showContactDetails !== false && (
     (advisor as any).contactNumber || (advisor as any).location || (advisor as any).workingHours || advisor.email
@@ -449,7 +452,7 @@ export default function AdvisorProfile() {
           <img
             src="/advisory-connect-logo.png"
             alt="Advisory Connect"
-            className="h-40 object-contain"
+            className="w-56 h-auto object-contain"
             data-testid="img-ac-logo"
           />
         </div>
@@ -601,90 +604,73 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {((advisor as any).astuteUrl || (advisor as any).documentsUrl || (advisor as any).qaUrl ||
-          (advisor as any).financialsNewsUrl || (advisor as any).financialsFunFactsUrl || (advisor as any).financialsVideosUrl) && (
-          <div className="space-y-2.5" data-testid="section-profile-links">
-            {(advisor as any).astuteUrl && (
-              <a href={(advisor as any).astuteUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid="link-astute">
-                <Calculator className="h-4 w-4" /> Astute Online
-              </a>
-            )}
-            {(advisor as any).documentsUrl && (
-              <a href={(advisor as any).documentsUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid="link-documents">
-                <FileText className="h-4 w-4" /> Upload Documents
-              </a>
-            )}
-            {(advisor as any).qaUrl && (
-              <a href={(advisor as any).qaUrl} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid="link-qa">
-                <BookOpen className="h-4 w-4" /> Q&A / FAQs
-              </a>
-            )}
-            {((advisor as any).financialsNewsUrl || (advisor as any).financialsFunFactsUrl || (advisor as any).financialsVideosUrl) && (
-              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financials">
-                <div className="px-4 py-3" style={{ backgroundColor: cardBg }}>
-                  <p className="text-xs font-semibold text-center mb-3" style={{ color: mutedText }}>General Financials Posts</p>
-                  <div className="space-y-2">
-                    {(advisor as any).financialsNewsUrl && (
-                      <a href={(advisor as any).financialsNewsUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                        data-testid="link-financials-news">
-                        <TrendingUp className="h-4 w-4" /> Latest Financial News
-                      </a>
-                    )}
-                    {(advisor as any).financialsFunFactsUrl && (
-                      <a href={(advisor as any).financialsFunFactsUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                        data-testid="link-financials-funfacts">
-                        <Lightbulb className="h-4 w-4" /> Daily Financial Fun Facts
-                      </a>
-                    )}
-                    {(advisor as any).financialsVideosUrl && (
-                      <a href={(advisor as any).financialsVideosUrl} target="_blank" rel="noopener noreferrer"
-                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                        data-testid="link-financials-videos">
-                        <Video className="h-4 w-4" /> What Are Finances? (Videos)
-                      </a>
+        {((advisor as any).showAstute || (advisor as any).showDocuments || (advisor as any).showComplimentaryWill) && (
+          <div className="space-y-2.5" data-testid="section-in-dev-links">
+            {[
+              { key: "astute", show: (advisor as any).showAstute, label: "Astute Online", Icon: Calculator },
+              { key: "documents", show: (advisor as any).showDocuments, label: "Documents Upload", Icon: FileText },
+              { key: "will", show: (advisor as any).showComplimentaryWill, label: "Complimentary Will", Icon: BookOpen },
+            ].filter(b => b.show).map(({ key, label, Icon }) => (
+              <div key={key}>
+                <button
+                  onClick={() => setInDevClicked(inDevClicked === key ? null : key)}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid={`button-indev-${key}`}
+                >
+                  <Icon className="h-4 w-4" />
+                  {label}
+                </button>
+                {inDevClicked === key && (
+                  <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                    In development — Coming soon
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {(advisor as any).showFinancialMedia && (
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-media">
+            <button
+              onClick={() => setFinancialMediaOpen(v => !v)}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: textColor }}
+            >
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
+                General Financial Media
+              </div>
+              {financialMediaOpen ? <ChevronUp className="h-4 w-4" style={{ color: mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: mutedText }} />}
+            </button>
+            {financialMediaOpen && (
+              <div className="px-4 pb-4 pt-2 space-y-2" style={{ backgroundColor: cardBg }}>
+                {[
+                  { key: "news", label: "Latest Financial News", Icon: TrendingUp },
+                  { key: "funfacts", label: "Daily Financial Fun-facts", Icon: Lightbulb },
+                  { key: "videos", label: "Financial Tutorial Videos", Icon: Video },
+                ].map(({ key, label, Icon }) => (
+                  <div key={key}>
+                    <button
+                      onClick={() => setInDevFinancial(inDevFinancial === key ? null : key)}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                      data-testid={`button-financial-${key}`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {label}
+                    </button>
+                    {inDevFinancial === key && (
+                      <p className="text-center text-xs mt-1 py-1.5" style={{ color: mutedText }}>In development — Coming soon</p>
                     )}
                   </div>
-                </div>
+                ))}
               </div>
             )}
           </div>
         )}
-
-        <div className="space-y-2.5" data-testid="section-coming-soon">
-          {[
-            { label: "Complimentary Will", desc: "A professional will — our gift to you" },
-            { label: "Affiliate Websites & Links", desc: "Envestpro · Standard Bank · New-Road Capital" },
-            { label: "Testimonials", desc: "What clients say about us" },
-          ].map(item => (
-            <div key={item.label}
-              className="flex items-center justify-between px-4 py-3 rounded-lg"
-              style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}
-              data-testid={`coming-soon-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
-            >
-              <div>
-                <p className="text-sm font-medium" style={{ color: textColor }}>{item.label}</p>
-                <p className="text-xs mt-0.5" style={{ color: mutedText }}>{item.desc}</p>
-              </div>
-              <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-3" style={{ backgroundColor: "rgba(99,102,241,0.15)", color: "#818cf8" }}>
-                Coming Soon
-              </span>
-            </div>
-          ))}
-        </div>
 
         {(advisor.showCallbackLink !== false || advisor.showReferralsLink !== false) && (
           <div className="space-y-3 pt-2">

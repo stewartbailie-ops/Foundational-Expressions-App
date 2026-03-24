@@ -546,8 +546,14 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showCorporateServices, setShowCorporateServices] = useState((advisor as any).showCorporateServices !== false);
   const [showSocials, setShowSocials] = useState((advisor as any).showSocials !== false);
   const [showQrCode, setShowQrCode] = useState((advisor as any).showQrCode !== false);
+  const [nickname, setNickname] = useState((advisor as any).nickname || "");
+  const [profileDescription, setProfileDescription] = useState((advisor as any).profileDescription || "");
   const [showCallbackLink, setShowCallbackLink] = useState((advisor as any).showCallbackLink !== false);
   const [showReferralsLink, setShowReferralsLink] = useState((advisor as any).showReferralsLink !== false);
+  const [showAstute, setShowAstute] = useState(!!(advisor as any).showAstute);
+  const [showDocuments, setShowDocuments] = useState(!!(advisor as any).showDocuments);
+  const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(advisor as any).showComplimentaryWill);
+  const [showFinancialMedia, setShowFinancialMedia] = useState(!!(advisor as any).showFinancialMedia);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -586,6 +592,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showQrCode,
         showCallbackLink,
         showReferralsLink,
+        showAstute,
+        showDocuments,
+        showComplimentaryWill,
+        showFinancialMedia,
+        nickname: nickname || null,
+        profileDescription: profileDescription || null,
       });
       return res.json();
     },
@@ -774,49 +786,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: tc.sectionTitle }}>Profile Links</h3>
-        <div className="space-y-3">
-          {[
-            { label: "Astute Online", val: astuteUrl, set: setAstuteUrl, desc: "Where clients put their info to draw an Astute", testId: "input-astute-url" },
-            { label: "Documents Upload", val: documentsUrl, set: setDocumentsUrl, desc: "Link for clients to upload/submit documents", testId: "input-documents-url" },
-            { label: "Q&A / General FAQs", val: qaUrl, set: setQaUrl, desc: "Link to your Q&A page", testId: "input-qa-url" },
-          ].map(f => (
-            <div key={f.testId} className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-medium" style={{ color: tc.textColor }}>{f.label}</label>
-                <span className="text-xs" style={{ color: tc.mutedText }}>{f.desc}</span>
-              </div>
-              <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={`https://...`} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid={f.testId} />
-            </div>
-          ))}
-          <div className="space-y-1">
-            <label className="text-xs font-semibold" style={{ color: tc.textColor }}>General Financials Posts</label>
-            <div className="space-y-2 mt-1">
-              {[
-                { label: "Latest Financial News", val: financialsNewsUrl, set: setFinancialsNewsUrl, testId: "input-financials-news" },
-                { label: "Daily Financial Fun Facts", val: financialsFunFactsUrl, set: setFinancialsFunFactsUrl, testId: "input-financials-funfacts" },
-                { label: "What Are Finances? (Educational Videos)", val: financialsVideosUrl, set: setFinancialsVideosUrl, testId: "input-financials-videos" },
-              ].map(f => (
-                <div key={f.testId}>
-                  <label className="text-xs mb-1 block" style={{ color: tc.mutedText }}>{f.label}</label>
-                  <input value={f.val} onChange={e => f.set(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid={f.testId} />
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-1.5 pt-1">
-            <label className="text-xs font-semibold" style={{ color: tc.textColor }}>Coming Soon</label>
-            {["Complimentary Will", "Affiliate Websites & Links", "Testimonials"].map(label => (
-              <div key={label} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-                <span className="text-xs" style={{ color: tc.mutedText }}>{label}</span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: "rgba(99,102,241,0.12)", color: "#6366f1" }}>In Development</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Contact Details</h3>
           <label className="flex items-center gap-2 cursor-pointer">
@@ -847,12 +816,25 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         </div>
       </div>
 
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderStyle: "dashed" }}>
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Admin Notes</h3>
+          <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Nickname &amp; description are for your reference only — never shown to clients.</p>
+        </div>
+        <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder='Profile nickname (e.g. "Corporate Clients")' className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-profile-nickname" />
+        <textarea value={profileDescription} onChange={e => setProfileDescription(e.target.value)} placeholder="Short description to help you identify this profile..." rows={2} className="w-full px-3 py-2 rounded-lg text-sm outline-none resize-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-profile-description" />
+      </div>
+
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold mb-1" style={{ color: tc.sectionTitle }}>Profile Page Elements</h3>
         {[
           { label: "QR Code", value: showQrCode, set: setShowQrCode },
           { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
+          { label: "Astute Online", value: showAstute, set: setShowAstute },
+          { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
+          { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+          { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -898,10 +880,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
 }
 
 function ProfileCard({
-  profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick,
+  profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
 }: {
   profileSlug: string; title: string; theme: string; tc: ReturnType<typeof getThemeColors>;
   label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
+  nickname?: string; profileDesc?: string;
 }) {
   const url = `advisoryconnect.pro/${profileSlug}`;
   const themeDot = theme === "dark" ? "#555" : theme === "blue" ? "#3b82f6" : "#be185d";
@@ -909,11 +892,15 @@ function ProfileCard({
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>{label}</span>
+        <div>
+          <span className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>{label}</span>
+          {nickname && <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>"{nickname}"</span>}
+        </div>
         {isPrimary && (
           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Primary</span>
         )}
       </div>
+      {profileDesc && <p className="text-xs italic" style={{ color: tc.mutedText }}>{profileDesc}</p>}
       <div className="flex items-center gap-2">
         <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: themeDot }} />
         <span className="text-xs" style={{ color: tc.mutedText }}>{title} · {themeLabel}</span>
@@ -975,8 +962,14 @@ function AdditionalProfileForm({
   const [showCorporateServices, setShowCorporateServices] = useState((existingProfile as any)?.showCorporateServices !== false);
   const [showSocials, setShowSocials] = useState((existingProfile as any)?.showSocials !== false);
   const [showQrCode, setShowQrCode] = useState((existingProfile as any)?.showQrCode !== false);
+  const [nickname, setNickname] = useState((existingProfile as any)?.nickname || "");
+  const [profileDescription, setProfileDescription] = useState((existingProfile as any)?.profileDescription || "");
   const [showCallbackLink, setShowCallbackLink] = useState((existingProfile as any)?.showCallbackLink !== false);
   const [showReferralsLink, setShowReferralsLink] = useState((existingProfile as any)?.showReferralsLink !== false);
+  const [showAstute, setShowAstute] = useState(!!(existingProfile as any)?.showAstute);
+  const [showDocuments, setShowDocuments] = useState(!!(existingProfile as any)?.showDocuments);
+  const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(existingProfile as any)?.showComplimentaryWill);
+  const [showFinancialMedia, setShowFinancialMedia] = useState(!!(existingProfile as any)?.showFinancialMedia);
 
   const isEditing = !!existingProfile;
   const slugValid = profileSlug.length > 0 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(profileSlug);
@@ -1013,6 +1006,12 @@ function AdditionalProfileForm({
         showQrCode,
         showCallbackLink,
         showReferralsLink,
+        showAstute,
+        showDocuments,
+        showComplimentaryWill,
+        showFinancialMedia,
+        nickname: nickname || null,
+        profileDescription: profileDescription || null,
         active: true,
       };
       if (isEditing) {
@@ -1191,18 +1190,10 @@ function AdditionalProfileForm({
           ))}
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Links</label>
-          {[
-            { val: astuteUrl, set: setAstuteUrl, placeholder: "Astute Online URL" },
-            { val: documentsUrl, set: setDocumentsUrl, placeholder: "Documents Upload URL" },
-            { val: qaUrl, set: setQaUrl, placeholder: "Q&A Page URL" },
-            { val: financialsNewsUrl, set: setFinancialsNewsUrl, placeholder: "Financial News URL" },
-            { val: financialsFunFactsUrl, set: setFinancialsFunFactsUrl, placeholder: "Fun Facts URL" },
-            { val: financialsVideosUrl, set: setFinancialsVideosUrl, placeholder: "Educational Videos URL" },
-          ].map(f => (
-            <input key={f.placeholder} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
-          ))}
+        <div className="space-y-1.5 p-3 rounded-lg" style={{ border: `1px dashed ${tc.borderColor}` }}>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Admin Notes (not shown to clients)</label>
+          <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder='Nickname (e.g. "Corporate Clients")' className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          <textarea value={profileDescription} onChange={e => setProfileDescription(e.target.value)} placeholder="Short description..." rows={2} className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
         </div>
 
         <div className="space-y-1.5">
@@ -1228,6 +1219,10 @@ function AdditionalProfileForm({
             { label: "QR Code", value: showQrCode, set: setShowQrCode },
             { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
+            { label: "Astute Online", value: showAstute, set: setShowAstute },
+            { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
+            { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+            { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -1276,14 +1271,14 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   });
 
   const totalProfiles = 1 + additionalProfiles.length;
-  const canAddMore = totalProfiles < 3 && !showNewForm;
+  const canAddMore = totalProfiles < 5 && !showNewForm;
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold" style={{ color: tc.textColor }}>My Profiles</span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 3</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 5</span>
         </div>
         <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences.</p>
       </div>
@@ -1318,6 +1313,8 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             tc={tc}
             label={`Profile ${index + 2}`}
             isPrimary={false}
+            nickname={(profile as any).nickname}
+            profileDesc={(profile as any).profileDescription}
             onEditClick={() => setEditingProfileId(profile.id)}
             onDeleteClick={() => {
               if (window.confirm(`Delete Profile ${index + 2}? This cannot be undone.`)) {
@@ -1344,13 +1341,13 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           style={{ border: `2px dashed ${tc.borderColor}`, color: tc.mutedText, backgroundColor: "transparent" }}
           data-testid="button-add-profile">
           <Plus className="h-4 w-4" />
-          Add Profile {totalProfiles + 1} of 3
+          Add Profile {totalProfiles + 1} of 5
         </button>
       )}
 
-      {!canAddMore && !showNewForm && totalProfiles >= 3 && (
+      {!canAddMore && !showNewForm && totalProfiles >= 5 && (
         <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          Maximum 3 profiles reached. Delete one to add a new profile.
+          Maximum 5 profiles reached. Delete one to add a new profile.
         </div>
       )}
     </div>
