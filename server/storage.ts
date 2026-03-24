@@ -21,6 +21,7 @@ export interface IStorage {
   getEmailsByAdvisor(advisorId: number): Promise<Email[]>;
   createEmail(email: InsertEmail): Promise<Email>;
   updateEmailGrade(id: number, grade: string): Promise<Email | undefined>;
+  updateEmailStatus(id: number, leadStatus: string): Promise<Email | undefined>;
   deleteEmail(id: number): Promise<boolean>;
   getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }>;
 
@@ -70,6 +71,12 @@ export class DatabaseStorage implements IStorage {
       showCallbackLink: profile.profile.showCallbackLink ?? profile.advisor.showCallbackLink,
       showReferralsLink: profile.profile.showReferralsLink ?? profile.advisor.showReferralsLink,
       showQrCode: profile.profile.showQrCode ?? profile.advisor.showQrCode,
+      showHeader: profile.profile.showHeader ?? profile.advisor.showHeader,
+      showProfilePic: profile.profile.showProfilePic ?? profile.advisor.showProfilePic,
+      showIntro: profile.profile.showIntro ?? profile.advisor.showIntro,
+      showIndividualServices: profile.profile.showIndividualServices ?? profile.advisor.showIndividualServices,
+      showCorporateServices: profile.profile.showCorporateServices ?? profile.advisor.showCorporateServices,
+      showSocials: profile.profile.showSocials ?? profile.advisor.showSocials,
       active: profile.profile.active,
     };
   }
@@ -131,6 +138,7 @@ export class DatabaseStorage implements IStorage {
         senderEmail: emails.senderEmail,
         type: emails.type,
         grade: emails.grade,
+        leadStatus: emails.leadStatus,
         subject: emails.subject,
         body: emails.body,
         clientAge: emails.clientAge,
@@ -197,6 +205,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateEmailGrade(id: number, grade: string): Promise<Email | undefined> {
     const [updated] = await db.update(emails).set({ grade }).where(eq(emails.id, id)).returning();
+    return updated;
+  }
+
+  async updateEmailStatus(id: number, leadStatus: string): Promise<Email | undefined> {
+    const [updated] = await db.update(emails).set({ leadStatus }).where(eq(emails.id, id)).returning();
     return updated;
   }
 

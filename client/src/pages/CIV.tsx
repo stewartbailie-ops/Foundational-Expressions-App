@@ -18,6 +18,7 @@ type EmailRow = {
   senderEmail: string;
   type: string;
   grade: string | null;
+  leadStatus: string | null;
   subject: string | null;
   body: string | null;
   clientAge: number | null;
@@ -53,6 +54,18 @@ const gradeDot: Record<string, string> = {
   Development: "bg-blue-500",
 };
 
+const statusStyles: Record<string, string> = {
+  "Need to Contact": "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  "Contacted": "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  "Archive": "bg-gray-200/60 text-gray-500 border-gray-300/40",
+};
+
+const statusDot: Record<string, string> = {
+  "Need to Contact": "bg-amber-500",
+  "Contacted": "bg-emerald-500",
+  "Archive": "bg-gray-400",
+};
+
 function BoolBadge({ value, label }: { value: boolean | null; label: string }) {
   if (value === null || value === undefined) return null;
   return (
@@ -67,6 +80,7 @@ export default function CIV() {
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: emails = [], isLoading } = useQuery<EmailRow[]>({
@@ -76,6 +90,15 @@ export default function CIV() {
   const gradeMutation = useMutation({
     mutationFn: async ({ id, grade }: { id: number; grade: string }) => {
       await apiRequest("PATCH", `/api/emails/${id}/grade`, { grade });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
+    },
+  });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, leadStatus }: { id: number; leadStatus: string }) => {
+      await apiRequest("PATCH", `/api/emails/${id}/status`, { leadStatus });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
@@ -107,7 +130,8 @@ export default function CIV() {
       (e.referrerName || "").toLowerCase().includes(search.toLowerCase());
     const matchGrade = gradeFilter === "all" || (e.grade || "").toLowerCase() === gradeFilter.toLowerCase();
     const matchType = typeFilter === "all" || e.type === typeFilter;
-    return matchSearch && matchGrade && matchType;
+    const matchStatus = statusFilter === "all" || (e.leadStatus || "Need to Contact") === statusFilter;
+    return matchSearch && matchGrade && matchType && matchStatus;
   });
 
   const gradeCounts = {
@@ -121,6 +145,14 @@ export default function CIV() {
     Referral: emails.filter(e => e.type === "Referral").length,
     "Call Back": emails.filter(e => e.type === "Call Back").length,
   };
+
+  const statusCounts = {
+    "Need to Contact": emails.filter(e => !e.leadStatus || e.leadStatus === "Need to Contact").length,
+    "Contacted": emails.filter(e => e.leadStatus === "Contacted").length,
+    "Archive": emails.filter(e => e.leadStatus === "Archive").length,
+  };
+
+  const hasActiveFilter = gradeFilter !== "all" || typeFilter !== "all" || statusFilter !== "all";
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -158,6 +190,25 @@ export default function CIV() {
         ))}
       </div>
 
+      <div className="grid grid-cols-3 gap-3">
+        {(["Need to Contact", "Contacted", "Archive"] as const).map((s) => (
+          <button
+            key={s}
+            onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
+            className={`rounded-xl p-3 text-left border transition-all ${
+              statusFilter === s ? "ring-2 ring-primary shadow-md" : "hover:shadow-sm"
+            }`}
+            data-testid={`filter-status-${s.toLowerCase().replace(/ /g, "-")}`}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <div className={`w-2 h-2 rounded-full ${statusDot[s]}`} />
+              <span className="text-xs font-semibold">{s}</span>
+            </div>
+            <div className="text-xl font-bold">{statusCounts[s]}</div>
+          </button>
+        ))}
+      </div>
+
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 md:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -169,7 +220,7 @@ export default function CIV() {
             data-testid="input-search-civ"
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
@@ -189,11 +240,11 @@ export default function CIV() {
             Call Backs ({typeCounts["Call Back"]})
           </button>
         </div>
-        {(gradeFilter !== "all" || typeFilter !== "all") && (
+        {hasActiveFilter && (
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { setGradeFilter("all"); setTypeFilter("all"); }}
+            onClick={() => { setGradeFilter("all"); setTypeFilter("all"); setStatusFilter("all"); }}
             data-testid="button-clear-filter"
           >
             Clear all filters
@@ -214,17 +265,18 @@ export default function CIV() {
                 <TableHead>Age</TableHead>
                 <TableHead>Income</TableHead>
                 <TableHead>Grade</TableHead>
+                <TableHead>Status</TableHead>
                 <TableHead className="w-[40px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">Loading...</TableCell>
                 </TableRow>
               ) : filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     {emails.length === 0 ? "No client submissions received yet." : "No entries match your filters."}
                   </TableCell>
                 </TableRow>
@@ -265,7 +317,7 @@ export default function CIV() {
                           onValueChange={(grade) => gradeMutation.mutate({ id: email.id, grade })}
                         >
                           <SelectTrigger
-                            className={`w-[120px] h-8 text-xs border ${gradeStyles[email.grade || "Silver"] || ""}`}
+                            className={`w-[110px] h-8 text-xs border ${gradeStyles[email.grade || "Silver"] || ""}`}
                             data-testid={`select-grade-${email.id}`}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -283,6 +335,28 @@ export default function CIV() {
                         </Select>
                       </TableCell>
                       <TableCell>
+                        <Select
+                          value={email.leadStatus || "Need to Contact"}
+                          onValueChange={(leadStatus) => statusMutation.mutate({ id: email.id, leadStatus })}
+                        >
+                          <SelectTrigger
+                            className={`w-[140px] h-8 text-xs border ${statusStyles[email.leadStatus || "Need to Contact"] || ""}`}
+                            data-testid={`select-status-${email.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <div className={`w-2 h-2 rounded-full flex-shrink-0 ${statusDot[email.leadStatus || "Need to Contact"] || "bg-amber-500"}`} />
+                              <SelectValue />
+                            </div>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Need to Contact">Need to Contact</SelectItem>
+                            <SelectItem value="Contacted">Contacted</SelectItem>
+                            <SelectItem value="Archive">Archive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
                         {expandedId === email.id ? (
                           <ChevronUp className="h-4 w-4 text-muted-foreground" />
                         ) : (
@@ -292,7 +366,7 @@ export default function CIV() {
                     </TableRow>
                     {expandedId === email.id && (
                       <TableRow key={`detail-${email.id}`} className="bg-muted/30 border-border">
-                        <TableCell colSpan={9}>
+                        <TableCell colSpan={10}>
                           <div className="py-4 px-2 space-y-4">
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                               <div>

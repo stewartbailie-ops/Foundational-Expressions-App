@@ -64,11 +64,11 @@ export default function ManageAdvisors() {
   );
 
   const copyLink = async (advisor: Advisor) => {
-    const url = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+    const url = `${window.location.origin}/advisor/${advisor.profileSlug}`;
     try {
       await navigator.clipboard.writeText(url);
       setCopiedId(advisor.id);
-      toast({ title: "Link Copied", description: `Profile link for ${advisor.name} copied to clipboard.` });
+      toast({ title: "Control Panel Link Copied", description: `Panel link for ${advisor.name} copied. Send this to the advisor.` });
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       toast({ title: "Copy Failed", description: url, variant: "destructive" });

@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -261,9 +261,39 @@ function LoginScreen({ slug, onDone }: { slug: string; onDone: () => void }) {
 
 function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+
   const { data: leads = [], isLoading } = useQuery<EmailRow[]>({
     queryKey: [`/api/advisors/${slug}/emails`],
   });
+
+  const statusMutation = useMutation({
+    mutationFn: async ({ id, leadStatus }: { id: number; leadStatus: string }) => {
+      await apiRequest("PATCH", `/api/emails/${id}/status`, { leadStatus });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/emails`] });
+    },
+  });
+
+  const filtered = leads.filter(l => {
+    const matchType = typeFilter === "all" || l.type === typeFilter;
+    const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
+    return matchType && matchStatus;
+  });
+
+  const statusColors: Record<string, string> = {
+    "Need to Contact": "#d97706",
+    "Contacted": "#059669",
+    "Archive": "#9ca3af",
+  };
+
+  const statusBg: Record<string, string> = {
+    "Need to Contact": "rgba(217,119,6,0.12)",
+    "Contacted": "rgba(5,150,105,0.12)",
+    "Archive": "rgba(156,163,175,0.15)",
+  };
 
   if (isLoading) return (
     <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" style={{ color: tc.mutedText }} /></div>
@@ -276,58 +306,103 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     </div>
   );
 
-  const gradeColors: Record<string, string> = {
-    Gold: "#b45309",
-    Silver: "#6b7280",
-    Bronze: "#c2410c",
-    Development: "#2563eb",
-  };
-
   return (
-    <div className="space-y-3">
-      {leads.map(lead => (
-        <div key={lead.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          <button
-            className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-            onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
+    <div className="space-y-4">
+      <div className="flex gap-2 flex-wrap">
+        {["all", "Referral", "Call Back"].map(t => (
+          <button key={t} onClick={() => setTypeFilter(t)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: typeFilter === t ? tc.accentColor : tc.inputBg,
+              color: typeFilter === t ? tc.buttonText : tc.mutedText,
+              border: `1px solid ${typeFilter === t ? tc.accentColor : tc.borderColor}`
+            }}
           >
-            <div className="flex items-center gap-3 min-w-0">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-                {getInitials(lead.senderName)}
-              </div>
-              <div className="min-w-0">
-                <div className="text-sm font-medium truncate" style={{ color: tc.textColor }}>{lead.senderName}</div>
-                <div className="text-xs truncate" style={{ color: tc.mutedText }}>{lead.type} · {format(new Date(lead.receivedAt), "dd MMM yyyy")}</div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 flex-shrink-0">
-              {lead.grade && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: gradeColors[lead.grade] || tc.mutedText, backgroundColor: tc.initialsCircleBg }}>
-                  {lead.grade}
-                </span>
-              )}
-              {expandedId === lead.id ? <ChevronUp className="h-4 w-4" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: tc.mutedText }} />}
-            </div>
+            {t === "all" ? "All Types" : t}
           </button>
-          {expandedId === lead.id && (
-            <div className="px-4 pb-4 space-y-2 text-sm" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: "12px" }}>
-              {lead.senderEmail && <Row label="Email" value={lead.senderEmail} tc={tc} />}
-              {lead.clientPhone && <Row label="Phone" value={lead.clientPhone} tc={tc} />}
-              {lead.clientAge && <Row label="Age" value={String(lead.clientAge)} tc={tc} />}
-              {lead.clientIncome && <Row label="Income" value={lead.clientIncome} tc={tc} />}
-              {lead.clientIndustry && <Row label="Industry" value={lead.clientIndustry} tc={tc} />}
-              {lead.clientMarried !== null && lead.clientMarried !== undefined && <Row label="Married" value={lead.clientMarried ? "Yes" : "No"} tc={tc} />}
-              {lead.clientChildren !== null && lead.clientChildren !== undefined && <Row label="Children" value={lead.clientChildren ? "Yes" : "No"} tc={tc} />}
-              {lead.clientVehicle !== null && lead.clientVehicle !== undefined && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
-              {lead.clientProperty !== null && lead.clientProperty !== undefined && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
-              {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} />}
-              {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} />}
-              {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} />}
-            </div>
-          )}
+        ))}
+        <div style={{ width: "1px", backgroundColor: tc.borderColor, margin: "0 4px" }} />
+        {["all", "Need to Contact", "Contacted", "Archive"].map(s => (
+          <button key={s} onClick={() => setStatusFilter(s)}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            style={{
+              backgroundColor: statusFilter === s ? tc.accentColor : tc.inputBg,
+              color: statusFilter === s ? tc.buttonText : tc.mutedText,
+              border: `1px solid ${statusFilter === s ? tc.accentColor : tc.borderColor}`
+            }}
+          >
+            {s === "all" ? "All Status" : s}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="text-center py-8" style={{ color: tc.mutedText }}>
+          <p className="text-sm">No leads match your filters.</p>
         </div>
-      ))}
+      ) : (
+        <div className="space-y-3">
+          {filtered.map(lead => (
+            <div key={lead.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <button
+                className="w-full flex items-center justify-between px-4 py-3.5 text-left"
+                onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                    style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+                    {getInitials(lead.senderName)}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate" style={{ color: tc.textColor }}>{lead.senderName}</div>
+                    <div className="text-xs truncate" style={{ color: tc.mutedText }}>{lead.type} · {format(new Date(lead.receivedAt), "dd MMM yyyy")}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {lead.grade && (
+                    <span className="text-xs font-semibold px-2 py-0.5 rounded-full hidden sm:inline" style={{ color: tc.accentColor, backgroundColor: tc.initialsCircleBg }}>
+                      {lead.grade}
+                    </span>
+                  )}
+                  {expandedId === lead.id ? <ChevronUp className="h-4 w-4" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: tc.mutedText }} />}
+                </div>
+              </button>
+              {expandedId === lead.id && (
+                <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: "12px" }}>
+                  <div className="flex flex-wrap gap-2">
+                    {["Need to Contact", "Contacted", "Archive"].map(s => (
+                      <button
+                        key={s}
+                        onClick={() => statusMutation.mutate({ id: lead.id, leadStatus: s })}
+                        className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+                        style={{
+                          backgroundColor: (lead.leadStatus || "Need to Contact") === s ? statusBg[s] : tc.inputBg,
+                          color: (lead.leadStatus || "Need to Contact") === s ? statusColors[s] : tc.mutedText,
+                          border: `1.5px solid ${(lead.leadStatus || "Need to Contact") === s ? statusColors[s] : tc.borderColor}`,
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  {lead.senderEmail && <Row label="Email" value={lead.senderEmail} tc={tc} />}
+                  {lead.clientPhone && <Row label="Phone" value={lead.clientPhone} tc={tc} />}
+                  {lead.clientAge && <Row label="Age" value={String(lead.clientAge)} tc={tc} />}
+                  {lead.clientIncome && <Row label="Income" value={lead.clientIncome} tc={tc} />}
+                  {lead.clientIndustry && <Row label="Industry" value={lead.clientIndustry} tc={tc} />}
+                  {lead.clientMarried !== null && lead.clientMarried !== undefined && <Row label="Married" value={lead.clientMarried ? "Yes" : "No"} tc={tc} />}
+                  {lead.clientChildren !== null && lead.clientChildren !== undefined && <Row label="Children" value={lead.clientChildren ? "Yes" : "No"} tc={tc} />}
+                  {lead.clientVehicle !== null && lead.clientVehicle !== undefined && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
+                  {lead.clientProperty !== null && lead.clientProperty !== undefined && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
+                  {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} />}
+                  {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} />}
+                  {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} />}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -396,7 +471,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [websiteUrl, setWebsiteUrl] = useState(advisor.websiteUrl || "");
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(advisor.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(advisor.corporateServices || []);
-  const [theme, setTheme] = useState(advisor.theme || "dark");
+  const [theme, setTheme] = useState(advisor.theme || "blue");
+  const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
+  const [location, setLocation] = useState((advisor as any).location || "");
+  const [workingHours, setWorkingHours] = useState((advisor as any).workingHours || "");
+  const [showContactDetails, setShowContactDetails] = useState((advisor as any).showContactDetails !== false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -412,7 +491,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#1e3a5f" : "#d4738a",
+        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : "#d4738a",
+        contactNumber: contactNumber || null,
+        location: location || null,
+        workingHours: workingHours || null,
+        showContactDetails,
       });
       return res.json();
     },
@@ -553,6 +636,37 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Contact Details</h3>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <span className="text-xs" style={{ color: tc.mutedText }}>Show on profile</span>
+            <div
+              onClick={() => setShowContactDetails(!showContactDetails)}
+              className="w-9 h-5 rounded-full relative cursor-pointer transition-colors"
+              style={{ backgroundColor: showContactDetails ? tc.checkActive : tc.checkInactive }}
+              data-testid="toggle-show-contact"
+            >
+              <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: showContactDetails ? "18px" : "2px", backgroundColor: showContactDetails ? tc.checkDotActive : tc.checkDotInactive }} />
+            </div>
+          </label>
+        </div>
+        <div className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+            <input value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="Contact Number" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-contact-number" />
+          </div>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+            <input value={location} onChange={e => setLocation(e.target.value)} placeholder="Location / Office Address" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-location" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+            <input value={workingHours} onChange={e => setWorkingHours(e.target.value)} placeholder="Working Hours (e.g. Mon–Fri 8:00–17:00)" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-working-hours" />
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
         <div className="grid grid-cols-3 gap-3">
           {[
@@ -647,7 +761,13 @@ function AdditionalProfileForm({
   const [websiteUrl, setWebsiteUrl] = useState(existingProfile?.websiteUrl || "");
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(existingProfile?.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(existingProfile?.corporateServices || []);
-  const [theme, setTheme] = useState(existingProfile?.theme || "dark");
+  const [theme, setTheme] = useState(existingProfile?.theme || "blue");
+  const [showHeader, setShowHeader] = useState((existingProfile as any)?.showHeader !== false);
+  const [showProfilePic, setShowProfilePic] = useState((existingProfile as any)?.showProfilePic !== false);
+  const [showIntro, setShowIntro] = useState((existingProfile as any)?.showIntro !== false);
+  const [showIndividualServices, setShowIndividualServices] = useState((existingProfile as any)?.showIndividualServices !== false);
+  const [showCorporateServices, setShowCorporateServices] = useState((existingProfile as any)?.showCorporateServices !== false);
+  const [showSocials, setShowSocials] = useState((existingProfile as any)?.showSocials !== false);
 
   const isEditing = !!existingProfile;
   const slugValid = profileSlug.length > 0 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(profileSlug);
@@ -665,7 +785,13 @@ function AdditionalProfileForm({
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#1e3a5f" : "#d4738a",
+        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : "#d4738a",
+        showHeader,
+        showProfilePic,
+        showIntro,
+        showIndividualServices,
+        showCorporateServices,
+        showSocials,
         active: true,
       };
       if (isEditing) {
@@ -807,6 +933,30 @@ function AdditionalProfileForm({
                 <div className="w-full h-8 rounded mb-1" style={{ background: t.bg }} />
                 <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
               </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Section Visibility</label>
+          <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+            {[
+              { label: "Header (Name & Title)", value: showHeader, set: setShowHeader },
+              { label: "Profile Picture", value: showProfilePic, set: setShowProfilePic },
+              { label: "Introduction / Bio", value: showIntro, set: setShowIntro },
+              { label: "Individual Services", value: showIndividualServices, set: setShowIndividualServices },
+              { label: "Corporate Services", value: showCorporateServices, set: setShowCorporateServices },
+              { label: "Social Links", value: showSocials, set: setShowSocials },
+            ].map((item, i) => (
+              <div key={item.label} className="flex items-center justify-between px-3 py-2.5"
+                style={{ backgroundColor: i % 2 === 0 ? tc.inputBg : "transparent", borderTop: i > 0 ? `1px solid ${tc.borderColor}` : "none" }}>
+                <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                <div onClick={() => item.set(!item.value)} className="w-8 h-4 rounded-full relative cursor-pointer transition-colors flex-shrink-0"
+                  style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+                  <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all"
+                    style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                </div>
+              </div>
             ))}
           </div>
         </div>

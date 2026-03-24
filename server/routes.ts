@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS } from "@shared/schema";
+import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
 import { sendEmail, isSendGridConfigured } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
@@ -198,6 +198,16 @@ export async function registerRoutes(
       return res.status(400).json({ message: `grade must be one of: ${GRADE_OPTIONS.join(", ")}` });
     }
     const updated = await storage.updateEmailGrade(Number(req.params.id), grade);
+    if (!updated) return res.status(404).json({ message: "Email not found" });
+    res.json(updated);
+  });
+
+  app.patch("/api/emails/:id/status", async (req, res) => {
+    const { leadStatus } = req.body;
+    if (!leadStatus || !LEAD_STATUS_OPTIONS.includes(leadStatus)) {
+      return res.status(400).json({ message: `leadStatus must be one of: ${LEAD_STATUS_OPTIONS.join(", ")}` });
+    }
+    const updated = await storage.updateEmailStatus(Number(req.params.id), leadStatus);
     if (!updated) return res.status(404).json({ message: "Email not found" });
     res.json(updated);
   });

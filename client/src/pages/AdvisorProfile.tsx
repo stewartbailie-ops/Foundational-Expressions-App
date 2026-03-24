@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, MapPin, Clock, Mail } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -433,6 +433,10 @@ export default function AdvisorProfile() {
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
 
+  const hasContactDetails = advisor.showContactDetails !== false && (
+    (advisor as any).contactNumber || (advisor as any).location || (advisor as any).workingHours || advisor.email
+  );
+
   return (
     <div
       className="min-h-screen"
@@ -440,6 +444,16 @@ export default function AdvisorProfile() {
       data-testid="profile-container"
     >
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
+
+        <div className="flex justify-center pt-2 pb-1">
+          <img
+            src="/advisory-connect-logo.png"
+            alt="Advisory Connect"
+            className="h-10 object-contain"
+            data-testid="img-ac-logo"
+          />
+        </div>
+
         <div className="flex flex-col items-center text-center space-y-4" data-testid="profile-header">
           {advisor.profilePicUrl ? (
             <img
@@ -473,6 +487,43 @@ export default function AdvisorProfile() {
             )}
           </div>
         </div>
+
+        {hasContactDetails && (
+          <div
+            className="rounded-xl p-4 space-y-2.5"
+            style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
+            data-testid="section-contact"
+          >
+            {advisor.email && (
+              <div className="flex items-center gap-3 text-sm">
+                <Mail className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <a href={`mailto:${advisor.email}`} className="hover:underline truncate" style={{ color: textColor }} data-testid="text-contact-email">
+                  {advisor.email}
+                </a>
+              </div>
+            )}
+            {(advisor as any).contactNumber && (
+              <div className="flex items-center gap-3 text-sm">
+                <Phone className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <a href={`tel:${(advisor as any).contactNumber}`} className="hover:underline" style={{ color: textColor }} data-testid="text-contact-phone">
+                  {(advisor as any).contactNumber}
+                </a>
+              </div>
+            )}
+            {(advisor as any).location && (
+              <div className="flex items-start gap-3 text-sm">
+                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: tc.accentColor }} />
+                <span style={{ color: textColor }} data-testid="text-contact-location">{(advisor as any).location}</span>
+              </div>
+            )}
+            {(advisor as any).workingHours && (
+              <div className="flex items-center gap-3 text-sm">
+                <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <span style={{ color: textColor }} data-testid="text-contact-hours">{(advisor as any).workingHours}</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {bioText && (
           <div
