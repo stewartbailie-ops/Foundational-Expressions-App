@@ -366,6 +366,10 @@ export default function AdvisorProfile() {
     enabled: !!slug,
   });
 
+  const [inDevClicked, setInDevClicked] = useState<string | null>(null);
+  const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
+  const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
+
   useEffect(() => {
     if (advisor) {
       document.title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
@@ -432,9 +436,6 @@ export default function AdvisorProfile() {
 
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
-  const [inDevClicked, setInDevClicked] = useState<string | null>(null);
-  const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
-  const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
 
   const hasContactDetails = advisor.showContactDetails !== false && (
     (advisor as any).contactNumber || (advisor as any).location || (advisor as any).workingHours || advisor.email

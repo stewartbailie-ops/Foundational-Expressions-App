@@ -137,8 +137,8 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
     const existing = await storage.getAdvisorProfiles(Number(req.params.id));
-    if (existing.length >= 2) {
-      return res.status(400).json({ message: "Maximum of 3 profiles (1 primary + 2 additional) per advisor." });
+    if (existing.length >= 4) {
+      return res.status(400).json({ message: "Maximum of 5 profiles (1 primary + 4 additional) per advisor." });
     }
     try {
       const profile = await storage.createAdvisorProfile(parsed.data);
