@@ -523,6 +523,15 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(advisor.profilePicUrl || null);
   const [linkedinUrl, setLinkedinUrl] = useState(advisor.linkedinUrl || "");
   const [websiteUrl, setWebsiteUrl] = useState(advisor.websiteUrl || "");
+  const [facebookUrl, setFacebookUrl] = useState((advisor as any).facebookUrl || "");
+  const [instagramUrl, setInstagramUrl] = useState((advisor as any).instagramUrl || "");
+  const [youtubeUrl, setYoutubeUrl] = useState((advisor as any).youtubeUrl || "");
+  const [astuteUrl, setAstuteUrl] = useState((advisor as any).astuteUrl || "");
+  const [documentsUrl, setDocumentsUrl] = useState((advisor as any).documentsUrl || "");
+  const [qaUrl, setQaUrl] = useState((advisor as any).qaUrl || "");
+  const [financialsNewsUrl, setFinancialsNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
+  const [financialsFunFactsUrl, setFinancialsFunFactsUrl] = useState((advisor as any).financialsFunFactsUrl || "");
+  const [financialsVideosUrl, setFinancialsVideosUrl] = useState((advisor as any).financialsVideosUrl || "");
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(advisor.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(advisor.corporateServices || []);
   const [theme, setTheme] = useState(advisor.theme || "blue");
@@ -551,6 +560,15 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         profilePicUrl: profilePicUrl || null,
         linkedinUrl: linkedinUrl || null,
         websiteUrl: websiteUrl || null,
+        facebookUrl: facebookUrl || null,
+        instagramUrl: instagramUrl || null,
+        youtubeUrl: youtubeUrl || null,
+        astuteUrl: astuteUrl || null,
+        documentsUrl: documentsUrl || null,
+        qaUrl: qaUrl || null,
+        financialsNewsUrl: financialsNewsUrl || null,
+        financialsFunFactsUrl: financialsFunFactsUrl || null,
+        financialsVideosUrl: financialsVideosUrl || null,
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
@@ -740,13 +758,60 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           </div>
         </div>
         <div className="space-y-2.5">
-          <div className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
-            <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="LinkedIn Profile URL" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-linkedin" />
+          {[
+            { val: linkedinUrl, set: setLinkedinUrl, placeholder: "LinkedIn Profile URL", testId: "input-panel-linkedin" },
+            { val: facebookUrl, set: setFacebookUrl, placeholder: "Facebook Profile URL", testId: "input-panel-facebook" },
+            { val: instagramUrl, set: setInstagramUrl, placeholder: "Instagram Profile URL", testId: "input-panel-instagram" },
+            { val: youtubeUrl, set: setYoutubeUrl, placeholder: "YouTube Channel URL", testId: "input-panel-youtube" },
+            { val: websiteUrl, set: setWebsiteUrl, placeholder: "Personal Website URL", testId: "input-panel-website" },
+          ].map(f => (
+            <div key={f.testId} className="flex items-center gap-2">
+              <LinkIcon className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+              <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid={f.testId} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <h3 className="text-sm font-semibold mb-1" style={{ color: tc.sectionTitle }}>Profile Links</h3>
+        <div className="space-y-3">
+          {[
+            { label: "Astute Online", val: astuteUrl, set: setAstuteUrl, desc: "Where clients put their info to draw an Astute", testId: "input-astute-url" },
+            { label: "Documents Upload", val: documentsUrl, set: setDocumentsUrl, desc: "Link for clients to upload/submit documents", testId: "input-documents-url" },
+            { label: "Q&A / General FAQs", val: qaUrl, set: setQaUrl, desc: "Link to your Q&A page", testId: "input-qa-url" },
+          ].map(f => (
+            <div key={f.testId} className="space-y-1">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium" style={{ color: tc.textColor }}>{f.label}</label>
+                <span className="text-xs" style={{ color: tc.mutedText }}>{f.desc}</span>
+              </div>
+              <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={`https://...`} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid={f.testId} />
+            </div>
+          ))}
+          <div className="space-y-1">
+            <label className="text-xs font-semibold" style={{ color: tc.textColor }}>General Financials Posts</label>
+            <div className="space-y-2 mt-1">
+              {[
+                { label: "Latest Financial News", val: financialsNewsUrl, set: setFinancialsNewsUrl, testId: "input-financials-news" },
+                { label: "Daily Financial Fun Facts", val: financialsFunFactsUrl, set: setFinancialsFunFactsUrl, testId: "input-financials-funfacts" },
+                { label: "What Are Finances? (Educational Videos)", val: financialsVideosUrl, set: setFinancialsVideosUrl, testId: "input-financials-videos" },
+              ].map(f => (
+                <div key={f.testId}>
+                  <label className="text-xs mb-1 block" style={{ color: tc.mutedText }}>{f.label}</label>
+                  <input value={f.val} onChange={e => f.set(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid={f.testId} />
+                </div>
+              ))}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <LinkIcon className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
-            <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="Personal Website URL" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-website" />
+          <div className="space-y-1.5 pt-1">
+            <label className="text-xs font-semibold" style={{ color: tc.textColor }}>Coming Soon</label>
+            {["Complimentary Will", "Affiliate Websites & Links", "Testimonials"].map(label => (
+              <div key={label} className="flex items-center justify-between px-3 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                <span className="text-xs" style={{ color: tc.mutedText }}>{label}</span>
+                <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: "rgba(99,102,241,0.12)", color: "#6366f1" }}>In Development</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -891,6 +956,15 @@ function AdditionalProfileForm({
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(existingProfile?.profilePicUrl || null);
   const [linkedinUrl, setLinkedinUrl] = useState(existingProfile?.linkedinUrl || "");
   const [websiteUrl, setWebsiteUrl] = useState(existingProfile?.websiteUrl || "");
+  const [facebookUrl, setFacebookUrl] = useState((existingProfile as any)?.facebookUrl || "");
+  const [instagramUrl, setInstagramUrl] = useState((existingProfile as any)?.instagramUrl || "");
+  const [youtubeUrl, setYoutubeUrl] = useState((existingProfile as any)?.youtubeUrl || "");
+  const [astuteUrl, setAstuteUrl] = useState((existingProfile as any)?.astuteUrl || "");
+  const [documentsUrl, setDocumentsUrl] = useState((existingProfile as any)?.documentsUrl || "");
+  const [qaUrl, setQaUrl] = useState((existingProfile as any)?.qaUrl || "");
+  const [financialsNewsUrl, setFinancialsNewsUrl] = useState((existingProfile as any)?.financialsNewsUrl || "");
+  const [financialsFunFactsUrl, setFinancialsFunFactsUrl] = useState((existingProfile as any)?.financialsFunFactsUrl || "");
+  const [financialsVideosUrl, setFinancialsVideosUrl] = useState((existingProfile as any)?.financialsVideosUrl || "");
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(existingProfile?.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(existingProfile?.corporateServices || []);
   const [theme, setTheme] = useState(existingProfile?.theme || "blue");
@@ -917,6 +991,15 @@ function AdditionalProfileForm({
         profilePicUrl: profilePicUrl || null,
         linkedinUrl: linkedinUrl || null,
         websiteUrl: websiteUrl || null,
+        facebookUrl: facebookUrl || null,
+        instagramUrl: instagramUrl || null,
+        youtubeUrl: youtubeUrl || null,
+        astuteUrl: astuteUrl || null,
+        documentsUrl: documentsUrl || null,
+        qaUrl: qaUrl || null,
+        financialsNewsUrl: financialsNewsUrl || null,
+        financialsFunFactsUrl: financialsFunFactsUrl || null,
+        financialsVideosUrl: financialsVideosUrl || null,
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
@@ -1097,8 +1180,29 @@ function AdditionalProfileForm({
               </div>
             </div>
           </div>
-          <input value={linkedinUrl} onChange={e => setLinkedinUrl(e.target.value)} placeholder="LinkedIn URL" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
-          <input value={websiteUrl} onChange={e => setWebsiteUrl(e.target.value)} placeholder="Website URL" className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          {[
+            { val: linkedinUrl, set: setLinkedinUrl, placeholder: "LinkedIn URL" },
+            { val: facebookUrl, set: setFacebookUrl, placeholder: "Facebook URL" },
+            { val: instagramUrl, set: setInstagramUrl, placeholder: "Instagram URL" },
+            { val: youtubeUrl, set: setYoutubeUrl, placeholder: "YouTube URL" },
+            { val: websiteUrl, set: setWebsiteUrl, placeholder: "Website URL" },
+          ].map(f => (
+            <input key={f.placeholder} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          ))}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Links</label>
+          {[
+            { val: astuteUrl, set: setAstuteUrl, placeholder: "Astute Online URL" },
+            { val: documentsUrl, set: setDocumentsUrl, placeholder: "Documents Upload URL" },
+            { val: qaUrl, set: setQaUrl, placeholder: "Q&A Page URL" },
+            { val: financialsNewsUrl, set: setFinancialsNewsUrl, placeholder: "Financial News URL" },
+            { val: financialsFunFactsUrl, set: setFinancialsFunFactsUrl, placeholder: "Fun Facts URL" },
+            { val: financialsVideosUrl, set: setFinancialsVideosUrl, placeholder: "Educational Videos URL" },
+          ].map(f => (
+            <input key={f.placeholder} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
+          ))}
         </div>
 
         <div className="space-y-1.5">

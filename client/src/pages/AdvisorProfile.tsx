@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, MapPin, Clock, Mail } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, MapPin, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -449,7 +449,7 @@ export default function AdvisorProfile() {
           <img
             src="/advisory-connect-logo.png"
             alt="Advisory Connect"
-            className="h-20 object-contain"
+            className="h-40 object-contain"
             data-testid="img-ac-logo"
           />
         </div>
@@ -576,43 +576,115 @@ export default function AdvisorProfile() {
           />
         )}
 
-        {advisor.linkedinUrl && (
-          <div data-testid="section-socials">
-            <a
-              href={advisor.linkedinUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-              style={{
-                backgroundColor: tc.buttonSecondaryBg,
-                color: accentColor,
-                border: `1px solid ${tc.borderColor}`,
-              }}
-              data-testid="link-linkedin"
-            >
-              <Linkedin className="h-4 w-4" />
-              Connect on LinkedIn
-            </a>
+        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
+          <div className="space-y-2.5" data-testid="section-socials">
+            {[
+              { url: advisor.linkedinUrl, label: "Connect on LinkedIn", Icon: Linkedin, testId: "link-linkedin" },
+              { url: (advisor as any).facebookUrl, label: "Follow on Facebook", Icon: Facebook, testId: "link-facebook" },
+              { url: (advisor as any).instagramUrl, label: "Follow on Instagram", Icon: Instagram, testId: "link-instagram" },
+              { url: (advisor as any).youtubeUrl, label: "Subscribe on YouTube", Icon: Youtube, testId: "link-youtube" },
+              { url: advisor.websiteUrl, label: "Visit Website", Icon: Globe, testId: "link-website" },
+            ].filter(s => !!s.url).map(({ url, label, Icon, testId }) => (
+              <a
+                key={testId}
+                href={url!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid={testId}
+              >
+                <Icon className="h-4 w-4" />
+                {label}
+              </a>
+            ))}
           </div>
         )}
 
-        {advisor.websiteUrl && (
-          <a
-            href={advisor.websiteUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
-            style={{
-              backgroundColor: tc.buttonSecondaryBg,
-              color: accentColor,
-              border: `1px solid ${tc.borderColor}`,
-            }}
-            data-testid="link-website"
-          >
-            <Globe className="h-4 w-4" />
-            Visit Website
-          </a>
+        {((advisor as any).astuteUrl || (advisor as any).documentsUrl || (advisor as any).qaUrl ||
+          (advisor as any).financialsNewsUrl || (advisor as any).financialsFunFactsUrl || (advisor as any).financialsVideosUrl) && (
+          <div className="space-y-2.5" data-testid="section-profile-links">
+            {(advisor as any).astuteUrl && (
+              <a href={(advisor as any).astuteUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="link-astute">
+                <Calculator className="h-4 w-4" /> Astute Online
+              </a>
+            )}
+            {(advisor as any).documentsUrl && (
+              <a href={(advisor as any).documentsUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="link-documents">
+                <FileText className="h-4 w-4" /> Upload Documents
+              </a>
+            )}
+            {(advisor as any).qaUrl && (
+              <a href={(advisor as any).qaUrl} target="_blank" rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="link-qa">
+                <BookOpen className="h-4 w-4" /> Q&A / FAQs
+              </a>
+            )}
+            {((advisor as any).financialsNewsUrl || (advisor as any).financialsFunFactsUrl || (advisor as any).financialsVideosUrl) && (
+              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financials">
+                <div className="px-4 py-3" style={{ backgroundColor: cardBg }}>
+                  <p className="text-xs font-semibold text-center mb-3" style={{ color: mutedText }}>General Financials Posts</p>
+                  <div className="space-y-2">
+                    {(advisor as any).financialsNewsUrl && (
+                      <a href={(advisor as any).financialsNewsUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                        data-testid="link-financials-news">
+                        <TrendingUp className="h-4 w-4" /> Latest Financial News
+                      </a>
+                    )}
+                    {(advisor as any).financialsFunFactsUrl && (
+                      <a href={(advisor as any).financialsFunFactsUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                        data-testid="link-financials-funfacts">
+                        <Lightbulb className="h-4 w-4" /> Daily Financial Fun Facts
+                      </a>
+                    )}
+                    {(advisor as any).financialsVideosUrl && (
+                      <a href={(advisor as any).financialsVideosUrl} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                        style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                        data-testid="link-financials-videos">
+                        <Video className="h-4 w-4" /> What Are Finances? (Videos)
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
+
+        <div className="space-y-2.5" data-testid="section-coming-soon">
+          {[
+            { label: "Complimentary Will", desc: "A professional will — our gift to you" },
+            { label: "Affiliate Websites & Links", desc: "Envestpro · Standard Bank · New-Road Capital" },
+            { label: "Testimonials", desc: "What clients say about us" },
+          ].map(item => (
+            <div key={item.label}
+              className="flex items-center justify-between px-4 py-3 rounded-lg"
+              style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}
+              data-testid={`coming-soon-${item.label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <div>
+                <p className="text-sm font-medium" style={{ color: textColor }}>{item.label}</p>
+                <p className="text-xs mt-0.5" style={{ color: mutedText }}>{item.desc}</p>
+              </div>
+              <span className="text-xs px-2 py-0.5 rounded-full flex-shrink-0 ml-3" style={{ backgroundColor: "rgba(99,102,241,0.15)", color: "#818cf8" }}>
+                Coming Soon
+              </span>
+            </div>
+          ))}
+        </div>
 
         {(advisor.showCallbackLink !== false || advisor.showReferralsLink !== false) && (
           <div className="space-y-3 pt-2">
