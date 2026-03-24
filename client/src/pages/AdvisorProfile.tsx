@@ -449,7 +449,7 @@ export default function AdvisorProfile() {
           <img
             src="/advisory-connect-logo.png"
             alt="Advisory Connect"
-            className="h-10 object-contain"
+            className="h-20 object-contain"
             data-testid="img-ac-logo"
           />
         </div>
@@ -513,7 +513,16 @@ export default function AdvisorProfile() {
             {(advisor as any).location && (
               <div className="flex items-start gap-3 text-sm">
                 <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: tc.accentColor }} />
-                <span style={{ color: textColor }} data-testid="text-contact-location">{(advisor as any).location}</span>
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent((advisor as any).location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                  style={{ color: textColor }}
+                  data-testid="text-contact-location"
+                >
+                  {(advisor as any).location}
+                </a>
               </div>
             )}
             {(advisor as any).workingHours && (

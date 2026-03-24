@@ -25,11 +25,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex text-white" style={{ backgroundColor: "#f5f7fa" }}>
       <aside className="w-72 flex flex-col hidden md:flex" style={{ backgroundColor: BRAND_BLUE }}>
         <div className="flex flex-col items-start px-5 pt-6 pb-4">
-          <img
-            src="/advisory-connect-logo.png"
-            alt="Advisory Connect"
-            className="w-full max-w-[200px] rounded-xl mb-4 object-contain"
-          />
           <p className="text-base text-white/90 tracking-wide uppercase font-semibold">Control Panel</p>
         </div>
 
