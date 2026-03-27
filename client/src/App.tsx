@@ -16,6 +16,7 @@ import AdvisorProfile from "@/pages/AdvisorProfile";
 import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
 import AdvisorPanel from "@/pages/AdvisorPanel";
+import WillForm from "@/pages/WillForm";
 import Login from "@/pages/Login";
 import { Loader2 } from "lucide-react";
 
@@ -50,6 +51,9 @@ function SlugCallback() {
 function SlugReferral() {
   return <ReferralForm />;
 }
+function SlugWill() {
+  return <WillForm />;
+}
 
 const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor"];
 
@@ -59,9 +63,11 @@ function Router() {
       <Route path="/advisor/:slug" component={AdvisorPanel} />
       <Route path="/profile/:slug/request-callback" component={CallbackForm} />
       <Route path="/profile/:slug/referrals" component={ReferralForm} />
+      <Route path="/profile/:slug/claim-will" component={WillForm} />
       <Route path="/profile/:slug" component={AdvisorProfile} />
       <Route path="/:slug/request-callback" component={SlugCallback} />
       <Route path="/:slug/referrals" component={SlugReferral} />
+      <Route path="/:slug/claim-will" component={SlugWill} />
       <Route path="/:slug">
         {(params) => {
           if (RESERVED_PATHS.includes(params.slug)) {

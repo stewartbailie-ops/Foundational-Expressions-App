@@ -392,6 +392,84 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/will-request", async (req, res) => {
+    try {
+      const schema = z.object({
+        advisorId: z.number(),
+        fullName: z.string().min(1),
+        idNumber: z.string().optional(),
+        dateOfBirth: z.string().optional(),
+        email: z.string().email().optional().or(z.literal("")),
+        phone: z.string().optional(),
+        maritalStatus: z.string().optional(),
+        spouseName: z.string().optional(),
+        numberOfChildren: z.string().optional(),
+        childrenDetails: z.string().optional(),
+        address: z.string().optional(),
+        source: z.string().optional(),
+      });
+
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+      }
+
+      const data = parsed.data;
+      const details = [
+        data.idNumber && `ID: ${data.idNumber}`,
+        data.dateOfBirth && `DOB: ${data.dateOfBirth}`,
+        data.maritalStatus && `Marital Status: ${data.maritalStatus}`,
+        data.spouseName && `Spouse: ${data.spouseName}`,
+        data.numberOfChildren && `Children: ${data.numberOfChildren}`,
+        data.childrenDetails && `Children Details: ${data.childrenDetails}`,
+        data.address && `Address: ${data.address}`,
+      ].filter(Boolean).join(" | ");
+
+      const email = await storage.createEmail({
+        advisorId: data.advisorId,
+        senderName: data.fullName,
+        senderEmail: data.email || "",
+        type: "Will Request",
+        grade: "Silver",
+        subject: `Complimentary Will Request from ${data.fullName}`,
+        body: details,
+        clientPhone: data.phone,
+        source: data.source || "will-form",
+      });
+
+      const advisor = await storage.getAdvisor(data.advisorId);
+      if (isSendGridConfigured()) {
+        try {
+          await sendEmail(
+            "info@advisoryconnect.pro",
+            `New Will Request: ${data.fullName} (Advisor: ${advisor?.name || "Unknown"})`,
+            `<h2>New Complimentary Will Request</h2>
+            <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
+            <p><strong>Full Name:</strong> ${data.fullName}</p>
+            <p><strong>ID Number:</strong> ${data.idNumber || "Not provided"}</p>
+            <p><strong>Date of Birth:</strong> ${data.dateOfBirth || "Not provided"}</p>
+            <p><strong>Email:</strong> ${data.email || "Not provided"}</p>
+            <p><strong>Phone:</strong> ${data.phone || "Not provided"}</p>
+            <p><strong>Marital Status:</strong> ${data.maritalStatus || "Not provided"}</p>
+            <p><strong>Spouse Name:</strong> ${data.spouseName || "N/A"}</p>
+            <p><strong>Number of Children:</strong> ${data.numberOfChildren || "Not provided"}</p>
+            <p><strong>Children Details:</strong> ${data.childrenDetails || "N/A"}</p>
+            <p><strong>Address:</strong> ${data.address || "Not provided"}</p>
+            <hr/>
+            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+          );
+        } catch (emailErr) {
+          console.error("Failed to send will request notification email:", emailErr);
+        }
+      }
+
+      res.status(201).json({ message: "Will request received", email });
+    } catch (error) {
+      console.error("Will request error:", error);
+      res.status(500).json({ message: "Failed to process will request" });
+    }
+  });
+
   app.post("/api/webhook/zoho", async (req, res) => {
     try {
       const body = req.body;

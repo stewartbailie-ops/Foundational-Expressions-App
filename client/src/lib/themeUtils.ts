@@ -50,6 +50,81 @@ export function getThemeColors(theme: string | null | undefined) {
       checkDotInactive: "rgba(255,255,255,0.5)",
     };
   }
+  if (t === "light-blue") {
+    return {
+      isDark: false,
+      isBlue: false,
+      accentColor: "#0ea5e9",
+      bgColor: "#e0f2fe",
+      cardBg: "rgba(255,255,255,0.85)",
+      textColor: "#0c2d48",
+      mutedText: "rgba(12,45,72,0.6)",
+      sectionTitle: "#0ea5e9",
+      inputBg: "rgba(255,255,255,0.95)",
+      inputBorder: "rgba(14,165,233,0.3)",
+      borderColor: "rgba(14,165,233,0.22)",
+      buttonBg: "#0ea5e9",
+      buttonText: "#ffffff",
+      buttonSecondaryBg: "rgba(14,165,233,0.12)",
+      initialsCircleBg: "rgba(14,165,233,0.15)",
+      initialsCircleBorder: "rgba(14,165,233,0.35)",
+      successColor: "#22c55e",
+      checkActive: "#0ea5e9",
+      checkInactive: "rgba(0,0,0,0.15)",
+      checkDotActive: "#ffffff",
+      checkDotInactive: "rgba(0,0,0,0.3)",
+    };
+  }
+  if (t === "dark-royal-purple") {
+    return {
+      isDark: true,
+      isBlue: false,
+      accentColor: "#a855f7",
+      bgColor: "#0d0a1a",
+      cardBg: "rgba(168,85,247,0.08)",
+      textColor: "#f3e8ff",
+      mutedText: "rgba(243,232,255,0.6)",
+      sectionTitle: "#c084fc",
+      inputBg: "rgba(168,85,247,0.1)",
+      inputBorder: "rgba(168,85,247,0.3)",
+      borderColor: "rgba(168,85,247,0.2)",
+      buttonBg: "#a855f7",
+      buttonText: "#ffffff",
+      buttonSecondaryBg: "rgba(168,85,247,0.15)",
+      initialsCircleBg: "rgba(168,85,247,0.2)",
+      initialsCircleBorder: "rgba(168,85,247,0.4)",
+      successColor: "#22c55e",
+      checkActive: "#a855f7",
+      checkInactive: "rgba(255,255,255,0.15)",
+      checkDotActive: "#ffffff",
+      checkDotInactive: "rgba(255,255,255,0.5)",
+    };
+  }
+  if (t === "dark-green") {
+    return {
+      isDark: true,
+      isBlue: false,
+      accentColor: "#22c55e",
+      bgColor: "#061a0e",
+      cardBg: "rgba(34,197,94,0.08)",
+      textColor: "#dcfce7",
+      mutedText: "rgba(220,252,231,0.6)",
+      sectionTitle: "#4ade80",
+      inputBg: "rgba(34,197,94,0.1)",
+      inputBorder: "rgba(34,197,94,0.3)",
+      borderColor: "rgba(34,197,94,0.2)",
+      buttonBg: "#22c55e",
+      buttonText: "#ffffff",
+      buttonSecondaryBg: "rgba(34,197,94,0.15)",
+      initialsCircleBg: "rgba(34,197,94,0.2)",
+      initialsCircleBorder: "rgba(34,197,94,0.4)",
+      successColor: "#22c55e",
+      checkActive: "#22c55e",
+      checkInactive: "rgba(255,255,255,0.15)",
+      checkDotActive: "#ffffff",
+      checkDotInactive: "rgba(255,255,255,0.5)",
+    };
+  }
   return {
     isDark: false,
     isBlue: true,

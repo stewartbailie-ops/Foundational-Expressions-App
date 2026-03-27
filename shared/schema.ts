@@ -133,17 +133,17 @@ export const INDIVIDUAL_SERVICES = [
   },
   {
     key: "tax-investment",
-    name: "Tax-efficient Investment",
+    name: "Tax-free Savings Accounts",
     description: "Investment strategies designed to maximize returns while minimizing tax impact. We structure portfolios using tax-advantaged vehicles and timing strategies to help grow your wealth more efficiently.",
   },
   {
     key: "personal-risk",
-    name: "Personal Risk Cover",
+    name: "Personal Protection Plan",
     description: "Comprehensive risk assessment and insurance solutions to protect you and your family. We evaluate your unique circumstances to recommend appropriate life, disability, and income protection cover.",
   },
   {
     key: "retirement",
-    name: "Retirement",
+    name: "Retirement Planning",
     description: "End-to-end retirement planning from accumulation through to comfortable retirement. We help you set realistic goals, choose appropriate retirement vehicles, and plan for a sustainable income in retirement.",
   },
   {
@@ -158,7 +158,7 @@ export const INDIVIDUAL_SERVICES = [
   },
   {
     key: "wills-estates",
-    name: "Will & Estates",
+    name: "Wills, Estates & Trusts",
     description: "Professional estate planning and will drafting to ensure your wishes are clearly documented and support effective estate planning and legacy protection. As part of our commitment to supporting your long-term wellbeing, we offer a complimentary Will.",
   },
 ] as const;
@@ -171,7 +171,7 @@ export const CORPORATE_SERVICES = [
   },
   {
     key: "group-risk",
-    name: "Group Risk Cover",
+    name: "Group Protection Plan",
     description: "Comprehensive group life, disability, and income protection solutions to safeguard employees and ensure business continuity in the event of unforeseen circumstances.",
   },
   {

@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, MapPin, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -16,15 +16,6 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-const INCOME_RANGES_TAX = [
-  { label: "R0k - R21k p/m", annual: 252000 },
-  { label: "R21k - R32k p/m", annual: 384000 },
-  { label: "R32k - R44k p/m", annual: 528000 },
-  { label: "R44k - R56k p/m", annual: 672000 },
-  { label: "R56k - R72k p/m", annual: 864000 },
-  { label: "R72k - R150k p/m", annual: 1332000 },
-  { label: "R150k+ p/m", annual: 1900000 },
-];
 
 function calculateAnnualTax(annualIncome: number, age: number): number {
   if (annualIncome <= 0) return 0;
@@ -82,12 +73,12 @@ function TaxCalculator({ borderColor, cardBg, textColor, mutedText, accentColor,
 }) {
   const [currentAge, setCurrentAge] = useState("");
   const [retirementAge, setRetirementAge] = useState("65");
-  const [selectedIncome, setSelectedIncome] = useState("");
+  const [monthlyGrossIncome, setMonthlyGrossIncome] = useState("");
   const [growthRate, setGrowthRate] = useState("5");
   const [inflationRate, setInflationRate] = useState("5");
   const [showBreakdown, setShowBreakdown] = useState(false);
 
-  const annualIncome = selectedIncome ? INCOME_RANGES_TAX.find(r => r.label === selectedIncome)?.annual || 0 : 0;
+  const annualIncome = monthlyGrossIncome ? Math.round(parseFloat(monthlyGrossIncome) * 12) : 0;
   const age = Number(currentAge) || 0;
   const retirement = Number(retirementAge) || 65;
   const growth = Number(growthRate) || 0;
@@ -140,13 +131,8 @@ function TaxCalculator({ borderColor, cardBg, textColor, mutedText, accentColor,
       </div>
 
       <div>
-        <label className="block text-xs mb-1" style={{ color: mutedText }}>Income Range (Monthly)</label>
-        <select value={selectedIncome} onChange={(e) => setSelectedIncome(e.target.value)} style={selectStyleCalc} data-testid="select-tax-income">
-          <option value="" style={optionStyleCalc}>Select your income range</option>
-          {INCOME_RANGES_TAX.map(r => (
-            <option key={r.label} value={r.label} style={optionStyleCalc}>{r.label}</option>
-          ))}
-        </select>
+        <label className="block text-xs mb-1" style={{ color: mutedText }}>Gross Monthly Income (R)</label>
+        <input type="number" min="0" placeholder="e.g. 35000" value={monthlyGrossIncome} onChange={(e) => setMonthlyGrossIncome(e.target.value)} style={inputStyleCalc} data-testid="input-tax-monthly-income" />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -438,7 +424,7 @@ export default function AdvisorProfile() {
   const initials = getInitials(advisor.name);
 
   const hasContactDetails = advisor.showContactDetails !== false && (
-    (advisor as any).contactNumber || (advisor as any).location || (advisor as any).workingHours || advisor.email
+    (advisor as any).contactNumber || (advisor as any).workingHours || advisor.email
   );
 
   return (
@@ -448,15 +434,6 @@ export default function AdvisorProfile() {
       data-testid="profile-container"
     >
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
-
-        <div className="flex justify-center pt-2 pb-1">
-          <img
-            src="/advisory-connect-logo.png"
-            alt="Advisory Connect"
-            className="w-56 h-auto object-contain"
-            data-testid="img-ac-logo"
-          />
-        </div>
 
         <div className="flex flex-col items-center text-center space-y-4" data-testid="profile-header">
           {advisor.profilePicUrl ? (
@@ -514,21 +491,6 @@ export default function AdvisorProfile() {
                 </a>
               </div>
             )}
-            {(advisor as any).location && (
-              <div className="flex items-start gap-3 text-sm">
-                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: tc.accentColor }} />
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent((advisor as any).location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  style={{ color: textColor }}
-                  data-testid="text-contact-location"
-                >
-                  {(advisor as any).location}
-                </a>
-              </div>
-            )}
             {(advisor as any).workingHours && (
               <div className="flex items-center gap-3 text-sm">
                 <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
@@ -580,7 +542,7 @@ export default function AdvisorProfile() {
           />
         )}
 
-        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
+        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl || (advisor as any).contactNumber) && (
           <div className="space-y-2.5" data-testid="section-socials">
             {[
               { url: advisor.linkedinUrl, label: "Connect on LinkedIn", Icon: Linkedin, testId: "link-linkedin" },
@@ -602,6 +564,21 @@ export default function AdvisorProfile() {
                 {label}
               </a>
             ))}
+            {(advisor as any).contactNumber && (
+              <a
+                href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                style={{ backgroundColor: "#25D366", color: "#ffffff" }}
+                data-testid="link-whatsapp"
+              >
+                <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp Me
+              </a>
+            )}
           </div>
         )}
 
@@ -610,7 +587,6 @@ export default function AdvisorProfile() {
             {[
               { key: "astute", show: (advisor as any).showAstute, label: "Astute Online", Icon: Calculator },
               { key: "documents", show: (advisor as any).showDocuments, label: "Documents Upload", Icon: FileText },
-              { key: "will", show: (advisor as any).showComplimentaryWill, label: "Complimentary Will", Icon: BookOpen },
             ].filter(b => b.show).map(({ key, label, Icon }) => (
               <div key={key}>
                 <button
@@ -630,6 +606,17 @@ export default function AdvisorProfile() {
                 )}
               </div>
             ))}
+            {(advisor as any).showComplimentaryWill && (
+              <button
+                onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                data-testid="button-claim-will"
+              >
+                <BookOpen className="h-4 w-4" />
+                Claim Your Free Will
+              </button>
+            )}
           </div>
         )}
 

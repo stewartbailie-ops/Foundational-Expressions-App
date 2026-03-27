@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -313,6 +313,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     "Call Back": { text: "#0369a1", bg: "rgba(3,105,161,0.12)" },
   };
 
+  const gradeCount = (g: string) => leads.filter(l => (l.grade || "Silver") === g).length;
+  const statusCount = (s: string) => leads.filter(l => (l.leadStatus || "Need to Contact") === s).length;
+
   if (isLoading) return (
     <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" style={{ color: tc.mutedText }} /></div>
   );
@@ -324,10 +327,49 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     </div>
   );
 
+  const gradeCards = [
+    { label: "Gold", text: "#b45309", bg: "rgba(245,158,11,0.15)", border: "rgba(245,158,11,0.4)" },
+    { label: "Silver", text: "#6b7280", bg: "rgba(156,163,175,0.15)", border: "rgba(156,163,175,0.4)" },
+    { label: "Bronze", text: "#92400e", bg: "rgba(180,83,9,0.12)", border: "rgba(180,83,9,0.3)" },
+    { label: "Development", text: "#6d28d9", bg: "rgba(109,40,217,0.12)", border: "rgba(109,40,217,0.3)" },
+  ];
+  const statusCards = [
+    { label: "Need to Contact", short: "To Contact", text: "#d97706", bg: "rgba(217,119,6,0.12)", border: "rgba(217,119,6,0.35)" },
+    { label: "Contacted", short: "Contacted", text: "#059669", bg: "rgba(5,150,105,0.12)", border: "rgba(5,150,105,0.35)" },
+    { label: "Archive", short: "Archive", text: "#9ca3af", bg: "rgba(156,163,175,0.12)", border: "rgba(156,163,175,0.3)" },
+  ];
+
   return (
     <div className="space-y-4">
+      <div className="grid grid-cols-4 gap-2">
+        {gradeCards.map(g => (
+          <button key={g.label} onClick={() => setStatusFilter("all") || setTypeFilter("all")}
+            className="rounded-xl p-2.5 text-center transition-all hover:opacity-80"
+            style={{ backgroundColor: g.bg, border: `1px solid ${g.border}` }}
+            data-testid={`civ-grade-${g.label.toLowerCase()}`}
+          >
+            <div className="text-lg font-bold" style={{ color: g.text }}>{gradeCount(g.label)}</div>
+            <div className="text-xs font-medium truncate" style={{ color: g.text }}>{g.label}</div>
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-3 gap-2">
+        {statusCards.map(s => (
+          <button key={s.label} onClick={() => setStatusFilter(statusFilter === s.label ? "all" : s.label)}
+            className="rounded-xl p-2.5 text-center transition-all hover:opacity-80"
+            style={{
+              backgroundColor: statusFilter === s.label ? s.bg : tc.cardBg,
+              border: `1.5px solid ${statusFilter === s.label ? s.border : tc.borderColor}`,
+            }}
+            data-testid={`civ-status-${s.label.replace(/ /g, "-").toLowerCase()}`}
+          >
+            <div className="text-lg font-bold" style={{ color: s.text }}>{statusCount(s.label)}</div>
+            <div className="text-xs font-medium" style={{ color: statusFilter === s.label ? s.text : tc.mutedText }}>{s.short}</div>
+          </button>
+        ))}
+      </div>
       <div className="flex gap-2 flex-wrap">
-        {["all", "Referral", "Call Back"].map(t => (
+        {["all", "Referral", "Call Back", "Will Request"].map(t => (
           <button key={t} onClick={() => setTypeFilter(t)}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
             style={{
@@ -337,19 +379,6 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             }}
           >
             {t === "all" ? "All Types" : t}
-          </button>
-        ))}
-        <div style={{ width: "1px", backgroundColor: tc.borderColor, margin: "0 4px" }} />
-        {["all", "Need to Contact", "Contacted", "Archive"].map(s => (
-          <button key={s} onClick={() => setStatusFilter(s)}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: statusFilter === s ? tc.accentColor : tc.inputBg,
-              color: statusFilter === s ? tc.buttonText : tc.mutedText,
-              border: `1px solid ${statusFilter === s ? tc.accentColor : tc.borderColor}`
-            }}
-          >
-            {s === "all" ? "All Status" : s}
           </button>
         ))}
       </div>
@@ -578,7 +607,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : "#d4738a",
+        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : theme === "pink" ? "#d4738a" : theme === "light-blue" ? "#0ea5e9" : theme === "dark-royal-purple" ? "#a855f7" : theme === "dark-green" ? "#22c55e" : "#4a8db5",
         contactNumber: contactNumber || null,
         location: location || null,
         workingHours: workingHours || null,
@@ -852,6 +881,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             { key: "dark", label: "Black & White", bg: "#1a1a1a" },
             { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
             { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+            { key: "light-blue", label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+            { key: "dark-royal-purple", label: "Royal Purple", bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+            { key: "dark-green", label: "Dark Green", bg: "linear-gradient(135deg, #052e16, #22c55e)" },
           ].map(t => (
             <button key={t.key} onClick={() => setTheme(t.key)}
               className="rounded-xl border-2 p-3 text-center transition-all"
@@ -879,6 +911,21 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   );
 }
 
+function getThemeDot(theme: string) {
+  const dots: Record<string, string> = {
+    dark: "#555", blue: "#3b82f6", pink: "#be185d",
+    "light-blue": "#0ea5e9", "dark-royal-purple": "#a855f7", "dark-green": "#22c55e",
+  };
+  return dots[theme] || "#3b82f6";
+}
+function getThemeLabel(theme: string) {
+  const labels: Record<string, string> = {
+    dark: "Black & White", blue: "Blue", pink: "Pink",
+    "light-blue": "Light Blue", "dark-royal-purple": "Dark Royal Purple", "dark-green": "Dark Green",
+  };
+  return labels[theme] || theme;
+}
+
 function ProfileCard({
   profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
 }: {
@@ -886,9 +933,17 @@ function ProfileCard({
   label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
   nickname?: string; profileDesc?: string;
 }) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
   const url = `advisoryconnect.pro/${profileSlug}`;
-  const themeDot = theme === "dark" ? "#555" : theme === "blue" ? "#3b82f6" : "#be185d";
-  const themeLabel = theme === "dark" ? "Black & White" : theme === "blue" ? "Blue" : "Pink";
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(`https://${url}`).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(() => toast({ title: "Copy failed", variant: "destructive" }));
+  };
+
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
       <div className="flex items-center justify-between">
@@ -902,11 +957,14 @@ function ProfileCard({
       </div>
       {profileDesc && <p className="text-xs italic" style={{ color: tc.mutedText }}>{profileDesc}</p>}
       <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: themeDot }} />
-        <span className="text-xs" style={{ color: tc.mutedText }}>{title} · {themeLabel}</span>
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeDot(theme) }} />
+        <span className="text-xs" style={{ color: tc.mutedText }}>{title} · {getThemeLabel(theme)}</span>
       </div>
       <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
         <span className="text-xs flex-1 truncate font-mono" style={{ color: tc.textColor }}>{url}</span>
+        <button onClick={handleCopy} title="Copy profile link" className="transition-opacity hover:opacity-70" data-testid={`button-copy-${profileSlug}`}>
+          {copied ? <Check className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#22c55e" }} /> : <Copy className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.accentColor }} />}
+        </button>
         <a href={`/${profileSlug}`} target="_blank" rel="noopener noreferrer" title="View profile">
           <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.accentColor }} />
         </a>
@@ -996,7 +1054,7 @@ function AdditionalProfileForm({
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : "#d4738a",
+        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : theme === "pink" ? "#d4738a" : theme === "light-blue" ? "#0ea5e9" : theme === "dark-royal-purple" ? "#a855f7" : theme === "dark-green" ? "#22c55e" : "#4a8db5",
         showHeader,
         showProfilePic,
         showIntro,
@@ -1203,6 +1261,9 @@ function AdditionalProfileForm({
               { key: "dark", label: "Black & White", bg: "#1a1a1a" },
               { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
               { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+              { key: "light-blue", label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+              { key: "dark-royal-purple", label: "Royal Purple", bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+              { key: "dark-green", label: "Dark Green", bg: "linear-gradient(135deg, #052e16, #22c55e)" },
             ].map(t => (
               <button key={t.key} onClick={() => setTheme(t.key)} className="rounded-lg border-2 p-2 text-center transition-all"
                 style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}>
@@ -1271,16 +1332,16 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   });
 
   const totalProfiles = 1 + additionalProfiles.length;
-  const canAddMore = totalProfiles < 5 && !showNewForm;
+  const canAddMore = totalProfiles < 3 && !showNewForm;
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold" style={{ color: tc.textColor }}>My Profiles</span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 5</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 3</span>
         </div>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences.</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 3 profiles per advisor.</p>
       </div>
 
       <ProfileCard
@@ -1341,13 +1402,13 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           style={{ border: `2px dashed ${tc.borderColor}`, color: tc.mutedText, backgroundColor: "transparent" }}
           data-testid="button-add-profile">
           <Plus className="h-4 w-4" />
-          Add Profile {totalProfiles + 1} of 5
+          Add Profile {totalProfiles + 1} of 3
         </button>
       )}
 
-      {!canAddMore && !showNewForm && totalProfiles >= 5 && (
+      {!canAddMore && !showNewForm && totalProfiles >= 3 && (
         <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          Maximum 5 profiles reached. Delete one to add a new profile.
+          Maximum 3 profiles reached. Delete one to add a new profile.
         </div>
       )}
     </div>

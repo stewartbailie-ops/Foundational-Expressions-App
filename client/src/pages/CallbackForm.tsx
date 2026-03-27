@@ -168,7 +168,6 @@ export default function CallbackForm() {
     formData.firstName.trim() &&
     formData.surname.trim() &&
     formData.phone.trim() &&
-    formData.incomeRange &&
     formData.confirmOver18;
 
   const handleSubmit = (e: React.FormEvent) => {
