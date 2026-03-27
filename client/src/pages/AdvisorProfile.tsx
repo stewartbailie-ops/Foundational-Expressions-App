@@ -2,10 +2,10 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
-import { getThemeColors } from "@/lib/themeUtils";
+import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
   return name
@@ -14,6 +14,69 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+function ProfileInitialsBadge({ initials, theme, size = 288, downloadable = false, name = "" }: {
+  initials: string; theme: string; size?: number; downloadable?: boolean; name?: string;
+}) {
+  const { from, to, border } = getInitialsBadgeColors(theme);
+  const svgId = `profile-badge-svg`;
+  const tc = getThemeColors(theme);
+
+  const handleDownload = () => {
+    const svgEl = document.getElementById(svgId);
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>${svgData}`], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 600; canvas.height = 600;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 600, 600);
+      URL.revokeObjectURL(url);
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${name.replace(/\s+/g, "-").toLowerCase() || "initials"}-badge.png`;
+      link.click();
+    };
+    img.src = url;
+  };
+
+  return (
+    <div className="flex flex-col items-center gap-3">
+      <svg id={svgId} width={size} height={size} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" data-testid="icon-initials">
+        <defs>
+          <linearGradient id="ibg" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={from} />
+            <stop offset="100%" stopColor={to} />
+          </linearGradient>
+          <filter id="ibshadow" x="-15%" y="-15%" width="130%" height="130%">
+            <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="rgba(0,0,0,0.35)" />
+          </filter>
+        </defs>
+        <rect width="120" height="120" rx="26" fill="url(#ibg)" filter="url(#ibshadow)" />
+        <rect x="3" y="3" width="114" height="114" rx="24" fill="none" stroke={border} strokeWidth="1.5" />
+        <text x="60" y="81" fontFamily="Georgia, 'Times New Roman', serif" fontSize="52" fontWeight="bold" fill="white" textAnchor="middle" letterSpacing="-1" opacity="0.95">
+          {initials}
+        </text>
+      </svg>
+      {downloadable && (
+        <button
+          onClick={handleDownload}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+          data-testid="button-download-badge"
+        >
+          <Download className="h-3 w-3" />
+          Download Badge
+        </button>
+      )}
+    </div>
+  );
 }
 
 
@@ -427,10 +490,12 @@ export default function AdvisorProfile() {
     (advisor as any).contactNumber || (advisor as any).workingHours || advisor.email
   );
 
+  const themeBg = getThemeBackground(advisor.theme);
+
   return (
     <div
       className="min-h-screen"
-      style={{ backgroundColor: bgColor, color: textColor }}
+      style={{ ...themeBg, color: textColor }}
       data-testid="profile-container"
     >
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
@@ -440,22 +505,18 @@ export default function AdvisorProfile() {
             <img
               src={advisor.profilePicUrl}
               alt={advisor.name}
-              className="w-56 h-56 rounded-full object-cover border-4"
-              style={{ borderColor: tc.initialsCircleBorder }}
+              className="w-72 h-72 rounded-full object-cover"
+              style={{ border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
               data-testid="img-profile-pic"
             />
           ) : (
-            <div
-              className="w-56 h-56 rounded-full flex items-center justify-center text-6xl font-bold"
-              style={{
-                backgroundColor: tc.initialsCircleBg,
-                color: accentColor,
-                border: `2px solid ${tc.initialsCircleBorder}`,
-              }}
-              data-testid="icon-initials"
-            >
-              {initials}
-            </div>
+            <ProfileInitialsBadge
+              initials={initials}
+              theme={advisor.theme || "blue"}
+              size={288}
+              downloadable={true}
+              name={advisor.name}
+            />
           )}
           <div>
             <h1 className="text-2xl font-bold tracking-tight" data-testid="text-advisor-name">

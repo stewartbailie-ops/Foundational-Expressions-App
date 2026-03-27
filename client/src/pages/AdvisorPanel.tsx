@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { getThemeColors } from "@/lib/themeUtils";
+import { getThemeColors, getInitialsBadgeColors } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -540,10 +540,144 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
   );
 }
 
+function InitialsBadgeSvg({ initials, theme, size, id }: { initials: string; theme: string; size: number; id: string }) {
+  const { from, to, border } = getInitialsBadgeColors(theme);
+  const gradId = `ibg-${id}`;
+  return (
+    <svg id={id} width={size} height={size} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={from} />
+          <stop offset="100%" stopColor={to} />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" rx="26" fill={`url(#${gradId})`} />
+      <rect x="3" y="3" width="114" height="114" rx="24" fill="none" stroke={border} strokeWidth="1.5" />
+      <text x="60" y="81" fontFamily="Georgia, 'Times New Roman', serif" fontSize="52" fontWeight="bold" fill="white" textAnchor="middle" letterSpacing="-1" opacity="0.95">
+        {initials}
+      </text>
+    </svg>
+  );
+}
+
+function ImageCropper({ src, onConfirm, onCancel, tc }: {
+  src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; tc: ReturnType<typeof getThemeColors>;
+}) {
+  const CONTAINER = 260;
+  const [zoom, setZoom] = useState(1);
+  const [offset, setOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [naturalSize, setNaturalSize] = useState({ w: 1, h: 1 });
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const initScale = naturalSize.w > 0 ? Math.max(CONTAINER / naturalSize.w, CONTAINER / naturalSize.h) : 1;
+  const displayW = naturalSize.w * initScale * zoom;
+  const displayH = naturalSize.h * initScale * zoom;
+
+  const clampOffset = (ox: number, oy: number, z: number) => {
+    const dw = naturalSize.w * initScale * z;
+    const dh = naturalSize.h * initScale * z;
+    const maxX = Math.max(0, dw / 2 - CONTAINER / 2);
+    const maxY = Math.max(0, dh / 2 - CONTAINER / 2);
+    return { x: Math.max(-maxX, Math.min(maxX, ox)), y: Math.max(-maxY, Math.min(maxY, oy)) };
+  };
+
+  const startDrag = (clientX: number, clientY: number) => {
+    setIsDragging(true);
+    setDragStart({ x: clientX - offset.x, y: clientY - offset.y });
+  };
+  const moveDrag = (clientX: number, clientY: number) => {
+    if (!isDragging) return;
+    const raw = { x: clientX - dragStart.x, y: clientY - dragStart.y };
+    setOffset(clampOffset(raw.x, raw.y, zoom));
+  };
+  const endDrag = () => setIsDragging(false);
+
+  const handleConfirm = () => {
+    if (!imgRef.current) return;
+    const canvas = document.createElement("canvas");
+    const OUT = 400;
+    canvas.width = OUT; canvas.height = OUT;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.beginPath();
+    ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2);
+    ctx.clip();
+    const scale = initScale * zoom;
+    const imgLeft = CONTAINER / 2 - displayW / 2 + offset.x;
+    const imgTop = CONTAINER / 2 - displayH / 2 + offset.y;
+    const sx = (0 - imgLeft) / scale;
+    const sy = (0 - imgTop) / scale;
+    const sw = CONTAINER / scale;
+    const sh = CONTAINER / scale;
+    ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, OUT, OUT);
+    onConfirm(canvas.toDataURL("image/jpeg", 0.92));
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.75)" }}>
+      <div className="rounded-2xl p-5 space-y-4 w-full max-w-xs" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <h3 className="text-sm font-semibold" style={{ color: tc.textColor }}>Crop Profile Picture</h3>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Drag to reposition · Use slider to zoom</p>
+        <div
+          className="relative overflow-hidden mx-auto cursor-grab active:cursor-grabbing select-none"
+          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "50%", border: `3px solid ${tc.accentColor}`, touchAction: "none" }}
+          onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
+          onMouseMove={e => moveDrag(e.clientX, e.clientY)}
+          onMouseUp={endDrag} onMouseLeave={endDrag}
+          onTouchStart={e => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }}
+          onTouchMove={e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }}
+          onTouchEnd={endDrag}
+        >
+          <img
+            ref={imgRef}
+            src={src}
+            onLoad={() => { if (imgRef.current) setNaturalSize({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight }); }}
+            style={{
+              position: "absolute", width: displayW, height: displayH,
+              left: CONTAINER / 2 - displayW / 2 + offset.x,
+              top: CONTAINER / 2 - displayH / 2 + offset.y,
+              userSelect: "none", pointerEvents: "none",
+            }}
+            alt="crop"
+            draggable={false}
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between">
+            <span className="text-xs" style={{ color: tc.mutedText }}>Zoom</span>
+            <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{Math.round(zoom * 100)}%</span>
+          </div>
+          <input type="range" min={1} max={3} step={0.02} value={zoom}
+            onChange={e => {
+              const z = parseFloat(e.target.value);
+              setZoom(z);
+              setOffset(prev => clampOffset(prev.x, prev.y, z));
+            }}
+            className="w-full accent-current" style={{ accentColor: tc.accentColor }}
+          />
+        </div>
+        <div className="flex gap-2 pt-1">
+          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs font-medium"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+            Cancel
+          </button>
+          <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+            Apply Crop
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const [name, setName] = useState(advisor.name);
   const [title, setTitle] = useState(advisor.title || "Financial Advisor");
@@ -637,13 +771,23 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (typeof reader.result === "string") setCropperSrc(reader.result); };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropConfirm = async (dataUrl: string) => {
+    setCropperSrc(null);
     setUploading(true);
     try {
+      const res2 = await fetch(dataUrl);
+      const blob = await res2.blob();
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
@@ -658,6 +802,29 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   };
 
   const initials = name.trim() ? name.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "NA";
+
+  const handleDownloadBadge = () => {
+    const svgEl = document.getElementById("panel-badge-svg");
+    if (!svgEl) return;
+    const svgData = new XMLSerializer().serializeToString(svgEl);
+    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>${svgData}`], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 600; canvas.height = 600;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 600, 600);
+      URL.revokeObjectURL(url);
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${name.replace(/\s+/g, "-").toLowerCase() || "advisor"}-badge.png`;
+      link.click();
+    };
+    img.src = url;
+  };
 
   return (
     <div className="space-y-5">
@@ -679,8 +846,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           {profilePicUrl ? (
             <img src={profilePicUrl} alt="Profile" className="h-16 w-16 rounded-full object-cover border-2 flex-shrink-0" style={{ borderColor: tc.initialsCircleBorder }} />
           ) : (
-            <div className="h-16 w-16 rounded-full flex items-center justify-center text-lg font-bold flex-shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-              {initials}
+            <div className="flex-shrink-0">
+              <InitialsBadgeSvg initials={initials} theme={theme} size={64} id="panel-badge-svg-header" />
             </div>
           )}
           <div className="flex-1 space-y-3">
@@ -698,23 +865,48 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         </div>
       </div>
 
+      {cropperSrc && (
+        <ImageCropper src={cropperSrc} onConfirm={handleCropConfirm} onCancel={() => setCropperSrc(null)} tc={tc} />
+      )}
+
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Profile Picture</h3>
-        <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
+        <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
         {profilePicUrl ? (
           <div className="flex flex-col items-center gap-3">
-            <img src={profilePicUrl} alt="Preview" className="h-24 w-24 rounded-full object-cover border-2" style={{ borderColor: tc.initialsCircleBorder }} />
+            <img src={profilePicUrl} alt="Preview" className="h-28 w-28 rounded-full object-cover border-2" style={{ borderColor: tc.initialsCircleBorder }} />
             <div className="flex gap-2">
               <button onClick={() => fileInputRef.current?.click()} className="px-3 py-1.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>Change</button>
               <button onClick={() => setProfilePicUrl(null)} className="px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}><X className="h-3 w-3" /> Remove</button>
             </div>
           </div>
         ) : (
-          <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center py-6 rounded-lg cursor-pointer" style={{ border: `2px dashed ${tc.borderColor}` }}>
-            {uploading ? <Loader2 className="h-6 w-6 animate-spin mb-2" style={{ color: tc.mutedText }} /> : <Upload className="h-6 w-6 mb-2" style={{ color: tc.mutedText }} />}
-            <span className="text-xs" style={{ color: tc.mutedText }}>{uploading ? "Uploading..." : "Click to upload profile picture"}</span>
+          <div onClick={() => fileInputRef.current?.click()} className="flex flex-col items-center justify-center py-8 rounded-xl cursor-pointer transition-colors hover:opacity-80" style={{ border: `2px dashed ${tc.borderColor}` }}>
+            {uploading ? <Loader2 className="h-6 w-6 animate-spin mb-2" style={{ color: tc.mutedText }} /> : <Upload className="h-7 w-7 mb-2" style={{ color: tc.mutedText }} />}
+            <span className="text-xs font-medium" style={{ color: tc.mutedText }}>{uploading ? "Uploading..." : "Click to upload photo"}</span>
+            <span className="text-xs mt-0.5" style={{ color: tc.mutedText, opacity: 0.7 }}>Crop tool included</span>
           </div>
         )}
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Initials Badge</h3>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Your auto-generated logo — shown on your profile when no photo is uploaded. Download as PNG to use elsewhere.</p>
+        <div className="flex items-center gap-4">
+          <InitialsBadgeSvg initials={initials} theme={theme} size={80} id="panel-badge-svg" />
+          <div className="flex-1 space-y-2">
+            <p className="text-xs font-medium" style={{ color: tc.textColor }}>{name || "Your Name"}</p>
+            <p className="text-xs" style={{ color: tc.mutedText }}>Updates live as you type your name</p>
+            <button
+              onClick={handleDownloadBadge}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-download-badge"
+            >
+              <Download className="h-3 w-3" /> Download PNG
+            </button>
+          </div>
+        </div>
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
@@ -1028,6 +1220,7 @@ function AdditionalProfileForm({
   const [showDocuments, setShowDocuments] = useState(!!(existingProfile as any)?.showDocuments);
   const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(existingProfile as any)?.showComplimentaryWill);
   const [showFinancialMedia, setShowFinancialMedia] = useState(!!(existingProfile as any)?.showFinancialMedia);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const isEditing = !!existingProfile;
   const slugValid = profileSlug.length > 0 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(profileSlug);
@@ -1090,13 +1283,23 @@ function AdditionalProfileForm({
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { if (typeof reader.result === "string") setCropperSrc(reader.result); };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropConfirm = async (dataUrl: string) => {
+    setCropperSrc(null);
     setUploading(true);
     try {
+      const r = await fetch(dataUrl);
+      const blob = await r.blob();
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
@@ -1109,6 +1312,10 @@ function AdditionalProfileForm({
     setList(list.includes(key) ? list.filter(s => s !== key) : [...list, key]);
 
   return (
+    <>
+    {cropperSrc && (
+      <ImageCropper src={cropperSrc} onConfirm={handleCropConfirm} onCancel={() => setCropperSrc(null)} tc={tc} />
+    )}
     <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
       <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: tc.cardBg, borderBottom: `1px solid ${tc.borderColor}` }}>
         <span className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>
@@ -1147,7 +1354,7 @@ function AdditionalProfileForm({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Picture</label>
-          <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
+          <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
           {profilePicUrl ? (
             <div className="flex items-center gap-3">
               <img src={profilePicUrl} alt="Profile" className="h-12 w-12 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
@@ -1306,6 +1513,7 @@ function AdditionalProfileForm({
         </div>
       </div>
     </div>
+    </>
   );
 }
 
