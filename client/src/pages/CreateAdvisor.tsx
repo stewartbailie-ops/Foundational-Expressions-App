@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, MapPin, Clock, Phone, Mail, Upload, LayoutDashboard, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Clock, Phone, Mail, Upload, LayoutDashboard, ChevronDown, Linkedin, Globe } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -39,6 +39,8 @@ export default function CreateAdvisor() {
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>([]);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>([]);
   const [theme, setTheme] = useState("blue");
+  const [linkedinUrl, setLinkedinUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState("");
   const [uploading, setUploading] = useState(false);
 
   const formattedSlug = name.trim()
