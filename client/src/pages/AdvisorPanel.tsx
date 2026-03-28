@@ -1164,7 +1164,7 @@ function ProfileCard({
       <div className="flex gap-2">
         <button onClick={onEditClick} className="flex-1 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
           style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
-          {isPrimary ? "Edit in Profile tab" : "Edit"}
+          Edit
         </button>
         {!isPrimary && onDeleteClick && (
           <button onClick={onDeleteClick} className="px-3 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
@@ -1517,7 +1517,7 @@ function AdditionalProfileForm({
   );
 }
 
-function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+function ProfilesTab({ advisor, tc, onEditPrimary }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors>; onEditPrimary: () => void }) {
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
@@ -1540,16 +1540,16 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   });
 
   const totalProfiles = 1 + additionalProfiles.length;
-  const canAddMore = totalProfiles < 3 && !showNewForm;
+  const canAddMore = totalProfiles < 2 && !showNewForm;
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold" style={{ color: tc.textColor }}>My Profiles</span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 3</span>
+          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 2</span>
         </div>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 3 profiles per advisor.</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 2 profiles per advisor.</p>
       </div>
 
       <ProfileCard
@@ -1557,12 +1557,12 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         title={advisor.title || "Financial Advisor"}
         theme={advisor.theme || "dark"}
         tc={tc}
-        label="Profile 1 (Primary)"
+        label="Primary"
         isPrimary={true}
-        onEditClick={() => {}}
+        onEditClick={onEditPrimary}
       />
 
-      {additionalProfiles.map((profile, index) =>
+      {additionalProfiles.map((profile) =>
         editingProfileId === profile.id ? (
           <AdditionalProfileForm
             key={profile.id}
@@ -1570,7 +1570,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             baseSlug={advisor.profileSlug}
             tc={tc}
             existingProfile={profile}
-            label={`Profile ${index + 2}`}
+            label="Secondary"
             onDone={() => setEditingProfileId(null)}
           />
         ) : (
@@ -1580,13 +1580,13 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             title={profile.title || "Financial Advisor"}
             theme={profile.theme || "dark"}
             tc={tc}
-            label={`Profile ${index + 2}`}
+            label="Secondary"
             isPrimary={false}
             nickname={(profile as any).nickname}
             profileDesc={(profile as any).profileDescription}
             onEditClick={() => setEditingProfileId(profile.id)}
             onDeleteClick={() => {
-              if (window.confirm(`Delete Profile ${index + 2}? This cannot be undone.`)) {
+              if (window.confirm("Delete Secondary Profile? This cannot be undone.")) {
                 deleteProfileMutation.mutate(profile.id);
               }
             }}
@@ -1599,7 +1599,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           advisorId={advisor.id}
           baseSlug={advisor.profileSlug}
           tc={tc}
-          label={`Profile ${totalProfiles + 1}`}
+          label="Secondary"
           onDone={() => setShowNewForm(false)}
         />
       )}
@@ -1610,13 +1610,13 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           style={{ border: `2px dashed ${tc.borderColor}`, color: tc.mutedText, backgroundColor: "transparent" }}
           data-testid="button-add-profile">
           <Plus className="h-4 w-4" />
-          Add Profile {totalProfiles + 1} of 3
+          Add Secondary Profile
         </button>
       )}
 
-      {!canAddMore && !showNewForm && totalProfiles >= 3 && (
+      {!canAddMore && !showNewForm && totalProfiles >= 2 && (
         <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          Maximum 3 profiles reached. Delete one to add a new profile.
+          Maximum 2 profiles reached. Delete one to add a new profile.
         </div>
       )}
     </div>
@@ -1629,7 +1629,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "set-password" | "login" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"leads" | "stats" | "profiles" | "profile">("leads");
+  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles">("toolbox");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -1691,10 +1691,10 @@ export default function AdvisorPanel() {
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
 
   const tabs = [
+    { key: "toolbox" as const, label: "Toolbox", icon: User },
+    { key: "profiles" as const, label: "Profiles", icon: Layers },
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
-    { key: "profiles" as const, label: "Profiles", icon: Layers },
-    { key: "profile" as const, label: "Edit", icon: User },
   ];
 
   return (
@@ -1758,10 +1758,10 @@ export default function AdvisorPanel() {
         </div>
 
         <div className="p-5 pb-12">
+          {activeTab === "toolbox" && <ProfileTab slug={slug} advisor={advisor} tc={tc} />}
+          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} onEditPrimary={() => setActiveTab("toolbox")} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
-          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
-          {activeTab === "profile" && <ProfileTab slug={slug} advisor={advisor} tc={tc} />}
         </div>
       </div>
     </div>
