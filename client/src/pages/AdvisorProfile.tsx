@@ -419,6 +419,8 @@ export default function AdvisorProfile() {
   const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
   const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
 
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
+
   useEffect(() => {
     if (advisor) {
       document.title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
@@ -505,15 +507,15 @@ export default function AdvisorProfile() {
             <img
               src={advisor.profilePicUrl}
               alt={advisor.name}
-              className="w-72 h-72 rounded-full object-cover"
-              style={{ border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}
+              className="w-88 h-88 rounded-full object-cover"
+              style={{ width: 352, height: 352, border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 12px 40px rgba(0,0,0,0.22)" }}
               data-testid="img-profile-pic"
             />
           ) : (
             <ProfileInitialsBadge
               initials={initials}
               theme={advisor.theme || "blue"}
-              size={288}
+              size={352}
               downloadable={true}
               name={advisor.name}
             />

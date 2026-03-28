@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, CheckCircle2, ArrowLeft, FileText, AlertCircle } from "lucide-react";
@@ -35,8 +35,11 @@ export default function WillForm() {
   const [numberOfChildren, setNumberOfChildren] = useState("");
   const [childrenDetails, setChildrenDetails] = useState("");
   const [address, setAddress] = useState("");
+  const [incomeRange, setIncomeRange] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -52,6 +55,7 @@ export default function WillForm() {
         numberOfChildren: numberOfChildren || undefined,
         childrenDetails: childrenDetails || undefined,
         address: address || undefined,
+        incomeRange: incomeRange || undefined,
         source: `claim-will/${slug}`,
       });
     },
@@ -172,13 +176,16 @@ export default function WillForm() {
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 space-y-1.5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="rounded-2xl p-4 space-y-2" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
           <div className="flex items-center gap-2">
             <FileText className="h-4 w-4" style={{ color: tc.accentColor }} />
             <h1 className="text-base font-bold" style={{ color: tc.textColor }}>Claim Your Free Will</h1>
           </div>
+          <p className="text-sm leading-relaxed font-medium" style={{ color: tc.textColor }}>
+            Over 70% of South Africans die without a Will — should something happen to you yesterday, is your family protected?
+          </p>
           <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-            As part of our commitment to your long-term wellbeing, we offer a complimentary Will. Please complete the form below and {advisor.name} will be in touch to finalise your Will.
+            Please fill in the information below and {advisor.name} will reach out to you to arrange your complimentary Will.
           </p>
         </div>
 
@@ -189,6 +196,20 @@ export default function WillForm() {
           <InputField label="Date of Birth" value={dateOfBirth} onChange={setDateOfBirth} type="date" />
           <InputField label="Email Address" value={email} onChange={setEmail} type="email" placeholder="your@email.com" />
           <InputField label="Phone Number" value={phone} onChange={setPhone} type="tel" placeholder="+27 xx xxx xxxx" />
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Current Income</label>
+            <select
+              value={incomeRange}
+              onChange={e => setIncomeRange(e.target.value)}
+              className="w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors"
+              style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: incomeRange ? tc.textColor : tc.mutedText }}
+              data-testid="select-will-income"
+            >
+              <option value="" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.mutedText }}>Select income range</option>
+              <option value="Above R15k p/m" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.textColor }}>Above R15k p/m</option>
+              <option value="Below R15k p/m" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.textColor }}>Below R15k p/m</option>
+            </select>
+          </div>
           <InputField label="Residential Address" value={address} onChange={setAddress} placeholder="Street, City, Province" />
         </div>
 

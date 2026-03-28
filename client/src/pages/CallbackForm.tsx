@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Send } from "lucide-react";
@@ -70,6 +70,8 @@ export default function CallbackForm() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
   const mutation = useMutation({
     mutationFn: async (payload: Record<string, unknown>) => {
@@ -322,11 +324,10 @@ export default function CallbackForm() {
           <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label style={labelStyle}>Income Range <span style={{ color: "#ef4444" }}>*</span></label>
+                <label style={labelStyle}>Income Range</label>
                 <select
                   value={formData.incomeRange}
                   onChange={(e) => update("incomeRange", e.target.value)}
-                  required
                   style={selectStyle}
                   data-testid="select-income-range"
                 >

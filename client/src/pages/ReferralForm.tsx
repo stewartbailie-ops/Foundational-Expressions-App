@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -108,6 +108,8 @@ export default function ReferralForm() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
   const tc = getThemeColors(advisor?.theme);
   const accentColor = tc.accentColor;
@@ -492,7 +494,7 @@ export default function ReferralForm() {
                 />
               </div>
               <div>
-                <label style={labelStyle}>Income Range {req}</label>
+                <label style={labelStyle}>Income Range</label>
                 <select
                   value={ref.incomeRange}
                   onChange={(e) => updateReferral(index, "incomeRange", e.target.value)}
