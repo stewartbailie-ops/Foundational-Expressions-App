@@ -1517,10 +1517,11 @@ function AdditionalProfileForm({
   );
 }
 
-function ProfilesTab({ advisor, tc, onEditPrimary }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors>; onEditPrimary: () => void }) {
+function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
+  const [editingPrimary, setEditingPrimary] = useState(false);
 
   const { data: additionalProfiles = [] } = useQuery<AdvisorProfile[]>({
     queryKey: [`/api/advisors/${advisor.id}/profiles`],
@@ -1559,8 +1560,20 @@ function ProfilesTab({ advisor, tc, onEditPrimary }: { advisor: Advisor; tc: Ret
         tc={tc}
         label="Primary"
         isPrimary={true}
-        onEditClick={onEditPrimary}
+        onEditClick={() => setEditingPrimary(v => !v)}
       />
+
+      {editingPrimary && (
+        <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+          <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: tc.cardBg, borderBottom: `1px solid ${tc.borderColor}` }}>
+            <span className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Editing Primary Profile</span>
+            <button onClick={() => setEditingPrimary(false)} className="text-xs px-2 py-1 rounded" style={{ color: tc.mutedText, backgroundColor: tc.inputBg }}>Done</button>
+          </div>
+          <div style={{ backgroundColor: tc.bgColor }}>
+            <ProfileTab slug={advisor.profileSlug} advisor={advisor} tc={tc} />
+          </div>
+        </div>
+      )}
 
       {additionalProfiles.map((profile) =>
         editingProfileId === profile.id ? (
@@ -1758,8 +1771,13 @@ export default function AdvisorPanel() {
         </div>
 
         <div className="p-5 pb-12">
-          {activeTab === "toolbox" && <ProfileTab slug={slug} advisor={advisor} tc={tc} />}
-          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} onEditPrimary={() => setActiveTab("toolbox")} />}
+          {activeTab === "toolbox" && (
+            <div className="flex flex-col items-center justify-center py-20 space-y-3" style={{ color: tc.mutedText }}>
+              <div className="text-4xl opacity-20">🛠️</div>
+              <p className="text-sm font-medium" style={{ color: tc.mutedText }}>Tools coming soon</p>
+            </div>
+          )}
+          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
         </div>
