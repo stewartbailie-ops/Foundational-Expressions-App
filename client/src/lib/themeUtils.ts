@@ -74,7 +74,7 @@ export function getThemeBackground(
   backgroundStyle?: number | null,
 ): React.CSSProperties {
   const t = theme || "blue";
-  const s = backgroundStyle || 1;
+  const s = Number(backgroundStyle) || 1;
 
   let base: React.CSSProperties;
   let accentRgba: string;

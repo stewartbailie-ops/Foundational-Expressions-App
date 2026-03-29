@@ -512,125 +512,237 @@ export default function AdvisorProfile() {
 
   const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle);
 
+  const profileShareUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+  const hasWhatsApp = !!(advisor as any).contactNumber;
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+  const handleShare = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: advisor.name, text: `View ${advisor.name}'s financial advisory profile`, url: profileShareUrl }); } catch {}
+    } else {
+      try { await navigator.clipboard.writeText(profileShareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2200); } catch {}
+    }
+  };
+
+  const handleSaveCard = () => {
+    const vcf = [
+      "BEGIN:VCARD", "VERSION:3.0",
+      `FN:${advisor.name}`,
+      advisor.title ? `TITLE:${advisor.title}` : null,
+      advisor.email ? `EMAIL:${advisor.email}` : null,
+      (advisor as any).contactNumber ? `TEL:${(advisor as any).contactNumber}` : null,
+      advisor.websiteUrl ? `URL:${advisor.websiteUrl}` : null,
+      advisor.linkedinUrl ? `X-SOCIALPROFILE;TYPE=linkedin:${advisor.linkedinUrl}` : null,
+      `NOTE:View my full advisory profile at ${profileShareUrl}`,
+      "END:VCARD",
+    ].filter(Boolean).join("\r\n");
+    const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${advisor.name.replace(/\s+/g, "-")}.vcf`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleAddToHomeScreen = async () => {
+    if (deferredInstallPrompt) {
+      deferredInstallPrompt.prompt();
+      await deferredInstallPrompt.userChoice;
+      setDeferredInstallPrompt(null);
+    } else {
+      setShowInstallHint(true);
+    }
+  };
+
+  const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
+
   return (
-    <div
-      className="min-h-screen"
-      style={{ ...themeBg, color: textColor }}
-      data-testid="profile-container"
-    >
+    <div className="min-h-screen" style={{ ...themeBg, color: textColor }} data-testid="profile-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
 
-        <div className="space-y-5" data-testid="profile-header">
-          <div className="flex items-center gap-5 rounded-2xl p-5"
-            style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="flex-shrink-0">
-              <ProfileInitialsBadge
-                initials={initials}
-                theme={advisor.theme || "blue"}
-                size={100}
-                downloadable={false}
-                name={advisor.name}
-              />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-2xl font-bold tracking-tight leading-tight" data-testid="text-advisor-name" style={{ color: textColor }}>
-                {advisor.name}
-              </h1>
-              {advisor.title && (
-                <p className="text-sm font-semibold mt-1.5 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
-                  {advisor.title}
-                </p>
-              )}
-            </div>
+        {/* a. Header */}
+        <div className="flex items-center gap-5 rounded-2xl p-5"
+          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+          data-testid="profile-header">
+          <div className="flex-shrink-0">
+            <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={100} downloadable={false} name={advisor.name} />
           </div>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ color: textColor }} data-testid="text-advisor-name">
+              {advisor.name}
+            </h1>
+            {advisor.title && (
+              <p className="text-sm font-semibold mt-1.5 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
+                {advisor.title}
+              </p>
+            )}
+          </div>
+        </div>
 
-          {advisor.profilePicUrl && advisor.showProfilePic !== false && (
-            <div className="w-full" data-testid="section-profile-pic">
-              <img
-                src={advisor.profilePicUrl}
-                alt={advisor.name}
-                className="w-full object-cover rounded-2xl"
-                style={{ aspectRatio: "1 / 1", border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
-                data-testid="img-profile-pic"
-              />
+        {/* b. Profile Picture */}
+        {advisor.profilePicUrl && advisor.showProfilePic !== false && (
+          <div className="w-full" data-testid="section-profile-pic">
+            <img
+              src={advisor.profilePicUrl}
+              alt={advisor.name}
+              className="w-full object-cover rounded-2xl"
+              style={{ aspectRatio: "1 / 1", border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
+              data-testid="img-profile-pic"
+            />
+          </div>
+        )}
+
+        {/* c. Four utility buttons */}
+        <div className="space-y-2" data-testid="section-utility-buttons">
+          <div className={`grid gap-2 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`}>
+            <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
+              <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
+              {shareCopied ? "Link Copied!" : "Share Profile"}
+            </button>
+            {hasWhatsApp && (
+              <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
+                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
+                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                </svg>
+                WhatsApp Me
+              </a>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={handleSaveCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-card">
+              <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
+              Save Business Card
+            </button>
+            <button onClick={handleAddToHomeScreen} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-add-home-screen">
+              <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
+              Add to Home Screen
+            </button>
+          </div>
+          {showInstallHint && (
+            <div className="rounded-lg p-3 text-xs text-center space-y-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, border: `1px solid ${tc.borderColor}` }} data-testid="install-hint">
+              {isIOS
+                ? <p>Tap the <strong>Share</strong> button in Safari, then choose <strong>"Add to Home Screen"</strong> to save this profile as an app icon.</p>
+                : <p>Open this page in your browser's menu and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</p>
+              }
+              <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">Dismiss</button>
             </div>
           )}
         </div>
 
-        {hasContactDetails && (
-          <div
-            className="rounded-xl p-4 space-y-2.5"
-            style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
-            data-testid="section-contact"
-          >
-            {advisor.email && (
-              <div className="flex items-center gap-3 text-sm">
-                <Mail className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
-                <a href={`mailto:${advisor.email}`} className="hover:underline truncate" style={{ color: textColor }} data-testid="text-contact-email">
-                  {advisor.email}
-                </a>
-              </div>
-            )}
-            {(advisor as any).contactNumber && (
-              <div className="flex items-center gap-3 text-sm">
-                <Phone className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
-                <a href={`tel:${(advisor as any).contactNumber}`} className="hover:underline" style={{ color: textColor }} data-testid="text-contact-phone">
-                  {(advisor as any).contactNumber}
-                </a>
-              </div>
-            )}
-            {(advisor as any).workingHours && (
-              <div className="flex items-center gap-3 text-sm">
-                <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
-                <span style={{ color: textColor }} data-testid="text-contact-hours">{(advisor as any).workingHours}</span>
-              </div>
-            )}
-          </div>
-        )}
-
+        {/* d. Introduction & Bio */}
         {bioText && (
-          <div
-            className="rounded-xl p-5"
-            style={{ backgroundColor: cardBg }}
-            data-testid="section-bio"
-          >
-            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">
-              {bioText}
-            </p>
+          <div className="rounded-xl p-5" style={{ backgroundColor: cardBg }} data-testid="section-bio">
+            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">{bioText}</p>
           </div>
         )}
 
+        {/* e. Individual Services */}
         {individualServices.length > 0 && (
           <ServiceGroupDropdown
-            title="Individual Services"
-            services={individualServices}
-            borderColor={tc.borderColor}
-            cardBg={cardBg}
-            textColor={textColor}
-            mutedText={mutedText}
-            accentColor={accentColor}
-            buttonBg={tc.buttonBg}
-            buttonText={tc.buttonText}
+            title="Individual Services" services={individualServices}
+            borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
+            mutedText={mutedText} accentColor={accentColor}
+            buttonBg={tc.buttonBg} buttonText={tc.buttonText}
             testId="section-individual-services"
           />
         )}
 
+        {/* f. Corporate Services */}
         {corporateServices.length > 0 && (
           <ServiceGroupDropdown
-            title="Corporate Services"
-            services={corporateServices}
-            borderColor={tc.borderColor}
-            cardBg={cardBg}
-            textColor={textColor}
-            mutedText={mutedText}
-            accentColor={accentColor}
-            buttonBg={tc.buttonBg}
-            buttonText={tc.buttonText}
+            title="Corporate Services" services={corporateServices}
+            borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
+            mutedText={mutedText} accentColor={accentColor}
+            buttonBg={tc.buttonBg} buttonText={tc.buttonText}
             testId="section-corporate-services"
           />
         )}
 
-        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl || (advisor as any).contactNumber) && (
+        {/* g. Money Map */}
+        {(advisor as any).showAstute && (
+          <div className="space-y-1.5" data-testid="section-money-map">
+            <button
+              onClick={() => setInDevClicked(inDevClicked === "astute" ? null : "astute")}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-indev-astute"
+            >
+              <Calculator className="h-4 w-4" />
+              Money Map
+            </button>
+            <p className="text-center text-xs px-2" style={{ color: mutedText }}>
+              Get a complete over-view of all your current finances in one place
+            </p>
+            {inDevClicked === "astute" && (
+              <div className="text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                In development — Coming soon
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* h. Claim Your Free Will */}
+        {(advisor as any).showComplimentaryWill && (
+          <button
+            onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-claim-will"
+          >
+            <BookOpen className="h-4 w-4" />
+            Claim Your Free Will
+          </button>
+        )}
+
+        {/* i. Request a Call Back */}
+        {advisor.showCallbackLink !== false && (
+          <button
+            onClick={() => navigate(`/${slug}/request-callback`)}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-request-callback"
+          >
+            <Phone className="h-4 w-4" />
+            Request a Call Back
+          </button>
+        )}
+
+        {/* j. Refer Friends & Family */}
+        {advisor.showReferralsLink !== false && (
+          <button
+            onClick={() => navigate(`/${slug}/referrals`)}
+            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
+            data-testid="button-refer-friends"
+          >
+            <Users className="h-4 w-4" />
+            Refer Friends & Family
+          </button>
+        )}
+
+        {/* k. Documents Upload */}
+        {(advisor as any).showDocuments && (
+          <div data-testid="section-documents">
+            <button
+              onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-indev-documents"
+            >
+              <FileText className="h-4 w-4" />
+              Documents Upload
+            </button>
+            {inDevClicked === "documents" && (
+              <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                In development — Coming soon
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* l. Links to socials */}
+        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
           <div className="space-y-2.5" data-testid="section-socials">
             {[
               { url: advisor.linkedinUrl, label: "Connect on LinkedIn", Icon: Linkedin, testId: "link-linkedin" },
@@ -639,15 +751,10 @@ export default function AdvisorProfile() {
               { url: (advisor as any).youtubeUrl, label: "Subscribe on YouTube", Icon: Youtube, testId: "link-youtube" },
               { url: advisor.websiteUrl, label: "Visit Website", Icon: Globe, testId: "link-website" },
             ].filter(s => !!s.url).map(({ url, label, Icon, testId }) => (
-              <a
-                key={testId}
-                href={url!}
-                target="_blank"
-                rel="noopener noreferrer"
+              <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
                 style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid={testId}
-              >
+                data-testid={testId}>
                 <Icon className="h-4 w-4" />
                 {label}
               </a>
@@ -655,160 +762,7 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* Share / Save / WhatsApp / Add to Home — 2×2 grid */}
-        {(() => {
-          const profileShareUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
-          const hasWhatsApp = !!(advisor as any).contactNumber;
-          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
-          const isInStandalone = ("standalone" in window.navigator) && (window.navigator as any).standalone;
-
-          const handleShare = async () => {
-            if (navigator.share) {
-              try { await navigator.share({ title: advisor.name, text: `View ${advisor.name}'s financial advisory profile`, url: profileShareUrl }); } catch {}
-            } else {
-              try { await navigator.clipboard.writeText(profileShareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2200); } catch {}
-            }
-          };
-
-          const handleSaveCard = () => {
-            const vcf = [
-              "BEGIN:VCARD",
-              "VERSION:3.0",
-              `FN:${advisor.name}`,
-              advisor.title ? `TITLE:${advisor.title}` : null,
-              advisor.email ? `EMAIL:${advisor.email}` : null,
-              (advisor as any).contactNumber ? `TEL:${(advisor as any).contactNumber}` : null,
-              advisor.websiteUrl ? `URL:${advisor.websiteUrl}` : null,
-              advisor.linkedinUrl ? `X-SOCIALPROFILE;TYPE=linkedin:${advisor.linkedinUrl}` : null,
-              `NOTE:View my full advisory profile at ${profileShareUrl}`,
-              "END:VCARD",
-            ].filter(Boolean).join("\r\n");
-            const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${advisor.name.replace(/\s+/g, "-")}.vcf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-          };
-
-          const handleAddToHomeScreen = async () => {
-            if (deferredInstallPrompt) {
-              deferredInstallPrompt.prompt();
-              await deferredInstallPrompt.userChoice;
-              setDeferredInstallPrompt(null);
-            } else if (isIOS && !isInStandalone) {
-              setShowInstallHint(true);
-            } else {
-              setShowInstallHint(true);
-            }
-          };
-
-          const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
-
-          return (
-            <div className="space-y-2" data-testid="section-utility-buttons">
-              {/* Row 1: Share + WhatsApp */}
-              <div className={`grid gap-2 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`}>
-                <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
-                  <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
-                  {shareCopied ? "Link Copied!" : "Share Profile"}
-                </button>
-                {hasWhatsApp && (
-                  <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
-                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    WhatsApp Me
-                  </a>
-                )}
-              </div>
-
-              {/* Row 2: Save Business Card + Add to Home Screen */}
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={handleSaveCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-card">
-                  <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
-                  Save Business Card
-                </button>
-                <button onClick={handleAddToHomeScreen} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-add-home-screen">
-                  <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
-                  Add to Home Screen
-                </button>
-              </div>
-
-              {/* iOS / fallback install hint */}
-              {showInstallHint && (
-                <div className="rounded-lg p-3 text-xs text-center space-y-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.subText, border: `1px solid ${tc.borderColor}` }} data-testid="install-hint">
-                  {isIOS
-                    ? <p>Tap the <strong>Share</strong> button in Safari, then choose <strong>"Add to Home Screen"</strong> to save this profile as an app icon.</p>
-                    : <p>Open this page in your browser's menu and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</p>
-                  }
-                  <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">Dismiss</button>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {((advisor as any).showAstute || (advisor as any).showDocuments || (advisor as any).showComplimentaryWill) && (
-          <div className="space-y-2.5" data-testid="section-in-dev-links">
-            {(advisor as any).showAstute && (
-              <div className="space-y-1.5">
-                <button
-                  onClick={() => setInDevClicked(inDevClicked === "astute" ? null : "astute")}
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="button-indev-astute"
-                >
-                  <Calculator className="h-4 w-4" />
-                  Money Map
-                </button>
-                <p className="text-center text-xs px-2" style={{ color: mutedText }}>
-                  Get a complete over-view of all your current finances in one place
-                </p>
-                {inDevClicked === "astute" && (
-                  <div className="text-center py-2.5 rounded-lg text-xs font-medium"
-                    style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                    In development — Coming soon
-                  </div>
-                )}
-              </div>
-            )}
-            {(advisor as any).showDocuments && (
-              <div>
-                <button
-                  onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="button-indev-documents"
-                >
-                  <FileText className="h-4 w-4" />
-                  Documents Upload
-                </button>
-                {inDevClicked === "documents" && (
-                  <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium"
-                    style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                    In development — Coming soon
-                  </div>
-                )}
-              </div>
-            )}
-            {(advisor as any).showComplimentaryWill && (
-              <button
-                onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                data-testid="button-claim-will"
-              >
-                <BookOpen className="h-4 w-4" />
-                Claim Your Free Will
-              </button>
-            )}
-          </div>
-        )}
-
+        {/* m. General Financial Media */}
         {(advisor as any).showFinancialMedia && (
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-media">
             <button
@@ -849,56 +803,37 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {(advisor.showCallbackLink !== false || advisor.showReferralsLink !== false) && (
-          <div className="space-y-3 pt-2">
-            {advisor.showCallbackLink !== false && (
-              <button
-                onClick={() => navigate(`/${slug}/request-callback`)}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-                style={{
-                  backgroundColor: tc.buttonBg,
-                  color: tc.buttonText,
-                }}
-                data-testid="button-request-callback"
-              >
-                <Phone className="h-4 w-4" />
-                Request a Call Back
-              </button>
+        {/* n. Contact Details */}
+        {hasContactDetails && (
+          <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-contact">
+            {advisor.email && (
+              <div className="flex items-center gap-3 text-sm">
+                <Mail className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <a href={`mailto:${advisor.email}`} className="hover:underline truncate" style={{ color: textColor }} data-testid="text-contact-email">{advisor.email}</a>
+              </div>
             )}
-            {advisor.showReferralsLink !== false && (
-              <button
-                onClick={() => navigate(`/${slug}/referrals`)}
-                className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-                style={{
-                  backgroundColor: tc.buttonSecondaryBg,
-                  color: accentColor,
-                  border: `1px solid ${tc.initialsCircleBorder}`,
-                }}
-                data-testid="button-refer-friends"
-              >
-                <Users className="h-4 w-4" />
-                Refer Friends & Family
-              </button>
+            {(advisor as any).contactNumber && (
+              <div className="flex items-center gap-3 text-sm">
+                <Phone className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <a href={`tel:${(advisor as any).contactNumber}`} className="hover:underline" style={{ color: textColor }} data-testid="text-contact-phone">{(advisor as any).contactNumber}</a>
+              </div>
+            )}
+            {(advisor as any).workingHours && (
+              <div className="flex items-center gap-3 text-sm">
+                <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <span style={{ color: textColor }} data-testid="text-contact-hours">{(advisor as any).workingHours}</span>
+              </div>
             )}
           </div>
         )}
 
+        {/* o. QR Code / barcode */}
         {advisor.showQrCode !== false && (
           <div className="flex flex-col items-center pt-4 space-y-3" data-testid="section-qr">
-            <div
-              className="p-4 rounded-xl"
-              style={{ backgroundColor: "#ffffff" }}
-            >
-              <QRCodeSVG
-                value={`https://${profileUrl}`}
-                size={200}
-                level="M"
-                data-testid="qr-code"
-              />
+            <div className="p-4 rounded-xl" style={{ backgroundColor: "#ffffff" }}>
+              <QRCodeSVG value={`https://${profileUrl}`} size={200} level="M" data-testid="qr-code" />
             </div>
-            <p className="text-xs" style={{ color: mutedText }} data-testid="text-profile-url">
-              {profileUrl}
-            </p>
+            <p className="text-xs" style={{ color: mutedText }} data-testid="text-profile-url">{profileUrl}</p>
           </div>
         )}
 
