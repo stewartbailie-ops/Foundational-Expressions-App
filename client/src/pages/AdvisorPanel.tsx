@@ -1616,8 +1616,45 @@ function AdditionalProfileForm({
   );
 }
 
+function TSelect({ value, onChange, options, className = "", colors }: {
+  value: string;
+  onChange: (v: string) => void;
+  options: { value: string; label: string }[];
+  className?: string;
+  colors: ReturnType<typeof getThemeColors>;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+  const label = options.find(o => o.value === value)?.label || value;
+  return (
+    <div className={`relative ${className}`} ref={ref}>
+      <button type="button" onClick={() => setOpen(p => !p)} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.textColor }}>
+        <span>{label}</span>
+        <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`} style={{ color: colors.mutedText }} />
+      </button>
+      {open && (
+        <div className="absolute z-50 top-full mt-1 w-full rounded-lg overflow-hidden shadow-xl" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.borderColor}` }}>
+          {options.map(o => (
+            <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm transition-opacity hover:opacity-70" style={{ color: o.value === value ? colors.accentColor : colors.textColor, backgroundColor: o.value === value ? colors.inputBg : "transparent", fontWeight: o.value === value ? 600 : 400 }}>
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
+
+  const [openSections, setOpenSections] = useState({ media: true, tax: false, er: false, ci: false });
+  const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const [newsUrl, setNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
   const [factsUrl, setFactsUrl] = useState((advisor as any).financialsFunFactsUrl || "");
@@ -1627,7 +1664,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [savingMedia, setSavingMedia] = useState(false);
 
   const [taxAmount, setTaxAmount] = useState("");
-  const [taxPeriod, setTaxPeriod] = useState<"monthly" | "annual">("monthly");
+  const [taxPeriod, setTaxPeriod] = useState("monthly");
   const [taxAge, setTaxAge] = useState("35");
   const [medMembers, setMedMembers] = useState("0");
 
@@ -1742,185 +1779,193 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     </div>
   );
 
+  const SectionHeader = ({ sectionKey, icon, title, subtitle }: { sectionKey: keyof typeof openSections; icon: React.ReactNode; title: string; subtitle: string }) => (
+    <button type="button" onClick={() => toggleSection(sectionKey)} className="w-full flex items-center justify-between text-left" style={{ color: tc.textColor }}>
+      <div>
+        <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
+          {icon} {title}
+        </h3>
+        <p className="text-xs mt-0.5" style={ls}>{subtitle}</p>
+      </div>
+      <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${openSections[sectionKey] ? "rotate-180" : ""}`} style={ls} />
+    </button>
+  );
+
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-3 pb-6">
 
       {/* Financial Media */}
-      <div className="rounded-xl p-5 space-y-4" style={cs}>
-        <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
-            <ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} /> Financial Media
-          </h3>
-          <p className="text-xs mt-0.5" style={ls}>Set your MoneyWeb article links — copy & share instantly to your socials. These also appear on your profile under "General Financial Media".</p>
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set your MoneyWeb links — copy & share to socials, and they populate your profile." />
         </div>
-        <select value={selectedMedia} onChange={e => setSelectedMedia(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
-          <option value="news">Latest Financial News</option>
-          <option value="facts">Daily Financial Facts</option>
-          <option value="videos">Financial Tutorial Videos</option>
-        </select>
-        <div className="flex gap-2">
-          <input type="url" value={activeMedia.url} onChange={e => activeMedia.setUrl(e.target.value)} placeholder="https://www.moneyweb.co.za/..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-          <button onClick={handleCopyMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
-            {mediaCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-            {mediaCopied ? "Copied!" : "Copy"}
-          </button>
-          <button onClick={handleShareMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-            <ExternalLink className="h-3.5 w-3.5" /> Share
-          </button>
-        </div>
-        <div className="space-y-2 pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-          <p className="text-xs font-medium pt-2" style={ls}>All 3 links (saved to profile)</p>
-          {[
-            { label: "News", val: newsUrl, set: setNewsUrl },
-            { label: "Fun Facts", val: factsUrl, set: setFactsUrl },
-            { label: "Videos", val: videosUrl, set: setVideosUrl },
-          ].map(({ label, val, set }) => (
-            <div key={label} className="flex items-center gap-2">
-              <span className="text-xs w-20 flex-shrink-0" style={ls}>{label}</span>
-              <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={is} />
+        {openSections.media && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3">
+              <TSelect value={selectedMedia} onChange={setSelectedMedia} colors={tc} options={[
+                { value: "news", label: "Latest Financial News" },
+                { value: "facts", label: "Daily Financial Facts" },
+                { value: "videos", label: "Financial Tutorial Videos" },
+              ]} />
             </div>
-          ))}
-          <button onClick={handleSaveMedia} disabled={savingMedia} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-            {savingMedia ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-            Save Links to Profile
-          </button>
-        </div>
+            <div className="flex gap-2">
+              <input type="url" value={activeMedia.url} onChange={e => activeMedia.setUrl(e.target.value)} placeholder="https://www.moneyweb.co.za/..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              <button onClick={handleCopyMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+                {mediaCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {mediaCopied ? "Copied!" : "Copy"}
+              </button>
+              <button onClick={handleShareMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+                <ExternalLink className="h-3.5 w-3.5" /> Share
+              </button>
+            </div>
+            <div className="space-y-2 pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              <p className="text-xs font-medium pt-2" style={ls}>All 3 links (saved to profile)</p>
+              {[
+                { label: "News", val: newsUrl, set: setNewsUrl },
+                { label: "Fun Facts", val: factsUrl, set: setFactsUrl },
+                { label: "Videos", val: videosUrl, set: setVideosUrl },
+              ].map(({ label, val, set }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-xs w-20 flex-shrink-0" style={ls}>{label}</span>
+                  <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={is} />
+                </div>
+              ))}
+              <button onClick={handleSaveMedia} disabled={savingMedia} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+                {savingMedia ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Save Links to Profile
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SA Tax Calculator */}
-      <div className="rounded-xl p-5 space-y-4" style={cs}>
-        <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
-            <TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} /> SA Tax Calculator
-          </h3>
-          <p className="text-xs mt-0.5" style={ls}>2024/2025 tax year — PAYE including rebates, medical credits & UIF.</p>
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="tax" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Tax Calculator" subtitle="2024/2025 — PAYE including rebates, medical credits & UIF." />
         </div>
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <label className="text-xs" style={ls}>Gross Income</label>
-            <div className="flex gap-2">
-              <input type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)} placeholder="e.g. 25000" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-              <select value={taxPeriod} onChange={e => setTaxPeriod(e.target.value as "monthly" | "annual")} className="px-2 py-2 rounded-lg text-sm outline-none" style={is}>
-                <option value="monthly">/ month</option>
-                <option value="annual">/ year</option>
-              </select>
+        {openSections.tax && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3 space-y-1">
+              <label className="text-xs" style={ls}>Gross Income</label>
+              <div className="flex gap-2">
+                <input type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)} placeholder="e.g. 25000" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+                <TSelect value={taxPeriod} onChange={setTaxPeriod} colors={tc} className="w-28" options={[
+                  { value: "monthly", label: "/ month" },
+                  { value: "annual", label: "/ year" },
+                ]} />
+              </div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-1">
-              <label className="text-xs" style={ls}>Age</label>
-              <input type="number" value={taxAge} onChange={e => setTaxAge(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Age</label>
+                <input type="number" value={taxAge} onChange={e => setTaxAge(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Medical Aid Members</label>
+                <TSelect value={medMembers} onChange={setMedMembers} colors={tc} options={[0,1,2,3,4,5,6].map(n => ({ value: String(n), label: n === 0 ? "None" : `${n} member${n > 1 ? "s" : ""}` }))} />
+              </div>
             </div>
-            <div className="space-y-1">
-              <label className="text-xs" style={ls}>Medical Aid Members</label>
-              <select value={medMembers} onChange={e => setMedMembers(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
-                {[0,1,2,3,4,5,6].map(n => <option key={n} value={n}>{n === 0 ? "None" : `${n} member${n > 1 ? "s" : ""}`}</option>)}
-              </select>
-            </div>
+            {taxResult ? (
+              <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                <ResultRow label="Gross Annual Income" value={ZAR(taxResult.annual)} />
+                <ResultRow label="PAYE Tax" value={ZAR(taxResult.tax)} accent />
+                <ResultRow label="UIF" value={ZAR(taxResult.uif)} />
+                <ResultRow label="Effective Tax Rate" value={`${taxResult.effective.toFixed(2)}%`} accent />
+                <ResultRow label="Monthly Tax" value={ZAR(taxResult.tax / 12)} />
+                <ResultRow label="Monthly Take-home" value={ZAR(taxResult.net / 12)} accent />
+                <ResultRow label="Annual Take-home" value={ZAR(taxResult.net)} accent />
+              </div>
+            ) : (
+              <p className="text-xs text-center py-3" style={ls}>Enter a gross income amount to calculate</p>
+            )}
           </div>
-        </div>
-        {taxResult ? (
-          <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-            <ResultRow label="Gross Annual Income" value={ZAR(taxResult.annual)} />
-            <ResultRow label="PAYE Tax" value={ZAR(taxResult.tax)} accent />
-            <ResultRow label="UIF" value={ZAR(taxResult.uif)} />
-            <ResultRow label="Effective Tax Rate" value={`${taxResult.effective.toFixed(2)}%`} accent />
-            <ResultRow label="Monthly Tax" value={ZAR(taxResult.tax / 12)} />
-            <ResultRow label="Monthly Take-home" value={ZAR(taxResult.net / 12)} accent />
-            <ResultRow label="Annual Take-home" value={ZAR(taxResult.net)} accent />
-          </div>
-        ) : (
-          <p className="text-xs text-center py-3" style={ls}>Enter a gross income amount to calculate</p>
         )}
       </div>
 
       {/* Exchange Rate Calculator */}
-      <div className="rounded-xl p-5 space-y-4" style={cs}>
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
-              <ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} /> Exchange Rate Calculator
-            </h3>
-            <p className="text-xs mt-0.5" style={ls}>Live rates via ExchangeRate-API{erUpdated ? ` · ${erUpdated}` : ""}</p>
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4 flex items-center justify-between gap-3">
+          <div className="flex-1">
+            <SectionHeader sectionKey="er" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Exchange Rate Calculator" subtitle={`Live rates via ExchangeRate-API${erUpdated ? ` · ${erUpdated}` : ""}`} />
           </div>
-          <button onClick={() => fetchRates(erFrom)} className="p-1.5 rounded-lg transition-opacity hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+          <button type="button" onClick={e => { e.stopPropagation(); fetchRates(erFrom); }} className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
             <RefreshCw className={`h-3.5 w-3.5 ${erLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
           </button>
         </div>
-        <div className="space-y-2">
-          <div className="flex gap-2">
-            <input type="number" value={erAmount} onChange={e => setErAmount(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-            <select value={erFrom} onChange={e => setErFrom(e.target.value)} className="w-24 px-2 py-2 rounded-lg text-sm outline-none" style={is}>
-              {erCurrencies.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+        {openSections.er && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3 flex gap-2">
+              <input type="number" value={erAmount} onChange={e => setErAmount(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              <TSelect value={erFrom} onChange={setErFrom} colors={tc} className="w-24" options={erCurrencies.map(c => ({ value: c, label: c }))} />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
+              <ArrowLeftRight className="h-3.5 w-3.5 flex-shrink-0" style={ls} />
+              <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
+            </div>
+            <TSelect value={erTo} onChange={setErTo} colors={tc} options={erCurrencies.filter(c => c !== erFrom).map(c => ({ value: c, label: c }))} />
+            {erLoading ? (
+              <div className="flex items-center justify-center gap-2 py-3">
+                <Loader2 className="h-4 w-4 animate-spin" style={ls} />
+                <span className="text-xs" style={ls}>Fetching rates…</span>
+              </div>
+            ) : erConverted !== null ? (
+              <div className="rounded-lg p-4 text-center" style={{ backgroundColor: tc.inputBg }}>
+                <p className="text-2xl font-bold" style={{ color: tc.accentColor }}>
+                  {erConverted.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {erTo}
+                </p>
+                <p className="text-xs mt-1" style={ls}>1 {erFrom} = {erRate?.toFixed(5)} {erTo}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-center py-3" style={ls}>Could not fetch rates. Check connection and try refreshing.</p>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
-            <ArrowLeftRight className="h-3.5 w-3.5 flex-shrink-0" style={ls} />
-            <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
-          </div>
-          <select value={erTo} onChange={e => setErTo(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
-            {erCurrencies.filter(c => c !== erFrom).map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-        {erLoading ? (
-          <div className="flex items-center justify-center gap-2 py-3">
-            <Loader2 className="h-4 w-4 animate-spin" style={ls} />
-            <span className="text-xs" style={ls}>Fetching rates…</span>
-          </div>
-        ) : erConverted !== null ? (
-          <div className="rounded-lg p-4 text-center" style={{ backgroundColor: tc.inputBg }}>
-            <p className="text-2xl font-bold" style={{ color: tc.accentColor }}>
-              {erConverted.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {erTo}
-            </p>
-            <p className="text-xs mt-1" style={ls}>1 {erFrom} = {erRate?.toFixed(5)} {erTo}</p>
-          </div>
-        ) : (
-          <p className="text-xs text-center py-3" style={ls}>Could not fetch rates. Check connection and try refreshing.</p>
         )}
       </div>
 
       {/* Compound Interest Calculator */}
-      <div className="rounded-xl p-5 space-y-4" style={cs}>
-        <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
-            <TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} /> Compound Interest Calculator
-          </h3>
-          <p className="text-xs mt-0.5" style={ls}>Calculate future value with regular monthly contributions.</p>
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="ci" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Compound Interest Calculator" subtitle="Future value with regular monthly contributions." />
         </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1">
-            <label className="text-xs" style={ls}>Principal (R)</label>
-            <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+        {openSections.ci && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3 grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Principal (R)</label>
+                <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Annual Rate (%)</label>
+                <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Years</label>
+                <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Monthly Contribution (R)</label>
+                <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <label className="text-xs" style={ls}>Compounding Frequency</label>
+                <TSelect value={ciFreq} onChange={setCiFreq} colors={tc} options={[
+                  { value: "1", label: "Annually" },
+                  { value: "2", label: "Semi-annually" },
+                  { value: "4", label: "Quarterly" },
+                  { value: "12", label: "Monthly" },
+                  { value: "365", label: "Daily" },
+                ]} />
+              </div>
+            </div>
+            <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+              <ResultRow label="Total Contributions" value={ZAR(ci.contributions)} />
+              <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
+              <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
+            </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs" style={ls}>Annual Rate (%)</label>
-            <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs" style={ls}>Years</label>
-            <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs" style={ls}>Monthly Contribution (R)</label>
-            <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-          </div>
-          <div className="col-span-2 space-y-1">
-            <label className="text-xs" style={ls}>Compounding Frequency</label>
-            <select value={ciFreq} onChange={e => setCiFreq(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
-              <option value="1">Annually</option>
-              <option value="2">Semi-annually</option>
-              <option value="4">Quarterly</option>
-              <option value="12">Monthly</option>
-              <option value="365">Daily</option>
-            </select>
-          </div>
-        </div>
-        <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-          <ResultRow label="Total Contributions" value={ZAR(ci.contributions)} />
-          <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
-          <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
-        </div>
+        )}
       </div>
 
     </div>
