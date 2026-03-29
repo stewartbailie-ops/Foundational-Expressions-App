@@ -5,7 +5,7 @@ if (apiKey) {
   sgMail.setApiKey(apiKey);
 }
 
-const MASTER_EMAIL = "info@advisoryconnect.pro";
+const MASTER_EMAIL = "info@corefinancials.org";
 
 export async function sendEmail(
   to: string | string[],
@@ -23,6 +23,7 @@ export async function sendEmail(
   const msg = {
     to: recipients,
     from: from || MASTER_EMAIL,
+    replyTo: MASTER_EMAIL,
     subject,
     html,
   };
