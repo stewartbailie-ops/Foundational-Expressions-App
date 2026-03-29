@@ -706,6 +706,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(advisor.corporateServices || []);
   const [theme, setTheme] = useState(advisor.theme || "blue");
   const [backgroundStyle, setBackgroundStyle] = useState<number>((advisor as any).backgroundStyle || 1);
+  const [email, setEmail] = useState(advisor.email || "");
   const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
   const [location, setLocation] = useState((advisor as any).location || "");
   const [workingHours, setWorkingHours] = useState((advisor as any).workingHours || "");
@@ -730,6 +731,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     mutationFn: async () => {
       const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}`, {
         name,
+        email: email.trim() || advisor.email,
         title,
         bioOption,
         bio: bioOption === "custom" ? customBio : BIO_OPTIONS[bioOption] || "",
@@ -908,6 +910,19 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               <select value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="select-profile-title">
                 {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#ffffff", color: tc.textColor }}>{t}</option>)}
               </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Notification Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="email@example.com"
+                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+                data-testid="input-notification-email"
+              />
+              <p className="text-xs" style={{ color: tc.mutedText }}>All form submissions (callbacks, referrals, wills) will be sent here.</p>
             </div>
           </div>
         </div>
