@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Send } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
@@ -70,6 +71,8 @@ export default function CallbackForm() {
   });
 
   const [submitted, setSubmitted] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
@@ -84,6 +87,7 @@ export default function CallbackForm() {
       return res.json();
     },
     onSuccess: () => setSubmitted(true),
+    onError: () => { recaptchaRef.current?.reset(); setRecaptchaToken(null); },
   });
 
   if (isLoading) {
@@ -170,7 +174,8 @@ export default function CallbackForm() {
     formData.firstName.trim() &&
     formData.surname.trim() &&
     formData.phone.trim() &&
-    formData.confirmOver18;
+    formData.confirmOver18 &&
+    !!recaptchaToken;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -191,6 +196,7 @@ export default function CallbackForm() {
       preferredContactTime: formData.preferredContactTime,
       servicesRequested: formData.selectedServices.join(", "),
       source: "callback-form",
+      recaptchaToken: recaptchaToken ?? undefined,
     });
   };
 
@@ -436,6 +442,16 @@ export default function CallbackForm() {
               <span>I confirm I am over 18 <span style={{ color: "#ef4444" }}>*</span></span>
             </label>
 
+          </div>
+
+          <div className="flex justify-center" data-testid="recaptcha-callback">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ""}
+              theme={tc.isDark ? "dark" : "light"}
+              onChange={(token) => setRecaptchaToken(token)}
+              onExpired={() => setRecaptchaToken(null)}
+            />
           </div>
 
           {mutation.isError && (

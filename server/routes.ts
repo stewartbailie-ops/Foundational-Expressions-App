@@ -7,6 +7,22 @@ import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 
+async function verifyRecaptcha(token: string): Promise<boolean> {
+  try {
+    const secret = process.env.RECAPTCHA_SECRET_KEY;
+    if (!secret) return true; // skip if not configured
+    const response = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: `secret=${secret}&response=${token}`,
+    });
+    const data = await response.json() as { success: boolean };
+    return data.success === true;
+  } catch {
+    return false;
+  }
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -240,6 +256,7 @@ export async function registerRoutes(
         referrerRelation: z.string().optional(),
         message: z.string().optional(),
         source: z.string().optional(),
+        recaptchaToken: z.string().optional(),
       });
 
       const parsed = schema.safeParse(req.body);
@@ -248,6 +265,13 @@ export async function registerRoutes(
       }
 
       const data = parsed.data;
+
+      if (data.recaptchaToken) {
+        const valid = await verifyRecaptcha(data.recaptchaToken);
+        if (!valid) {
+          return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
+        }
+      }
       const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
 
       const email = await storage.createEmail({
@@ -328,6 +352,7 @@ export async function registerRoutes(
         servicesRequested: z.string().optional(),
         message: z.string().optional(),
         source: z.string().optional(),
+        recaptchaToken: z.string().optional(),
       });
 
       const parsed = schema.safeParse(req.body);
@@ -336,6 +361,13 @@ export async function registerRoutes(
       }
 
       const data = parsed.data;
+
+      if (data.recaptchaToken) {
+        const valid = await verifyRecaptcha(data.recaptchaToken);
+        if (!valid) {
+          return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
+        }
+      }
       const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry || null);
 
       const email = await storage.createEmail({
