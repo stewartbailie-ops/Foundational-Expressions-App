@@ -1653,7 +1653,7 @@ function TSelect({ value, onChange, options, className = "", colors }: {
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ media: true, tax: false, er: false, ci: false });
+  const [openSections, setOpenSections] = useState({ media: false, tax: false, er: false, ci: false, cal: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   const [newsUrl, setNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
@@ -1687,6 +1687,10 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [ciYears, setCiYears] = useState("10");
   const [ciMonthly, setCiMonthly] = useState("500");
   const [ciFreq, setCiFreq] = useState("12");
+
+  const _today = new Date();
+  const [calYear, setCalYear] = useState(_today.getFullYear());
+  const [calMonth, setCalMonth] = useState(_today.getMonth());
 
   const fetchRates = async (base: string) => {
     setErLoading(true);
@@ -1815,6 +1819,44 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     return { total, contributions, interest: total - contributions };
   };
   const ci = calcCI();
+
+  const getEaster = (year: number) => {
+    const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+    const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    return new Date(year, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+  };
+  const getSAHolidays = (year: number): Record<string, string> => {
+    const easter = getEaster(year);
+    const gf = new Date(easter); gf.setDate(easter.getDate() - 2);
+    const fd = new Date(easter); fd.setDate(easter.getDate() + 1);
+    const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return {
+      [`${year}-01-01`]: "New Year's Day",
+      [`${year}-03-21`]: "Human Rights Day",
+      [fmt(gf)]: "Good Friday",
+      [fmt(fd)]: "Family Day",
+      [`${year}-04-27`]: "Freedom Day",
+      [`${year}-05-01`]: "Workers' Day",
+      [`${year}-06-16`]: "Youth Day",
+      [`${year}-08-09`]: "National Women's Day",
+      [`${year}-09-24`]: "Heritage Day",
+      [`${year}-12-16`]: "Day of Reconciliation",
+      [`${year}-12-25`]: "Christmas Day",
+      [`${year}-12-26`]: "Day of Goodwill",
+    };
+  };
+  const saHolidays = getSAHolidays(calYear);
+  const calFirstDay = new Date(calYear, calMonth, 1).getDay();
+  const calDaysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayKey = `${_today.getFullYear()}-${String(_today.getMonth()+1).padStart(2,'0')}-${String(_today.getDate()).padStart(2,'0')}`;
+  const calPrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); };
+  const calNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); };
+  const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+  const holidaysThisMonth = Object.entries(saHolidays).filter(([k]) => k.startsWith(`${calYear}-${String(calMonth+1).padStart(2,'0')}`));
 
   const is = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
   const cs = { backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` };
@@ -2088,6 +2130,95 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
               <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
               <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
             </div>
+          </div>
+        )}
+      </div>
+
+      {/* SA Calendar */}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="cal" icon={<span className="text-sm" style={{ color: tc.accentColor }}>📅</span>} title="SA Calendar" subtitle="South African public holidays — navigate by month." />
+        </div>
+        {openSections.cal && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+
+            {/* Month nav */}
+            <div className="flex items-center justify-between pt-3">
+              <button type="button" onClick={calPrevMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>
+                <ChevronDown className="h-4 w-4 rotate-90" />
+              </button>
+              <div className="text-center">
+                <p className="text-sm font-semibold" style={{ color: tc.textColor }}>{MONTH_NAMES[calMonth]} {calYear}</p>
+              </div>
+              <button type="button" onClick={calNextMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>
+                <ChevronDown className="h-4 w-4 -rotate-90" />
+              </button>
+            </div>
+
+            {/* Day headers */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {DAY_NAMES.map(d => (
+                <div key={d} className="text-center text-xs font-medium py-1" style={{ color: d === "Su" || d === "Sa" ? tc.accentColor : tc.mutedText }}>{d}</div>
+              ))}
+            </div>
+
+            {/* Calendar grid */}
+            <div className="grid grid-cols-7 gap-0.5">
+              {Array.from({ length: calFirstDay }, (_, i) => (
+                <div key={`empty-${i}`} />
+              ))}
+              {Array.from({ length: calDaysInMonth }, (_, i) => {
+                const day = i + 1;
+                const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                const isToday = dateKey === todayKey;
+                const holiday = saHolidays[dateKey];
+                const dow = (calFirstDay + i) % 7;
+                const isWeekend = dow === 0 || dow === 6;
+                return (
+                  <div key={day} title={holiday || ""} className="relative text-center text-xs py-1.5 rounded-md cursor-default" style={{
+                    backgroundColor: isToday ? tc.accentColor : holiday ? tc.buttonSecondaryBg : "transparent",
+                    color: isToday ? tc.buttonText : holiday ? tc.accentColor : isWeekend ? tc.accentColor : tc.textColor,
+                    fontWeight: isToday || holiday ? 700 : isWeekend ? 500 : 400,
+                    opacity: 1,
+                  }}>
+                    {day}
+                    {holiday && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ backgroundColor: tc.accentColor }} />}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Holidays this month */}
+            {holidaysThisMonth.length > 0 && (
+              <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+                <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>Public Holidays This Month</p>
+                {holidaysThisMonth.sort(([a],[b]) => a.localeCompare(b)).map(([dateKey, name]) => {
+                  const day = parseInt(dateKey.split("-")[2]);
+                  return (
+                    <div key={dateKey} className="flex items-center justify-between">
+                      <span className="text-xs" style={{ color: tc.textColor }}>{name}</span>
+                      <span className="text-xs font-medium" style={{ color: tc.mutedText }}>{day} {MONTH_NAMES[calMonth].slice(0,3)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Full year upcoming holidays */}
+            <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>All SA Public Holidays {calYear}</p>
+              {Object.entries(saHolidays).sort(([a],[b]) => a.localeCompare(b)).map(([dateKey, name]) => {
+                const [y, m, d] = dateKey.split("-").map(Number);
+                const isPast = new Date(y, m-1, d) < new Date(_today.getFullYear(), _today.getMonth(), _today.getDate());
+                return (
+                  <div key={dateKey} className="flex items-center justify-between" style={{ opacity: isPast ? 0.45 : 1 }}>
+                    <span className="text-xs" style={{ color: tc.textColor }}>{name}</span>
+                    <span className="text-xs font-medium" style={{ color: tc.mutedText }}>{d} {MONTH_NAMES[m-1].slice(0,3)}</span>
+                  </div>
+                );
+              })}
+            </div>
+
           </div>
         )}
       </div>
