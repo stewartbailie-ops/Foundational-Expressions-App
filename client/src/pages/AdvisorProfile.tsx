@@ -412,6 +412,8 @@ function ServiceGroupDropdown({
 
 type Lang = "en" | "af" | "zu";
 
+type ServiceTrans = { name: string; description: string };
+
 const TRANSLATIONS: Record<Lang, {
   shareProfile: string; linkCopied: string; whatsappMe: string; saveCard: string; addHomeScreen: string;
   iosHint: string; browserHint: string; dismiss: string;
@@ -422,6 +424,9 @@ const TRANSLATIONS: Record<Lang, {
   linkedin: string; facebook: string; instagram: string; youtube: string; website: string;
   financialMedia: string; latestNews: string; funfacts: string; tutorials: string;
   poweredBy: string;
+  bioOptions: Record<string, string>;
+  indServices: Record<string, ServiceTrans>;
+  corpServices: Record<string, ServiceTrans>;
 }> = {
   en: {
     shareProfile: "Share Profile", linkCopied: "Link Copied!", whatsappMe: "WhatsApp Me",
@@ -439,6 +444,27 @@ const TRANSLATIONS: Record<Lang, {
     financialMedia: "General Financial Media", latestNews: "Latest Financial News",
     funfacts: "Daily Financial Fun-facts", tutorials: "Financial Tutorial Videos",
     poweredBy: "Powered by Advisory Connect",
+    bioOptions: {
+      a: "Your single point of contact for all your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services provided.\n\nShould you wish to explore how our advisory services may add value, you are welcome to arrange a consultation at your convenience.",
+      b: "Your single point of contact for your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services and solutions available. Should you, or anyone within your network, wish to discuss your requirements further, you are welcome to request a call-back or consultation at a convenient time.",
+      c: "Thank you for the opportunity to share a brief overview of the value I strive to deliver to my clients.\n\nMy objective is to deliver clarity, structure, and sustainable growth through disciplined strategy and professional oversight. A concise outline of my services is available in the sections below.\n\nShould you, or anyone within your network, wish to explore how our services may add value, you are welcome to share this link, request a consultation, or arrange a call at a time that suits you. We look forward to connecting and assisting further.",
+    },
+    indServices: {
+      "tax-efficiency": { name: "Optimize Tax Efficiency", description: "Strategic tax planning to minimize your tax burden while maintaining full compliance. We analyze your financial situation to identify legitimate tax-saving opportunities and implement structures that optimize your after-tax returns." },
+      "tax-investment": { name: "Tax-free Savings Accounts", description: "Investment strategies designed to maximize returns while minimizing tax impact. We structure portfolios using tax-advantaged vehicles and timing strategies to help grow your wealth more efficiently." },
+      "personal-risk": { name: "Personal Protection Plan", description: "Comprehensive risk assessment and insurance solutions to protect you and your family. We evaluate your unique circumstances to recommend appropriate life, disability, and income protection cover." },
+      "retirement": { name: "Retirement Planning", description: "End-to-end retirement planning from accumulation through to comfortable retirement. We help you set realistic goals, choose appropriate retirement vehicles, and plan for a sustainable income in retirement." },
+      "medical-aid": { name: "Medical Aid", description: "Expert guidance on selecting the right medical aid plan for your needs and budget. We compare options across providers to ensure you get comprehensive healthcare coverage at the best possible value." },
+      "short-term": { name: "Short-term Insurance", description: "Protection for your assets including home, vehicle, and personal belongings. We assess your risk profile and recommend tailored short-term insurance solutions that provide adequate cover without overpaying." },
+      "wills-estates": { name: "Wills, Estates & Trusts", description: "Professional estate planning and will drafting to ensure your wishes are clearly documented and support effective estate planning and legacy protection. As part of our commitment to supporting your long-term wellbeing, we offer a complimentary Will." },
+    },
+    corpServices: {
+      "corporate-planning": { name: "Corporate Planning", description: "Strategic financial planning for businesses. Our solutions help businesses attract, retain, and protect their most valuable assets: their people." },
+      "group-risk": { name: "Group Protection Plan", description: "Comprehensive group life, disability, and income protection solutions to safeguard employees and ensure business continuity in the event of unforeseen circumstances." },
+      "pension-provident": { name: "Pension/Provident Funds", description: "End-to-end retirement fund setup plans that allow employees to build their futures with contributions held in an acceptable structure." },
+      "group-medical": { name: "Group Medical Aid", description: "Access to a central healthcare solution for employees. The process includes analysis to determine the best group medical aid provider." },
+      "corporate-short-term": { name: "Corporate Short-Term Insurance", description: "Tailored coverage for company vehicles, equipment, offices, and facilities, with competitive premiums and comprehensive protection." },
+    },
   },
   af: {
     shareProfile: "Deel Profiel", linkCopied: "Skakel Gekopieer!", whatsappMe: "WhatsApp My",
@@ -456,6 +482,27 @@ const TRANSLATIONS: Record<Lang, {
     financialMedia: "Finansiële Media", latestNews: "Nuutste Finansiële Nuus",
     funfacts: "Daaglikse Finansiële Feite", tutorials: "Finansiële Tutoriaalvideo's",
     poweredBy: "Aangedryf deur Advisory Connect",
+    bioOptions: {
+      a: "U enkel kontakpunt vir al u finansiële behoeftes en rykdomsbeplanning. Sien asseblief die afrolafdelings hieronder vir 'n bondige oorsig van dienste wat gelewer word.\n\nSkuld u dit aan uself om te ondersoek hoe ons adviesdienste waarde kan toevoeg, is u welkom om 'n konsultasie na u gerief te reël.",
+      b: "U enkel kontakpunt vir u finansiële behoeftes en rykdomsbeplanning. Sien asseblief die afrolafdelings hieronder vir 'n bondige oorsig van beskikbare dienste en oplossings. Indien u, of enigiemand in u netwerk, u vereistes verder wil bespreek, is u welkom om 'n terugbel of konsultasie op 'n geskikte tyd te versoek.",
+      c: "Dankie vir die geleentheid om 'n kort oorsig te deel van die waarde wat ek probeer lewer aan my kliënte.\n\nMy doel is om duidelikheid, struktuur en volhoubare groei te lewer deur gedissiplineerde strategie en professionele toesig. 'n Bondige uiteensetting van my dienste is beskikbaar in die afdelings hieronder.\n\nSkuld u, of enigiemand in u netwerk, dit om te ondersoek hoe ons dienste waarde kan toevoeg, is u welkom om hierdie skakel te deel, 'n konsultasie te versoek, of 'n gesprek te reël op 'n tyd wat u pas. Ons sien uit daarna om verder te verbind en te help.",
+    },
+    indServices: {
+      "tax-efficiency": { name: "Optimiseer Belastingdoeltreffendheid", description: "Strategies belastingbeplanning om u belastinglas te minimeer terwyl volle nakoming gehandhaaf word. Ons ontleed u finansiële situasie om wettige belastingbesparingsgeleenthede te identifiseer en strukture te implementeer wat u na-belasting opbrengste optimiseer." },
+      "tax-investment": { name: "Belastingvrye Spaarrekeninge", description: "Beleggingstrategieë ontwerp om opbrengste te maksimeer terwyl belastingimpak gemimiseer word. Ons struktureer portefeuljes met belastingbevoordeelde voertuie en tydstrategieë om u rykdom doeltreffender te laat groei." },
+      "personal-risk": { name: "Persoonlike Beskermingsplan", description: "Omvattende risikobeoordeling en versekeringsoplossings om u en u gesin te beskerm. Ons evalueer u unieke omstandighede om gepaste lewens-, ongeskiktheids- en inkomstebeskermingsdekking aan te beveel." },
+      "retirement": { name: "Aftreebeplanning", description: "Volledige aftreebeplanning van akkumulasie tot gemaklike aftrede. Ons help u om realistiese doelwitte te stel, gepaste aftreevoertuie te kies, en te beplan vir 'n volhoubare inkomste met aftrede." },
+      "medical-aid": { name: "Mediese Hulp", description: "Kundige leiding oor die keuse van die regte mediese hulpplan vir u behoeftes en begroting. Ons vergelyk opsies oor verskaffers heen om te verseker dat u omvattende gesondheidsorgdekking teen die beste moontlike waarde kry." },
+      "short-term": { name: "Korttermynversekering", description: "Beskerming vir u bates insluitend huis, voertuig en persoonlike besittings. Ons assesseer u risikoprofiel en beveel gepaste korttermynversekeringsoplossings aan wat voldoende dekking bied sonder oorbetaling." },
+      "wills-estates": { name: "Testamente, Boedels & Trusts", description: "Professionele boedelbeplanning en opstel van testamente om te verseker dat u wense duidelik gedokumenteer is en effektiewe boedelbeplanning en erfenisbeskerming ondersteun. As deel van ons verbintenis tot u langtermyn welstand, bied ons 'n gratis Testament aan." },
+    },
+    corpServices: {
+      "corporate-planning": { name: "Korporatiewe Beplanning", description: "Strategies finansiële beplanning vir besighede. Ons oplossings help besighede om hul mees waardevolle bates aan te trek, te behou en te beskerm: hul mense." },
+      "group-risk": { name: "Groepsbeskermingsplan", description: "Omvattende groepslewe-, ongeskiktheids- en inkomstebeskermingsoplossings om werknemers te beskerm en besigheidskontinuïteit te verseker in die geval van onvoorsiene omstandighede." },
+      "pension-provident": { name: "Pensioen/Voorsieningsfondse", description: "Volledige opstel van aftreefondse wat werknemers in staat stel om hul toekoms te bou met bydraes in 'n aanvaarbare struktuur." },
+      "group-medical": { name: "Groep Mediese Hulp", description: "Toegang tot 'n sentrale gesondheidsorgoplossing vir werknemers. Die proses sluit ontleding in om die beste groep mediese hulpverskaffer te bepaal." },
+      "corporate-short-term": { name: "Korporatiewe Korttermynversekering", description: "Pasgemaakte dekking vir maatskappyvoertuie, toerusting, kantore en fasiliteite, met mededingende premies en omvattende beskerming." },
+    },
   },
   zu: {
     shareProfile: "Yabelana Ngeprofile", linkCopied: "Isikhopishiwe!", whatsappMe: "Ngi-WhatsApp",
@@ -473,6 +520,27 @@ const TRANSLATIONS: Record<Lang, {
     financialMedia: "Imidiya Yezezimali", latestNews: "Izindaba Zakamuva Zezezimali",
     funfacts: "Izinto Ezinomdlandla Zezezimali Nsuku Zonke", tutorials: "Amavidiyo Okufundisa Ngezezimali",
     poweredBy: "Inikwa Amandla ngu-Advisory Connect",
+    bioOptions: {
+      a: "Uxhumano lwakho olulodwa lwazo zonke izidingo zakho zezimali kanye nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza ezinikezwa.\n\nUma ufisa ukuhlola ukuthi izinsiza zethu zokweluleka zingengeza kanjani inani, wamukelekile ukuhlela ukubonana ngesikhathi esikufanele.",
+      b: "Uxhumano lwakho olulodwa lwezidingo zakho zezimali nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza nezixazululo ezikhona. Uma wena, noma noma ubani emphakathini wakho, efisa ukuxoxa izidingo zakho ukwengeziwe, wamukelekile ukucela ukubizwa noma ukubonana ngesikhathi esihambisana nawe.",
+      c: "Ngiyabonga ngethuba lokwabelana ngehlolojikelele elifushane lwamanani engizama ukunikezela ngawo kubaxhasi bami.\n\nInhloso yami ukuhlinzeka ngokusobala, uhlaka, nokukhula okuqhubekayo ngokulandela isu eliphucukile kanye nokubhekwa okungokomzila. Uhlolojikelele olufushane lwezinsiza zami luyatholakala ezigabeni ezingezansi.\n\nUma wena, noma noma ubani emphakathini wakho, efisa ukuhlola ukuthi izinsiza zethu zingengeza kanjani inani, wamukelekile ukwabelana nale link, ucele ukubonana, noma uhlele ucingo ngesikhathi esikufanele. Sibheke phambili ukuxhumana nokusize ukwengeziwe.",
+    },
+    indServices: {
+      "tax-efficiency": { name: "Hambisa Ukusebenza Kahle Kwerentisi", description: "Ukuhlelwa ngokuhlakanipha kwerentisi ukunciphisa umthwalo wakho werentisi ngokugcina ukuhlonishwa okugcwele. Siphenywa isimo sakho sezimali ukuze sichane amathuba esemthethweni okonga irentisi bese sisebenzisa izinhlaka eziphumelelisa imiphumela yakho ngemuva kwerentisi." },
+      "tax-investment": { name: "Ama-Akhawunti Okonga Makhululi Erentisi", description: "Amasu okutshalwa kwemali aklanywe ukuze aphakamise inzuzo kunciphiswe umthelela werentisi. Sihlelela amafomethi amaportfolio esebenzisa izimali ezinemiphumela yerentisi kanye namasu wesikhathi ukuze inani lakho likhule kahle." },
+      "personal-risk": { name: "Uhlelo Lokuvikelwa Komuntu", description: "Ukuhlolwa kwebhizinisi ngokukhulu kanye nezixazululo zomshwalense ukuvikela wena nomndeni wakho. Sihlola izimo zakho ezihlukile ukuze sisikisele amahlelo afanelekile empilo, ukukhulula, kanye nokukhusela inzuzo." },
+      "retirement": { name: "Ukuhlelwa Komhlalaphansi", description: "Ukuhlelwa komhlalaphansi okuphelele kusukela ekuqoqeni kuze kube umhlalaphansi ojababulayo. Sikusize ukubeka izinhloso ezifanele, ukukhetha izimali ezifanelekile zomhlalaphansi, nokuhlela izinzuzo ezihlala zikhona ekuphumeni emsebenzini." },
+      "medical-aid": { name: "Usizo Lezempilo", description: "Iseluleko esinolwazi ekukhetheni uhlelo lokusiza lwezempilo olufanelekile izidingo zakho nezimali. Siqhathanisa izinketho kubanikeli ukuqinisekisa ukuthi uthole ukuvikelwa kwezempilo okuphelele ngenani eliphaqa." },
+      "short-term": { name: "Umshwalense Wesikhathi Esifushane", description: "Ukuvikelwa kwempahla yakho okufaka ikhaya, imoto, nazo zonke izimpahla zakho. Sihlola iprofile yakho yobungozi bese sisikisela izixazululo zomshwalense zesikhathi esifushane ezifanelekile ezinikeza ukuphathwa okufanele ngaphandle kokukhokha ngokweqile." },
+      "wills-estates": { name: "Amachwane, Amafa Nezitrust", description: "Ukuhlelwa kwedlela ngokwemfundi kanye nokubhalwa kwamachwane ukuqinisekisa ukuthi izifiso zakho zibhalwe ngokusobala futhi zisekele ukuhlelwa kwedlela okusebenzayo kanye nokunakwa kwamagugu. Njengengxenye yokuzibophezela kwethu ekusekeleni impilo yakho yesikhathi eside, sinikeza iChwane olukhululekile." },
+    },
+    corpServices: {
+      "corporate-planning": { name: "Ukuhlelwa Kwezinkampani", description: "Ukuhlelwa kwezimali ngokuhlakanipha kwamabhizinisi. Izixazululo zethu zisiza amabhizinisi ukuheha, ukugcina, nokuvikela impahla yawo ebalulekile: abantu bawo." },
+      "group-risk": { name: "Uhlelo Lokuvikelwa Kweqembu", description: "Izixazululo eziphelelwe zokuphila kweqembu, ukukhulula, kanye nokukhusela inzuzo ukuvikela abasebenzi nokuqinisekisa ukuqhubeka kwebhizinisi uma kukhona izimo ezingalindelekile." },
+      "pension-provident": { name: "Izimali Zomhlalaphansi/Izimali Zokunakekela", description: "Ukusetiwa kwezimali zomhlalaphansi ukuvumela abasebenzi ukuthi bakhe ikusasa labo ngeminikelo ephethwe ohlelweni olwamukelekile." },
+      "group-medical": { name: "Usizo Lezempilo Leqembu", description: "Ukufinyelela isixazululo esiphakathi sezempilo sabasebenzi. Inqubo ifaka ukuhlaziya ukuze kuqondakale isikhungo esisiza abasebenzi ngezempilo." },
+      "corporate-short-term": { name: "Umshwalense Wesikhathi Esifushane Wenkampani", description: "Ukuvikelwa okulungiselwe izimoto zenkampani, izinsizakalo, amahhovisi, nezindawo, ngezilinganiso zokukhokhela ezikhahlamezayo kanye nokunakekelwa okuphelele." },
+    },
   },
 };
 
@@ -562,14 +630,15 @@ export default function AdvisorProfile() {
   const bioText =
     advisor.bioOption === "custom"
       ? advisor.customBio
-      : BIO_OPTIONS[advisor.bioOption || "a"] || "";
+      : t.bioOptions[advisor.bioOption || "a"] || "";
 
   const individualServices = INDIVIDUAL_SERVICES.filter((s) =>
     advisor.individualServices?.includes(s.key)
-  );
+  ).map((s) => ({ ...s, ...(t.indServices[s.key] || {}) }));
+
   const corporateServices = CORPORATE_SERVICES.filter((s) =>
     advisor.corporateServices?.includes(s.key)
-  );
+  ).map((s) => ({ ...s, ...(t.corpServices[s.key] || {}) }));
 
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
