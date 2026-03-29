@@ -7,6 +7,12 @@ import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 
+const otpStore = new Map<string, { code: string; expires: number }>();
+
+function generateOtp(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
 async function verifyRecaptcha(token: string): Promise<boolean> {
   try {
     const secret = process.env.RECAPTCHA_SECRET_KEY;
@@ -596,6 +602,51 @@ export async function registerRoutes(
     const { advisorId } = req.body;
     await storage.recordStat({ advisorId: advisorId || null, eventType: "app_access" });
     res.json({ success: true });
+  });
+
+  app.post("/api/advisor-auth/:slug/send-otp", async (req, res) => {
+    const { email } = req.body;
+    if (!email) return res.status(400).json({ message: "Email required" });
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(400).json({ message: "Email does not match our records for this advisor" });
+    }
+    const code = generateOtp();
+    otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
+    try {
+      await sendEmail(
+        advisor.email,
+        "Your Advisory Connect Login Code",
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+          <h2 style="color:#4a8db5;margin-bottom:8px;">Your Login Code</h2>
+          <p style="color:#555;margin-bottom:24px;">Use the code below to access your Advisory Connect control panel. It expires in <strong>10 minutes</strong>.</p>
+          <div style="background:#f5f7fa;border-radius:12px;padding:24px;text-align:center;letter-spacing:8px;font-size:36px;font-weight:bold;color:#1a1a1a;">${code}</div>
+          <p style="color:#999;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
+        </div>`
+      );
+    } catch (err) {
+      console.error("OTP email error:", err);
+      return res.status(500).json({ message: "Failed to send OTP email. Please try again." });
+    }
+    res.json({ success: true });
+  });
+
+  app.post("/api/advisor-auth/:slug/verify-otp", async (req, res) => {
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: "Code required" });
+    const entry = otpStore.get(req.params.slug);
+    if (!entry) return res.status(400).json({ message: "No OTP found. Please request a new code." });
+    if (Date.now() > entry.expires) {
+      otpStore.delete(req.params.slug);
+      return res.status(400).json({ message: "Code expired. Please request a new one." });
+    }
+    if (entry.code !== code.trim()) {
+      return res.status(400).json({ message: "Incorrect code. Please try again." });
+    }
+    otpStore.delete(req.params.slug);
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    res.json({ verified: true, passwordSet: advisor?.advisorPasswordSet ?? false });
   });
 
   app.get("/api/advisor-auth/:slug/status", async (req, res) => {

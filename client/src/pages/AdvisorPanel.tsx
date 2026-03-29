@@ -16,6 +16,7 @@ import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIO
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type EmailRow = Email & { advisorName?: string };
 
@@ -37,6 +38,215 @@ function passwordRules(pw: string) {
     number: /[0-9]/.test(pw),
     special: /[^A-Za-z0-9]/.test(pw),
   };
+}
+
+function OtpEmailScreen({ slug, onOtpSent }: { slug: string; onOtpSent: (email: string) => void }) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const { data: advisor } = useQuery<Advisor>({
+    queryKey: [`/api/advisors/slug/${slug}`],
+  });
+
+  const tc = getThemeColors(advisor?.theme);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/advisor-auth/${slug}/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to send code");
+      onOtpSent(email.trim());
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          {advisor?.profilePicUrl ? (
+            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
+          ) : (
+            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+              {advisor ? advisor.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "?"}
+            </div>
+          )}
+          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Advisor"}</h1>
+          <p className="text-sm" style={{ color: tc.mutedText }}>Enter your registered email address to receive a one-time login code.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" style={{ color: tc.textColor }}>Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+                data-testid="input-otp-email"
+                autoComplete="email"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !email.trim()}
+            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-send-otp"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Send Login Code
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function OtpVerifyScreen({ slug, email, onBack, onVerified }: { slug: string; email: string; onBack: () => void; onVerified: (passwordSet: boolean) => void }) {
+  const { toast } = useToast();
+  const [code, setCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(60);
+
+  const { data: advisor } = useQuery<Advisor>({
+    queryKey: [`/api/advisors/slug/${slug}`],
+  });
+
+  const tc = getThemeColors(advisor?.theme);
+
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const handleVerify = async () => {
+    if (code.length !== 6) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/advisor-auth/${slug}/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Invalid code");
+      onVerified(data.passwordSet);
+    } catch (err: any) {
+      toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
+      setCode("");
+    } finally { setLoading(false); }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = await fetch(`/api/advisor-auth/${slug}/send-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      toast({ title: "Code resent", description: "Check your inbox for a new code." });
+      setCountdown(60);
+      setCode("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setResending(false); }
+  };
+
+  useEffect(() => {
+    if (code.length === 6) handleVerify();
+  }, [code]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
+      <div className="w-full max-w-sm space-y-6">
+        <div className="text-center space-y-2">
+          {advisor?.profilePicUrl ? (
+            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
+          ) : (
+            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+              {advisor ? advisor.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "?"}
+            </div>
+          )}
+          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>Check your email</h1>
+          <p className="text-sm" style={{ color: tc.mutedText }}>
+            We sent a 6-digit code to <strong style={{ color: tc.textColor }}>{email}</strong>. Enter it below to continue.
+          </p>
+        </div>
+
+        <div className="rounded-xl p-5 space-y-5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex justify-center">
+            <InputOTP
+              maxLength={6}
+              value={code}
+              onChange={setCode}
+              data-testid="input-otp-code"
+            >
+              <InputOTPGroup>
+                {[0, 1, 2, 3, 4, 5].map(i => (
+                  <InputOTPSlot key={i} index={i} />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+          </div>
+
+          <button
+            onClick={handleVerify}
+            disabled={code.length !== 6 || loading}
+            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-verify-otp"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Verify Code
+          </button>
+        </div>
+
+        <div className="text-center space-y-3">
+          {countdown > 0 ? (
+            <p className="text-sm" style={{ color: tc.mutedText }}>Resend code in {countdown}s</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="text-sm font-medium underline"
+              style={{ color: tc.accentColor }}
+              data-testid="button-resend-otp"
+            >
+              {resending ? "Sending..." : "Resend code"}
+            </button>
+          )}
+          <div>
+            <button
+              onClick={onBack}
+              className="text-sm"
+              style={{ color: tc.mutedText }}
+              data-testid="button-otp-back"
+            >
+              ← Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void }) {
@@ -2422,7 +2632,8 @@ export default function AdvisorPanel() {
   const [, navigate] = useLocation();
   const slug = params?.slug || "";
 
-  const [authState, setAuthState] = useState<"loading" | "set-password" | "login" | "authenticated">("loading");
+  const [authState, setAuthState] = useState<"loading" | "otp-email" | "otp-verify" | "set-password" | "login" | "authenticated">("loading");
+  const [otpEmail, setOtpEmail] = useState("");
   const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles">("toolbox");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
@@ -2441,8 +2652,7 @@ export default function AdvisorPanel() {
         const status = await statusRes.json();
         const session = await sessionRes.json();
         if (session.authenticated) { setAuthState("authenticated"); return; }
-        if (!status.passwordSet) { setAuthState("set-password"); return; }
-        setAuthState("login");
+        setAuthState("otp-email");
       } catch { setAuthState("login"); }
     };
     checkAuth();
@@ -2450,7 +2660,8 @@ export default function AdvisorPanel() {
 
   const handleLogout = async () => {
     await fetch(`/api/advisor-auth/${slug}/logout`, { method: "POST" });
-    setAuthState("login");
+    setOtpEmail("");
+    setAuthState("otp-email");
   };
 
   if (!slug || advisorLoading || authState === "loading") {
@@ -2474,6 +2685,19 @@ export default function AdvisorPanel() {
 
   const tc = getThemeColors(advisor.theme);
 
+  if (authState === "otp-email") {
+    return <OtpEmailScreen slug={slug} onOtpSent={(email) => { setOtpEmail(email); setAuthState("otp-verify"); }} />;
+  }
+  if (authState === "otp-verify") {
+    return (
+      <OtpVerifyScreen
+        slug={slug}
+        email={otpEmail}
+        onBack={() => setAuthState("otp-email")}
+        onVerified={(passwordSet) => setAuthState(passwordSet ? "login" : "set-password")}
+      />
+    );
+  }
   if (authState === "set-password") {
     return <SetPasswordScreen slug={slug} onDone={() => setAuthState("authenticated")} />;
   }

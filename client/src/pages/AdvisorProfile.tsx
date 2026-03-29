@@ -410,6 +410,72 @@ function ServiceGroupDropdown({
   );
 }
 
+type Lang = "en" | "af" | "zu";
+
+const TRANSLATIONS: Record<Lang, {
+  shareProfile: string; linkCopied: string; whatsappMe: string; saveCard: string; addHomeScreen: string;
+  iosHint: string; browserHint: string; dismiss: string;
+  individualServices: string; corporateServices: string;
+  moneyMap: string; moneyMapSub: string;
+  claimWill: string; requestCallback: string; referFriends: string; documentsUpload: string;
+  comingSoon: string;
+  linkedin: string; facebook: string; instagram: string; youtube: string; website: string;
+  financialMedia: string; latestNews: string; funfacts: string; tutorials: string;
+  poweredBy: string;
+}> = {
+  en: {
+    shareProfile: "Share Profile", linkCopied: "Link Copied!", whatsappMe: "WhatsApp Me",
+    saveCard: "Save Business Card", addHomeScreen: "Add to Home Screen",
+    iosHint: `Tap the Share button in Safari, then choose "Add to Home Screen" to save this profile as an app icon.`,
+    browserHint: `Open this page in your browser's menu and tap "Add to Home Screen" or "Install app".`,
+    dismiss: "Dismiss",
+    individualServices: "Individual Services", corporateServices: "Corporate Services",
+    moneyMap: "Money Map", moneyMapSub: "Get a complete over-view of all your current finances in one place",
+    claimWill: "Claim Your Free Will", requestCallback: "Request a Call Back",
+    referFriends: "Refer Friends & Family", documentsUpload: "Documents Upload",
+    comingSoon: "In development — Coming soon",
+    linkedin: "Connect on LinkedIn", facebook: "Follow on Facebook",
+    instagram: "Follow on Instagram", youtube: "Subscribe on YouTube", website: "Visit Website",
+    financialMedia: "General Financial Media", latestNews: "Latest Financial News",
+    funfacts: "Daily Financial Fun-facts", tutorials: "Financial Tutorial Videos",
+    poweredBy: "Powered by Advisory Connect",
+  },
+  af: {
+    shareProfile: "Deel Profiel", linkCopied: "Skakel Gekopieer!", whatsappMe: "WhatsApp My",
+    saveCard: "Stoor Visitekaartjie", addHomeScreen: "Voeg by Tuisskerm",
+    iosHint: `Tik die Deel-knoppie in Safari, en kies dan "Voeg by Tuisskerm" om hierdie profiel as 'n app-ikoon te stoor.`,
+    browserHint: `Maak hierdie bladsy oop in jou blaaier se kieslys en tik "Voeg by Tuisskerm" of "Installeer app".`,
+    dismiss: "Toemaak",
+    individualServices: "Individuele Dienste", corporateServices: "Korporatiewe Dienste",
+    moneyMap: "Geldkaart", moneyMapSub: "Kry 'n volledige oorsig van al u huidige finansies op een plek",
+    claimWill: "Eis u Gratis Testament", requestCallback: "Versoek 'n Terugbel",
+    referFriends: "Verwys Vriende & Familie", documentsUpload: "Laai Dokumente Op",
+    comingSoon: "In ontwikkeling — Binnekort beskikbaar",
+    linkedin: "Verbind op LinkedIn", facebook: "Volg op Facebook",
+    instagram: "Volg op Instagram", youtube: "Teken In op YouTube", website: "Besoek Webwerf",
+    financialMedia: "Finansiële Media", latestNews: "Nuutste Finansiële Nuus",
+    funfacts: "Daaglikse Finansiële Feite", tutorials: "Finansiële Tutoriaalvideo's",
+    poweredBy: "Aangedryf deur Advisory Connect",
+  },
+  zu: {
+    shareProfile: "Yabelana Ngeprofile", linkCopied: "Isikhopishiwe!", whatsappMe: "Ngi-WhatsApp",
+    saveCard: "Gcina Ikhadi Lebhizinisi", addHomeScreen: "Engeza Esikrini Sasekhaya",
+    iosHint: `Thepha inkinobho yeShayi ku-Safari, bese ukhetha "Engeza Esikrini Sasekhaya" ukuze ugcine le profile njenge-icon ye-app.`,
+    browserHint: `Vula leli khasi kumenyu yebrowser yakho bese uthepha "Engeza Esikrini" noma "Faka i-app".`,
+    dismiss: "Vala",
+    individualServices: "Izinsiza Zabantu Siqu", corporateServices: "Izinsiza Zezinkampani",
+    moneyMap: "Imephu Yemali", moneyMapSub: "Thola ukubuka okuphelele kwezimali zakho zonke endaweni eyodwa",
+    claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi",
+    referFriends: "Phendukela Izihlobo Nabangane", documentsUpload: "Layisha Amaxwebe",
+    comingSoon: "Iyakhiwa — Iyoza Maduze",
+    linkedin: "Xhumana ku-LinkedIn", facebook: "Landelela ku-Facebook",
+    instagram: "Landelela ku-Instagram", youtube: "Bhalisela ku-YouTube", website: "Vakashela Iwebhusayithi",
+    financialMedia: "Imidiya Yezezimali", latestNews: "Izindaba Zakamuva Zezezimali",
+    funfacts: "Izinto Ezinomdlandla Zezezimali Nsuku Zonke", tutorials: "Amavidiyo Okufundisa Ngezezimali",
+    poweredBy: "Inikwa Amandla ngu-Advisory Connect",
+  },
+};
+
 export default function AdvisorProfile() {
   const [, profileParams] = useRoute("/profile/:slug");
   const [, directParams] = useRoute("/:slug");
@@ -421,6 +487,7 @@ export default function AdvisorProfile() {
     enabled: !!slug,
   });
 
+  const [lang, setLang] = useState<Lang>("en");
   const [inDevClicked, setInDevClicked] = useState<string | null>(null);
   const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
   const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
@@ -490,6 +557,7 @@ export default function AdvisorProfile() {
   const textColor = tc.textColor;
   const mutedText = tc.mutedText;
   const sectionTitle = tc.sectionTitle;
+  const t = TRANSLATIONS[lang];
 
   const bioText =
     advisor.bioOption === "custom"
@@ -561,6 +629,25 @@ export default function AdvisorProfile() {
     <div className="min-h-screen" style={{ ...themeBg, color: textColor }} data-testid="profile-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
 
+        {/* Language toggle */}
+        <div className="flex justify-end gap-1" data-testid="lang-toggle">
+          {(["en", "af", "zu"] as Lang[]).map((l) => (
+            <button
+              key={l}
+              onClick={() => setLang(l)}
+              className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+              style={{
+                backgroundColor: lang === l ? accentColor : tc.buttonSecondaryBg,
+                color: lang === l ? tc.buttonText : mutedText,
+                border: `1px solid ${lang === l ? accentColor : tc.borderColor}`,
+              }}
+              data-testid={`button-lang-${l}`}
+            >
+              {l === "en" ? "EN" : l === "af" ? "AF" : "ZU"}
+            </button>
+          ))}
+        </div>
+
         {/* a. Header */}
         <div className="flex items-center gap-5 rounded-2xl p-5"
           style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
@@ -598,34 +685,31 @@ export default function AdvisorProfile() {
           <div className={`grid gap-2 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`}>
             <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
               <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
-              {shareCopied ? "Link Copied!" : "Share Profile"}
+              {shareCopied ? t.linkCopied : t.shareProfile}
             </button>
             {hasWhatsApp && (
               <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
-                WhatsApp Me
+                {t.whatsappMe}
               </a>
             )}
           </div>
           <div className="grid grid-cols-2 gap-2">
             <button onClick={handleSaveCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-card">
               <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
-              Save Business Card
+              {t.saveCard}
             </button>
             <button onClick={handleAddToHomeScreen} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-add-home-screen">
               <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
-              Add to Home Screen
+              {t.addHomeScreen}
             </button>
           </div>
           {showInstallHint && (
             <div className="rounded-lg p-3 text-xs text-center space-y-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, border: `1px solid ${tc.borderColor}` }} data-testid="install-hint">
-              {isIOS
-                ? <p>Tap the <strong>Share</strong> button in Safari, then choose <strong>"Add to Home Screen"</strong> to save this profile as an app icon.</p>
-                : <p>Open this page in your browser's menu and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</p>
-              }
-              <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">Dismiss</button>
+              <p>{isIOS ? t.iosHint : t.browserHint}</p>
+              <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">{t.dismiss}</button>
             </div>
           )}
         </div>
@@ -640,7 +724,7 @@ export default function AdvisorProfile() {
         {/* e. Individual Services */}
         {individualServices.length > 0 && (
           <ServiceGroupDropdown
-            title="Individual Services" services={individualServices}
+            title={t.individualServices} services={individualServices}
             borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
             mutedText={mutedText} accentColor={accentColor}
             buttonBg={tc.buttonBg} buttonText={tc.buttonText}
@@ -651,7 +735,7 @@ export default function AdvisorProfile() {
         {/* f. Corporate Services */}
         {corporateServices.length > 0 && (
           <ServiceGroupDropdown
-            title="Corporate Services" services={corporateServices}
+            title={t.corporateServices} services={corporateServices}
             borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
             mutedText={mutedText} accentColor={accentColor}
             buttonBg={tc.buttonBg} buttonText={tc.buttonText}
@@ -669,14 +753,14 @@ export default function AdvisorProfile() {
               data-testid="button-indev-astute"
             >
               <Calculator className="h-4 w-4" />
-              Money Map
+              {t.moneyMap}
             </button>
             <p className="text-center text-xs px-2" style={{ color: mutedText }}>
-              Get a complete over-view of all your current finances in one place
+              {t.moneyMapSub}
             </p>
             {inDevClicked === "astute" && (
               <div className="text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                In development — Coming soon
+                {t.comingSoon}
               </div>
             )}
           </div>
@@ -691,7 +775,7 @@ export default function AdvisorProfile() {
             data-testid="button-claim-will"
           >
             <BookOpen className="h-4 w-4" />
-            Claim Your Free Will
+            {t.claimWill}
           </button>
         )}
 
@@ -704,7 +788,7 @@ export default function AdvisorProfile() {
             data-testid="button-request-callback"
           >
             <Phone className="h-4 w-4" />
-            Request a Call Back
+            {t.requestCallback}
           </button>
         )}
 
@@ -717,7 +801,7 @@ export default function AdvisorProfile() {
             data-testid="button-refer-friends"
           >
             <Users className="h-4 w-4" />
-            Refer Friends & Family
+            {t.referFriends}
           </button>
         )}
 
@@ -731,11 +815,11 @@ export default function AdvisorProfile() {
               data-testid="button-indev-documents"
             >
               <FileText className="h-4 w-4" />
-              Documents Upload
+              {t.documentsUpload}
             </button>
             {inDevClicked === "documents" && (
               <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                In development — Coming soon
+                {t.comingSoon}
               </div>
             )}
           </div>
@@ -745,11 +829,11 @@ export default function AdvisorProfile() {
         {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
           <div className="space-y-2.5" data-testid="section-socials">
             {[
-              { url: advisor.linkedinUrl, label: "Connect on LinkedIn", Icon: Linkedin, testId: "link-linkedin" },
-              { url: (advisor as any).facebookUrl, label: "Follow on Facebook", Icon: Facebook, testId: "link-facebook" },
-              { url: (advisor as any).instagramUrl, label: "Follow on Instagram", Icon: Instagram, testId: "link-instagram" },
-              { url: (advisor as any).youtubeUrl, label: "Subscribe on YouTube", Icon: Youtube, testId: "link-youtube" },
-              { url: advisor.websiteUrl, label: "Visit Website", Icon: Globe, testId: "link-website" },
+              { url: advisor.linkedinUrl, label: t.linkedin, Icon: Linkedin, testId: "link-linkedin" },
+              { url: (advisor as any).facebookUrl, label: t.facebook, Icon: Facebook, testId: "link-facebook" },
+              { url: (advisor as any).instagramUrl, label: t.instagram, Icon: Instagram, testId: "link-instagram" },
+              { url: (advisor as any).youtubeUrl, label: t.youtube, Icon: Youtube, testId: "link-youtube" },
+              { url: advisor.websiteUrl, label: t.website, Icon: Globe, testId: "link-website" },
             ].filter(s => !!s.url).map(({ url, label, Icon, testId }) => (
               <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
@@ -772,16 +856,16 @@ export default function AdvisorProfile() {
             >
               <div className="flex items-center gap-2">
                 <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
-                General Financial Media
+                {t.financialMedia}
               </div>
               {financialMediaOpen ? <ChevronUp className="h-4 w-4" style={{ color: mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: mutedText }} />}
             </button>
             {financialMediaOpen && (
               <div className="px-4 pb-4 pt-2 space-y-2" style={{ backgroundColor: cardBg }}>
                 {[
-                  { key: "news", label: "Latest Financial News", Icon: TrendingUp },
-                  { key: "funfacts", label: "Daily Financial Fun-facts", Icon: Lightbulb },
-                  { key: "videos", label: "Financial Tutorial Videos", Icon: Video },
+                  { key: "news", label: t.latestNews, Icon: TrendingUp },
+                  { key: "funfacts", label: t.funfacts, Icon: Lightbulb },
+                  { key: "videos", label: t.tutorials, Icon: Video },
                 ].map(({ key, label, Icon }) => (
                   <div key={key}>
                     <button
@@ -794,7 +878,7 @@ export default function AdvisorProfile() {
                       {label}
                     </button>
                     {inDevFinancial === key && (
-                      <p className="text-center text-xs mt-1 py-1.5" style={{ color: mutedText }}>In development — Coming soon</p>
+                      <p className="text-center text-xs mt-1 py-1.5" style={{ color: mutedText }}>{t.comingSoon}</p>
                     )}
                   </div>
                 ))}
@@ -838,7 +922,7 @@ export default function AdvisorProfile() {
         )}
 
         <p className="text-center text-xs pt-4 pb-2" style={{ color: mutedText }}>
-          Powered by Advisory Connect
+          {t.poweredBy}
         </p>
       </div>
     </div>
