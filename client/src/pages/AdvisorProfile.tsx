@@ -508,34 +508,41 @@ export default function AdvisorProfile() {
     >
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
 
-        <div className="flex flex-col items-center text-center space-y-4" data-testid="profile-header">
-          {advisor.profilePicUrl ? (
-            <img
-              src={advisor.profilePicUrl}
-              alt={advisor.name}
-              className="w-88 h-88 rounded-full object-cover"
-              style={{ width: 352, height: 352, border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 12px 40px rgba(0,0,0,0.22)" }}
-              data-testid="img-profile-pic"
-            />
-          ) : (
-            <ProfileInitialsBadge
-              initials={initials}
-              theme={advisor.theme || "blue"}
-              size={352}
-              downloadable={true}
-              name={advisor.name}
-            />
-          )}
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight" data-testid="text-advisor-name">
-              {advisor.name}
-            </h1>
-            {advisor.title && (
-              <p className="text-sm mt-1" style={{ color: mutedText }} data-testid="text-advisor-title">
-                {advisor.title}
-              </p>
-            )}
+        <div className="space-y-5" data-testid="profile-header">
+          <div className="flex items-center gap-5 rounded-2xl p-5"
+            style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex-shrink-0">
+              <ProfileInitialsBadge
+                initials={initials}
+                theme={advisor.theme || "blue"}
+                size={100}
+                downloadable={true}
+                name={advisor.name}
+              />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl font-bold tracking-tight leading-tight" data-testid="text-advisor-name" style={{ color: textColor }}>
+                {advisor.name}
+              </h1>
+              {advisor.title && (
+                <p className="text-xs font-semibold mt-1 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
+                  {advisor.title}
+                </p>
+              )}
+            </div>
           </div>
+
+          {advisor.profilePicUrl && advisor.showProfilePic !== false && (
+            <div className="flex justify-center" data-testid="section-profile-pic">
+              <img
+                src={advisor.profilePicUrl}
+                alt={advisor.name}
+                className="rounded-full object-cover"
+                style={{ width: 220, height: 220, border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
+                data-testid="img-profile-pic"
+              />
+            </div>
+          )}
         </div>
 
         {hasContactDetails && (
