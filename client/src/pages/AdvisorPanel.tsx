@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1616,6 +1616,317 @@ function AdditionalProfileForm({
   );
 }
 
+function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+
+  const [newsUrl, setNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
+  const [factsUrl, setFactsUrl] = useState((advisor as any).financialsFunFactsUrl || "");
+  const [videosUrl, setVideosUrl] = useState((advisor as any).financialsVideosUrl || "");
+  const [selectedMedia, setSelectedMedia] = useState("news");
+  const [mediaCopied, setMediaCopied] = useState(false);
+  const [savingMedia, setSavingMedia] = useState(false);
+
+  const [taxAmount, setTaxAmount] = useState("");
+  const [taxPeriod, setTaxPeriod] = useState<"monthly" | "annual">("monthly");
+  const [taxAge, setTaxAge] = useState("35");
+  const [medMembers, setMedMembers] = useState("0");
+
+  const [erAmount, setErAmount] = useState("1000");
+  const [erFrom, setErFrom] = useState("ZAR");
+  const [erTo, setErTo] = useState("USD");
+  const [erRates, setErRates] = useState<Record<string, number> | null>(null);
+  const [erLoading, setErLoading] = useState(false);
+  const [erUpdated, setErUpdated] = useState("");
+
+  const [ciPrincipal, setCiPrincipal] = useState("10000");
+  const [ciRate, setCiRate] = useState("8");
+  const [ciYears, setCiYears] = useState("10");
+  const [ciMonthly, setCiMonthly] = useState("500");
+  const [ciFreq, setCiFreq] = useState("12");
+
+  const fetchRates = async (base: string) => {
+    setErLoading(true);
+    try {
+      const res = await fetch(`https://open.er-api.com/v6/latest/${base}`);
+      const data = await res.json();
+      if (data.result === "success") { setErRates(data.rates); setErUpdated(new Date().toLocaleTimeString()); }
+    } catch { /* silent */ }
+    setErLoading(false);
+  };
+
+  useEffect(() => { fetchRates(erFrom); }, [erFrom]);
+
+  const mediaMap: Record<string, { label: string; url: string; setUrl: (v: string) => void }> = {
+    news: { label: "Latest Financial News", url: newsUrl, setUrl: setNewsUrl },
+    facts: { label: "Daily Financial Facts", url: factsUrl, setUrl: setFactsUrl },
+    videos: { label: "Financial Tutorial Videos", url: videosUrl, setUrl: setVideosUrl },
+  };
+  const activeMedia = mediaMap[selectedMedia];
+
+  const handleCopyMedia = () => {
+    if (!activeMedia.url) return;
+    navigator.clipboard.writeText(activeMedia.url).then(() => { setMediaCopied(true); setTimeout(() => setMediaCopied(false), 2000); });
+  };
+  const handleShareMedia = () => {
+    if (!activeMedia.url) return;
+    if (navigator.share) navigator.share({ url: activeMedia.url, title: activeMedia.label });
+    else handleCopyMedia();
+  };
+  const handleSaveMedia = async () => {
+    setSavingMedia(true);
+    try {
+      await apiRequest("PATCH", `/api/advisors/${advisor.id}`, { financialsNewsUrl: newsUrl || null, financialsFunFactsUrl: factsUrl || null, financialsVideosUrl: videosUrl || null });
+      queryClient.invalidateQueries();
+      toast({ title: "Saved", description: "Financial media links updated on your profile." });
+    } catch { toast({ title: "Error", variant: "destructive" }); }
+    setSavingMedia(false);
+  };
+
+  const calcTax = () => {
+    const raw = parseFloat(taxAmount.replace(/,/g, "")) || 0;
+    const annual = taxPeriod === "monthly" ? raw * 12 : raw;
+    const age = parseInt(taxAge) || 35;
+    const members = parseInt(medMembers) || 0;
+    if (annual === 0) return null;
+    const brackets = [
+      { min: 0, max: 237100, rate: 0.18, base: 0 },
+      { min: 237101, max: 370500, rate: 0.26, base: 42678 },
+      { min: 370501, max: 512800, rate: 0.31, base: 77362 },
+      { min: 512801, max: 673000, rate: 0.36, base: 121475 },
+      { min: 673001, max: 857900, rate: 0.39, base: 179147 },
+      { min: 857901, max: 1817000, rate: 0.41, base: 251258 },
+      { min: 1817001, max: Infinity, rate: 0.45, base: 644489 },
+    ];
+    let grossTax = 0;
+    for (const b of brackets) { if (annual >= b.min) grossTax = b.base + (Math.min(annual, b.max) - b.min) * b.rate; }
+    let rebate = 17235;
+    if (age >= 65) rebate += 9444;
+    if (age >= 75) rebate += 3145;
+    const medCredit = members === 0 ? 0 : members === 1 ? 347 * 12 : members === 2 ? 694 * 12 : (694 + (members - 2) * 234) * 12;
+    const tax = Math.max(0, grossTax - rebate - medCredit);
+    const uif = Math.min(annual * 0.01, 177.12 * 12);
+    const net = annual - tax - uif;
+    return { annual, tax, uif, net, effective: annual > 0 ? (tax / annual) * 100 : 0 };
+  };
+  const taxResult = calcTax();
+
+  const ZAR = (n: number) => `R\u00a0${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const erCurrencies = ["ZAR", "USD", "EUR", "GBP", "AUD", "CNY", "JPY", "CAD", "CHF", "INR", "NGN", "KES", "GHS", "BWP", "ZMW", "NAD", "MZN"];
+  const erConverted = erRates && erRates[erTo] ? parseFloat(erAmount) * erRates[erTo] : null;
+  const erRate = erRates && erRates[erTo] ? erRates[erTo] : null;
+
+  const calcCI = () => {
+    const P = parseFloat(ciPrincipal) || 0;
+    const r = parseFloat(ciRate) / 100;
+    const t = parseFloat(ciYears) || 1;
+    const n = parseFloat(ciFreq) || 12;
+    const PMT = parseFloat(ciMonthly) || 0;
+    if (r === 0) { const total = P + PMT * 12 * t; return { total, contributions: total, interest: 0 }; }
+    const Ap = P * Math.pow(1 + r / n, n * t);
+    const Apmt = PMT * ((Math.pow(1 + r / n, n * t) - 1) / (r / n));
+    const total = Ap + Apmt;
+    const contributions = P + PMT * 12 * t;
+    return { total, contributions, interest: total - contributions };
+  };
+  const ci = calcCI();
+
+  const is = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
+  const cs = { backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` };
+  const ls = { color: tc.mutedText };
+
+  const ResultRow = ({ label, value, accent }: { label: string; value: string; accent?: boolean }) => (
+    <div className="flex justify-between items-center py-1.5" style={{ borderBottom: `1px solid ${tc.borderColor}` }}>
+      <span className="text-xs" style={ls}>{label}</span>
+      <span className="text-sm font-semibold" style={{ color: accent ? tc.accentColor : tc.textColor }}>{value}</span>
+    </div>
+  );
+
+  return (
+    <div className="space-y-4 pb-6">
+
+      {/* Financial Media */}
+      <div className="rounded-xl p-5 space-y-4" style={cs}>
+        <div>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
+            <ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} /> Financial Media
+          </h3>
+          <p className="text-xs mt-0.5" style={ls}>Set your MoneyWeb article links — copy & share instantly to your socials. These also appear on your profile under "General Financial Media".</p>
+        </div>
+        <select value={selectedMedia} onChange={e => setSelectedMedia(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
+          <option value="news">Latest Financial News</option>
+          <option value="facts">Daily Financial Facts</option>
+          <option value="videos">Financial Tutorial Videos</option>
+        </select>
+        <div className="flex gap-2">
+          <input type="url" value={activeMedia.url} onChange={e => activeMedia.setUrl(e.target.value)} placeholder="https://www.moneyweb.co.za/..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+          <button onClick={handleCopyMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+            {mediaCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {mediaCopied ? "Copied!" : "Copy"}
+          </button>
+          <button onClick={handleShareMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+            <ExternalLink className="h-3.5 w-3.5" /> Share
+          </button>
+        </div>
+        <div className="space-y-2 pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-medium pt-2" style={ls}>All 3 links (saved to profile)</p>
+          {[
+            { label: "News", val: newsUrl, set: setNewsUrl },
+            { label: "Fun Facts", val: factsUrl, set: setFactsUrl },
+            { label: "Videos", val: videosUrl, set: setVideosUrl },
+          ].map(({ label, val, set }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="text-xs w-20 flex-shrink-0" style={ls}>{label}</span>
+              <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={is} />
+            </div>
+          ))}
+          <button onClick={handleSaveMedia} disabled={savingMedia} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+            {savingMedia ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+            Save Links to Profile
+          </button>
+        </div>
+      </div>
+
+      {/* SA Tax Calculator */}
+      <div className="rounded-xl p-5 space-y-4" style={cs}>
+        <div>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
+            <TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} /> SA Tax Calculator
+          </h3>
+          <p className="text-xs mt-0.5" style={ls}>2024/2025 tax year — PAYE including rebates, medical credits & UIF.</p>
+        </div>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Gross Income</label>
+            <div className="flex gap-2">
+              <input type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)} placeholder="e.g. 25000" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              <select value={taxPeriod} onChange={e => setTaxPeriod(e.target.value as "monthly" | "annual")} className="px-2 py-2 rounded-lg text-sm outline-none" style={is}>
+                <option value="monthly">/ month</option>
+                <option value="annual">/ year</option>
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <label className="text-xs" style={ls}>Age</label>
+              <input type="number" value={taxAge} onChange={e => setTaxAge(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs" style={ls}>Medical Aid Members</label>
+              <select value={medMembers} onChange={e => setMedMembers(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
+                {[0,1,2,3,4,5,6].map(n => <option key={n} value={n}>{n === 0 ? "None" : `${n} member${n > 1 ? "s" : ""}`}</option>)}
+              </select>
+            </div>
+          </div>
+        </div>
+        {taxResult ? (
+          <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+            <ResultRow label="Gross Annual Income" value={ZAR(taxResult.annual)} />
+            <ResultRow label="PAYE Tax" value={ZAR(taxResult.tax)} accent />
+            <ResultRow label="UIF" value={ZAR(taxResult.uif)} />
+            <ResultRow label="Effective Tax Rate" value={`${taxResult.effective.toFixed(2)}%`} accent />
+            <ResultRow label="Monthly Tax" value={ZAR(taxResult.tax / 12)} />
+            <ResultRow label="Monthly Take-home" value={ZAR(taxResult.net / 12)} accent />
+            <ResultRow label="Annual Take-home" value={ZAR(taxResult.net)} accent />
+          </div>
+        ) : (
+          <p className="text-xs text-center py-3" style={ls}>Enter a gross income amount to calculate</p>
+        )}
+      </div>
+
+      {/* Exchange Rate Calculator */}
+      <div className="rounded-xl p-5 space-y-4" style={cs}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
+              <ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} /> Exchange Rate Calculator
+            </h3>
+            <p className="text-xs mt-0.5" style={ls}>Live rates via ExchangeRate-API{erUpdated ? ` · ${erUpdated}` : ""}</p>
+          </div>
+          <button onClick={() => fetchRates(erFrom)} className="p-1.5 rounded-lg transition-opacity hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+            <RefreshCw className={`h-3.5 w-3.5 ${erLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
+          </button>
+        </div>
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            <input type="number" value={erAmount} onChange={e => setErAmount(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+            <select value={erFrom} onChange={e => setErFrom(e.target.value)} className="w-24 px-2 py-2 rounded-lg text-sm outline-none" style={is}>
+              {erCurrencies.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
+            <ArrowLeftRight className="h-3.5 w-3.5 flex-shrink-0" style={ls} />
+            <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
+          </div>
+          <select value={erTo} onChange={e => setErTo(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
+            {erCurrencies.filter(c => c !== erFrom).map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        {erLoading ? (
+          <div className="flex items-center justify-center gap-2 py-3">
+            <Loader2 className="h-4 w-4 animate-spin" style={ls} />
+            <span className="text-xs" style={ls}>Fetching rates…</span>
+          </div>
+        ) : erConverted !== null ? (
+          <div className="rounded-lg p-4 text-center" style={{ backgroundColor: tc.inputBg }}>
+            <p className="text-2xl font-bold" style={{ color: tc.accentColor }}>
+              {erConverted.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {erTo}
+            </p>
+            <p className="text-xs mt-1" style={ls}>1 {erFrom} = {erRate?.toFixed(5)} {erTo}</p>
+          </div>
+        ) : (
+          <p className="text-xs text-center py-3" style={ls}>Could not fetch rates. Check connection and try refreshing.</p>
+        )}
+      </div>
+
+      {/* Compound Interest Calculator */}
+      <div className="rounded-xl p-5 space-y-4" style={cs}>
+        <div>
+          <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
+            <TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} /> Compound Interest Calculator
+          </h3>
+          <p className="text-xs mt-0.5" style={ls}>Calculate future value with regular monthly contributions.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Principal (R)</label>
+            <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Annual Rate (%)</label>
+            <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Years</label>
+            <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Monthly Contribution (R)</label>
+            <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <label className="text-xs" style={ls}>Compounding Frequency</label>
+            <select value={ciFreq} onChange={e => setCiFreq(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is}>
+              <option value="1">Annually</option>
+              <option value="2">Semi-annually</option>
+              <option value="4">Quarterly</option>
+              <option value="12">Monthly</option>
+              <option value="365">Daily</option>
+            </select>
+          </div>
+        </div>
+        <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+          <ResultRow label="Total Contributions" value={ZAR(ci.contributions)} />
+          <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
+          <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
@@ -1870,12 +2181,7 @@ export default function AdvisorPanel() {
         </div>
 
         <div className="p-5 pb-12">
-          {activeTab === "toolbox" && (
-            <div className="flex flex-col items-center justify-center py-20 space-y-3" style={{ color: tc.mutedText }}>
-              <div className="text-4xl opacity-20">🛠️</div>
-              <p className="text-sm font-medium" style={{ color: tc.mutedText }}>Tools coming soon</p>
-            </div>
-          )}
+          {activeTab === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
           {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
