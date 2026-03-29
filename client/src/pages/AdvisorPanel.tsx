@@ -911,19 +911,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
                 {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#ffffff", color: tc.textColor }}>{t}</option>)}
               </select>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Notification Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                placeholder="email@example.com"
-                className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-notification-email"
-              />
-              <p className="text-xs" style={{ color: tc.mutedText }}>All form submissions (callbacks, referrals, wills) will be sent here.</p>
-            </div>
           </div>
         </div>
       </div>
@@ -1084,6 +1071,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           </label>
         </div>
         <div className="space-y-2.5">
+          <div className="flex items-center gap-2">
+            <Mail className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email address" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-notification-email" />
+          </div>
           <div className="flex items-center gap-2">
             <Phone className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
             <input value={contactNumber} onChange={e => setContactNumber(e.target.value)} placeholder="Contact Number" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-contact-number" />
