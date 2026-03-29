@@ -1664,9 +1664,16 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [savingMedia, setSavingMedia] = useState(false);
 
   const [taxAmount, setTaxAmount] = useState("");
-  const [taxPeriod, setTaxPeriod] = useState("monthly");
   const [taxAge, setTaxAge] = useState("35");
   const [medMembers, setMedMembers] = useState("0");
+  const [retirementAge, setRetirementAge] = useState("65");
+  const [incomeGrowth, setIncomeGrowth] = useState("6");
+  const [inflationRate, setInflationRate] = useState("5.5");
+
+  const [mwCategory, setMwCategory] = useState("all");
+  const [mwArticles, setMwArticles] = useState<Array<{ title: string; link: string; description: string; pubDate: string; category: string }>>([]);
+  const [mwLoading, setMwLoading] = useState(false);
+  const [mwCopied, setMwCopied] = useState<string | null>(null);
 
   const [erAmount, setErAmount] = useState("1000");
   const [erFrom, setErFrom] = useState("ZAR");
@@ -1691,7 +1698,18 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     setErLoading(false);
   };
 
+  const fetchMwArticles = async (cat: string) => {
+    setMwLoading(true);
+    try {
+      const res = await fetch(`/api/moneyweb/feed?category=${cat}`);
+      const data = await res.json();
+      setMwArticles(data.items || []);
+    } catch { setMwArticles([]); }
+    setMwLoading(false);
+  };
+
   useEffect(() => { fetchRates(erFrom); }, [erFrom]);
+  useEffect(() => { fetchMwArticles(mwCategory); }, [mwCategory]);
 
   const mediaMap: Record<string, { label: string; url: string; setUrl: (v: string) => void }> = {
     news: { label: "Latest Financial News", url: newsUrl, setUrl: setNewsUrl },
@@ -1719,33 +1737,63 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     setSavingMedia(false);
   };
 
-  const calcTax = () => {
-    const raw = parseFloat(taxAmount.replace(/,/g, "")) || 0;
-    const annual = taxPeriod === "monthly" ? raw * 12 : raw;
-    const age = parseInt(taxAge) || 35;
-    const members = parseInt(medMembers) || 0;
-    if (annual === 0) return null;
-    const brackets = [
-      { min: 0, max: 237100, rate: 0.18, base: 0 },
-      { min: 237101, max: 370500, rate: 0.26, base: 42678 },
-      { min: 370501, max: 512800, rate: 0.31, base: 77362 },
-      { min: 512801, max: 673000, rate: 0.36, base: 121475 },
-      { min: 673001, max: 857900, rate: 0.39, base: 179147 },
-      { min: 857901, max: 1817000, rate: 0.41, base: 251258 },
-      { min: 1817001, max: Infinity, rate: 0.45, base: 644489 },
-    ];
+  const TAX_BRACKETS = [
+    { min: 0, max: 237100, rate: 0.18, base: 0 },
+    { min: 237101, max: 370500, rate: 0.26, base: 42678 },
+    { min: 370501, max: 512800, rate: 0.31, base: 77362 },
+    { min: 512801, max: 673000, rate: 0.36, base: 121475 },
+    { min: 673001, max: 857900, rate: 0.39, base: 179147 },
+    { min: 857901, max: 1817000, rate: 0.41, base: 251258 },
+    { min: 1817001, max: Infinity, rate: 0.45, base: 644489 },
+  ];
+
+  const taxForIncome = (annualIncome: number, age: number, members: number) => {
     let grossTax = 0;
-    for (const b of brackets) { if (annual >= b.min) grossTax = b.base + (Math.min(annual, b.max) - b.min) * b.rate; }
+    for (const b of TAX_BRACKETS) { if (annualIncome >= b.min) grossTax = b.base + (Math.min(annualIncome, b.max) - b.min) * b.rate; }
     let rebate = 17235;
     if (age >= 65) rebate += 9444;
     if (age >= 75) rebate += 3145;
     const medCredit = members === 0 ? 0 : members === 1 ? 347 * 12 : members === 2 ? 694 * 12 : (694 + (members - 2) * 234) * 12;
     const tax = Math.max(0, grossTax - rebate - medCredit);
-    const uif = Math.min(annual * 0.01, 177.12 * 12);
-    const net = annual - tax - uif;
-    return { annual, tax, uif, net, effective: annual > 0 ? (tax / annual) * 100 : 0 };
+    const uif = Math.min(annualIncome * 0.01, 177.12 * 12);
+    const net = annualIncome - tax - uif;
+    return { tax, uif, net, effective: annualIncome > 0 ? (tax / annualIncome) * 100 : 0 };
+  };
+
+  const calcTax = () => {
+    const monthly = parseFloat(taxAmount) || 0;
+    if (monthly === 0) return null;
+    const annual = monthly * 12;
+    const age = parseInt(taxAge) || 35;
+    const members = parseInt(medMembers) || 0;
+    const { tax, uif, net, effective } = taxForIncome(annual, age, members);
+    return { monthly, annual, tax, uif, net, effective };
   };
   const taxResult = calcTax();
+
+  const calcRetirement = () => {
+    const monthly = parseFloat(taxAmount) || 0;
+    const curAge = parseInt(taxAge) || 35;
+    const retAge = parseInt(retirementAge) || 65;
+    const growth = parseFloat(incomeGrowth) / 100 || 0.06;
+    const inflation = parseFloat(inflationRate) / 100 || 0.055;
+    const members = parseInt(medMembers) || 0;
+    if (monthly === 0 || retAge <= curAge) return null;
+    const years = retAge - curAge;
+    let totalNominalTax = 0, totalRealTax = 0, totalNominalIncome = 0;
+    for (let y = 0; y < years; y++) {
+      const yearIncome = monthly * 12 * Math.pow(1 + growth, y);
+      const { tax } = taxForIncome(yearIncome, curAge + y, members);
+      totalNominalTax += tax;
+      totalNominalIncome += yearIncome;
+      totalRealTax += tax / Math.pow(1 + inflation, y);
+    }
+    const finalMonthlyNominal = monthly * Math.pow(1 + growth, years - 1);
+    const finalMonthlyReal = finalMonthlyNominal / Math.pow(1 + inflation, years - 1);
+    const { tax: finalTax, net: finalNet } = taxForIncome(finalMonthlyNominal * 12, retAge - 1, members);
+    return { years, totalNominalTax, totalRealTax, totalNominalIncome, finalMonthlyNominal, finalMonthlyReal, finalTax: finalTax / 12, finalNet: finalNet / 12, lifetimeRate: totalNominalTax / totalNominalIncome * 100 };
+  };
+  const retirementResult = calcRetirement();
 
   const ZAR = (n: number) => `R\u00a0${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
@@ -1835,6 +1883,51 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
                 Save Links to Profile
               </button>
             </div>
+
+            {/* Live MoneyWeb Articles */}
+            <div className="pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              <div className="flex items-center justify-between pt-2 mb-2">
+                <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Live MoneyWeb Articles</p>
+                <div className="flex items-center gap-2">
+                  <TSelect value={mwCategory} onChange={setMwCategory} colors={tc} className="w-36" options={[
+                    { value: "all", label: "All Finance" },
+                    { value: "news", label: "News" },
+                    { value: "markets", label: "Markets" },
+                    { value: "investing", label: "Investing" },
+                    { value: "personal-finance", label: "Personal Finance" },
+                  ]} />
+                  <button type="button" onClick={() => fetchMwArticles(mwCategory)} className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                    <RefreshCw className={`h-3.5 w-3.5 ${mwLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
+                  </button>
+                </div>
+              </div>
+              {mwLoading ? (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" style={ls} />
+                  <span className="text-xs" style={ls}>Loading articles…</span>
+                </div>
+              ) : mwArticles.length === 0 ? (
+                <p className="text-xs text-center py-4" style={ls}>No articles loaded. Try refreshing.</p>
+              ) : (
+                <div className="space-y-2">
+                  {mwArticles.map((article, i) => (
+                    <div key={i} className="rounded-lg p-3 space-y-1" style={{ backgroundColor: tc.inputBg }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <a href={article.link} target="_blank" rel="noopener noreferrer" className="text-xs font-medium leading-snug hover:underline flex-1" style={{ color: tc.textColor }}>{article.title}</a>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(article.link); setMwCopied(article.link); setTimeout(() => setMwCopied(null), 2000); }} className="flex-shrink-0 p-1 rounded hover:opacity-70" style={{ color: mwCopied === article.link ? tc.accentColor : tc.mutedText }}>
+                          {mwCopied === article.link ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {article.category && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{article.category}</span>}
+                        {article.pubDate && <span className="text-xs" style={ls}>{new Date(article.pubDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}</span>}
+                      </div>
+                      {article.description && <p className="text-xs leading-relaxed line-clamp-2" style={ls}>{article.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -1842,42 +1935,73 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       {/* SA Tax Calculator */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="tax" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Tax Calculator" subtitle="2024/2025 — PAYE including rebates, medical credits & UIF." />
+          <SectionHeader sectionKey="tax" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Tax Calculator" subtitle="2024/2025 — monthly PAYE with lifetime retirement projection." />
         </div>
         {openSections.tax && (
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+
+            {/* Inputs */}
             <div className="pt-3 space-y-1">
-              <label className="text-xs" style={ls}>Gross Income</label>
-              <div className="flex gap-2">
-                <input type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)} placeholder="e.g. 25000" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-                <TSelect value={taxPeriod} onChange={setTaxPeriod} colors={tc} className="w-28" options={[
-                  { value: "monthly", label: "/ month" },
-                  { value: "annual", label: "/ year" },
-                ]} />
-              </div>
+              <label className="text-xs" style={ls}>Monthly Gross Income (R)</label>
+              <input type="number" value={taxAmount} onChange={e => setTaxAmount(e.target.value)} placeholder="e.g. 25 000" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <label className="text-xs" style={ls}>Age</label>
+                <label className="text-xs" style={ls}>Current Age</label>
                 <input type="number" value={taxAge} onChange={e => setTaxAge(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
               </div>
               <div className="space-y-1">
+                <label className="text-xs" style={ls}>Retirement Age</label>
+                <input type="number" value={retirementAge} onChange={e => setRetirementAge(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Annual Income Growth (%)</label>
+                <input type="number" value={incomeGrowth} onChange={e => setIncomeGrowth(e.target.value)} step="0.5" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Inflation Rate (%)</label>
+                <input type="number" value={inflationRate} onChange={e => setInflationRate(e.target.value)} step="0.5" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="col-span-2 space-y-1">
                 <label className="text-xs" style={ls}>Medical Aid Members</label>
                 <TSelect value={medMembers} onChange={setMedMembers} colors={tc} options={[0,1,2,3,4,5,6].map(n => ({ value: String(n), label: n === 0 ? "None" : `${n} member${n > 1 ? "s" : ""}` }))} />
               </div>
             </div>
+
             {taxResult ? (
-              <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-                <ResultRow label="Gross Annual Income" value={ZAR(taxResult.annual)} />
-                <ResultRow label="PAYE Tax" value={ZAR(taxResult.tax)} accent />
-                <ResultRow label="UIF" value={ZAR(taxResult.uif)} />
-                <ResultRow label="Effective Tax Rate" value={`${taxResult.effective.toFixed(2)}%`} accent />
-                <ResultRow label="Monthly Tax" value={ZAR(taxResult.tax / 12)} />
-                <ResultRow label="Monthly Take-home" value={ZAR(taxResult.net / 12)} accent />
-                <ResultRow label="Annual Take-home" value={ZAR(taxResult.net)} accent />
-              </div>
+              <>
+                {/* Current month breakdown */}
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <p className="text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: tc.accentColor }}>This Month</p>
+                  <ResultRow label="Gross Monthly Income" value={ZAR(taxResult.monthly)} />
+                  <ResultRow label="PAYE Tax" value={ZAR(taxResult.tax / 12)} accent />
+                  <ResultRow label="UIF" value={ZAR(taxResult.uif / 12)} />
+                  <ResultRow label="Effective Tax Rate" value={`${taxResult.effective.toFixed(2)}%`} accent />
+                  <ResultRow label="Monthly Take-home" value={ZAR(taxResult.net / 12)} accent />
+                </div>
+
+                {/* Retirement projection */}
+                {retirementResult && (
+                  <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                    <p className="text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{ color: tc.accentColor }}>
+                      Retirement Projection — {retirementResult.years} years
+                    </p>
+                    <ResultRow label="Total Tax Paid (nominal)" value={ZAR(retirementResult.totalNominalTax)} accent />
+                    <ResultRow label="Total Tax Paid (today's money)" value={ZAR(retirementResult.totalRealTax)} />
+                    <ResultRow label="Total Income Earned" value={ZAR(retirementResult.totalNominalIncome)} />
+                    <ResultRow label="Lifetime Effective Tax Rate" value={`${retirementResult.lifetimeRate.toFixed(2)}%`} accent />
+                    <div className="mt-2 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                      <p className="text-xs font-medium mb-1" style={ls}>At Retirement (age {retirementAge})</p>
+                      <ResultRow label="Final Monthly Income (nominal)" value={ZAR(retirementResult.finalMonthlyNominal)} />
+                      <ResultRow label="Final Monthly Income (today's money)" value={ZAR(retirementResult.finalMonthlyReal)} />
+                      <ResultRow label="Final Month's Tax" value={ZAR(retirementResult.finalTax)} accent />
+                      <ResultRow label="Final Month's Take-home" value={ZAR(retirementResult.finalNet)} accent />
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
-              <p className="text-xs text-center py-3" style={ls}>Enter a gross income amount to calculate</p>
+              <p className="text-xs text-center py-3" style={ls}>Enter a monthly gross income to calculate</p>
             )}
           </div>
         )}

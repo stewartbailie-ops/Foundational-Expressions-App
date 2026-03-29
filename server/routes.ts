@@ -629,5 +629,39 @@ export async function registerRoutes(
     res.json(advisorStats);
   });
 
+  app.get("/api/moneyweb/feed", async (req, res) => {
+    try {
+      const category = (req.query.category as string) || "all";
+      const feedUrls: Record<string, string> = {
+        all: "https://www.moneyweb.co.za/feed/",
+        news: "https://www.moneyweb.co.za/category/news/feed/",
+        markets: "https://www.moneyweb.co.za/category/markets/feed/",
+        investing: "https://www.moneyweb.co.za/category/investing/feed/",
+        "personal-finance": "https://www.moneyweb.co.za/category/personal-finance/feed/",
+      };
+      const url = feedUrls[category] || feedUrls.all;
+      const response = await fetch(url, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; AdvisoryConnect/1.0)" },
+        signal: AbortSignal.timeout(10000),
+      });
+      const xml = await response.text();
+      const items: Array<{ title: string; link: string; description: string; pubDate: string; category: string }> = [];
+      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+      let match;
+      while ((match = itemRegex.exec(xml)) !== null) {
+        const item = match[1];
+        const title = (item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || item.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() || "";
+        const link = item.match(/<link>(https?:\/\/[^\s<]*)<\/link>/)?.[1]?.trim() || "";
+        const desc = (item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || item.match(/<description>([\s\S]*?)<\/description>/))?.[1]?.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 220) || "";
+        const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
+        const cat = (item.match(/<category><!\[CDATA\[([\s\S]*?)\]\]><\/category>/) || item.match(/<category>([\s\S]*?)<\/category>/))?.[1]?.trim() || "";
+        if (title && link) items.push({ title, link, description: desc, pubDate, category: cat });
+      }
+      res.json({ items: items.slice(0, 12) });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch feed", items: [] });
+    }
+  });
+
   return httpServer;
 }
