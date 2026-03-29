@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
-import { sendEmail, isSendGridConfigured } from "./sendgrid";
+import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
@@ -281,7 +281,7 @@ export async function registerRoutes(
           const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
           const referrerText = data.referrerName ? `<p><strong>Referred by:</strong> ${data.referrerName} (${data.referrerEmail || "no email"})</p>` : "";
           await sendEmail(
-            "info@advisoryconnect.pro",
+            buildRecipients(advisor?.email),
             `New Referral: ${data.clientName} (Advisor: ${advisor?.name || "Unknown"})`,
             `<h2>New Referral Received</h2>
             <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
@@ -364,7 +364,7 @@ export async function registerRoutes(
         try {
           const servicesText = data.servicesRequested ? `<p><strong>Services:</strong> ${data.servicesRequested}</p>` : "";
           await sendEmail(
-            "info@advisoryconnect.pro",
+            buildRecipients(advisor?.email),
             `New Call Back Request: ${data.clientName} (Advisor: ${advisor?.name || "Unknown"})`,
             `<h2>New Call Back Request</h2>
             <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
@@ -441,7 +441,7 @@ export async function registerRoutes(
       if (isSendGridConfigured()) {
         try {
           await sendEmail(
-            "info@advisoryconnect.pro",
+            buildRecipients(advisor?.email),
             `New Will Request: ${data.fullName} (Advisor: ${advisor?.name || "Unknown"})`,
             `<h2>New Complimentary Will Request</h2>
             <p><strong>Advisor:</strong> ${advisor?.name || "Unknown"}</p>
