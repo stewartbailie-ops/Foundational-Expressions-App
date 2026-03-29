@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Loader2, MapPin, Clock, Phone, Mail, Upload, LayoutDashboard, ChevronDown, Linkedin, Globe } from "lucide-react";
+import { ArrowLeft, Loader2, Mail, Upload, LayoutDashboard, ChevronDown, Linkedin, Globe } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -17,10 +17,36 @@ import {
 } from "@shared/schema";
 
 const THEME_OPTIONS = [
-  { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)", accent: "#4a8db5" },
+  { key: "blue", label: "Blue (Default)", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)", accent: "#4a8db5" },
   { key: "dark", label: "Black & White", bg: "#1a1a1a", accent: "#ffffff" },
   { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)", accent: "#d4738a" },
 ];
+
+function InitialsPreview({ name, theme }: { name: string; theme: string }) {
+  const initials = name.trim()
+    ? name.trim().split(" ").filter(Boolean).map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+    : "NA";
+  const gradients: Record<string, { from: string; to: string }> = {
+    blue: { from: "#4a8db5", to: "#1e3a5f" },
+    dark: { from: "#3a3a3a", to: "#111111" },
+    pink: { from: "#f472b6", to: "#be185d" },
+  };
+  const g = gradients[theme] || gradients.blue;
+  return (
+    <svg width={72} height={72} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="prev-ibg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor={g.from} />
+          <stop offset="100%" stopColor={g.to} />
+        </linearGradient>
+      </defs>
+      <rect width="120" height="120" rx="22" fill="url(#prev-ibg)" />
+      <rect x="4" y="4" width="112" height="112" rx="19" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.8" />
+      <text x="38" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.92" letterSpacing="-2">{initials[0] || ""}</text>
+      <text x="82" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.78" letterSpacing="-2">{initials[1] || ""}</text>
+    </svg>
+  );
+}
 
 export default function CreateAdvisor() {
   const [, navigate] = useLocation();
@@ -29,9 +55,6 @@ export default function CreateAdvisor() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [location, setLocation] = useState("");
-  const [workingHours, setWorkingHours] = useState("");
   const [title, setTitle] = useState<string>(TITLE_OPTIONS[3]);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [bioOption, setBioOption] = useState("a");
@@ -49,9 +72,6 @@ export default function CreateAdvisor() {
 
   const panelUrl = `${window.location.origin}/advisor/${formattedSlug}`;
   const profileUrl = `advisoryconnect.pro/${formattedSlug}`;
-  const initials = name.trim()
-    ? name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-    : "NA";
 
   const toggleService = (list: string[], setList: (v: string[]) => void, key: string) => {
     setList(list.includes(key) ? list.filter((k) => k !== key) : [...list, key]);
@@ -81,10 +101,6 @@ export default function CreateAdvisor() {
       const res = await apiRequest("POST", "/api/advisors", {
         name,
         email,
-        contactNumber: contactNumber || null,
-        location: location || null,
-        workingHours: workingHours || null,
-        showContactDetails: true,
         title,
         profilePicUrl: profilePicUrl || null,
         bioOption,
@@ -95,6 +111,8 @@ export default function CreateAdvisor() {
         profileSlug: formattedSlug,
         theme,
         themeColor,
+        linkedinUrl: linkedinUrl || null,
+        websiteUrl: websiteUrl || null,
         active: true,
         entityType: "individual",
         showCallbackLink: true,
@@ -150,7 +168,7 @@ export default function CreateAdvisor() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Create New Advisor</h2>
           <p className="text-muted-foreground mt-1">
-            Set up the advisor's full profile. They can also adjust everything later from their own panel.
+            Set up the advisor's full profile. They can refine everything later from their own panel.
           </p>
         </div>
         <Button
@@ -166,29 +184,35 @@ export default function CreateAdvisor() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-4">
         <div className="xl:col-span-2 space-y-6">
 
+          {/* Section 1 — Name & Title */}
           <Card className="border-border">
             <CardContent className="p-6 space-y-5">
-              <h3 className="text-lg font-semibold border-b pb-2">Contact Details</h3>
+              <h3 className="text-lg font-semibold border-b pb-2">Advisor Details</h3>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Full Name <span className="text-red-500">*</span></Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" data-testid="input-advisor-name" />
+              <div className="flex items-center gap-5">
+                <div className="flex-shrink-0">
+                  <InitialsPreview name={name} theme={theme} />
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Title</Label>
-                  <div className="relative">
-                    <select
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                      className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none appearance-none pr-8"
-                      data-testid="select-advisor-title"
-                    >
-                      {TITLE_OPTIONS.map((t) => (
-                        <option key={t} value={t}>{t}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <div className="flex-1 space-y-4">
+                  <div className="space-y-1.5">
+                    <Label>Full Name <span className="text-red-500">*</span></Label>
+                    <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Doe" data-testid="input-advisor-name" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Title</Label>
+                    <div className="relative">
+                      <select
+                        value={title}
+                        onChange={(e) => setTitle(e.target.value)}
+                        className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm outline-none appearance-none pr-8"
+                        data-testid="select-advisor-title"
+                      >
+                        {TITLE_OPTIONS.map((t) => (
+                          <option key={t} value={t}>{t}</option>
+                        ))}
+                      </select>
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -196,34 +220,19 @@ export default function CreateAdvisor() {
               <div className="space-y-1.5">
                 <Label><Mail className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />E-Mail Address <span className="text-red-500">*</span></Label>
                 <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="advisor@example.com" data-testid="input-advisor-email" />
-                <p className="text-xs text-muted-foreground">Used for referral summaries and displayed on their profile.</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label><Phone className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />Contact Number</Label>
-                  <Input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="+27 12 345 6789" data-testid="input-contact-number" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label><Clock className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />Working Hours</Label>
-                  <Input value={workingHours} onChange={(e) => setWorkingHours(e.target.value)} placeholder="Mon–Fri: 8:00–17:00" data-testid="input-working-hours" />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label><MapPin className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />Location / Office Address</Label>
-                <Input value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pretoria, Gauteng" data-testid="input-location" />
+                <p className="text-xs text-muted-foreground">Used for lead notifications and displayed on their profile.</p>
               </div>
             </CardContent>
           </Card>
 
+          {/* Section 2 — Profile Picture */}
           <Card className="border-border">
             <CardContent className="p-6 space-y-5">
               <h3 className="text-lg font-semibold border-b pb-2">Profile Picture</h3>
               <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileUpload} />
               {profilePicUrl ? (
                 <div className="flex items-center gap-4">
-                  <img src={profilePicUrl} alt="Profile" className="h-20 w-20 rounded-full object-cover border-2 border-border" />
+                  <img src={profilePicUrl} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-border" />
                   <div className="space-y-2">
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                       {uploading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -252,6 +261,7 @@ export default function CreateAdvisor() {
             </CardContent>
           </Card>
 
+          {/* Section 3 — Bio */}
           <Card className="border-border">
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">Introduction & Bio</h3>
@@ -292,6 +302,7 @@ export default function CreateAdvisor() {
             </CardContent>
           </Card>
 
+          {/* Section 4 & 5 — Services */}
           <Card className="border-border">
             <CardContent className="p-6 space-y-5">
               <h3 className="text-lg font-semibold border-b pb-2">Services</h3>
@@ -332,6 +343,36 @@ export default function CreateAdvisor() {
             </CardContent>
           </Card>
 
+          {/* Section 6 — Social Links */}
+          <Card className="border-border">
+            <CardContent className="p-6 space-y-4">
+              <h3 className="text-lg font-semibold border-b pb-2">Social Links</h3>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label><Linkedin className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />LinkedIn URL</Label>
+                  <Input
+                    type="url"
+                    value={linkedinUrl}
+                    onChange={(e) => setLinkedinUrl(e.target.value)}
+                    placeholder="https://linkedin.com/in/advisor-name"
+                    data-testid="input-linkedin-url"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label><Globe className="h-3.5 w-3.5 inline mr-1.5 text-muted-foreground" />Website URL</Label>
+                  <Input
+                    type="url"
+                    value={websiteUrl}
+                    onChange={(e) => setWebsiteUrl(e.target.value)}
+                    placeholder="https://www.advisorwebsite.co.za"
+                    data-testid="input-website-url"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Section 8 — Theme */}
           <Card className="border-border">
             <CardContent className="p-6 space-y-4">
               <h3 className="text-lg font-semibold border-b pb-2">Profile Theme</h3>
@@ -364,6 +405,7 @@ export default function CreateAdvisor() {
           </Card>
         </div>
 
+        {/* Right panel — live preview */}
         <div className="space-y-6">
           <div className="sticky top-24 space-y-4">
             <Card className="border-border shadow-md overflow-hidden">
@@ -375,13 +417,7 @@ export default function CreateAdvisor() {
                   {profilePicUrl ? (
                     <img src={profilePicUrl} alt="Profile" className="h-24 w-24 rounded-full object-cover border-4 border-white/30" />
                   ) : (
-                    <div
-                      className="h-24 w-24 rounded-full flex items-center justify-center text-3xl font-bold border-2 border-white/30"
-                      style={{ backgroundColor: "rgba(255,255,255,0.15)", color: "#fff" }}
-                      data-testid="preview-initials"
-                    >
-                      {initials}
-                    </div>
+                    <InitialsPreview name={name} theme={theme} />
                   )}
                   <div className="text-center">
                     <h3 className="text-lg font-bold" data-testid="preview-name">{name || "Advisor Name"}</h3>

@@ -1616,12 +1616,13 @@ function AdditionalProfileForm({
   );
 }
 
-function TSelect({ value, onChange, options, className = "", colors }: {
+function TSelect({ value, onChange, options, className = "", colors, codeOnly = false }: {
   value: string;
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
   className?: string;
   colors: ReturnType<typeof getThemeColors>;
+  codeOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -1630,17 +1631,18 @@ function TSelect({ value, onChange, options, className = "", colors }: {
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
-  const label = options.find(o => o.value === value)?.label || value;
+  const fullLabel = options.find(o => o.value === value)?.label || value;
+  const triggerLabel = codeOnly ? (fullLabel.split(" — ")[0] || fullLabel) : fullLabel;
   return (
     <div className={`relative ${className}`} ref={ref}>
       <button type="button" onClick={() => setOpen(p => !p)} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.textColor }}>
-        <span>{label}</span>
-        <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`} style={{ color: colors.mutedText }} />
+        <span className="truncate">{triggerLabel}</span>
+        <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 ml-1 transition-transform duration-150 ${open ? "rotate-180" : ""}`} style={{ color: colors.mutedText }} />
       </button>
       {open && (
-        <div className="absolute z-50 top-full mt-1 w-full rounded-lg overflow-hidden shadow-xl" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.borderColor}` }}>
+        <div className="absolute z-50 top-full mt-1 w-max min-w-full max-h-60 overflow-y-auto rounded-lg shadow-xl" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.borderColor}` }}>
           {options.map(o => (
-            <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm transition-opacity hover:opacity-70" style={{ color: o.value === value ? colors.accentColor : colors.textColor, backgroundColor: o.value === value ? colors.inputBg : "transparent", fontWeight: o.value === value ? 600 : 400 }}>
+            <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: o.value === value ? colors.accentColor : colors.textColor, backgroundColor: o.value === value ? colors.inputBg : "transparent", fontWeight: o.value === value ? 600 : 400 }}>
               {o.label}
             </button>
           ))}
@@ -1801,7 +1803,76 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
 
   const ZAR = (n: number) => `R\u00a0${n.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
-  const erCurrencies = ["ZAR", "USD", "EUR", "GBP", "AUD", "CNY", "JPY", "CAD", "CHF", "INR", "NGN", "KES", "GHS", "BWP", "ZMW", "NAD", "MZN"];
+  const erCurrencies = [
+    { code: "ZAR", name: "South African Rand" },
+    { code: "USD", name: "US Dollar" },
+    { code: "EUR", name: "Euro" },
+    { code: "GBP", name: "British Pound" },
+    { code: "AUD", name: "Australian Dollar" },
+    { code: "CAD", name: "Canadian Dollar" },
+    { code: "CHF", name: "Swiss Franc" },
+    { code: "NZD", name: "New Zealand Dollar" },
+    { code: "JPY", name: "Japanese Yen" },
+    { code: "CNY", name: "Chinese Yuan" },
+    { code: "HKD", name: "Hong Kong Dollar" },
+    { code: "SGD", name: "Singapore Dollar" },
+    { code: "TWD", name: "Taiwan Dollar" },
+    { code: "KRW", name: "South Korean Won" },
+    { code: "INR", name: "Indian Rupee" },
+    { code: "PKR", name: "Pakistani Rupee" },
+    { code: "BDT", name: "Bangladeshi Taka" },
+    { code: "LKR", name: "Sri Lankan Rupee" },
+    { code: "THB", name: "Thai Baht" },
+    { code: "MYR", name: "Malaysian Ringgit" },
+    { code: "IDR", name: "Indonesian Rupiah" },
+    { code: "PHP", name: "Philippine Peso" },
+    { code: "VND", name: "Vietnamese Dong" },
+    { code: "AED", name: "UAE Dirham" },
+    { code: "SAR", name: "Saudi Riyal" },
+    { code: "QAR", name: "Qatari Riyal" },
+    { code: "KWD", name: "Kuwaiti Dinar" },
+    { code: "BHD", name: "Bahraini Dinar" },
+    { code: "OMR", name: "Omani Rial" },
+    { code: "JOD", name: "Jordanian Dinar" },
+    { code: "ILS", name: "Israeli Shekel" },
+    { code: "TRY", name: "Turkish Lira" },
+    { code: "SEK", name: "Swedish Krona" },
+    { code: "NOK", name: "Norwegian Krone" },
+    { code: "DKK", name: "Danish Krone" },
+    { code: "PLN", name: "Polish Zloty" },
+    { code: "CZK", name: "Czech Koruna" },
+    { code: "HUF", name: "Hungarian Forint" },
+    { code: "RON", name: "Romanian Leu" },
+    { code: "RUB", name: "Russian Ruble" },
+    { code: "MXN", name: "Mexican Peso" },
+    { code: "BRL", name: "Brazilian Real" },
+    { code: "ARS", name: "Argentine Peso" },
+    { code: "CLP", name: "Chilean Peso" },
+    { code: "COP", name: "Colombian Peso" },
+    { code: "PEN", name: "Peruvian Sol" },
+    { code: "NGN", name: "Nigerian Naira" },
+    { code: "KES", name: "Kenyan Shilling" },
+    { code: "GHS", name: "Ghanaian Cedi" },
+    { code: "UGX", name: "Ugandan Shilling" },
+    { code: "TZS", name: "Tanzanian Shilling" },
+    { code: "ETB", name: "Ethiopian Birr" },
+    { code: "EGP", name: "Egyptian Pound" },
+    { code: "MAD", name: "Moroccan Dirham" },
+    { code: "DZD", name: "Algerian Dinar" },
+    { code: "TND", name: "Tunisian Dinar" },
+    { code: "XOF", name: "West African CFA Franc" },
+    { code: "XAF", name: "Central African CFA Franc" },
+    { code: "BWP", name: "Botswana Pula" },
+    { code: "ZMW", name: "Zambian Kwacha" },
+    { code: "NAD", name: "Namibian Dollar" },
+    { code: "MZN", name: "Mozambican Metical" },
+    { code: "MUR", name: "Mauritian Rupee" },
+    { code: "SZL", name: "Swazi Lilangeni" },
+    { code: "LSL", name: "Lesotho Loti" },
+    { code: "AOA", name: "Angolan Kwanza" },
+    { code: "RWF", name: "Rwandan Franc" },
+    { code: "MWK", name: "Malawian Kwacha" },
+  ];
   const erConverted = erRates && erRates[erTo] ? parseFloat(erAmount) * erRates[erTo] : null;
   const erRate = erRates && erRates[erTo] ? erRates[erTo] : null;
 
@@ -2063,14 +2134,14 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
             <div className="pt-3 flex gap-2">
               <input type="number" value={erAmount} onChange={e => setErAmount(e.target.value)} className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-              <TSelect value={erFrom} onChange={setErFrom} colors={tc} className="w-24" options={erCurrencies.map(c => ({ value: c, label: c }))} />
+              <TSelect value={erFrom} onChange={setErFrom} colors={tc} className="w-24" codeOnly options={erCurrencies.map(c => ({ value: c.code, label: `${c.code} — ${c.name}` }))} />
             </div>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
               <ArrowLeftRight className="h-3.5 w-3.5 flex-shrink-0" style={ls} />
               <div className="flex-1 h-px" style={{ backgroundColor: tc.borderColor }} />
             </div>
-            <TSelect value={erTo} onChange={setErTo} colors={tc} options={erCurrencies.filter(c => c !== erFrom).map(c => ({ value: c, label: c }))} />
+            <TSelect value={erTo} onChange={setErTo} colors={tc} options={erCurrencies.filter(c => c.code !== erFrom).map(c => ({ value: c.code, label: `${c.code} — ${c.name}` }))} />
             {erLoading ? (
               <div className="flex items-center justify-center gap-2 py-3">
                 <Loader2 className="h-4 w-4 animate-spin" style={ls} />
