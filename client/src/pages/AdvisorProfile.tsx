@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2 } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -425,6 +425,17 @@ export default function AdvisorProfile() {
   const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
   const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [showInstallHint, setShowInstallHint] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    return () => window.removeEventListener("beforeinstallprompt", handler);
+  }, []);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
@@ -644,52 +655,98 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* Share Profile + WhatsApp row */}
+        {/* Share / Save / WhatsApp / Add to Home — 2×2 grid */}
         {(() => {
           const profileShareUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
           const hasWhatsApp = !!(advisor as any).contactNumber;
+          const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+          const isInStandalone = ("standalone" in window.navigator) && (window.navigator as any).standalone;
+
           const handleShare = async () => {
-            if (typeof navigator !== "undefined" && navigator.share) {
-              try {
-                await navigator.share({
-                  title: advisor.name,
-                  text: `View ${advisor.name}'s financial advisory profile`,
-                  url: profileShareUrl,
-                });
-              } catch {}
+            if (navigator.share) {
+              try { await navigator.share({ title: advisor.name, text: `View ${advisor.name}'s financial advisory profile`, url: profileShareUrl }); } catch {}
             } else {
-              try {
-                await navigator.clipboard.writeText(profileShareUrl);
-                setShareCopied(true);
-                setTimeout(() => setShareCopied(false), 2200);
-              } catch {}
+              try { await navigator.clipboard.writeText(profileShareUrl); setShareCopied(true); setTimeout(() => setShareCopied(false), 2200); } catch {}
             }
           };
+
+          const handleSaveCard = () => {
+            const vcf = [
+              "BEGIN:VCARD",
+              "VERSION:3.0",
+              `FN:${advisor.name}`,
+              advisor.title ? `TITLE:${advisor.title}` : null,
+              advisor.email ? `EMAIL:${advisor.email}` : null,
+              (advisor as any).contactNumber ? `TEL:${(advisor as any).contactNumber}` : null,
+              advisor.websiteUrl ? `URL:${advisor.websiteUrl}` : null,
+              advisor.linkedinUrl ? `X-SOCIALPROFILE;TYPE=linkedin:${advisor.linkedinUrl}` : null,
+              `NOTE:View my full advisory profile at ${profileShareUrl}`,
+              "END:VCARD",
+            ].filter(Boolean).join("\r\n");
+            const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `${advisor.name.replace(/\s+/g, "-")}.vcf`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          };
+
+          const handleAddToHomeScreen = async () => {
+            if (deferredInstallPrompt) {
+              deferredInstallPrompt.prompt();
+              await deferredInstallPrompt.userChoice;
+              setDeferredInstallPrompt(null);
+            } else if (isIOS && !isInStandalone) {
+              setShowInstallHint(true);
+            } else {
+              setShowInstallHint(true);
+            }
+          };
+
+          const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
+
           return (
-            <div className={`grid gap-2.5 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`} data-testid="section-share-whatsapp">
-              <button
-                onClick={handleShare}
-                className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80"
-                style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid="button-share-profile"
-              >
-                <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
-                {shareCopied ? "Link Copied!" : "Share Profile"}
-              </button>
-              {hasWhatsApp && (
-                <a
-                  href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: "#25D366", color: "#ffffff" }}
-                  data-testid="link-whatsapp"
-                >
-                  <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                  </svg>
-                  WhatsApp Me
-                </a>
+            <div className="space-y-2" data-testid="section-utility-buttons">
+              {/* Row 1: Share + WhatsApp */}
+              <div className={`grid gap-2 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`}>
+                <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
+                  <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
+                  {shareCopied ? "Link Copied!" : "Share Profile"}
+                </button>
+                {hasWhatsApp && (
+                  <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
+                    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+                    </svg>
+                    WhatsApp Me
+                  </a>
+                )}
+              </div>
+
+              {/* Row 2: Save Business Card + Add to Home Screen */}
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={handleSaveCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-card">
+                  <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
+                  Save Business Card
+                </button>
+                <button onClick={handleAddToHomeScreen} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-add-home-screen">
+                  <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
+                  Add to Home Screen
+                </button>
+              </div>
+
+              {/* iOS / fallback install hint */}
+              {showInstallHint && (
+                <div className="rounded-lg p-3 text-xs text-center space-y-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.subText, border: `1px solid ${tc.borderColor}` }} data-testid="install-hint">
+                  {isIOS
+                    ? <p>Tap the <strong>Share</strong> button in Safari, then choose <strong>"Add to Home Screen"</strong> to save this profile as an app icon.</p>
+                    : <p>Open this page in your browser's menu and tap <strong>"Add to Home Screen"</strong> or <strong>"Install app"</strong>.</p>
+                  }
+                  <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">Dismiss</button>
+                </div>
               )}
             </div>
           );
