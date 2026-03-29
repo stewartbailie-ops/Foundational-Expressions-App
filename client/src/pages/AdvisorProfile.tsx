@@ -22,6 +22,8 @@ function ProfileInitialsBadge({ initials, theme, size = 288, downloadable = fals
   const { from, to, border } = getInitialsBadgeColors(theme);
   const svgId = `profile-badge-svg`;
   const tc = getThemeColors(theme);
+  const l1 = initials[0] || "";
+  const l2 = initials[1] || "";
 
   const handleDownload = () => {
     const svgEl = document.getElementById(svgId);
@@ -54,15 +56,19 @@ function ProfileInitialsBadge({ initials, theme, size = 288, downloadable = fals
             <stop offset="0%" stopColor={from} />
             <stop offset="100%" stopColor={to} />
           </linearGradient>
+          <linearGradient id="ibshim" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+          </linearGradient>
           <filter id="ibshadow" x="-15%" y="-15%" width="130%" height="130%">
             <feDropShadow dx="0" dy="6" stdDeviation="8" floodColor="rgba(0,0,0,0.35)" />
           </filter>
         </defs>
-        <rect width="120" height="120" rx="26" fill="url(#ibg)" filter="url(#ibshadow)" />
-        <rect x="3" y="3" width="114" height="114" rx="24" fill="none" stroke={border} strokeWidth="1.5" />
-        <text x="60" y="81" fontFamily="Georgia, 'Times New Roman', serif" fontSize="52" fontWeight="bold" fill="white" textAnchor="middle" letterSpacing="-1" opacity="0.95">
-          {initials}
-        </text>
+        <rect width="120" height="120" rx="22" fill="url(#ibg)" filter="url(#ibshadow)" />
+        <rect width="120" height="60" rx="22" fill="url(#ibshim)" />
+        <rect x="4" y="4" width="112" height="112" rx="19" fill="none" stroke={border} strokeWidth="1.8" />
+        <text x="38" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.92" letterSpacing="-2">{l1}</text>
+        <text x="82" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.78" letterSpacing="-2">{l2}</text>
       </svg>
       {downloadable && (
         <button
@@ -492,7 +498,7 @@ export default function AdvisorProfile() {
     (advisor as any).contactNumber || (advisor as any).workingHours || advisor.email
   );
 
-  const themeBg = getThemeBackground(advisor.theme);
+  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle);
 
   return (
     <div
@@ -647,28 +653,47 @@ export default function AdvisorProfile() {
 
         {((advisor as any).showAstute || (advisor as any).showDocuments || (advisor as any).showComplimentaryWill) && (
           <div className="space-y-2.5" data-testid="section-in-dev-links">
-            {[
-              { key: "astute", show: (advisor as any).showAstute, label: "Astute Online", Icon: Calculator },
-              { key: "documents", show: (advisor as any).showDocuments, label: "Documents Upload", Icon: FileText },
-            ].filter(b => b.show).map(({ key, label, Icon }) => (
-              <div key={key}>
+            {(advisor as any).showAstute && (
+              <div className="space-y-1.5">
                 <button
-                  onClick={() => setInDevClicked(inDevClicked === key ? null : key)}
+                  onClick={() => setInDevClicked(inDevClicked === "astute" ? null : "astute")}
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
                   style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid={`button-indev-${key}`}
+                  data-testid="button-indev-astute"
                 >
-                  <Icon className="h-4 w-4" />
-                  {label}
+                  <Calculator className="h-4 w-4" />
+                  Money Map
                 </button>
-                {inDevClicked === key && (
+                <p className="text-center text-xs px-2" style={{ color: mutedText }}>
+                  Get a complete over-view of all your current finances in one place
+                </p>
+                {inDevClicked === "astute" && (
+                  <div className="text-center py-2.5 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                    In development — Coming soon
+                  </div>
+                )}
+              </div>
+            )}
+            {(advisor as any).showDocuments && (
+              <div>
+                <button
+                  onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="button-indev-documents"
+                >
+                  <FileText className="h-4 w-4" />
+                  Documents Upload
+                </button>
+                {inDevClicked === "documents" && (
                   <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium"
                     style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
                     In development — Coming soon
                   </div>
                 )}
               </div>
-            ))}
+            )}
             {(advisor as any).showComplimentaryWill && (
               <button
                 onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}

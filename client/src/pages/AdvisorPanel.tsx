@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
-import { getThemeColors, getInitialsBadgeColors } from "@/lib/themeUtils";
+import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -543,6 +543,9 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
 function InitialsBadgeSvg({ initials, theme, size, id }: { initials: string; theme: string; size: number; id: string }) {
   const { from, to, border } = getInitialsBadgeColors(theme);
   const gradId = `ibg-${id}`;
+  const shimId = `ibsh-${id}`;
+  const l1 = initials[0] || "";
+  const l2 = initials[1] || "";
   return (
     <svg id={id} width={size} height={size} viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
       <defs>
@@ -550,12 +553,16 @@ function InitialsBadgeSvg({ initials, theme, size, id }: { initials: string; the
           <stop offset="0%" stopColor={from} />
           <stop offset="100%" stopColor={to} />
         </linearGradient>
+        <linearGradient id={shimId} x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="rgba(255,255,255,0.18)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        </linearGradient>
       </defs>
-      <rect width="120" height="120" rx="26" fill={`url(#${gradId})`} />
-      <rect x="3" y="3" width="114" height="114" rx="24" fill="none" stroke={border} strokeWidth="1.5" />
-      <text x="60" y="81" fontFamily="Georgia, 'Times New Roman', serif" fontSize="52" fontWeight="bold" fill="white" textAnchor="middle" letterSpacing="-1" opacity="0.95">
-        {initials}
-      </text>
+      <rect width="120" height="120" rx="22" fill={`url(#${gradId})`} />
+      <rect width="120" height="60" rx="22" fill={`url(#${shimId})`} />
+      <rect x="4" y="4" width="112" height="112" rx="19" fill="none" stroke={border} strokeWidth="1.8" />
+      <text x="38" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.92" letterSpacing="-2">{l1}</text>
+      <text x="82" y="84" fontFamily="Georgia, 'Times New Roman', serif" fontSize="62" fontWeight="bold" fill="white" textAnchor="middle" opacity="0.78" letterSpacing="-2">{l2}</text>
     </svg>
   );
 }
@@ -698,6 +705,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(advisor.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(advisor.corporateServices || []);
   const [theme, setTheme] = useState(advisor.theme || "blue");
+  const [backgroundStyle, setBackgroundStyle] = useState<number>((advisor as any).backgroundStyle || 1);
   const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
   const [location, setLocation] = useState((advisor as any).location || "");
   const [workingHours, setWorkingHours] = useState((advisor as any).workingHours || "");
@@ -741,7 +749,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : theme === "pink" ? "#d4738a" : theme === "light-blue" ? "#0ea5e9" : theme === "dark-royal-purple" ? "#a855f7" : theme === "dark-green" ? "#22c55e" : "#4a8db5",
+        backgroundStyle,
+        themeColor: ({ dark:"#1a1a1a", blue:"#4a8db5", pink:"#d4738a", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" } as Record<string,string>)[theme] ?? "#4a8db5",
         contactNumber: contactNumber || null,
         location: location || null,
         workingHours: workingHours || null,
@@ -1052,7 +1061,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "QR Code", value: showQrCode, set: setShowQrCode },
           { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-          { label: "Astute Online", value: showAstute, set: setShowAstute },
+          { label: "Money Map", value: showAstute, set: setShowAstute },
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
@@ -1068,22 +1077,42 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-2">
           {[
-            { key: "dark", label: "Black & White", bg: "#1a1a1a" },
-            { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
-            { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-            { key: "light-blue", label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-            { key: "dark-royal-purple", label: "Royal Purple", bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-            { key: "dark-green", label: "Dark Green", bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+            { key: "dark",               label: "Dark",         bg: "#1a1a1a" },
+            { key: "blue",               label: "Blue",         bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
+            { key: "pink",               label: "Pink",         bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+            { key: "light-blue",         label: "Light Blue",   bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+            { key: "dark-royal-purple",  label: "Purple",       bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+            { key: "dark-green",         label: "D.Green",      bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+            { key: "gold",               label: "Gold",         bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
+            { key: "teal",               label: "Teal",         bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
+            { key: "red",                label: "Red",          bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
+            { key: "navy",               label: "Navy",         bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
+            { key: "coral",              label: "Coral",        bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
+            { key: "silver",             label: "Silver",       bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
           ].map(t => (
             <button key={t.key} onClick={() => setTheme(t.key)}
-              className="rounded-xl border-2 p-3 text-center transition-all"
+              className="rounded-xl border-2 p-2 text-center transition-all"
               style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}
               data-testid={`theme-panel-${t.key}`}
             >
-              <div className="w-full h-10 rounded-lg mb-2" style={{ background: t.bg }} />
+              <div className="w-full h-8 rounded-lg mb-1.5" style={{ background: t.bg }} />
               <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Background Pattern</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {BACKGROUND_STYLE_OPTIONS.map(opt => (
+            <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
+              className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
+              style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
+            >
+              {opt.label}
             </button>
           ))}
         </div>
@@ -1105,15 +1134,19 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
 
 function getThemeDot(theme: string) {
   const dots: Record<string, string> = {
-    dark: "#555", blue: "#3b82f6", pink: "#be185d",
-    "light-blue": "#0ea5e9", "dark-royal-purple": "#a855f7", "dark-green": "#22c55e",
+    dark: "#555", blue: "#3b82f6", pink: "#be185d", "light-blue": "#0ea5e9",
+    "dark-royal-purple": "#a855f7", "dark-green": "#22c55e",
+    gold: "#d4a017", teal: "#0d9488", red: "#dc2626",
+    navy: "#1d4ed8", coral: "#f97316", silver: "#6b7280",
   };
   return dots[theme] || "#3b82f6";
 }
 function getThemeLabel(theme: string) {
   const labels: Record<string, string> = {
-    dark: "Black & White", blue: "Blue", pink: "Pink",
-    "light-blue": "Light Blue", "dark-royal-purple": "Dark Royal Purple", "dark-green": "Dark Green",
+    dark: "Dark", blue: "Blue", pink: "Pink", "light-blue": "Light Blue",
+    "dark-royal-purple": "Dark Royal Purple", "dark-green": "Dark Green",
+    gold: "Gold", teal: "Teal", red: "Red",
+    navy: "Navy", coral: "Coral", silver: "Silver",
   };
   return labels[theme] || theme;
 }
@@ -1205,6 +1238,7 @@ function AdditionalProfileForm({
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(existingProfile?.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(existingProfile?.corporateServices || []);
   const [theme, setTheme] = useState(existingProfile?.theme || "blue");
+  const [backgroundStyle, setBackgroundStyle] = useState<number>((existingProfile as any)?.backgroundStyle || 1);
   const [showHeader, setShowHeader] = useState((existingProfile as any)?.showHeader !== false);
   const [showProfilePic, setShowProfilePic] = useState((existingProfile as any)?.showProfilePic !== false);
   const [showIntro, setShowIntro] = useState((existingProfile as any)?.showIntro !== false);
@@ -1247,7 +1281,8 @@ function AdditionalProfileForm({
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         theme,
-        themeColor: theme === "dark" ? "#1a1a1a" : theme === "blue" ? "#4a8db5" : theme === "pink" ? "#d4738a" : theme === "light-blue" ? "#0ea5e9" : theme === "dark-royal-purple" ? "#a855f7" : theme === "dark-green" ? "#22c55e" : "#4a8db5",
+        backgroundStyle,
+        themeColor: ({ dark:"#1a1a1a", blue:"#4a8db5", pink:"#d4738a", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" } as Record<string,string>)[theme] ?? "#4a8db5",
         showHeader,
         showProfilePic,
         showIntro,
@@ -1463,19 +1498,39 @@ function AdditionalProfileForm({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme</label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-4 gap-2">
             {[
-              { key: "dark", label: "Black & White", bg: "#1a1a1a" },
-              { key: "blue", label: "Blue", bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
-              { key: "pink", label: "Pink", bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-              { key: "light-blue", label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-              { key: "dark-royal-purple", label: "Royal Purple", bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-              { key: "dark-green", label: "Dark Green", bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+              { key: "dark",               label: "Dark",       bg: "#1a1a1a" },
+              { key: "blue",               label: "Blue",       bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
+              { key: "pink",               label: "Pink",       bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+              { key: "light-blue",         label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+              { key: "dark-royal-purple",  label: "Purple",     bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+              { key: "dark-green",         label: "D.Green",    bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+              { key: "gold",               label: "Gold",       bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
+              { key: "teal",               label: "Teal",       bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
+              { key: "red",                label: "Red",        bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
+              { key: "navy",               label: "Navy",       bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
+              { key: "coral",              label: "Coral",      bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
+              { key: "silver",             label: "Silver",     bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
             ].map(t => (
               <button key={t.key} onClick={() => setTheme(t.key)} className="rounded-lg border-2 p-2 text-center transition-all"
                 style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}>
-                <div className="w-full h-8 rounded mb-1" style={{ background: t.bg }} />
+                <div className="w-full h-7 rounded mb-1" style={{ background: t.bg }} />
                 <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Background Pattern</label>
+          <div className="grid grid-cols-3 gap-2">
+            {BACKGROUND_STYLE_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
+                className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
+                style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
+              >
+                {opt.label}
               </button>
             ))}
           </div>
@@ -1487,7 +1542,7 @@ function AdditionalProfileForm({
             { label: "QR Code", value: showQrCode, set: setShowQrCode },
             { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-            { label: "Astute Online", value: showAstute, set: setShowAstute },
+            { label: "Money Map", value: showAstute, set: setShowAstute },
             { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
             { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
