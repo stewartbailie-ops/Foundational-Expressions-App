@@ -6,3 +6,9 @@ id = "xR0AsPPHV8nSYTRczItlN"
 uri = "file://SYSTEM_DESCRIPTION_NDA.md"
 type = "text"
 title = "Advisory Connect — System Technical Description (NDA)"
+
+[[outputs]]
+id = "Iv67Gvzoj_7m7G_lRxMme"
+uri = "file://Advisory_Connect_NDA_System_Description.docx"
+type = "word_document"
+title = "Advisory Connect — NDA System Description (Word Document)"
