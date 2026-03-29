@@ -516,7 +516,7 @@ export default function AdvisorProfile() {
                 initials={initials}
                 theme={advisor.theme || "blue"}
                 size={100}
-                downloadable={true}
+                downloadable={false}
                 name={advisor.name}
               />
             </div>

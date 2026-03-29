@@ -813,23 +813,62 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const initials = name.trim() ? name.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "NA";
 
   const handleDownloadBadge = () => {
-    const svgEl = document.getElementById("panel-badge-svg");
-    if (!svgEl) return;
-    const svgData = new XMLSerializer().serializeToString(svgEl);
-    const blob = new Blob([`<?xml version="1.0" encoding="UTF-8"?>${svgData}`], { type: "image/svg+xml;charset=utf-8" });
+    const { from, to, border } = getInitialsBadgeColors(theme);
+    const accentColor = getThemeColors(theme).accentColor;
+    const l1 = initials[0] || "";
+    const l2 = initials[1] || "";
+    const displayName = (name || "Your Name").toUpperCase();
+
+    const bSize = 200;
+    const pad = 30;
+    const gap = 48;
+    const fontSize = 90;
+    const approxTextW = displayName.length * (fontSize * 0.62);
+    const svgW = Math.round(pad + bSize + gap + approxTextW + pad);
+    const svgH = bSize + pad * 2;
+    const rx = Math.round(bSize * 22 / 120);
+    const rxInner = Math.round(bSize * 19 / 120);
+    const strokeW = (1.8 * bSize / 120).toFixed(1);
+    const textX1 = Math.round(38 * bSize / 120);
+    const textX2 = Math.round(82 * bSize / 120);
+    const textY = Math.round(84 * bSize / 120);
+    const fSize = Math.round(62 * bSize / 120);
+
+    const svgContent = [
+      `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">`,
+      `<defs>`,
+      `<linearGradient id="cbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${from}"/><stop offset="100%" stop-color="${to}"/></linearGradient>`,
+      `<linearGradient id="cshim" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.18)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></linearGradient>`,
+      `</defs>`,
+      `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
+      `<g transform="translate(${pad},${pad})">`,
+      `<rect width="${bSize}" height="${bSize}" rx="${rx}" fill="url(#cbg)"/>`,
+      `<rect width="${bSize}" height="${bSize / 2}" rx="${rx}" fill="url(#cshim)"/>`,
+      `<rect x="4" y="4" width="${bSize - 8}" height="${bSize - 8}" rx="${rxInner}" fill="none" stroke="${border}" stroke-width="${strokeW}"/>`,
+      `<text x="${textX1}" y="${textY}" font-family="Georgia,'Times New Roman',serif" font-size="${fSize}" font-weight="bold" fill="white" text-anchor="middle" opacity="0.92" letter-spacing="-${(2 * bSize / 120).toFixed(1)}">${l1}</text>`,
+      `<text x="${textX2}" y="${textY}" font-family="Georgia,'Times New Roman',serif" font-size="${fSize}" font-weight="bold" fill="white" text-anchor="middle" opacity="0.78" letter-spacing="-${(2 * bSize / 120).toFixed(1)}">${l2}</text>`,
+      `</g>`,
+      `<text x="${pad + bSize + gap}" y="${Math.round(svgH / 2 + fontSize * 0.35)}" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize}" font-weight="bold" fill="${accentColor}" letter-spacing="4">${displayName}</text>`,
+      `</svg>`,
+    ].join("");
+
+    const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      const scale = 2;
       const canvas = document.createElement("canvas");
-      canvas.width = 600; canvas.height = 600;
+      canvas.width = svgW * scale;
+      canvas.height = svgH * scale;
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
-      ctx.drawImage(img, 0, 0, 600, 600);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0, svgW, svgH);
       URL.revokeObjectURL(url);
       const link = document.createElement("a");
       link.href = canvas.toDataURL("image/png");
-      link.download = `${name.replace(/\s+/g, "-").toLowerCase() || "advisor"}-badge.png`;
+      link.download = `${(name || "advisor").replace(/\s+/g, "-").toLowerCase()}-header.png`;
       link.click();
     };
     img.src = url;
@@ -899,23 +938,22 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Initials Badge</h3>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Your auto-generated logo — shown on your profile when no photo is uploaded. Download as PNG to use elsewhere.</p>
-        <div className="flex items-center gap-4">
-          <InitialsBadgeSvg initials={initials} theme={theme} size={80} id="panel-badge-svg" />
-          <div className="flex-1 space-y-2">
-            <p className="text-xs font-medium" style={{ color: tc.textColor }}>{name || "Your Name"}</p>
-            <p className="text-xs" style={{ color: tc.mutedText }}>Updates live as you type your name</p>
-            <button
-              onClick={handleDownloadBadge}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
-              data-testid="button-download-badge"
-            >
-              <Download className="h-3 w-3" /> Download PNG
-            </button>
-          </div>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Header Image</h3>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Auto-generated from your name and theme. Download as PNG for use on emails, letterheads, or social media.</p>
+        <div className="flex items-center gap-4 rounded-xl px-5 py-4" style={{ backgroundColor: "#ffffff" }}>
+          <InitialsBadgeSvg initials={initials} theme={theme} size={64} id="panel-badge-svg" />
+          <span className="font-bold tracking-widest leading-none truncate" style={{ color: tc.accentColor, fontSize: 22, textTransform: "uppercase", letterSpacing: 4 }}>
+            {name || "Your Name"}
+          </span>
         </div>
+        <button
+          onClick={handleDownloadBadge}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+          data-testid="button-download-badge"
+        >
+          <Download className="h-3 w-3" /> Download Header PNG
+        </button>
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
