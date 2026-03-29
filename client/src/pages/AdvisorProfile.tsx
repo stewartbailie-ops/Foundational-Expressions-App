@@ -521,11 +521,11 @@ export default function AdvisorProfile() {
               />
             </div>
             <div className="min-w-0 flex-1">
-              <h1 className="text-xl font-bold tracking-tight leading-tight" data-testid="text-advisor-name" style={{ color: textColor }}>
+              <h1 className="text-2xl font-bold tracking-tight leading-tight" data-testid="text-advisor-name" style={{ color: textColor }}>
                 {advisor.name}
               </h1>
               {advisor.title && (
-                <p className="text-xs font-semibold mt-1 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
+                <p className="text-sm font-semibold mt-1.5 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
                   {advisor.title}
                 </p>
               )}
@@ -533,12 +533,12 @@ export default function AdvisorProfile() {
           </div>
 
           {advisor.profilePicUrl && advisor.showProfilePic !== false && (
-            <div className="flex justify-center" data-testid="section-profile-pic">
+            <div className="w-full" data-testid="section-profile-pic">
               <img
                 src={advisor.profilePicUrl}
                 alt={advisor.name}
-                className="rounded-full object-cover"
-                style={{ width: 220, height: 220, border: `4px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
+                className="w-full object-cover rounded-2xl"
+                style={{ aspectRatio: "1 / 1", border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
                 data-testid="img-profile-pic"
               />
             </div>

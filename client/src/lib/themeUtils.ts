@@ -6,7 +6,7 @@ export const THEME_OPTIONS = [
   { value: "pink",             label: "Pink" },
   { value: "light-blue",       label: "Light Blue" },
   { value: "dark-royal-purple",label: "Dark Royal Purple" },
-  { value: "dark-green",       label: "Dark Green" },
+  { value: "dark-green",       label: "Green" },
   { value: "gold",             label: "Gold" },
   { value: "teal",             label: "Teal" },
   { value: "red",              label: "Red" },
