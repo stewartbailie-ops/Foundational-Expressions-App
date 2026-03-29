@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "xR0AsPPHV8nSYTRczItlN"
+uri = "file://SYSTEM_DESCRIPTION_NDA.md"
+type = "text"
+title = "Advisory Connect — System Technical Description (NDA)"
