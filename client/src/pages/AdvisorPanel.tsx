@@ -822,7 +822,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     const bSize = 200;
     const pad = 30;
     const gap = 48;
-    const fontSize = 90;
+    const fontSize = 120;
     const approxTextW = displayName.length * (fontSize * 0.62);
     const svgW = Math.round(pad + bSize + gap + approxTextW + pad);
     const svgH = bSize + pad * 2;
@@ -942,7 +942,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         <p className="text-xs" style={{ color: tc.mutedText }}>Auto-generated from your name and theme. Download as PNG for use on emails, letterheads, or social media.</p>
         <div className="flex items-center gap-4 rounded-xl px-5 py-4" style={{ backgroundColor: "#ffffff" }}>
           <InitialsBadgeSvg initials={initials} theme={theme} size={64} id="panel-badge-svg" />
-          <span className="font-bold tracking-widest leading-none truncate" style={{ color: tc.accentColor, fontSize: 22, textTransform: "uppercase", letterSpacing: 4 }}>
+          <span className="font-bold tracking-widest leading-none truncate" style={{ color: tc.accentColor, fontSize: 28, textTransform: "uppercase", letterSpacing: 4 }}>
             {name || "Your Name"}
           </span>
         </div>
