@@ -936,6 +936,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showDocuments, setShowDocuments] = useState(!!(advisor as any).showDocuments);
   const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(advisor as any).showComplimentaryWill);
   const [showFinancialMedia, setShowFinancialMedia] = useState(!!(advisor as any).showFinancialMedia);
+  const [showTools, setShowTools] = useState(!!(advisor as any).showTools);
+  const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
+  const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
+  const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -980,6 +984,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showDocuments,
         showComplimentaryWill,
         showFinancialMedia,
+        showTools,
+        showToolTax,
+        showToolExchange,
+        showToolCompound,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
       });
@@ -1392,6 +1400,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
+          { label: "Financial Tools Section", value: showTools, set: setShowTools },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -1400,6 +1409,23 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             </div>
           </div>
         ))}
+        {showTools && (
+          <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
+            {[
+              { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
+              { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
+              { label: "Compound Interest Calculator", value: showToolCompound, set: setShowToolCompound },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between py-1 pl-2">
+                <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                <div onClick={() => item.set(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: item.value ? "18px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
@@ -1581,6 +1607,10 @@ function AdditionalProfileForm({
   const [showDocuments, setShowDocuments] = useState(!!(existingProfile as any)?.showDocuments);
   const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(existingProfile as any)?.showComplimentaryWill);
   const [showFinancialMedia, setShowFinancialMedia] = useState(!!(existingProfile as any)?.showFinancialMedia);
+  const [showTools, setShowTools] = useState(!!(existingProfile as any)?.showTools);
+  const [showToolTax, setShowToolTax] = useState((existingProfile as any)?.showToolTax !== false);
+  const [showToolExchange, setShowToolExchange] = useState((existingProfile as any)?.showToolExchange !== false);
+  const [showToolCompound, setShowToolCompound] = useState((existingProfile as any)?.showToolCompound !== false);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const isEditing = !!existingProfile;
@@ -1623,6 +1653,10 @@ function AdditionalProfileForm({
         showDocuments,
         showComplimentaryWill,
         showFinancialMedia,
+        showTools,
+        showToolTax,
+        showToolExchange,
+        showToolCompound,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
         active: true,
@@ -1873,6 +1907,7 @@ function AdditionalProfileForm({
             { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
             { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
+            { label: "Financial Tools Section", value: showTools, set: setShowTools },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -1881,6 +1916,23 @@ function AdditionalProfileForm({
               </div>
             </div>
           ))}
+          {showTools && (
+            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
+              {[
+                { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
+                { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
+                { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between pl-2">
+                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 pt-1">
@@ -2439,6 +2491,53 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
               </div>
             ) : (
               <p className="text-xs text-center py-3" style={ls}>Could not fetch rates. Check connection and try refreshing.</p>
+            )}
+
+            {/* ZAR Top 10 Rate Table */}
+            {erRates && (
+              <div className="pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <p className="text-xs font-semibold pt-2 pb-2" style={{ color: tc.sectionTitle }}>ZAR vs Top 10 Currencies</p>
+                <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+                  <div className="grid grid-cols-3 px-3 py-1.5" style={{ backgroundColor: tc.inputBg, borderBottom: `1px solid ${tc.borderColor}` }}>
+                    <span className="text-xs font-medium" style={{ color: tc.mutedText }}>Currency</span>
+                    <span className="text-xs font-medium text-right" style={{ color: tc.mutedText }}>1 ZAR =</span>
+                    <span className="text-xs font-medium text-right" style={{ color: tc.mutedText }}>1 unit = ZAR</span>
+                  </div>
+                  {[
+                    { code: "USD", name: "US Dollar" },
+                    { code: "EUR", name: "Euro" },
+                    { code: "GBP", name: "British Pound" },
+                    { code: "AUD", name: "Aus Dollar" },
+                    { code: "CAD", name: "Can Dollar" },
+                    { code: "CHF", name: "Swiss Franc" },
+                    { code: "JPY", name: "Japanese Yen" },
+                    { code: "CNY", name: "Chinese Yuan" },
+                    { code: "HKD", name: "HK Dollar" },
+                    { code: "NZD", name: "NZ Dollar" },
+                  ].map(({ code, name }, i) => {
+                    const zarBase = erFrom === "ZAR" ? erRates[code] : null;
+                    const invertedBase = erFrom === "ZAR" && erRates[code] ? 1 / erRates[code] : null;
+                    const fromZar = zarBase ? zarBase.toFixed(code === "JPY" ? 2 : 4) : "—";
+                    const toZar = invertedBase ? invertedBase.toFixed(4) : "—";
+                    return (
+                      <div key={code} className="grid grid-cols-3 px-3 py-2" style={{ borderBottom: i < 9 ? `1px solid ${tc.borderColor}` : "none", backgroundColor: i % 2 === 0 ? "transparent" : tc.inputBg + "55" }}>
+                        <div>
+                          <span className="text-xs font-semibold" style={{ color: tc.accentColor }}>{code}</span>
+                          <span className="text-xs ml-1.5 hidden sm:inline" style={{ color: tc.mutedText }}>{name}</span>
+                        </div>
+                        <span className="text-xs text-right font-medium" style={{ color: tc.textColor }}>{fromZar}</span>
+                        <span className="text-xs text-right" style={{ color: tc.mutedText }}>{toZar}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {erFrom !== "ZAR" && (
+                  <p className="text-xs mt-2 text-center" style={{ color: tc.mutedText }}>
+                    Switch base currency to <button onClick={() => setErFrom("ZAR")} className="underline" style={{ color: tc.accentColor }}>ZAR</button> to see live ZAR rates
+                  </p>
+                )}
+                {erUpdated && <p className="text-xs mt-1 text-center" style={{ color: tc.mutedText }}>Updated: {erUpdated}</p>}
+              </div>
             )}
           </div>
         )}

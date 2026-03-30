@@ -168,7 +168,6 @@ export default function ReferralForm() {
     referrerFirstName.trim() &&
     referrerSurname.trim() &&
     referrerPhone.trim() &&
-    !!recaptchaToken &&
     referrals.every(
       (r) =>
         r.firstName.trim() &&

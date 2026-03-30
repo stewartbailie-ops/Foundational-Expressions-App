@@ -175,7 +175,7 @@ export default function CallbackForm() {
     formData.surname.trim() &&
     formData.phone.trim() &&
     formData.confirmOver18 &&
-    !!recaptchaToken;
+    true;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

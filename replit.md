@@ -47,9 +47,12 @@ Clients are auto-graded based on demographics:
 4. **Manage Advisors** - List advisors with active/inactive toggles, edit/view/copy/delete buttons, "New Advisor" button
 5. **Create New Advisor** - Full form with header, profile pic, bio options, services checkboxes, theme selection, QR code preview
 6. **Edit Advisor** (`/edit/:id`) - Full editing of existing advisor profiles
-7. **Public Profile Page** (`/profile/:slug`) - Mobile-optimized, dark/blue/pink themed, expandable services, tax calculator, callback/referral buttons, QR code, large profile pictures
+7. **Public Profile Page** (`/profile/:slug`) - Mobile-optimized, dark/blue/pink themed, expandable services, callback/referral buttons, QR code, large profile pictures
 8. **Callback Form** (`/profile/:slug/request-callback`) - Client details form with income, situation toggles, service selection
 9. **Referral Form** (`/profile/:slug/referrals`) - Referrer details + up to 4 referral entries
+10. **Financial Tools on Profile** - Collapsible "Financial Tools" section on public profile with SA Tax Calc, Exchange Rate Converter, Compound Interest Calc — each individually toggled in advisor panel
+11. **ZAR Rate Table in Toolbox** - Exchange Rate section in advisor toolbox shows ZAR vs top 10 global currencies table (1 ZAR = X, 1 unit = X ZAR)
+12. **reCAPTCHA** - Widget shown on forms (advisory, non-blocking) — removed hard gate so forms submit even if reCAPTCHA not completed; server-side soft-fail (returns true on network error)
 
 ## Routes
 ### Control Panel (inside AppLayout)

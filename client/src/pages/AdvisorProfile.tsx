@@ -562,6 +562,19 @@ export default function AdvisorProfile() {
   const [shareCopied, setShareCopied] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
   const [showInstallHint, setShowInstallHint] = useState(false);
+  const [toolsOpen, setToolsOpen] = useState(false);
+  const [openTool, setOpenTool] = useState<string | null>(null);
+  const [taxIncome, setTaxIncome] = useState("");
+  const [taxAge, setTaxAge] = useState("35");
+  const [erAmount, setErAmount] = useState("1000");
+  const [erFrom, setErFrom] = useState("ZAR");
+  const [erTo, setErTo] = useState("USD");
+  const [erRates, setErRates] = useState<Record<string, number> | null>(null);
+  const [erLoading, setErLoading] = useState(false);
+  const [ciPrincipal, setCiPrincipal] = useState("10000");
+  const [ciRate, setCiRate] = useState("8");
+  const [ciYears, setCiYears] = useState("10");
+  const [ciMonthly, setCiMonthly] = useState("500");
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -580,6 +593,20 @@ export default function AdvisorProfile() {
     }
     return () => { document.title = "Advisory Connect"; };
   }, [advisor]);
+
+  useEffect(() => {
+    if (!toolsOpen) return;
+    const fetchRates = async () => {
+      setErLoading(true);
+      try {
+        const res = await fetch(`https://open.er-api.com/v6/latest/${erFrom}`);
+        const data = await res.json();
+        if (data.result === "success") setErRates(data.rates);
+      } catch { /* silent */ }
+      setErLoading(false);
+    };
+    fetchRates();
+  }, [erFrom, toolsOpen]);
 
   if (isLoading) {
     return (
@@ -1065,7 +1092,192 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* n. Contact Details */}
+        {/* n. Financial Tools */}
+        {(advisor as any).showTools && (
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-tools">
+            <button
+              onClick={() => setToolsOpen(v => !v)}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: textColor }}
+              data-testid="button-tools-open"
+            >
+              <div className="flex items-center gap-2">
+                <Calculator className="h-4 w-4" style={{ color: accentColor }} />
+                Financial Tools
+              </div>
+              {toolsOpen ? <ChevronUp className="h-4 w-4" style={{ color: mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: mutedText }} />}
+            </button>
+            {toolsOpen && (() => {
+              const TAX_BRACKETS = [
+                { min: 0, max: 237100, rate: 0.18, base: 0 },
+                { min: 237101, max: 370500, rate: 0.26, base: 42678 },
+                { min: 370501, max: 512800, rate: 0.31, base: 77362 },
+                { min: 512801, max: 673000, rate: 0.36, base: 121475 },
+                { min: 673001, max: 857900, rate: 0.39, base: 179147 },
+                { min: 857901, max: 1817000, rate: 0.41, base: 251258 },
+                { min: 1817001, max: Infinity, rate: 0.45, base: 644489 },
+              ];
+              const taxForIncome = (annual: number, age: number) => {
+                let grossTax = 0;
+                for (const b of TAX_BRACKETS) { if (annual >= b.min) grossTax = b.base + (Math.min(annual, b.max) - b.min) * b.rate; }
+                let rebate = 17235;
+                if (age >= 65) rebate += 9444;
+                if (age >= 75) rebate += 3145;
+                const tax = Math.max(0, grossTax - rebate);
+                return { tax, net: annual - tax - Math.min(annual * 0.01, 177.12 * 12), effective: annual > 0 ? (tax / annual) * 100 : 0 };
+              };
+              const monthly = parseFloat(taxIncome) || 0;
+              const taxResult = monthly > 0 ? taxForIncome(monthly * 12, parseInt(taxAge) || 35) : null;
+
+              const erConverted = erRates && erRates[erTo] ? parseFloat(erAmount) * erRates[erTo] : null;
+              const erRate = erRates && erRates[erTo] ? erRates[erTo] : null;
+
+              const P = parseFloat(ciPrincipal) || 0, r = parseFloat(ciRate) / 100, t = parseFloat(ciYears) || 1;
+              const PMT = parseFloat(ciMonthly) || 0, n = 12;
+              const Ap = P * Math.pow(1 + r / n, n * t);
+              const Apmt = r > 0 ? PMT * ((Math.pow(1 + r / n, n * t) - 1) / (r / n)) : PMT * 12 * t;
+              const ciTotal = Ap + Apmt;
+              const ciContrib = P + PMT * 12 * t;
+
+              const is = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor, borderRadius: "8px", padding: "8px 12px", fontSize: "13px", outline: "none", width: "100%" };
+              const toolItems = [
+                (advisor as any).showToolTax !== false && "tax",
+                (advisor as any).showToolExchange !== false && "exchange",
+                (advisor as any).showToolCompound !== false && "compound",
+              ].filter(Boolean) as string[];
+
+              return (
+                <div className="px-4 pb-4 pt-3 space-y-2" style={{ backgroundColor: cardBg }}>
+                  {toolItems.map(toolKey => (
+                    <div key={toolKey} className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+                      <button
+                        onClick={() => setOpenTool(openTool === toolKey ? null : toolKey)}
+                        className="flex items-center justify-between w-full px-3 py-2.5 text-sm font-medium"
+                        style={{ backgroundColor: tc.inputBg, color: textColor }}
+                        data-testid={`button-tool-${toolKey}`}
+                      >
+                        <span className="flex items-center gap-2" style={{ color: accentColor }}>
+                          {toolKey === "tax" && <><TrendingUp className="h-3.5 w-3.5" /> SA Tax Calculator</>}
+                          {toolKey === "exchange" && <><Calculator className="h-3.5 w-3.5" /> Exchange Rate Converter</>}
+                          {toolKey === "compound" && <><TrendingUp className="h-3.5 w-3.5" /> Compound Interest</>}
+                        </span>
+                        {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
+                      </button>
+                      {openTool === toolKey && (
+                        <div className="px-3 py-3 space-y-3" style={{ backgroundColor: cardBg }}>
+                          {toolKey === "tax" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>2024/25 tax year estimate based on monthly gross salary.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Income (R)</label>
+                                  <input type="number" value={taxIncome} onChange={e => setTaxIncome(e.target.value)} placeholder="e.g. 25000" style={is} data-testid="input-tool-tax-income" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Age</label>
+                                  <input type="number" value={taxAge} onChange={e => setTaxAge(e.target.value)} placeholder="35" style={is} data-testid="input-tool-tax-age" />
+                                </div>
+                              </div>
+                              {taxResult && (
+                                <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                  {[
+                                    { label: "Gross Monthly", val: `R ${monthly.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                    { label: "Est. Monthly Tax", val: `R ${(taxResult.tax / 12).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                    { label: "Take-home (approx)", val: `R ${(taxResult.net / 12).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                    { label: "Effective Rate", val: `${taxResult.effective.toFixed(1)}%` },
+                                  ].map(({ label, val, accent }) => (
+                                    <div key={label} className="flex justify-between text-xs">
+                                      <span style={{ color: mutedText }}>{label}</span>
+                                      <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                    </div>
+                                  ))}
+                                  <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes medical aid credits, deductions &amp; UIF.</p>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {toolKey === "exchange" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Live exchange rates via ExchangeRate-API.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Amount</label>
+                                  <input type="number" value={erAmount} onChange={e => setErAmount(e.target.value)} style={is} data-testid="input-tool-er-amount" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>From</label>
+                                  <select value={erFrom} onChange={e => setErFrom(e.target.value)} style={is} data-testid="select-tool-er-from">
+                                    {["ZAR","USD","EUR","GBP","AUD","CAD","CHF","JPY","CNY","HKD","NZD","SGD","INR"].map(c => <option key={c} value={c}>{c}</option>)}
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <label className="text-xs" style={{ color: mutedText }}>To</label>
+                                <select value={erTo} onChange={e => setErTo(e.target.value)} style={is} data-testid="select-tool-er-to">
+                                  {["USD","EUR","GBP","AUD","CAD","CHF","JPY","CNY","HKD","NZD","ZAR","SGD","INR"].filter(c => c !== erFrom).map(c => <option key={c} value={c}>{c}</option>)}
+                                </select>
+                              </div>
+                              {erLoading ? (
+                                <div className="flex items-center justify-center gap-2 py-2">
+                                  <Loader2 className="h-4 w-4 animate-spin" style={{ color: mutedText }} />
+                                  <span className="text-xs" style={{ color: mutedText }}>Fetching rates…</span>
+                                </div>
+                              ) : erConverted !== null ? (
+                                <div className="rounded-lg p-3 text-center" style={{ backgroundColor: tc.inputBg }}>
+                                  <p className="text-xl font-bold" style={{ color: accentColor }}>
+                                    {erConverted.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {erTo}
+                                  </p>
+                                  <p className="text-xs mt-0.5" style={{ color: mutedText }}>1 {erFrom} = {erRate?.toFixed(4)} {erTo}</p>
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                          {toolKey === "compound" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Future value of an investment with monthly contributions.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Principal (R)</label>
+                                  <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} style={is} data-testid="input-tool-ci-principal" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Annual Rate (%)</label>
+                                  <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} style={is} data-testid="input-tool-ci-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Years</label>
+                                  <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} style={is} data-testid="input-tool-ci-years" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Top-up (R)</label>
+                                  <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} style={is} data-testid="input-tool-ci-monthly" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Future Value", val: `R ${ciTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                  { label: "Total Contributions", val: `R ${ciContrib.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Interest Earned", val: `R ${(ciTotal - ciContrib).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* o. Contact Details */}
         {hasContactDetails && (
           <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-contact">
             {advisor.email && (
