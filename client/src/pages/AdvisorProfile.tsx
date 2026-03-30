@@ -692,6 +692,111 @@ export default function AdvisorProfile() {
     }
   };
 
+  const handleDownloadProfileImage = () => {
+    const W = 600;
+    const BAR = 140;
+    const hasPhoto = !!advisor.profilePicUrl;
+    const PHOTO_H = hasPhoto ? W : 320;
+    const TOTAL_H = PHOTO_H + BAR;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = TOTAL_H;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
+
+    const drawBadge = (bx: number, by: number, bs: number) => {
+      const r = bs * 0.18;
+      const grad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
+      grad.addColorStop(0, from);
+      grad.addColorStop(1, to);
+      ctx.beginPath();
+      ctx.moveTo(bx + r, by);
+      ctx.lineTo(bx + bs - r, by);
+      ctx.quadraticCurveTo(bx + bs, by, bx + bs, by + r);
+      ctx.lineTo(bx + bs, by + bs - r);
+      ctx.quadraticCurveTo(bx + bs, by + bs, bx + bs - r, by + bs);
+      ctx.lineTo(bx + r, by + bs);
+      ctx.quadraticCurveTo(bx, by + bs, bx, by + bs - r);
+      ctx.lineTo(bx, by + r);
+      ctx.quadraticCurveTo(bx, by, bx + r, by);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      const shimGrad = ctx.createLinearGradient(bx, by, bx, by + bs / 2);
+      shimGrad.addColorStop(0, "rgba(255,255,255,0.18)");
+      shimGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = shimGrad;
+      ctx.fill();
+      const l1 = initials[0] || "";
+      const l2 = initials[1] || "";
+      const fontSize = bs * 0.52;
+      ctx.font = `bold ${fontSize}px Georgia, serif`;
+      ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,0.92)";
+      ctx.fillText(l1, bx + bs * 0.3, by + bs * 0.54);
+      ctx.fillStyle = "rgba(255,255,255,0.78)";
+      ctx.fillText(l2, bx + bs * 0.66, by + bs * 0.54);
+    };
+
+    const finalize = () => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, PHOTO_H, W, BAR);
+      const BADGE_SIZE = 80;
+      const BADGE_X = 24;
+      const BADGE_Y = PHOTO_H + (BAR - BADGE_SIZE) / 2;
+      drawBadge(BADGE_X, BADGE_Y, BADGE_SIZE);
+      const TEXT_X = BADGE_X + BADGE_SIZE + 20;
+      const nameSize = Math.min(32, Math.max(20, Math.floor(30 - advisor.name.length * 0.3)));
+      ctx.font = `bold ${nameSize}px Arial, sans-serif`;
+      ctx.fillStyle = "#111111";
+      ctx.textBaseline = "middle";
+      ctx.fillText(advisor.name.toUpperCase(), TEXT_X, PHOTO_H + BAR * 0.38);
+      if (advisor.title) {
+        ctx.font = `500 14px Arial, sans-serif`;
+        ctx.fillStyle = "#666666";
+        ctx.fillText(advisor.title.toUpperCase(), TEXT_X, PHOTO_H + BAR * 0.68);
+      }
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-profile.png`;
+      link.click();
+    };
+
+    if (hasPhoto) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        const srcAspect = img.naturalWidth / img.naturalHeight;
+        let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+        if (srcAspect > 1) { sw = img.naturalHeight; sx = (img.naturalWidth - sw) / 2; }
+        else if (srcAspect < 1) { sh = img.naturalWidth; sy = (img.naturalHeight - sh) / 2; }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, PHOTO_H);
+        finalize();
+      };
+      img.onerror = () => {
+        const noPhotoGrad = ctx.createLinearGradient(0, 0, W, PHOTO_H);
+        noPhotoGrad.addColorStop(0, from);
+        noPhotoGrad.addColorStop(1, to);
+        ctx.fillStyle = noPhotoGrad;
+        ctx.fillRect(0, 0, W, PHOTO_H);
+        drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160);
+        finalize();
+      };
+      img.src = advisor.profilePicUrl!;
+    } else {
+      const noPhotoGrad = ctx.createLinearGradient(0, 0, W, PHOTO_H);
+      noPhotoGrad.addColorStop(0, from);
+      noPhotoGrad.addColorStop(1, to);
+      ctx.fillStyle = noPhotoGrad;
+      ctx.fillRect(0, 0, W, PHOTO_H);
+      drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160);
+      finalize();
+    }
+  };
+
   const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
 
   return (
@@ -717,37 +822,52 @@ export default function AdvisorProfile() {
           ))}
         </div>
 
-        {/* a. Header */}
-        <div className="flex items-center gap-5 rounded-2xl p-5"
-          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
-          data-testid="profile-header">
-          <div className="flex-shrink-0">
-            <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={100} downloadable={false} name={advisor.name} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ color: textColor }} data-testid="text-advisor-name">
-              {advisor.name}
-            </h1>
-            {advisor.title && (
-              <p className="text-sm font-semibold mt-1.5 uppercase tracking-widest" style={{ color: tc.accentColor }} data-testid="text-advisor-title">
-                {advisor.title}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* b. Profile Picture */}
-        {advisor.profilePicUrl && advisor.showProfilePic !== false && (
-          <div className="w-full" data-testid="section-profile-pic">
+        {/* a+b. Unified profile header card — photo + name bar */}
+        <div className="w-full overflow-hidden rounded-2xl" style={{ border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }} data-testid="profile-header">
+          {/* Photo (if available) */}
+          {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
             <img
               src={advisor.profilePicUrl}
               alt={advisor.name}
-              className="w-full object-cover rounded-2xl"
-              style={{ aspectRatio: "1 / 1", border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }}
+              className="w-full object-cover block"
+              style={{ aspectRatio: "1 / 1" }}
               data-testid="img-profile-pic"
             />
+          ) : (
+            /* No photo — show large initials badge on a gradient background */
+            <div className="w-full flex items-center justify-center" style={{ aspectRatio: "1 / 1", background: `linear-gradient(135deg, ${getInitialsBadgeColors(advisor.theme || "blue").from}, ${getInitialsBadgeColors(advisor.theme || "blue").to})` }} data-testid="section-initials-fallback">
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={200} downloadable={false} name={advisor.name} />
+            </div>
+          )}
+
+          {/* Name bar */}
+          <div className="flex items-center gap-4 px-4 py-3 bg-white" data-testid="profile-name-bar">
+            <div className="flex-shrink-0">
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={72} downloadable={false} name={advisor.name} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h1 className="text-lg font-bold tracking-widest leading-tight text-gray-900 uppercase" data-testid="text-advisor-name">
+                {advisor.name}
+              </h1>
+              {advisor.title && (
+                <p className="text-xs font-semibold mt-0.5 uppercase tracking-widest text-gray-500" data-testid="text-advisor-title">
+                  {advisor.title}
+                </p>
+              )}
+            </div>
+            {/* Download image button */}
+            <button
+              onClick={handleDownloadProfileImage}
+              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-75"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-download-profile-image"
+              title="Download profile image"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Save Image</span>
+            </button>
           </div>
-        )}
+        </div>
 
         {/* c. Four utility buttons */}
         <div className="space-y-2" data-testid="section-utility-buttons">
