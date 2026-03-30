@@ -841,31 +841,20 @@ export default function AdvisorProfile() {
           )}
 
           {/* Name bar */}
-          <div className="flex items-center gap-4 px-4 py-3 bg-white" data-testid="profile-name-bar">
+          <div className="flex items-center gap-4 px-5 py-4 bg-white" data-testid="profile-name-bar">
             <div className="flex-shrink-0">
-              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={72} downloadable={false} name={advisor.name} />
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={80} downloadable={false} name={advisor.name} />
             </div>
-            <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-bold tracking-widest leading-tight text-gray-900 uppercase" data-testid="text-advisor-name">
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <h1 className="text-xl font-bold tracking-widest leading-tight text-gray-900 uppercase w-full text-center" data-testid="text-advisor-name">
                 {advisor.name}
               </h1>
               {advisor.title && (
-                <p className="text-xs font-semibold mt-0.5 uppercase tracking-widest text-gray-500" data-testid="text-advisor-title">
+                <p className="text-xs font-semibold mt-1 uppercase tracking-widest text-gray-500 w-full text-center" data-testid="text-advisor-title">
                   {advisor.title}
                 </p>
               )}
             </div>
-            {/* Download image button */}
-            <button
-              onClick={handleDownloadProfileImage}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-75"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-download-profile-image"
-              title="Download profile image"
-            >
-              <Download className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Save Image</span>
-            </button>
           </div>
         </div>
 

@@ -1086,6 +1086,69 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     img.src = url;
   };
 
+  const handleDownloadProfileImage = () => {
+    const W = 600;
+    const BAR = 140;
+    const hasPhoto = !!profilePicUrl;
+    const PHOTO_H = hasPhoto ? W : 320;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = PHOTO_H + BAR;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const { from, to } = getInitialsBadgeColors(theme);
+    const drawBadge = (bx: number, by: number, bs: number) => {
+      const r = bs * 0.18;
+      const grad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
+      grad.addColorStop(0, from); grad.addColorStop(1, to);
+      ctx.beginPath();
+      ctx.moveTo(bx + r, by); ctx.lineTo(bx + bs - r, by); ctx.quadraticCurveTo(bx + bs, by, bx + bs, by + r);
+      ctx.lineTo(bx + bs, by + bs - r); ctx.quadraticCurveTo(bx + bs, by + bs, bx + bs - r, by + bs);
+      ctx.lineTo(bx + r, by + bs); ctx.quadraticCurveTo(bx, by + bs, bx, by + bs - r);
+      ctx.lineTo(bx, by + r); ctx.quadraticCurveTo(bx, by, bx + r, by); ctx.closePath();
+      ctx.fillStyle = grad; ctx.fill();
+      const shimGrad = ctx.createLinearGradient(bx, by, bx, by + bs / 2);
+      shimGrad.addColorStop(0, "rgba(255,255,255,0.18)"); shimGrad.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = shimGrad; ctx.fill();
+      const fontSize = bs * 0.52;
+      ctx.font = `bold ${fontSize}px Georgia, serif`; ctx.textBaseline = "middle";
+      ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.fillText(initials[0] || "", bx + bs * 0.3, by + bs * 0.54);
+      ctx.fillStyle = "rgba(255,255,255,0.78)"; ctx.fillText(initials[1] || "", bx + bs * 0.66, by + bs * 0.54);
+    };
+    const finalize = () => {
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, PHOTO_H, W, BAR);
+      const BS = 80, BX = 24, BY = PHOTO_H + (BAR - BS) / 2;
+      drawBadge(BX, BY, BS);
+      const TX = BX + BS + 20;
+      const nameSize = Math.min(32, Math.max(20, Math.floor(30 - (name || "").length * 0.3)));
+      ctx.font = `bold ${nameSize}px Arial, sans-serif`; ctx.fillStyle = "#111111"; ctx.textBaseline = "middle";
+      ctx.fillText((name || "Your Name").toUpperCase(), TX, PHOTO_H + BAR * 0.38);
+      if (title) { ctx.font = `500 14px Arial, sans-serif`; ctx.fillStyle = "#666666"; ctx.fillText(title.toUpperCase(), TX, PHOTO_H + BAR * 0.68); }
+      const link = document.createElement("a");
+      link.href = canvas.toDataURL("image/png");
+      link.download = `${(name || "advisor").replace(/\s+/g, "-").toLowerCase()}-profile.png`;
+      link.click();
+    };
+    if (hasPhoto) {
+      const img2 = new Image(); img2.crossOrigin = "anonymous";
+      img2.onload = () => {
+        const srcAspect = img2.naturalWidth / img2.naturalHeight;
+        let sx = 0, sy = 0, sw = img2.naturalWidth, sh = img2.naturalHeight;
+        if (srcAspect > 1) { sw = img2.naturalHeight; sx = (img2.naturalWidth - sw) / 2; }
+        else if (srcAspect < 1) { sh = img2.naturalWidth; sy = (img2.naturalHeight - sh) / 2; }
+        ctx.drawImage(img2, sx, sy, sw, sh, 0, 0, W, PHOTO_H); finalize();
+      };
+      img2.onerror = () => {
+        const g = ctx.createLinearGradient(0, 0, W, PHOTO_H); g.addColorStop(0, from); g.addColorStop(1, to);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, PHOTO_H); drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160); finalize();
+      };
+      img2.src = profilePicUrl!;
+    } else {
+      const g = ctx.createLinearGradient(0, 0, W, PHOTO_H); g.addColorStop(0, from); g.addColorStop(1, to);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, PHOTO_H); drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160); finalize();
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
@@ -1158,14 +1221,24 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             {name || "Your Name"}
           </span>
         </div>
-        <button
-          onClick={handleDownloadBadge}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
-          data-testid="button-download-badge"
-        >
-          <Download className="h-3 w-3" /> Download Header PNG
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={handleDownloadBadge}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+            style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+            data-testid="button-download-badge"
+          >
+            <Download className="h-3 w-3" /> Download Header PNG
+          </button>
+          <button
+            onClick={handleDownloadProfileImage}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-download-profile-image"
+          >
+            <Download className="h-3 w-3" /> Download Profile Image
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
