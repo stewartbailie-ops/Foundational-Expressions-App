@@ -1996,10 +1996,10 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
             left: dropRect.left,
             minWidth: dropRect.width,
             zIndex: 9999,
-            backgroundColor: colors.cardBg,
+            backgroundColor: colors.popupBg,
             border: `1px solid ${colors.borderColor}`,
             borderRadius: "8px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
             maxHeight: "240px",
             overflowY: "auto",
           }}
@@ -2012,7 +2012,7 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
               className="w-full text-left px-3 py-2 text-sm whitespace-nowrap"
               style={{
                 color: o.value === value ? colors.accentColor : colors.textColor,
-                backgroundColor: o.value === value ? colors.inputBg : colors.cardBg,
+                backgroundColor: o.value === value ? colors.solidInputBg : colors.popupBg,
                 fontWeight: o.value === value ? 600 : 400,
               }}
             >

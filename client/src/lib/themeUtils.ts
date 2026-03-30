@@ -223,93 +223,93 @@ export function getInitialsBadgeColors(theme: string | null | undefined): { from
 export function getThemeColors(theme: string | null | undefined) {
   const t = theme || "blue";
 
-  const darkBase = (accent: string, bg: string, cardBg: string, text: string, muted: string, sectionTitle: string, inputBg: string, inputBorder: string, border: string, btnBg: string, btnText: string, btnSecBg: string, circBg: string, circBorder: string, checkActive: string, checkInactive: string, checkDotActive: string, checkDotInactive: string) => ({
+  const darkBase = (accent: string, bg: string, cardBg: string, popupBg: string, text: string, muted: string, sectionTitle: string, inputBg: string, solidInputBg: string, inputBorder: string, border: string, btnBg: string, btnText: string, btnSecBg: string, circBg: string, circBorder: string, checkActive: string, checkInactive: string, checkDotActive: string, checkDotInactive: string) => ({
     isDark: true, isBlue: false,
-    accentColor: accent, bgColor: bg, cardBg, textColor: text, mutedText: muted, sectionTitle,
-    inputBg, inputBorder, borderColor: border, buttonBg: btnBg, buttonText: btnText,
+    accentColor: accent, bgColor: bg, cardBg, popupBg, textColor: text, mutedText: muted, sectionTitle,
+    inputBg, solidInputBg, inputBorder, borderColor: border, buttonBg: btnBg, buttonText: btnText,
     buttonSecondaryBg: btnSecBg, initialsCircleBg: circBg, initialsCircleBorder: circBorder,
     successColor: "#22c55e", checkActive, checkInactive, checkDotActive, checkDotInactive,
   });
 
-  const lightBase = (accent: string, bg: string, cardBg: string, text: string, muted: string, sectionTitle: string, inputBg: string, inputBorder: string, border: string, btnBg: string, btnText: string, btnSecBg: string, circBg: string, circBorder: string, checkActive: string, checkInactive: string, checkDotActive: string, checkDotInactive: string) => ({
+  const lightBase = (accent: string, bg: string, cardBg: string, popupBg: string, text: string, muted: string, sectionTitle: string, inputBg: string, solidInputBg: string, inputBorder: string, border: string, btnBg: string, btnText: string, btnSecBg: string, circBg: string, circBorder: string, checkActive: string, checkInactive: string, checkDotActive: string, checkDotInactive: string) => ({
     isDark: false, isBlue: false,
-    accentColor: accent, bgColor: bg, cardBg, textColor: text, mutedText: muted, sectionTitle,
-    inputBg, inputBorder, borderColor: border, buttonBg: btnBg, buttonText: btnText,
+    accentColor: accent, bgColor: bg, cardBg, popupBg, textColor: text, mutedText: muted, sectionTitle,
+    inputBg, solidInputBg, inputBorder, borderColor: border, buttonBg: btnBg, buttonText: btnText,
     buttonSecondaryBg: btnSecBg, initialsCircleBg: circBg, initialsCircleBorder: circBorder,
     successColor: "#22c55e", checkActive, checkInactive, checkDotActive, checkDotInactive,
   });
 
   if (t === "pink") return lightBase(
-    "#be185d","#fff0f5","rgba(255,255,255,0.8)","#1a1a1a","rgba(0,0,0,0.55)","#be185d",
-    "rgba(255,255,255,0.9)","rgba(190,24,93,0.25)","rgba(190,24,93,0.2)","#be185d","#ffffff",
+    "#be185d","#fff0f5","rgba(255,255,255,0.8)","#ffffff","#1a1a1a","rgba(0,0,0,0.55)","#be185d",
+    "rgba(255,255,255,0.9)","#ffffff","rgba(190,24,93,0.25)","rgba(190,24,93,0.2)","#be185d","#ffffff",
     "rgba(190,24,93,0.12)","rgba(190,24,93,0.15)","rgba(190,24,93,0.3)",
     "#be185d","rgba(0,0,0,0.15)","#ffffff","rgba(0,0,0,0.3)"
   );
   if (t === "dark") return darkBase(
-    "#ffffff","#0a0a0a","rgba(255,255,255,0.06)","#ffffff","rgba(255,255,255,0.6)","rgba(255,255,255,0.85)",
-    "rgba(255,255,255,0.08)","rgba(255,255,255,0.2)","rgba(255,255,255,0.15)","#ffffff","#000000",
+    "#ffffff","#0a0a0a","rgba(255,255,255,0.06)","#1e1e1e","#ffffff","rgba(255,255,255,0.6)","rgba(255,255,255,0.85)",
+    "rgba(255,255,255,0.08)","#2a2a2a","rgba(255,255,255,0.2)","rgba(255,255,255,0.15)","#ffffff","#000000",
     "rgba(255,255,255,0.12)","rgba(255,255,255,0.1)","rgba(255,255,255,0.2)",
     "#ffffff","rgba(255,255,255,0.15)","#000000","rgba(255,255,255,0.5)"
   );
   if (t === "light-blue") return lightBase(
-    "#0ea5e9","#e0f2fe","rgba(255,255,255,0.85)","#0c2d48","rgba(12,45,72,0.6)","#0ea5e9",
-    "rgba(255,255,255,0.95)","rgba(14,165,233,0.3)","rgba(14,165,233,0.22)","#0ea5e9","#ffffff",
+    "#0ea5e9","#e0f2fe","rgba(255,255,255,0.85)","#ffffff","#0c2d48","rgba(12,45,72,0.6)","#0ea5e9",
+    "rgba(255,255,255,0.95)","#ffffff","rgba(14,165,233,0.3)","rgba(14,165,233,0.22)","#0ea5e9","#ffffff",
     "rgba(14,165,233,0.12)","rgba(14,165,233,0.15)","rgba(14,165,233,0.35)",
     "#0ea5e9","rgba(0,0,0,0.15)","#ffffff","rgba(0,0,0,0.3)"
   );
   if (t === "dark-royal-purple") return darkBase(
-    "#a855f7","#0d0a1a","rgba(168,85,247,0.08)","#f3e8ff","rgba(243,232,255,0.6)","#c084fc",
-    "rgba(168,85,247,0.1)","rgba(168,85,247,0.3)","rgba(168,85,247,0.2)","#a855f7","#ffffff",
+    "#a855f7","#0d0a1a","rgba(168,85,247,0.08)","#1e1530","#f3e8ff","rgba(243,232,255,0.6)","#c084fc",
+    "rgba(168,85,247,0.1)","#261a3a","rgba(168,85,247,0.3)","rgba(168,85,247,0.2)","#a855f7","#ffffff",
     "rgba(168,85,247,0.15)","rgba(168,85,247,0.2)","rgba(168,85,247,0.4)",
     "#a855f7","rgba(255,255,255,0.15)","#ffffff","rgba(255,255,255,0.5)"
   );
   if (t === "dark-green") return darkBase(
-    "#22c55e","#061a0e","rgba(34,197,94,0.08)","#dcfce7","rgba(220,252,231,0.6)","#4ade80",
-    "rgba(34,197,94,0.1)","rgba(34,197,94,0.3)","rgba(34,197,94,0.2)","#22c55e","#ffffff",
+    "#22c55e","#061a0e","rgba(34,197,94,0.08)","#0d2e18","#dcfce7","rgba(220,252,231,0.6)","#4ade80",
+    "rgba(34,197,94,0.1)","#112b1c","rgba(34,197,94,0.3)","rgba(34,197,94,0.2)","#22c55e","#ffffff",
     "rgba(34,197,94,0.15)","rgba(34,197,94,0.2)","rgba(34,197,94,0.4)",
     "#22c55e","rgba(255,255,255,0.15)","#ffffff","rgba(255,255,255,0.5)"
   );
   if (t === "gold") return darkBase(
-    "#d4a017","#100e00","rgba(212,160,23,0.1)","#fef9c3","rgba(254,249,195,0.65)","#fbbf24",
-    "rgba(212,160,23,0.12)","rgba(212,160,23,0.35)","rgba(212,160,23,0.25)","#d4a017","#000000",
+    "#d4a017","#100e00","rgba(212,160,23,0.1)","#242000","#fef9c3","rgba(254,249,195,0.65)","#fbbf24",
+    "rgba(212,160,23,0.12)","#2e2800","rgba(212,160,23,0.35)","rgba(212,160,23,0.25)","#d4a017","#000000",
     "rgba(212,160,23,0.18)","rgba(212,160,23,0.2)","rgba(212,160,23,0.4)",
     "#d4a017","rgba(255,255,255,0.15)","#000000","rgba(255,255,255,0.5)"
   );
   if (t === "teal") return darkBase(
-    "#0d9488","#040f0e","rgba(13,148,136,0.1)","#ccfbf1","rgba(204,251,241,0.65)","#2dd4bf",
-    "rgba(13,148,136,0.12)","rgba(13,148,136,0.35)","rgba(13,148,136,0.25)","#0d9488","#ffffff",
+    "#0d9488","#040f0e","rgba(13,148,136,0.1)","#0c2220","#ccfbf1","rgba(204,251,241,0.65)","#2dd4bf",
+    "rgba(13,148,136,0.12)","#102a28","rgba(13,148,136,0.35)","rgba(13,148,136,0.25)","#0d9488","#ffffff",
     "rgba(13,148,136,0.18)","rgba(13,148,136,0.2)","rgba(13,148,136,0.4)",
     "#0d9488","rgba(255,255,255,0.15)","#ffffff","rgba(255,255,255,0.5)"
   );
   if (t === "red") return darkBase(
-    "#dc2626","#0f0303","rgba(220,38,38,0.1)","#fee2e2","rgba(254,226,226,0.65)","#f87171",
-    "rgba(220,38,38,0.12)","rgba(220,38,38,0.35)","rgba(220,38,38,0.25)","#dc2626","#ffffff",
+    "#dc2626","#0f0303","rgba(220,38,38,0.1)","#1f0808","#fee2e2","rgba(254,226,226,0.65)","#f87171",
+    "rgba(220,38,38,0.12)","#2a0d0d","rgba(220,38,38,0.35)","rgba(220,38,38,0.25)","#dc2626","#ffffff",
     "rgba(220,38,38,0.18)","rgba(220,38,38,0.2)","rgba(220,38,38,0.4)",
     "#dc2626","rgba(255,255,255,0.15)","#ffffff","rgba(255,255,255,0.5)"
   );
   if (t === "navy") return darkBase(
-    "#1d4ed8","#020814","rgba(29,78,216,0.1)","#dbeafe","rgba(219,234,254,0.65)","#60a5fa",
-    "rgba(29,78,216,0.12)","rgba(29,78,216,0.35)","rgba(29,78,216,0.25)","#1d4ed8","#ffffff",
+    "#1d4ed8","#020814","rgba(29,78,216,0.1)","#071228","#dbeafe","rgba(219,234,254,0.65)","#60a5fa",
+    "rgba(29,78,216,0.12)","#0a1a38","rgba(29,78,216,0.35)","rgba(29,78,216,0.25)","#1d4ed8","#ffffff",
     "rgba(29,78,216,0.18)","rgba(29,78,216,0.2)","rgba(29,78,216,0.4)",
     "#1d4ed8","rgba(255,255,255,0.15)","#ffffff","rgba(255,255,255,0.5)"
   );
   if (t === "coral") return lightBase(
-    "#f97316","#fff8f5","rgba(255,255,255,0.85)","#1a0d00","rgba(26,13,0,0.6)","#ea580c",
-    "rgba(255,255,255,0.95)","rgba(249,115,22,0.3)","rgba(249,115,22,0.22)","#f97316","#ffffff",
+    "#f97316","#fff8f5","rgba(255,255,255,0.85)","#ffffff","#1a0d00","rgba(26,13,0,0.6)","#ea580c",
+    "rgba(255,255,255,0.95)","#ffffff","rgba(249,115,22,0.3)","rgba(249,115,22,0.22)","#f97316","#ffffff",
     "rgba(249,115,22,0.12)","rgba(249,115,22,0.15)","rgba(249,115,22,0.35)",
     "#f97316","rgba(0,0,0,0.15)","#ffffff","rgba(0,0,0,0.3)"
   );
   if (t === "silver") return lightBase(
-    "#6b7280","#f1f2f4","rgba(255,255,255,0.88)","#111827","rgba(17,24,39,0.6)","#374151",
-    "rgba(255,255,255,0.95)","rgba(107,114,128,0.3)","rgba(107,114,128,0.2)","#374151","#ffffff",
+    "#6b7280","#f1f2f4","rgba(255,255,255,0.88)","#ffffff","#111827","rgba(17,24,39,0.6)","#374151",
+    "rgba(255,255,255,0.95)","#ffffff","rgba(107,114,128,0.3)","rgba(107,114,128,0.2)","#374151","#ffffff",
     "rgba(107,114,128,0.12)","rgba(107,114,128,0.12)","rgba(107,114,128,0.3)",
     "#374151","rgba(0,0,0,0.15)","#ffffff","rgba(0,0,0,0.3)"
   );
   return {
     isDark: false, isBlue: true,
-    accentColor: "#4a8db5", bgColor: "#f0f7fc", cardBg: "#ffffff",
+    accentColor: "#4a8db5", bgColor: "#f0f7fc", cardBg: "#ffffff", popupBg: "#ffffff",
     textColor: "#1a2942", mutedText: "rgba(26,41,66,0.6)", sectionTitle: "#4a8db5",
-    inputBg: "#ffffff", inputBorder: "rgba(74,141,181,0.3)", borderColor: "rgba(74,141,181,0.2)",
+    inputBg: "#ffffff", solidInputBg: "#ffffff", inputBorder: "rgba(74,141,181,0.3)", borderColor: "rgba(74,141,181,0.2)",
     buttonBg: "#4a8db5", buttonText: "#ffffff", buttonSecondaryBg: "rgba(74,141,181,0.1)",
     initialsCircleBg: "rgba(74,141,181,0.15)", initialsCircleBorder: "rgba(74,141,181,0.35)",
     successColor: "#22c55e", checkActive: "#4a8db5", checkInactive: "rgba(0,0,0,0.15)",
