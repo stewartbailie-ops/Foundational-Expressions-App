@@ -129,9 +129,18 @@ app.use((req, res, next) => {
       const advisor = await storage.getAdvisorBySlug(slug);
       if (!advisor) return next();
 
-      const title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
-      const description = `Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`;
+      const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
+      const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
       const siteUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+      const imageUrl = (advisor as any).profilePicUrl || "";
+      const imageTag = imageUrl
+        ? `<meta property="og:image" content="${esc(imageUrl)}" />
+<meta property="og:image:width" content="600" />
+<meta property="og:image:height" content="600" />
+<meta name="twitter:image" content="${esc(imageUrl)}" />
+<meta name="twitter:card" content="summary_large_image" />`
+        : `<meta name="twitter:card" content="summary" />`;
 
       res.status(200).set({ "Content-Type": "text/html" }).send(`<!DOCTYPE html>
 <html lang="en">
@@ -141,7 +150,7 @@ app.use((req, res, next) => {
 <meta property="og:description" content="${description}" />
 <meta property="og:type" content="website" />
 <meta property="og:url" content="${siteUrl}" />
-<meta name="twitter:card" content="summary" />
+${imageTag}
 <meta name="twitter:title" content="${title}" />
 <meta name="twitter:description" content="${description}" />
 <title>${title}</title>

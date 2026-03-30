@@ -2275,12 +2275,10 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     </div>
   );
 
-  const SectionHeader = ({ sectionKey, icon, title, subtitle }: { sectionKey: keyof typeof openSections; icon: React.ReactNode; title: string; subtitle: string }) => (
+  const SectionHeader = ({ sectionKey, title, subtitle }: { sectionKey: keyof typeof openSections; icon?: React.ReactNode; title: string; subtitle: string }) => (
     <button type="button" onClick={() => toggleSection(sectionKey)} className="w-full flex items-center justify-between text-left" style={{ color: tc.textColor }}>
       <div>
-        <h3 className="text-sm font-semibold flex items-center gap-2" style={{ color: tc.sectionTitle }}>
-          {icon} {title}
-        </h3>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{title}</h3>
         <p className="text-xs mt-0.5" style={ls}>{subtitle}</p>
       </div>
       <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${openSections[sectionKey] ? "rotate-180" : ""}`} style={ls} />
