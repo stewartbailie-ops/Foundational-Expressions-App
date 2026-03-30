@@ -818,9 +818,6 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
     canvas.width = OUT; canvas.height = OUT;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    ctx.beginPath();
-    ctx.arc(OUT / 2, OUT / 2, OUT / 2, 0, Math.PI * 2);
-    ctx.clip();
     const scale = initScale * zoom;
     const imgLeft = CONTAINER / 2 - displayW / 2 + offset.x;
     const imgTop = CONTAINER / 2 - displayH / 2 + offset.y;
@@ -836,10 +833,10 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.75)" }}>
       <div className="rounded-2xl p-5 space-y-4 w-full max-w-xs" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.textColor }}>Crop Profile Picture</h3>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Drag to reposition · Use slider to zoom</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Square crop — drag to reposition · zoom to fit</p>
         <div
           className="relative overflow-hidden mx-auto cursor-grab active:cursor-grabbing select-none"
-          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "50%", border: `3px solid ${tc.accentColor}`, touchAction: "none" }}
+          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "12px", border: `3px solid ${tc.accentColor}`, touchAction: "none" }}
           onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
           onMouseMove={e => moveDrag(e.clientX, e.clientY)}
           onMouseUp={endDrag} onMouseLeave={endDrag}
@@ -1960,24 +1957,65 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
   codeOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
+  const [dropRect, setDropRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
-    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    const close = (e: MouseEvent) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    const onScroll = () => setOpen(false);
+    document.addEventListener("mousedown", close);
+    window.addEventListener("scroll", onScroll, true);
+    return () => { document.removeEventListener("mousedown", close); window.removeEventListener("scroll", onScroll, true); };
   }, []);
+
+  const handleOpen = () => {
+    if (triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect();
+      setDropRect({ top: r.bottom + 4, left: r.left, width: r.width });
+    }
+    setOpen(p => !p);
+  };
+
   const fullLabel = options.find(o => o.value === value)?.label || value;
   const triggerLabel = codeOnly ? (fullLabel.split(" — ")[0] || fullLabel) : fullLabel;
+
   return (
-    <div className={`relative ${className}`} ref={ref}>
-      <button type="button" onClick={() => setOpen(p => !p)} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.textColor }}>
+    <div className={`relative ${className}`} ref={wrapRef}>
+      <button ref={triggerRef} type="button" onClick={handleOpen} className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm" style={{ backgroundColor: colors.inputBg, border: `1px solid ${colors.inputBorder}`, color: colors.textColor }}>
         <span className="truncate">{triggerLabel}</span>
         <ChevronDown className={`h-3.5 w-3.5 flex-shrink-0 ml-1 transition-transform duration-150 ${open ? "rotate-180" : ""}`} style={{ color: colors.mutedText }} />
       </button>
-      {open && (
-        <div className="absolute z-50 top-full mt-1 w-max min-w-full max-h-60 overflow-y-auto rounded-lg shadow-xl" style={{ backgroundColor: colors.cardBg, border: `1px solid ${colors.borderColor}` }}>
+      {open && dropRect && (
+        <div
+          style={{
+            position: "fixed",
+            top: dropRect.top,
+            left: dropRect.left,
+            minWidth: dropRect.width,
+            zIndex: 9999,
+            backgroundColor: colors.cardBg,
+            border: `1px solid ${colors.borderColor}`,
+            borderRadius: "8px",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+            maxHeight: "240px",
+            overflowY: "auto",
+          }}
+        >
           {options.map(o => (
-            <button key={o.value} type="button" onClick={() => { onChange(o.value); setOpen(false); }} className="w-full text-left px-3 py-2 text-sm transition-opacity hover:opacity-70 whitespace-nowrap" style={{ color: o.value === value ? colors.accentColor : colors.textColor, backgroundColor: o.value === value ? colors.inputBg : "transparent", fontWeight: o.value === value ? 600 : 400 }}>
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => { onChange(o.value); setOpen(false); }}
+              className="w-full text-left px-3 py-2 text-sm whitespace-nowrap"
+              style={{
+                color: o.value === value ? colors.accentColor : colors.textColor,
+                backgroundColor: o.value === value ? colors.inputBg : colors.cardBg,
+                fontWeight: o.value === value ? 600 : 400,
+              }}
+            >
               {o.label}
             </button>
           ))}
