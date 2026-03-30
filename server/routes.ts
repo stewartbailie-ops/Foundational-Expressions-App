@@ -13,6 +13,28 @@ function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+export function registerOgImageRoute(app: Express) {
+  app.get("/api/og-image/:slug", async (req, res) => {
+    try {
+      const advisor = await storage.getAdvisorBySlug(req.params.slug);
+      if (!advisor) return res.status(404).send("Not found");
+      const picUrl = (advisor as any).profilePicUrl as string | null | undefined;
+      if (!picUrl) return res.status(404).send("No image");
+      if (picUrl.startsWith("data:")) {
+        const match = picUrl.match(/^data:([^;]+);base64,(.+)$/s);
+        if (!match) return res.status(400).send("Invalid");
+        const [, mime, b64] = match;
+        const buf = Buffer.from(b64, "base64");
+        res.set({ "Content-Type": mime, "Content-Length": buf.length, "Cache-Control": "public, max-age=86400" });
+        return res.send(buf);
+      }
+      return res.redirect(302, picUrl);
+    } catch {
+      res.status(500).send("Error");
+    }
+  });
+}
+
 async function verifyRecaptcha(token: string): Promise<boolean> {
   try {
     const secret = process.env.RECAPTCHA_SECRET_KEY;

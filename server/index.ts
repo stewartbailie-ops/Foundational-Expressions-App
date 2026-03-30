@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
-import { registerRoutes } from "./routes";
+import { registerRoutes, registerOgImageRoute } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
@@ -101,6 +101,7 @@ app.use((req, res, next) => {
 
 (async () => {
   await registerRoutes(httpServer, app);
+  registerOgImageRoute(app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
@@ -142,12 +143,13 @@ app.use((req, res, next) => {
       const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
       const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
       const siteUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
-      const imageUrl = (advisor as any).profilePicUrl || "";
-      const imageTag = imageUrl
-        ? `<meta property="og:image" content="${esc(imageUrl)}" />
+      const hasPic = !!(advisor as any).profilePicUrl;
+      const imageUrl = hasPic ? `https://advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
+      const imageTag = hasPic
+        ? `<meta property="og:image" content="${imageUrl}" />
 <meta property="og:image:width" content="600" />
 <meta property="og:image:height" content="600" />
-<meta name="twitter:image" content="${esc(imageUrl)}" />
+<meta name="twitter:image" content="${imageUrl}" />
 <meta name="twitter:card" content="summary_large_image" />`
         : `<meta name="twitter:card" content="summary" />`;
 
