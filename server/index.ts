@@ -115,6 +115,15 @@ app.use((req, res, next) => {
     return res.status(status).json({ message });
   });
 
+  app.use((req, res, next) => {
+    const host = req.headers.host || "";
+    if (host.includes(".replit.app")) {
+      const qs = req.url.startsWith(req.path) ? req.url.slice(req.path.length) : "";
+      return res.redirect(301, `https://advisoryconnect.pro${req.path}${qs}`);
+    }
+    next();
+  });
+
   const RESERVED = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "assets"];
   const CRAWLER_UA = /facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot|Discordbot|bot|crawler|spider|preview/i;
 
