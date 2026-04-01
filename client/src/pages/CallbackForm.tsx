@@ -426,22 +426,23 @@ export default function CallbackForm() {
             )}
           </div>
 
-          <div className="space-y-3">
-            <label
-              className="flex items-center gap-3 text-sm cursor-pointer"
-              style={{ color: textColor }}
-              data-testid="toggle-confirm-18"
+          <div
+            className="flex items-start gap-3 cursor-pointer"
+            onClick={() => update("confirmOver18", !formData.confirmOver18)}
+            data-testid="toggle-confirm-18"
+          >
+            <div
+              className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
+              style={{
+                backgroundColor: formData.confirmOver18 ? tc.accentColor : "transparent",
+                border: `2px solid ${formData.confirmOver18 ? tc.accentColor : tc.borderColor}`,
+              }}
             >
-              <input
-                type="checkbox"
-                checked={formData.confirmOver18}
-                onChange={(e) => update("confirmOver18", e.target.checked)}
-                className="w-4 h-4"
-                data-testid="checkbox-confirm-18"
-              />
-              <span>I confirm I am over 18 <span style={{ color: "#ef4444" }}>*</span></span>
-            </label>
-
+              {formData.confirmOver18 && <span className="text-white text-xs font-bold">✓</span>}
+            </div>
+            <p className="text-xs leading-relaxed" style={{ color: mutedText }}>
+              I confirm that I am over 18 years of age and that the information provided is accurate. I consent to being contacted by {advisor.name} regarding my financial planning needs. <span style={{ color: "#ef4444" }}>*</span>
+            </p>
           </div>
 
           <div className="flex justify-center" data-testid="recaptcha-callback">

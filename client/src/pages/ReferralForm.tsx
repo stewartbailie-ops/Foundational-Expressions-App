@@ -609,16 +609,23 @@ export default function ReferralForm() {
               </div>
             )}
 
-            <div className="space-y-2 pt-1">
-              <label style={checkboxRowStyle} data-testid={`checkbox-referral-over18-${index}`}>
-                <input
-                  type="checkbox"
-                  checked={ref.confirmedOver18}
-                  onChange={(e) => updateReferral(index, "confirmedOver18", e.target.checked)}
-                  className="w-4 h-4 rounded"
-                />
-                <span className="text-sm">I confirm they are over 18 {req}</span>
-              </label>
+            <div
+              className="flex items-start gap-3 cursor-pointer pt-1"
+              onClick={() => updateReferral(index, "confirmedOver18", !ref.confirmedOver18)}
+              data-testid={`checkbox-referral-over18-${index}`}
+            >
+              <div
+                className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 mt-0.5 transition-colors"
+                style={{
+                  backgroundColor: ref.confirmedOver18 ? accentColor : "transparent",
+                  border: `2px solid ${ref.confirmedOver18 ? accentColor : tc.borderColor}`,
+                }}
+              >
+                {ref.confirmedOver18 && <span className="text-white text-xs font-bold">✓</span>}
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: mutedText }}>
+                I confirm that they are over 18 years of age and that the information provided is accurate. I consent to {advisor.name} contacting them regarding their financial planning needs. <span style={{ color: "#ef4444" }}>*</span>
+              </p>
             </div>
           </div>
         ))}
