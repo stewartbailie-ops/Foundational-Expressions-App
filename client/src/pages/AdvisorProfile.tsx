@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -873,13 +873,25 @@ export default function AdvisorProfile() {
               <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={80} downloadable={false} name={advisor.name} />
             </div>
             <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <h1 className="text-xl font-bold tracking-widest leading-tight text-gray-900 uppercase w-full text-center" data-testid="text-advisor-name">
+              <h1 className="text-lg font-bold tracking-wider leading-snug text-gray-900 uppercase w-full text-center" data-testid="text-advisor-name">
                 {advisor.name}
               </h1>
               {advisor.title && (
-                <p className="text-xs font-semibold mt-1 uppercase tracking-widest text-gray-500 w-full text-center" data-testid="text-advisor-title">
+                <p className="text-sm font-medium mt-0.5 tracking-wide text-gray-500 w-full text-center" data-testid="text-advisor-title">
                   {advisor.title}
                 </p>
+              )}
+              {(advisor as any).location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((advisor as any).location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-1 mt-1 text-xs text-gray-400 hover:text-gray-600 transition-colors w-full"
+                  data-testid="link-location-maps"
+                >
+                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                  <span className="truncate">{(advisor as any).location}</span>
+                </a>
               )}
             </div>
           </div>

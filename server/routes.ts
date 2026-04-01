@@ -256,6 +256,12 @@ export async function registerRoutes(
     res.json(updated);
   });
 
+  app.patch("/api/emails/:id/open", async (req, res) => {
+    const updated = await storage.updateEmailOpened(Number(req.params.id));
+    if (!updated) return res.status(404).json({ message: "Email not found" });
+    res.json(updated);
+  });
+
   app.delete("/api/emails/:id", async (req, res) => {
     const deleted = await storage.deleteEmail(Number(req.params.id));
     if (!deleted) return res.status(404).json({ message: "Email not found" });

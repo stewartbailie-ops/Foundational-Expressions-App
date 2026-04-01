@@ -110,6 +110,7 @@ export default function ReferralForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaFailed, setRecaptchaFailed] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
@@ -646,15 +647,18 @@ export default function ReferralForm() {
           </button>
         )}
 
-        <div className="flex justify-center" data-testid="recaptcha-referral">
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ""}
-            theme={tc.isDark ? "dark" : "light"}
-            onChange={(token) => setRecaptchaToken(token)}
-            onExpired={() => setRecaptchaToken(null)}
-          />
-        </div>
+        {!recaptchaFailed && import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+          <div className="flex justify-center" data-testid="recaptcha-referral">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+              theme={tc.isDark ? "dark" : "light"}
+              onChange={(token) => setRecaptchaToken(token)}
+              onExpired={() => setRecaptchaToken(null)}
+              onErrored={() => setRecaptchaFailed(true)}
+            />
+          </div>
+        )}
 
         <button
           onClick={handleSubmit}

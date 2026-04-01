@@ -496,6 +496,25 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     },
   });
 
+  const openMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("PATCH", `/api/emails/${id}/open`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/emails`] });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/emails/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/emails`] });
+      setExpandedId(null);
+    },
+  });
+
   const filtered = leads.filter(l => {
     const matchType = typeFilter === "all" || l.type === typeFilter;
     const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
@@ -553,7 +572,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     <div className="space-y-4">
       <div className="grid grid-cols-4 gap-2">
         {gradeCards.map(g => (
-          <button key={g.label} onClick={() => setStatusFilter("all") || setTypeFilter("all")}
+          <button key={g.label} onClick={() => { setStatusFilter("all"); setTypeFilter("all"); }}
             className="rounded-xl p-2.5 text-center transition-all hover:opacity-80"
             style={{ backgroundColor: g.bg, border: `1px solid ${g.border}` }}
             data-testid={`civ-grade-${g.label.toLowerCase()}`}
@@ -607,7 +626,11 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
               <div key={lead.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
                 <button
                   className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-                  onClick={() => setExpandedId(expandedId === lead.id ? null : lead.id)}
+                  onClick={() => {
+                    const opening = expandedId !== lead.id;
+                    setExpandedId(opening ? lead.id : null);
+                    if (opening) openMutation.mutate(lead.id);
+                  }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
@@ -689,6 +712,37 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                     </div>
                     {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} />}
                     {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} />}
+                    <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                      <div className="space-y-0.5">
+                        <div className="text-xs" style={{ color: tc.mutedText }}>
+                          Received: {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
+                        </div>
+                        {lead.lastOpenedAt && (
+                          <div className="text-xs flex items-center gap-1" style={{ color: tc.mutedText }}>
+                            <Eye className="h-3 w-3" />
+                            Last viewed: {format(new Date(lead.lastOpenedAt), "dd MMM yyyy, HH:mm")}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => statusMutation.mutate({ id: lead.id, leadStatus: "Archive" })}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
+                          style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+                        >
+                          Hide
+                        </button>
+                        <button
+                          onClick={() => { if (window.confirm(`Delete this lead? This cannot be undone.`)) deleteMutation.mutate(lead.id); }}
+                          disabled={deleteMutation.isPending}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
+                          style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>

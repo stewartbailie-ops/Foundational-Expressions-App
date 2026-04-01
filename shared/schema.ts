@@ -226,6 +226,7 @@ export const emails = pgTable("emails", {
   referrerRelation: text("referrer_relation"),
   source: text("source"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
+  lastOpenedAt: timestamp("last_opened_at"),
 });
 
 export const insertEmailSchema = createInsertSchema(emails).omit({
@@ -238,25 +239,25 @@ export type Email = typeof emails.$inferSelect;
 export const GRADE_OPTIONS = ["Gold", "Silver", "Bronze", "Development"] as const;
 export type GradeType = typeof GRADE_OPTIONS[number];
 
-export function autoGradeClient(age?: number | null, income?: string | null, industry?: string | null): GradeType {
+export function autoGradeClient(age?: number | null, income?: string | null, _industry?: string | null): GradeType {
   const incomeNum = parseIncomeToNumber(income);
 
   if (age && age >= 60) return "Development";
-  if (age && age >= 35 && age <= 55 && incomeNum >= 100000) return "Gold";
-  if (age && age >= 35 && incomeNum >= 100000) return "Gold";
-  if (industry && industry.toLowerCase().includes("it")) return "Gold";
-  if (age && age >= 27 && age <= 35 && incomeNum >= 65000) return "Silver";
-  if (age && age >= 18 && age <= 27 && incomeNum <= 25000) return "Bronze";
-  if (incomeNum >= 100000) return "Gold";
-  if (incomeNum >= 65000) return "Silver";
-  if (incomeNum > 0 && incomeNum <= 25000) return "Bronze";
+  if (incomeNum >= 75000) return "Gold";
+  if (incomeNum >= 45000) return "Silver";
+  if (incomeNum >= 15000) return "Bronze";
+  if (incomeNum > 0) return "Development";
   return "Silver";
 }
 
 function parseIncomeToNumber(income?: string | null): number {
   if (!income) return 0;
-  const cleaned = income.replace(/[^0-9.]/g, "");
-  return parseFloat(cleaned) || 0;
+  const normalized = income.toLowerCase().trim();
+  const kMatch = normalized.match(/(\d+(?:\.\d+)?)\s*k/);
+  if (kMatch) return parseFloat(kMatch[1]) * 1000;
+  const plain = normalized.match(/(\d+(?:\.\d+)?)/);
+  if (plain) return parseFloat(plain[1]);
+  return 0;
 }
 
 export const stats = pgTable("stats", {

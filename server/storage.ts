@@ -22,6 +22,7 @@ export interface IStorage {
   createEmail(email: InsertEmail): Promise<Email>;
   updateEmailGrade(id: number, grade: string): Promise<Email | undefined>;
   updateEmailStatus(id: number, leadStatus: string): Promise<Email | undefined>;
+  updateEmailOpened(id: number): Promise<Email | undefined>;
   deleteEmail(id: number): Promise<boolean>;
   getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }>;
 
@@ -170,6 +171,7 @@ export class DatabaseStorage implements IStorage {
         referrerRelation: emails.referrerRelation,
         source: emails.source,
         receivedAt: emails.receivedAt,
+        lastOpenedAt: emails.lastOpenedAt,
         advisorName: advisors.name,
       })
       .from(emails)
@@ -223,6 +225,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateEmailStatus(id: number, leadStatus: string): Promise<Email | undefined> {
     const [updated] = await db.update(emails).set({ leadStatus }).where(eq(emails.id, id)).returning();
+    return updated;
+  }
+
+  async updateEmailOpened(id: number): Promise<Email | undefined> {
+    const [updated] = await db.update(emails).set({ lastOpenedAt: new Date() }).where(eq(emails.id, id)).returning();
     return updated;
   }
 

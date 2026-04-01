@@ -72,6 +72,7 @@ export default function CallbackForm() {
 
   const [submitted, setSubmitted] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaFailed, setRecaptchaFailed] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
@@ -445,15 +446,18 @@ export default function CallbackForm() {
             </p>
           </div>
 
-          <div className="flex justify-center" data-testid="recaptcha-callback">
-            <ReCAPTCHA
-              ref={recaptchaRef}
-              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY || ""}
-              theme={tc.isDark ? "dark" : "light"}
-              onChange={(token) => setRecaptchaToken(token)}
-              onExpired={() => setRecaptchaToken(null)}
-            />
-          </div>
+          {!recaptchaFailed && import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+            <div className="flex justify-center" data-testid="recaptcha-callback">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                theme={tc.isDark ? "dark" : "light"}
+                onChange={(token) => setRecaptchaToken(token)}
+                onExpired={() => setRecaptchaToken(null)}
+                onErrored={() => setRecaptchaFailed(true)}
+              />
+            </div>
+          )}
 
           {mutation.isError && (
             <div className="text-red-400 text-sm text-center" data-testid="text-error">

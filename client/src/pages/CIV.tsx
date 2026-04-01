@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, Check, X, Trash2 } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Check, X, Trash2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -37,6 +37,7 @@ type EmailRow = {
   referrerRelation: string | null;
   source: string | null;
   receivedAt: string;
+  lastOpenedAt: string | null;
   advisorName: string;
 };
 
@@ -115,6 +116,15 @@ export default function CIV() {
     },
   });
 
+  const openMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("PATCH", `/api/emails/${id}/open`, {});
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/emails"] });
+    },
+  });
+
   const handleDelete = (id: number, name: string) => {
     if (window.confirm(`Delete entry #${id} (${name})? This cannot be undone.`)) {
       deleteMutation.mutate(id);
@@ -181,10 +191,10 @@ export default function CIV() {
             </div>
             <div className="text-2xl font-bold">{gradeCounts[g]}</div>
             <div className="text-xs text-muted-foreground mt-0.5">
-              {g === "Gold" && "Age 35-55+, R100k+, IT"}
-              {g === "Silver" && "Age 27-35, R65k+"}
-              {g === "Bronze" && "Age 18-27, R25k & below"}
-              {g === "Development" && "Age 60+, Call backs"}
+              {g === "Gold" && "R75k+ income"}
+              {g === "Silver" && "R45k – R74k income"}
+              {g === "Bronze" && "R15k – R44k income"}
+              {g === "Development" && "Under R15k / Age 60+"}
             </div>
           </button>
         ))}
@@ -286,11 +296,18 @@ export default function CIV() {
                     <TableRow
                       className="border-border hover:bg-muted/50 transition-colors cursor-pointer"
                       data-testid={`row-email-${email.id}`}
-                      onClick={() => setExpandedId(expandedId === email.id ? null : email.id)}
+                      onClick={() => {
+                        const opening = expandedId !== email.id;
+                        setExpandedId(opening ? email.id : null);
+                        if (opening) openMutation.mutate(email.id);
+                      }}
                     >
                       <TableCell className="font-mono text-xs text-muted-foreground">#{email.id}</TableCell>
                       <TableCell className="text-sm whitespace-nowrap">
-                        {format(new Date(email.receivedAt), "MMM d, yyyy")}
+                        <div className="flex items-center gap-1.5">
+                          {format(new Date(email.receivedAt), "MMM d, yyyy")}
+                          {email.lastOpenedAt && <Eye className="h-3 w-3 text-muted-foreground/50" />}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{email.senderName}</div>
@@ -433,8 +450,16 @@ export default function CIV() {
                             )}
 
                             <div className="flex items-center justify-between">
-                              <div className="text-xs text-muted-foreground">
-                                Received: {format(new Date(email.receivedAt), "PPpp")}
+                              <div className="space-y-0.5">
+                                <div className="text-xs text-muted-foreground">
+                                  Received: {format(new Date(email.receivedAt), "PPpp")}
+                                </div>
+                                {email.lastOpenedAt && (
+                                  <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Eye className="h-3 w-3" />
+                                    Last viewed: {format(new Date(email.lastOpenedAt), "PPpp")}
+                                  </div>
+                                )}
                               </div>
                               <Button
                                 variant="outline"
