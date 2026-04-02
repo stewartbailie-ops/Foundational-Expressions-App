@@ -636,6 +636,16 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // Check if account has been set up (used on page load to auto-route first-timers)
+  app.get("/api/advisor-auth/:slug/status", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    res.json({
+      passwordSet: advisor.advisorPasswordSet ?? false,
+      emailVerified: advisor.advisorEmailVerified ?? false,
+    });
+  });
+
   // Setup account (first time): store password hash + send verification OTP
   app.post("/api/advisor-auth/:slug/setup", async (req, res) => {
     const { email, password } = req.body;

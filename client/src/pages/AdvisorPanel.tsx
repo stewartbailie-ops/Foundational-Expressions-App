@@ -2836,9 +2836,16 @@ export default function AdvisorPanel() {
     if (!slug) return;
     const checkAuth = async () => {
       try {
-        const res = await fetch(`/api/advisor-auth/${slug}/session`);
-        const session = await res.json();
-        setAuthState(session.authenticated ? "authenticated" : "login");
+        const [sessionRes, statusRes] = await Promise.all([
+          fetch(`/api/advisor-auth/${slug}/session`),
+          fetch(`/api/advisor-auth/${slug}/status`),
+        ]);
+        const session = await sessionRes.json();
+        const status = await statusRes.json();
+        if (session.authenticated) { setAuthState("authenticated"); return; }
+        // First-time advisor: no password set yet — go straight to setup
+        if (!status.passwordSet) { setAuthState("setup"); return; }
+        setAuthState("login");
       } catch { setAuthState("login"); }
     };
     checkAuth();
