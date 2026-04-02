@@ -107,6 +107,7 @@ export const advisors = pgTable("advisors", {
   showToolCompound: boolean("show_tool_compound").default(true),
   advisorPasswordHash: text("advisor_password_hash"),
   advisorPasswordSet: boolean("advisor_password_set").default(false),
+  advisorEmailVerified: boolean("advisor_email_verified").default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

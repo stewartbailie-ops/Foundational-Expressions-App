@@ -40,50 +40,59 @@ function passwordRules(pw: string) {
   };
 }
 
-function OtpEmailScreen({ slug, onOtpSent }: { slug: string; onOtpSent: (email: string) => void }) {
+// Shared advisor avatar for auth screens
+function AdvisorAvatar({ advisor, tc }: { advisor?: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  return (
+    <div className="text-center space-y-2">
+      {advisor?.profilePicUrl ? (
+        <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
+      ) : (
+        <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+          {advisor ? getInitials(advisor.name) : "?"}
+        </div>
+      )}
+      <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Control Panel"}</h1>
+    </div>
+  );
+}
+
+// ── SCREEN 1: Email + password login ─────────────────────────────────────────
+function LoginScreen({ slug, onDone, onSetup }: { slug: string; onDone: () => void; onSetup: () => void }) {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const { data: advisor } = useQuery<Advisor>({
-    queryKey: [`/api/advisors/slug/${slug}`],
-  });
-
+  const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
   const tc = getThemeColors(advisor?.theme);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    if (!email.trim() || !password) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/advisor-auth/${slug}/send-otp`, {
+      const res = await fetch(`/api/advisor-auth/${slug}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to send code");
-      onOtpSent(email.trim());
+      if (!res.ok) {
+        if (data.needsSetup) { onSetup(); return; }
+        throw new Error(data.message || "Incorrect email or password.");
+      }
+      onDone();
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      toast({ title: "Sign in failed", description: err.message, variant: "destructive" });
     } finally { setLoading(false); }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          {advisor?.profilePicUrl ? (
-            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
-          ) : (
-            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-              {advisor ? advisor.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "?"}
-            </div>
-          )}
-          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Advisor"}</h1>
-          <p className="text-sm" style={{ color: tc.mutedText }}>Enter your registered email address to receive a one-time login code.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <AdvisorAvatar advisor={advisor} tc={tc} />
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: tc.textColor }}>Email Address</label>
@@ -92,242 +101,24 @@ function OtpEmailScreen({ slug, onOtpSent }: { slug: string; onOtpSent: (email: 
                 value={email}
                 onChange={e => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                autoComplete="email"
                 className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
                 style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-otp-email"
-                autoComplete="email"
+                data-testid="input-login-email"
               />
             </div>
-          </div>
-          <button
-            type="submit"
-            disabled={loading || !email.trim()}
-            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-send-otp"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Send Login Code
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function OtpVerifyScreen({ slug, email, onBack, onVerified }: { slug: string; email: string; onBack: () => void; onVerified: (passwordSet: boolean) => void }) {
-  const { toast } = useToast();
-  const [code, setCode] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [resending, setResending] = useState(false);
-  const [countdown, setCountdown] = useState(60);
-
-  const { data: advisor } = useQuery<Advisor>({
-    queryKey: [`/api/advisors/slug/${slug}`],
-  });
-
-  const tc = getThemeColors(advisor?.theme);
-
-  useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
-
-  const handleVerify = async () => {
-    if (code.length !== 6) return;
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/advisor-auth/${slug}/verify-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Invalid code");
-      onVerified(data.passwordSet);
-    } catch (err: any) {
-      toast({ title: "Verification Failed", description: err.message, variant: "destructive" });
-      setCode("");
-    } finally { setLoading(false); }
-  };
-
-  const handleResend = async () => {
-    setResending(true);
-    try {
-      const res = await fetch(`/api/advisor-auth/${slug}/send-otp`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message);
-      toast({ title: "Code resent", description: "Check your inbox for a new code." });
-      setCountdown(60);
-      setCode("");
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally { setResending(false); }
-  };
-
-  useEffect(() => {
-    if (code.length === 6) handleVerify();
-  }, [code]);
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          {advisor?.profilePicUrl ? (
-            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
-          ) : (
-            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-              {advisor ? advisor.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2) : "?"}
-            </div>
-          )}
-          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>Check your email</h1>
-          <p className="text-sm" style={{ color: tc.mutedText }}>
-            We sent a 6-digit code to <strong style={{ color: tc.textColor }}>{email}</strong>. Enter it below to continue.
-          </p>
-        </div>
-
-        <div className="rounded-xl p-5 space-y-5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          <div className="flex justify-center">
-            <InputOTP
-              maxLength={6}
-              value={code}
-              onChange={setCode}
-              data-testid="input-otp-code"
-            >
-              <InputOTPGroup>
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                  <InputOTPSlot key={i} index={i} />
-                ))}
-              </InputOTPGroup>
-            </InputOTP>
-          </div>
-
-          <button
-            onClick={handleVerify}
-            disabled={code.length !== 6 || loading}
-            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-verify-otp"
-          >
-            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Verify Code
-          </button>
-        </div>
-
-        <div className="text-center space-y-3">
-          {countdown > 0 ? (
-            <p className="text-sm" style={{ color: tc.mutedText }}>Resend code in {countdown}s</p>
-          ) : (
-            <button
-              onClick={handleResend}
-              disabled={resending}
-              className="text-sm font-medium underline"
-              style={{ color: tc.accentColor }}
-              data-testid="button-resend-otp"
-            >
-              {resending ? "Sending..." : "Resend code"}
-            </button>
-          )}
-          <div>
-            <button
-              onClick={onBack}
-              className="text-sm"
-              style={{ color: tc.mutedText }}
-              data-testid="button-otp-back"
-            >
-              ← Use a different email
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void }) {
-  const { toast } = useToast();
-  const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [showPw, setShowPw] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-
-  const { data: advisor } = useQuery<Advisor>({
-    queryKey: [`/api/advisors/slug/${slug}`],
-  });
-
-  const tc = getThemeColors(advisor?.theme);
-  const rules = passwordRules(password);
-  const allRulesMet = rules.length && rules.uppercase && rules.number && rules.special;
-  const passwordsMatch = confirm.length > 0 && password === confirm;
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!allRulesMet) {
-      toast({ title: "Password too weak", description: "Please meet all password requirements.", variant: "destructive" });
-      return;
-    }
-    if (password !== confirm) {
-      toast({ title: "Passwords don't match", variant: "destructive" });
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/advisor-auth/${slug}/set-password`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message); }
-      toast({ title: "Password created!", description: "Welcome to your control panel." });
-      onDone();
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-    } finally { setLoading(false); }
-  };
-
-  const RuleRow = ({ met, label }: { met: boolean; label: string }) => (
-    <div className="flex items-center gap-2">
-      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${met ? "bg-emerald-500 text-white" : "border-2"}`}
-        style={!met ? { borderColor: tc.mutedText } : {}}>
-        {met ? "✓" : ""}
-      </div>
-      <span className="text-xs transition-colors" style={{ color: met ? "#10b981" : tc.mutedText }}>{label}</span>
-    </div>
-  );
-
-  return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
-      <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          {advisor?.profilePicUrl ? (
-            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
-          ) : (
-            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-              {advisor ? getInitials(advisor.name) : "?"}
-            </div>
-          )}
-          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Advisor"}</h1>
-          <p className="text-sm" style={{ color: tc.mutedText }}>Create a strong password to secure your control panel.</p>
-        </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium" style={{ color: tc.textColor }}>New Password</label>
+              <label className="text-sm font-medium" style={{ color: tc.textColor }}>Password</label>
               <div className="relative">
                 <input
                   type={showPw ? "text" : "password"}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="Min. 10 characters"
-                  className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm outline-none"
+                  placeholder="Your password"
+                  autoComplete="current-password"
+                  className="w-full px-3 py-2.5 pr-16 rounded-lg text-sm outline-none"
                   style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                  data-testid="input-new-password"
+                  data-testid="input-login-password"
                 />
                 <button type="button" onClick={() => setShowPw(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
@@ -336,17 +127,125 @@ function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void 
                 </button>
               </div>
             </div>
+          </div>
+          <button
+            type="submit"
+            disabled={loading || !email.trim() || !password}
+            className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, opacity: (!email.trim() || !password) ? 0.6 : 1 }}
+            data-testid="button-sign-in"
+          >
+            {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+            Sign In
+          </button>
+        </form>
+        <p className="text-center text-sm" style={{ color: tc.mutedText }}>
+          First time here?{" "}
+          <button onClick={onSetup} className="font-semibold underline" style={{ color: tc.accentColor }} data-testid="button-go-setup">
+            Set up your account
+          </button>
+        </p>
+      </div>
+    </div>
+  );
+}
 
+// ── SCREEN 2: First-time account setup (email + create password) ──────────────
+function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVerificationSent: () => void; onBack: () => void }) {
+  const { toast } = useToast();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
+  const tc = getThemeColors(advisor?.theme);
+  const rules = passwordRules(password);
+  const allRulesMet = rules.length && rules.uppercase && rules.number && rules.special;
+  const passwordsMatch = confirm.length > 0 && password === confirm;
+
+  const RuleRow = ({ met, label }: { met: boolean; label: string }) => (
+    <div className="flex items-center gap-2">
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${met ? "bg-emerald-500 text-white" : "border-2"}`}
+        style={!met ? { borderColor: tc.mutedText } : {}}>
+        {met ? "✓" : ""}
+      </div>
+      <span className="text-xs" style={{ color: met ? "#10b981" : tc.mutedText }}>{label}</span>
+    </div>
+  );
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!allRulesMet || !passwordsMatch) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/advisor-auth/${slug}/setup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      onVerificationSent();
+    } catch (err: any) {
+      toast({ title: "Setup failed", description: err.message, variant: "destructive" });
+    } finally { setLoading(false); }
+  };
+
+  const canSubmit = email.trim() && allRulesMet && passwordsMatch;
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
+      <div className="w-full max-w-sm space-y-6">
+        <AdvisorAvatar advisor={advisor} tc={tc} />
+        <div className="text-center">
+          <p className="text-sm" style={{ color: tc.mutedText }}>Set up your account to access your control panel.</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" style={{ color: tc.textColor }}>Registered Email Address</label>
+              <input
+                type="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                autoComplete="email"
+                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+                data-testid="input-setup-email"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium" style={{ color: tc.textColor }}>Create Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="Min. 10 characters"
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2.5 pr-16 rounded-lg text-sm outline-none"
+                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+                  data-testid="input-setup-password"
+                />
+                <button type="button" onClick={() => setShowPw(v => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
+                  style={{ color: tc.mutedText }}>
+                  {showPw ? "Hide" : "Show"}
+                </button>
+              </div>
+            </div>
             {password.length > 0 && (
-              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
-                <p className="text-xs font-semibold mb-1" style={{ color: tc.mutedText }}>Password requirements:</p>
+              <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
                 <RuleRow met={rules.length} label="At least 10 characters" />
                 <RuleRow met={rules.uppercase} label="At least 1 uppercase letter" />
                 <RuleRow met={rules.number} label="At least 1 number" />
                 <RuleRow met={rules.special} label="At least 1 special character (!@#$...)" />
               </div>
             )}
-
             <div className="space-y-1.5">
               <label className="text-sm font-medium" style={{ color: tc.textColor }}>Confirm Password</label>
               <div className="relative">
@@ -355,13 +254,14 @@ function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void 
                   value={confirm}
                   onChange={e => setConfirm(e.target.value)}
                   placeholder="Repeat password"
-                  className="w-full px-3 py-2.5 pr-10 rounded-lg text-sm outline-none"
+                  autoComplete="new-password"
+                  className="w-full px-3 py-2.5 pr-16 rounded-lg text-sm outline-none"
                   style={{
                     backgroundColor: tc.inputBg,
                     border: `1px solid ${confirm.length > 0 ? (passwordsMatch ? "#10b981" : "#ef4444") : tc.inputBorder}`,
                     color: tc.textColor
                   }}
-                  data-testid="input-confirm-password"
+                  data-testid="input-setup-confirm"
                 />
                 <button type="button" onClick={() => setShowConfirm(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium"
@@ -378,92 +278,122 @@ function SetPasswordScreen({ slug, onDone }: { slug: string; onDone: () => void 
           </div>
           <button
             type="submit"
-            disabled={loading || !allRulesMet || !passwordsMatch}
+            disabled={loading || !canSubmit}
             className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-opacity"
-            style={{
-              backgroundColor: tc.buttonBg,
-              color: tc.buttonText,
-              opacity: (!allRulesMet || !passwordsMatch) ? 0.5 : 1,
-              cursor: (!allRulesMet || !passwordsMatch) ? "not-allowed" : "pointer"
-            }}
-            data-testid="button-set-password"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, opacity: !canSubmit ? 0.5 : 1 }}
+            data-testid="button-setup-submit"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create Password & Enter Panel
+            Create Account & Verify Email
           </button>
         </form>
+        <p className="text-center text-sm" style={{ color: tc.mutedText }}>
+          Already have an account?{" "}
+          <button onClick={onBack} className="font-semibold underline" style={{ color: tc.accentColor }} data-testid="button-back-to-login">
+            Sign in
+          </button>
+        </p>
       </div>
     </div>
   );
 }
 
-function LoginScreen({ slug, onDone }: { slug: string; onDone: () => void }) {
+// ── SCREEN 3: One-time email verification ─────────────────────────────────────
+function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => void; onBack: () => void }) {
   const { toast } = useToast();
-  const [password, setPassword] = useState("");
+  const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [countdown, setCountdown] = useState(60);
 
-  const { data: advisor } = useQuery<Advisor>({
-    queryKey: [`/api/advisors/slug/${slug}`],
-  });
-
+  const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
   const tc = getThemeColors(advisor?.theme);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
+
+  const handleVerify = async (codeVal?: string) => {
+    const c = codeVal ?? code;
+    if (c.length !== 6) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/advisor-auth/${slug}/login`, {
+      const res = await fetch(`/api/advisor-auth/${slug}/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ code: c }),
       });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Invalid password"); }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Invalid code");
+      toast({ title: "Email verified!", description: "Welcome to your control panel." });
       onDone();
     } catch (err: any) {
-      toast({ title: "Login Failed", description: err.message, variant: "destructive" });
+      toast({ title: "Verification failed", description: err.message, variant: "destructive" });
+      setCode("");
     } finally { setLoading(false); }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    try {
+      const res = await fetch(`/api/advisor-auth/${slug}/resend-otp`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      toast({ title: "Code resent", description: "Check your inbox." });
+      setCountdown(60);
+      setCode("");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally { setResending(false); }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: tc.bgColor }}>
       <div className="w-full max-w-sm space-y-6">
-        <div className="text-center space-y-2">
-          {advisor?.profilePicUrl ? (
-            <img src={advisor.profilePicUrl} alt={advisor.name} className="w-20 h-20 rounded-full object-cover mx-auto border-2" style={{ borderColor: tc.initialsCircleBorder }} />
-          ) : (
-            <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center text-2xl font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-              {advisor ? getInitials(advisor.name) : "?"}
-            </div>
-          )}
-          <h1 className="text-xl font-bold" style={{ color: tc.textColor }}>{advisor?.name || "Advisor"}</h1>
-          <p className="text-sm" style={{ color: tc.mutedText }}>Sign in to your control panel.</p>
+        <AdvisorAvatar advisor={advisor} tc={tc} />
+        <div className="text-center space-y-1">
+          <p className="text-sm font-medium" style={{ color: tc.textColor }}>Check your inbox</p>
+          <p className="text-sm" style={{ color: tc.mutedText }}>
+            We sent a 6-digit verification code to your registered email. Enter it below — this is a one-time step.
+          </p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium" style={{ color: tc.textColor }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                placeholder="Your panel password"
-                className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-panel-password"
-              />
-            </div>
+        <div className="rounded-xl p-5 space-y-5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex justify-center">
+            <InputOTP maxLength={6} value={code} onChange={v => { setCode(v); if (v.length === 6) handleVerify(v); }} data-testid="input-verify-code">
+              <InputOTPGroup>
+                {[0,1,2,3,4,5].map(i => <InputOTPSlot key={i} index={i} />)}
+              </InputOTPGroup>
+            </InputOTP>
           </div>
           <button
-            type="submit"
-            disabled={loading}
+            onClick={() => handleVerify()}
+            disabled={code.length !== 6 || loading}
             className="w-full py-3 rounded-lg font-semibold text-sm flex items-center justify-center gap-2"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-panel-login"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, opacity: code.length !== 6 ? 0.5 : 1 }}
+            data-testid="button-verify-code"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Sign In
+            Verify & Enter Panel
           </button>
-        </form>
+        </div>
+        <div className="text-center space-y-3">
+          {countdown > 0 ? (
+            <p className="text-sm" style={{ color: tc.mutedText }}>Resend code in {countdown}s</p>
+          ) : (
+            <button onClick={handleResend} disabled={resending}
+              className="text-sm font-medium underline" style={{ color: tc.accentColor }}
+              data-testid="button-resend-verify">
+              {resending ? "Sending..." : "Resend code"}
+            </button>
+          )}
+          <div>
+            <button onClick={onBack} className="text-sm" style={{ color: tc.mutedText }} data-testid="button-verify-back">
+              ← Go back
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -2894,8 +2824,7 @@ export default function AdvisorPanel() {
   const [, navigate] = useLocation();
   const slug = params?.slug || "";
 
-  const [authState, setAuthState] = useState<"loading" | "otp-email" | "otp-verify" | "set-password" | "login" | "authenticated">("loading");
-  const [otpEmail, setOtpEmail] = useState("");
+  const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
   const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles">("toolbox");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
@@ -2907,14 +2836,9 @@ export default function AdvisorPanel() {
     if (!slug) return;
     const checkAuth = async () => {
       try {
-        const [statusRes, sessionRes] = await Promise.all([
-          fetch(`/api/advisor-auth/${slug}/status`),
-          fetch(`/api/advisor-auth/${slug}/session`),
-        ]);
-        const status = await statusRes.json();
-        const session = await sessionRes.json();
-        if (session.authenticated) { setAuthState("authenticated"); return; }
-        setAuthState("otp-email");
+        const res = await fetch(`/api/advisor-auth/${slug}/session`);
+        const session = await res.json();
+        setAuthState(session.authenticated ? "authenticated" : "login");
       } catch { setAuthState("login"); }
     };
     checkAuth();
@@ -2922,8 +2846,7 @@ export default function AdvisorPanel() {
 
   const handleLogout = async () => {
     await fetch(`/api/advisor-auth/${slug}/logout`, { method: "POST" });
-    setOtpEmail("");
-    setAuthState("otp-email");
+    setAuthState("login");
   };
 
   if (!slug || advisorLoading || authState === "loading") {
@@ -2947,24 +2870,14 @@ export default function AdvisorPanel() {
 
   const tc = getThemeColors(advisor.theme);
 
-  if (authState === "otp-email") {
-    return <OtpEmailScreen slug={slug} onOtpSent={(email) => { setOtpEmail(email); setAuthState("otp-verify"); }} />;
-  }
-  if (authState === "otp-verify") {
-    return (
-      <OtpVerifyScreen
-        slug={slug}
-        email={otpEmail}
-        onBack={() => setAuthState("otp-email")}
-        onVerified={(passwordSet) => setAuthState(passwordSet ? "login" : "set-password")}
-      />
-    );
-  }
-  if (authState === "set-password") {
-    return <SetPasswordScreen slug={slug} onDone={() => setAuthState("authenticated")} />;
-  }
   if (authState === "login") {
-    return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} />;
+    return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;
+  }
+  if (authState === "setup") {
+    return <SetupScreen slug={slug} onVerificationSent={() => setAuthState("verify")} onBack={() => setAuthState("login")} />;
+  }
+  if (authState === "verify") {
+    return <VerifyScreen slug={slug} onDone={() => setAuthState("authenticated")} onBack={() => setAuthState("setup")} />;
   }
 
   const initials = getInitials(advisor.name);

@@ -632,80 +632,103 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.post("/api/advisor-auth/:slug/send-otp", async (req, res) => {
-    const { email } = req.body;
-    if (!email) return res.status(400).json({ message: "Email required" });
+  // Setup account (first time): store password hash + send verification OTP
+  app.post("/api/advisor-auth/:slug/setup", async (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    if (password.length < 10) return res.status(400).json({ message: "Password must be at least 10 characters" });
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
-      return res.status(400).json({ message: "Email does not match our records for this advisor" });
+      return res.status(400).json({ message: "That email address is not registered for this account." });
     }
+    if (advisor.advisorEmailVerified) {
+      return res.status(400).json({ message: "Account already set up. Please sign in." });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await storage.updateAdvisor(advisor.id, { advisorPasswordHash: hash });
     const code = generateOtp();
     otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
     try {
       await sendEmail(
         advisor.email,
-        "Your Advisory Connect Login Code",
+        "Verify your Advisory Connect account",
         `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
-          <h2 style="color:#4a8db5;margin-bottom:8px;">Your Login Code</h2>
-          <p style="color:#555;margin-bottom:24px;">Use the code below to access your Advisory Connect control panel. It expires in <strong>10 minutes</strong>.</p>
+          <h2 style="color:#4a8db5;margin-bottom:8px;">Verify Your Email</h2>
+          <p style="color:#555;margin-bottom:8px;">Welcome to Advisory Connect, ${advisor.name}!</p>
+          <p style="color:#555;margin-bottom:24px;">Enter the code below to verify your email address and activate your control panel. This is a one-time step — you won't need to do this again.</p>
           <div style="background:#f5f7fa;border-radius:12px;padding:24px;text-align:center;letter-spacing:8px;font-size:36px;font-weight:bold;color:#1a1a1a;">${code}</div>
-          <p style="color:#999;font-size:12px;margin-top:24px;">If you didn't request this, you can safely ignore this email.</p>
+          <p style="color:#999;font-size:12px;margin-top:24px;">Code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>
         </div>`
       );
     } catch (err) {
-      console.error("OTP email error:", err);
-      return res.status(500).json({ message: "Failed to send OTP email. Please try again." });
+      console.error("Verification email error:", err);
+      return res.status(500).json({ message: "Failed to send verification email. Please try again." });
     }
     res.json({ success: true });
   });
 
+  // Verify email OTP (one-time) — marks account as verified and starts session
   app.post("/api/advisor-auth/:slug/verify-otp", async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: "Code required" });
     const entry = otpStore.get(req.params.slug);
-    if (!entry) return res.status(400).json({ message: "No OTP found. Please request a new code." });
+    if (!entry) return res.status(400).json({ message: "No verification code found. Please go back and try again." });
     if (Date.now() > entry.expires) {
       otpStore.delete(req.params.slug);
-      return res.status(400).json({ message: "Code expired. Please request a new one." });
+      return res.status(400).json({ message: "Code expired. Please go back and request a new one." });
     }
     if (entry.code !== code.trim()) {
       return res.status(400).json({ message: "Incorrect code. Please try again." });
     }
     otpStore.delete(req.params.slug);
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
-    res.json({ verified: true, passwordSet: advisor?.advisorPasswordSet ?? false });
-  });
-
-  app.get("/api/advisor-auth/:slug/status", async (req, res) => {
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    res.json({ passwordSet: advisor.advisorPasswordSet ?? false });
-  });
-
-  app.post("/api/advisor-auth/:slug/set-password", async (req, res) => {
-    const { password } = req.body;
-    if (!password || password.length < 6) {
-      return res.status(400).json({ message: "Password must be at least 6 characters" });
-    }
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
-    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    if (advisor.advisorPasswordSet) {
-      return res.status(400).json({ message: "Password already set" });
-    }
-    const hash = await bcrypt.hash(password, 10);
-    await storage.updateAdvisor(advisor.id, { advisorPasswordHash: hash, advisorPasswordSet: true });
+    await storage.updateAdvisor(advisor.id, { advisorPasswordSet: true, advisorEmailVerified: true });
     (req.session as any)[`advisor_${req.params.slug}`] = true;
+    res.json({ authenticated: true });
+  });
+
+  // Resend verification OTP (only for unverified accounts)
+  app.post("/api/advisor-auth/:slug/resend-otp", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (advisor.advisorEmailVerified) return res.status(400).json({ message: "Account already verified." });
+    if (!advisor.advisorPasswordHash) return res.status(400).json({ message: "Please complete account setup first." });
+    const code = generateOtp();
+    otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
+    try {
+      await sendEmail(
+        advisor.email!,
+        "Your Advisory Connect verification code",
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+          <h2 style="color:#4a8db5;margin-bottom:8px;">New Verification Code</h2>
+          <p style="color:#555;margin-bottom:24px;">Here is your new verification code:</p>
+          <div style="background:#f5f7fa;border-radius:12px;padding:24px;text-align:center;letter-spacing:8px;font-size:36px;font-weight:bold;color:#1a1a1a;">${code}</div>
+          <p style="color:#999;font-size:12px;margin-top:24px;">Expires in 10 minutes.</p>
+        </div>`
+      );
+    } catch { return res.status(500).json({ message: "Failed to resend code." }); }
     res.json({ success: true });
   });
 
+  // Standard login: email + password
   app.post("/api/advisor-auth/:slug/login", async (req, res) => {
-    const { password } = req.body;
+    const { email, password } = req.body;
+    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    if (!advisor.advisorPasswordHash) return res.status(401).json({ message: "Password not set" });
+    if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(401).json({ message: "Incorrect email or password." });
+    }
+    if (!advisor.advisorPasswordHash) {
+      return res.status(401).json({ message: "Account not set up yet.", needsSetup: true });
+    }
+    if (!advisor.advisorEmailVerified) {
+      return res.status(401).json({ message: "Please verify your email first.", needsVerification: true });
+    }
     const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
-    if (!valid) return res.status(401).json({ message: "Invalid password" });
+    if (!valid) return res.status(401).json({ message: "Incorrect email or password." });
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
