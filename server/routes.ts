@@ -66,13 +66,17 @@ export async function registerRoutes(
 ): Promise<Server> {
 
   app.post("/api/auth/login", async (req, res) => {
-    const { password } = req.body;
+    const { email, password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
       return res.status(500).json({ message: "Admin password not configured" });
     }
+    const adminEmail = "info@corefinancials.org";
+    if (!email || email.toLowerCase().trim() !== adminEmail) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
     if (password !== adminPassword) {
-      return res.status(401).json({ message: "Invalid password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
     (req.session as any).authenticated = true;
     res.json({ authenticated: true });

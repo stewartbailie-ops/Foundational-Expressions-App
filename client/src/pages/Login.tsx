@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Loader2, Lock } from "lucide-react";
 
 export default function Login({ onLogin }: { onLogin: () => void }) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -15,7 +17,7 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email: email.trim(), password }),
       });
 
       if (!res.ok) {
@@ -32,6 +34,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     }
   };
 
+  const canSubmit = email.trim() !== "" && password !== "";
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: "#4a8db5" }}>
       <div className="w-full max-w-sm">
@@ -40,39 +44,53 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             <Lock className="h-7 w-7 text-white/70" />
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Control Panel</h1>
-          <p className="text-white/40 text-sm mt-2">Enter your password to continue</p>
+          <p className="text-white/50 text-sm mt-2">Sign in to continue</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email address"
+            autoComplete="email"
+            autoFocus
+            className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-colors"
+            data-testid="input-admin-email"
+          />
+
+          <div className="relative">
             <input
-              type="password"
+              type={showPw ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Password"
-              autoFocus
-              className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-colors"
+              autoComplete="current-password"
+              className="w-full px-4 py-3 pr-16 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 focus:ring-1 focus:ring-white/20 transition-colors"
               data-testid="input-password"
             />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
+            >
+              {showPw ? "Hide" : "Show"}
+            </button>
           </div>
 
           {error && (
-            <p className="text-red-400 text-sm text-center" data-testid="text-login-error">
+            <p className="text-red-300 text-sm text-center" data-testid="text-login-error">
               {error}
             </p>
           )}
 
           <button
             type="submit"
-            disabled={loading || !password.trim()}
-            className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+            disabled={loading || !canSubmit}
+            className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 mt-1"
             data-testid="button-login"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "Sign In"
-            )}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
           </button>
         </form>
       </div>
