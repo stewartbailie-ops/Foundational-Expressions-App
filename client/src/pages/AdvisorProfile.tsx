@@ -881,18 +881,6 @@ export default function AdvisorProfile() {
                   {advisor.title}
                 </p>
               )}
-              {(advisor as any).location && (
-                <a
-                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent((advisor as any).location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-1 mt-1 text-xs text-gray-400 hover:text-gray-600 transition-colors w-full"
-                  data-testid="link-location-maps"
-                >
-                  <MapPin className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{(advisor as any).location}</span>
-                </a>
-              )}
             </div>
           </div>
         </div>
@@ -1290,7 +1278,7 @@ export default function AdvisorProfile() {
         )}
 
         {/* o. Contact Details */}
-        {hasContactDetails && (
+        {(hasContactDetails || (advisor as any).location) && (
           <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-contact">
             {advisor.email && (
               <div className="flex items-center gap-3 text-sm">
@@ -1308,6 +1296,21 @@ export default function AdvisorProfile() {
               <div className="flex items-center gap-3 text-sm">
                 <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
                 <span style={{ color: textColor }} data-testid="text-contact-hours">{(advisor as any).workingHours}</span>
+              </div>
+            )}
+            {(advisor as any).location && (
+              <div className="flex items-center gap-3 text-sm">
+                <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                <a
+                  href={`https://maps.google.com/?q=${encodeURIComponent((advisor as any).location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:underline"
+                  style={{ color: textColor }}
+                  data-testid="link-location-maps"
+                >
+                  {(advisor as any).location}
+                </a>
               </div>
             )}
           </div>

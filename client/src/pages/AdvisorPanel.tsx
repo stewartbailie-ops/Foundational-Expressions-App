@@ -698,7 +698,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                         );
                       })}
                     </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs pt-1">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
                       {lead.senderEmail && <Row label="Email" value={lead.senderEmail} tc={tc} />}
                       {lead.clientPhone && <Row label="Phone" value={lead.clientPhone} tc={tc} />}
                       {lead.clientAge && <Row label="Age" value={String(lead.clientAge)} tc={tc} />}
@@ -709,9 +709,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                       {lead.clientVehicle !== null && lead.clientVehicle !== undefined && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
                       {lead.clientProperty !== null && lead.clientProperty !== undefined && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
                       {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} />}
+                      {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
+                      {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} full />}
                     </div>
-                    {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} />}
-                    {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} />}
                     <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
                       <div className="space-y-0.5">
                         <div className="text-xs" style={{ color: tc.mutedText }}>
@@ -754,11 +754,11 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   );
 }
 
-function Row({ label, value, tc }: { label: string; value: string; tc: ReturnType<typeof getThemeColors> }) {
+function Row({ label, value, tc, full }: { label: string; value: string; tc: ReturnType<typeof getThemeColors>; full?: boolean }) {
   return (
-    <div className="flex gap-2">
+    <div className={`flex gap-1.5 text-xs ${full ? "col-span-2" : ""}`}>
       <span className="font-medium flex-shrink-0" style={{ color: tc.mutedText }}>{label}:</span>
-      <span style={{ color: tc.textColor }}>{value}</span>
+      <span className="break-words min-w-0" style={{ color: tc.textColor }}>{value}</span>
     </div>
   );
 }
