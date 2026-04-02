@@ -724,11 +724,12 @@ export async function registerRoutes(
     if (!advisor.advisorPasswordHash) {
       return res.status(401).json({ message: "Account not set up yet.", needsSetup: true });
     }
-    if (!advisor.advisorEmailVerified) {
-      return res.status(401).json({ message: "Please verify your email first.", needsVerification: true });
-    }
     const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
     if (!valid) return res.status(401).json({ message: "Incorrect email or password." });
+    // Auto-verify advisors who set a password through the old OTP system
+    if (!advisor.advisorEmailVerified) {
+      await storage.updateAdvisor(advisor.id, { advisorEmailVerified: true, advisorPasswordSet: true });
+    }
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
