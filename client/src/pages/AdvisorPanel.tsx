@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -2012,8 +2012,38 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ media: false, tax: false, er: false, ci: false, cal: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
+
+  // Standard calculator state
+  const [stdDisplay, setStdDisplay] = useState("0");
+  const [stdPrev, setStdPrev] = useState<string | null>(null);
+  const [stdOp, setStdOp] = useState<string | null>(null);
+  const [stdFresh, setStdFresh] = useState(false);
+
+  const stdPress = (val: string) => {
+    if (val === "C") { setStdDisplay("0"); setStdPrev(null); setStdOp(null); setStdFresh(false); return; }
+    if (val === "±") { setStdDisplay(d => d.startsWith("-") ? d.slice(1) : d === "0" ? "0" : "-" + d); return; }
+    if (val === "%") { setStdDisplay(d => String(parseFloat(d) / 100)); return; }
+    if (["+", "−", "×", "÷"].includes(val)) {
+      setStdPrev(stdDisplay); setStdOp(val); setStdFresh(true); return;
+    }
+    if (val === "=") {
+      if (!stdOp || !stdPrev) return;
+      const a = parseFloat(stdPrev), b = parseFloat(stdDisplay);
+      let r = a;
+      if (stdOp === "+") r = a + b;
+      else if (stdOp === "−") r = a - b;
+      else if (stdOp === "×") r = a * b;
+      else if (stdOp === "÷") r = b !== 0 ? a / b : 0;
+      setStdDisplay(String(parseFloat(r.toFixed(10))));
+      setStdPrev(null); setStdOp(null); setStdFresh(false); return;
+    }
+    if (val === ".") {
+      setStdDisplay(d => (stdFresh ? "0." : d.includes(".") ? d : d + ".")); setStdFresh(false); return;
+    }
+    setStdDisplay(d => stdFresh || d === "0" ? val : d + val); setStdFresh(false);
+  };
 
   const [newsUrl, setNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
   const [factsUrl, setFactsUrl] = useState((advisor as any).financialsFunFactsUrl || "");
@@ -2310,91 +2340,50 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   return (
     <div className="space-y-3 pb-6">
 
-      {/* Financial Media */}
+      {/* Standard Calculator */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set your MoneyWeb links — copy & share to socials, and they populate your profile." />
+          <SectionHeader sectionKey="std" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Standard Calculator" subtitle="Basic arithmetic — add, subtract, multiply, divide." />
         </div>
-        {openSections.media && (
-          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+        {openSections.std && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
             <div className="pt-3">
-              <TSelect value={selectedMedia} onChange={setSelectedMedia} colors={tc} options={[
-                { value: "news", label: "Latest Financial News" },
-                { value: "facts", label: "Daily Financial Facts" },
-                { value: "videos", label: "Financial Tutorial Videos" },
-              ]} />
-            </div>
-            <div className="flex gap-2">
-              <input type="url" value={activeMedia.url} onChange={e => activeMedia.setUrl(e.target.value)} placeholder="https://www.moneyweb.co.za/..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-              <button onClick={handleCopyMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
-                {mediaCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                {mediaCopied ? "Copied!" : "Copy"}
-              </button>
-              <button onClick={handleShareMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-                <ExternalLink className="h-3.5 w-3.5" /> Share
-              </button>
-            </div>
-            <div className="space-y-2 pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-              <p className="text-xs font-medium pt-2" style={ls}>All 3 links (saved to profile)</p>
+              {/* Display */}
+              <div className="rounded-lg px-4 py-3 mb-3 text-right" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
+                {stdOp && stdPrev && <p className="text-xs mb-0.5" style={{ color: tc.mutedText }}>{stdPrev} {stdOp}</p>}
+                <p className="text-2xl font-bold tracking-tight truncate" style={{ color: tc.textColor }}>{stdDisplay}</p>
+              </div>
+              {/* Buttons */}
               {[
-                { label: "News", val: newsUrl, set: setNewsUrl },
-                { label: "Fun Facts", val: factsUrl, set: setFactsUrl },
-                { label: "Videos", val: videosUrl, set: setVideosUrl },
-              ].map(({ label, val, set }) => (
-                <div key={label} className="flex items-center gap-2">
-                  <span className="text-xs w-20 flex-shrink-0" style={ls}>{label}</span>
-                  <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={is} />
+                ["C", "±", "%", "÷"],
+                ["7", "8", "9", "×"],
+                ["4", "5", "6", "−"],
+                ["1", "2", "3", "+"],
+                ["0", ".", "="],
+              ].map((row, ri) => (
+                <div key={ri} className={`grid gap-2 mb-2 ${row.length === 3 ? "grid-cols-3" : "grid-cols-4"}`}>
+                  {row.map(key => {
+                    const isOp = ["÷", "×", "−", "+", "="].includes(key);
+                    const isFn = ["C", "±", "%"].includes(key);
+                    const isZero = key === "0" && row.length === 3;
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => stdPress(key)}
+                        className={`py-3 rounded-lg text-sm font-semibold transition-opacity hover:opacity-80 active:scale-95 ${isZero ? "col-span-2" : ""}`}
+                        style={{
+                          backgroundColor: isOp ? tc.accentColor : isFn ? tc.buttonSecondaryBg : tc.inputBg,
+                          color: isOp ? (tc.isDark ? "#000" : "#fff") : isFn ? tc.accentColor : tc.textColor,
+                          border: `1px solid ${isOp ? tc.accentColor : tc.borderColor}`,
+                        }}
+                        data-testid={`calc-btn-${key}`}
+                      >
+                        {key}
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
-              <button onClick={handleSaveMedia} disabled={savingMedia} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-                {savingMedia ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
-                Save Links to Profile
-              </button>
-            </div>
-
-            {/* Live MoneyWeb Articles */}
-            <div className="pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-              <div className="flex items-center justify-between pt-2 mb-2">
-                <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Live MoneyWeb Articles</p>
-                <div className="flex items-center gap-2">
-                  <TSelect value={mwCategory} onChange={setMwCategory} colors={tc} className="w-36" options={[
-                    { value: "all", label: "All Finance" },
-                    { value: "news", label: "News" },
-                    { value: "markets", label: "Markets" },
-                    { value: "investing", label: "Investing" },
-                    { value: "personal-finance", label: "Personal Finance" },
-                  ]} />
-                  <button type="button" onClick={() => fetchMwArticles(mwCategory)} className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
-                    <RefreshCw className={`h-3.5 w-3.5 ${mwLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
-                  </button>
-                </div>
-              </div>
-              {mwLoading ? (
-                <div className="flex items-center justify-center gap-2 py-4">
-                  <Loader2 className="h-4 w-4 animate-spin" style={ls} />
-                  <span className="text-xs" style={ls}>Loading articles…</span>
-                </div>
-              ) : mwArticles.length === 0 ? (
-                <p className="text-xs text-center py-4" style={ls}>No articles loaded. Try refreshing.</p>
-              ) : (
-                <div className="space-y-2">
-                  {mwArticles.map((article, i) => (
-                    <div key={i} className="rounded-lg p-3 space-y-1" style={{ backgroundColor: tc.inputBg }}>
-                      <div className="flex items-start justify-between gap-2">
-                        <a href={article.link} target="_blank" rel="noopener noreferrer" className="text-xs font-medium leading-snug hover:underline flex-1" style={{ color: tc.textColor }}>{article.title}</a>
-                        <button type="button" onClick={() => { navigator.clipboard.writeText(article.link); setMwCopied(article.link); setTimeout(() => setMwCopied(null), 2000); }} className="flex-shrink-0 p-1 rounded hover:opacity-70" style={{ color: mwCopied === article.link ? tc.accentColor : tc.mutedText }}>
-                          {mwCopied === article.link ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {article.category && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{article.category}</span>}
-                        {article.pubDate && <span className="text-xs" style={ls}>{new Date(article.pubDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}</span>}
-                      </div>
-                      {article.description && <p className="text-xs leading-relaxed line-clamp-2" style={ls}>{article.description}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
         )}
@@ -2471,6 +2460,50 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
             ) : (
               <p className="text-xs text-center py-3" style={ls}>Enter a monthly gross income to calculate</p>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Compound Interest Calculator */}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="ci" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Compound Interest Calculator" subtitle="Future value with regular monthly contributions." />
+        </div>
+        {openSections.ci && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3 grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Principal (R)</label>
+                <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Annual Rate (%)</label>
+                <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Years</label>
+                <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs" style={ls}>Monthly Contribution (R)</label>
+                <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <label className="text-xs" style={ls}>Compounding Frequency</label>
+                <TSelect value={ciFreq} onChange={setCiFreq} colors={tc} options={[
+                  { value: "1", label: "Annually" },
+                  { value: "2", label: "Semi-annually" },
+                  { value: "4", label: "Quarterly" },
+                  { value: "12", label: "Monthly" },
+                  { value: "365", label: "Daily" },
+                ]} />
+              </div>
+            </div>
+            <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+              <ResultRow label="Total Contributions" value={ZAR(ci.contributions)} />
+              <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
+              <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
+            </div>
           </div>
         )}
       </div>
@@ -2563,45 +2596,47 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         )}
       </div>
 
-      {/* Compound Interest Calculator */}
+      {/* Forex Calculator */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="ci" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Compound Interest Calculator" subtitle="Future value with regular monthly contributions." />
+          <SectionHeader sectionKey="forex" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Forex Calculator" subtitle="Foreign exchange trading calculations — coming soon." />
         </div>
-        {openSections.ci && (
-          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-            <div className="pt-3 grid grid-cols-2 gap-2">
-              <div className="space-y-1">
-                <label className="text-xs" style={ls}>Principal (R)</label>
-                <input type="number" value={ciPrincipal} onChange={e => setCiPrincipal(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+        {openSections.forex && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-4 pb-2 flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                <TrendingUp className="h-6 w-6" style={{ color: tc.accentColor }} />
               </div>
-              <div className="space-y-1">
-                <label className="text-xs" style={ls}>Annual Rate (%)</label>
-                <input type="number" value={ciRate} onChange={e => setCiRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              <div className="text-center">
+                <p className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Forex Calculator</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>Advanced foreign exchange trading calculator with pip values, lot sizing, and margin calculations.</p>
               </div>
-              <div className="space-y-1">
-                <label className="text-xs" style={ls}>Years</label>
-                <input type="number" value={ciYears} onChange={e => setCiYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs" style={ls}>Monthly Contribution (R)</label>
-                <input type="number" value={ciMonthly} onChange={e => setCiMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
-              </div>
-              <div className="col-span-2 space-y-1">
-                <label className="text-xs" style={ls}>Compounding Frequency</label>
-                <TSelect value={ciFreq} onChange={setCiFreq} colors={tc} options={[
-                  { value: "1", label: "Annually" },
-                  { value: "2", label: "Semi-annually" },
-                  { value: "4", label: "Quarterly" },
-                  { value: "12", label: "Monthly" },
-                  { value: "365", label: "Daily" },
-                ]} />
+              <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.mutedText }}>
+                Still in development — Coming soon
               </div>
             </div>
-            <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-              <ResultRow label="Total Contributions" value={ZAR(ci.contributions)} />
-              <ResultRow label="Interest Earned" value={ZAR(ci.interest)} accent />
-              <ResultRow label={`Final Balance after ${ciYears} years`} value={ZAR(ci.total)} accent />
+          </div>
+        )}
+      </div>
+
+      {/* Scan Documents */}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="scan" icon={<FileText className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Scan Documents" subtitle="AI-powered document scanning and analysis — coming soon." />
+        </div>
+        {openSections.scan && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-4 pb-2 flex flex-col items-center gap-3">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                <FileText className="h-6 w-6" style={{ color: tc.accentColor }} />
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Document Scanner</p>
+                <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>Scan and analyse financial documents, extract key data, and summarise reports using AI.</p>
+              </div>
+              <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.mutedText }}>
+                Still in development — Coming soon
+              </div>
             </div>
           </div>
         )}
@@ -2692,6 +2727,96 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
               })}
             </div>
 
+          </div>
+        )}
+      </div>
+
+      {/* Financial Media */}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set your MoneyWeb links — copy & share to socials, and they populate your profile." />
+        </div>
+        {openSections.media && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-3">
+              <TSelect value={selectedMedia} onChange={setSelectedMedia} colors={tc} options={[
+                { value: "news", label: "Latest Financial News" },
+                { value: "facts", label: "Daily Financial Facts" },
+                { value: "videos", label: "Financial Tutorial Videos" },
+              ]} />
+            </div>
+            <div className="flex gap-2">
+              <input type="url" value={activeMedia.url} onChange={e => activeMedia.setUrl(e.target.value)} placeholder="https://www.moneyweb.co.za/..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+              <button onClick={handleCopyMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+                {mediaCopied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {mediaCopied ? "Copied!" : "Copy"}
+              </button>
+              <button onClick={handleShareMedia} disabled={!activeMedia.url} className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium hover:opacity-70 disabled:opacity-30" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+                <ExternalLink className="h-3.5 w-3.5" /> Share
+              </button>
+            </div>
+            <div className="space-y-2 pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              <p className="text-xs font-medium pt-2" style={ls}>All 3 links (saved to profile)</p>
+              {[
+                { label: "News", val: newsUrl, set: setNewsUrl },
+                { label: "Fun Facts", val: factsUrl, set: setFactsUrl },
+                { label: "Videos", val: videosUrl, set: setVideosUrl },
+              ].map(({ label, val, set }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <span className="text-xs w-20 flex-shrink-0" style={ls}>{label}</span>
+                  <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="flex-1 px-2 py-1.5 rounded-lg text-xs outline-none" style={is} />
+                </div>
+              ))}
+              <button onClick={handleSaveMedia} disabled={savingMedia} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+                {savingMedia ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+                Save Links to Profile
+              </button>
+            </div>
+
+            {/* Live MoneyWeb Articles */}
+            <div className="pt-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              <div className="flex items-center justify-between pt-2 mb-2">
+                <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Live MoneyWeb Articles</p>
+                <div className="flex items-center gap-2">
+                  <TSelect value={mwCategory} onChange={setMwCategory} colors={tc} className="w-36" options={[
+                    { value: "all", label: "All Finance" },
+                    { value: "news", label: "News" },
+                    { value: "markets", label: "Markets" },
+                    { value: "investing", label: "Investing" },
+                    { value: "personal-finance", label: "Personal Finance" },
+                  ]} />
+                  <button type="button" onClick={() => fetchMwArticles(mwCategory)} className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                    <RefreshCw className={`h-3.5 w-3.5 ${mwLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
+                  </button>
+                </div>
+              </div>
+              {mwLoading ? (
+                <div className="flex items-center justify-center gap-2 py-4">
+                  <Loader2 className="h-4 w-4 animate-spin" style={ls} />
+                  <span className="text-xs" style={ls}>Loading articles…</span>
+                </div>
+              ) : mwArticles.length === 0 ? (
+                <p className="text-xs text-center py-4" style={ls}>No articles loaded. Try refreshing.</p>
+              ) : (
+                <div className="space-y-2">
+                  {mwArticles.map((article, i) => (
+                    <div key={i} className="rounded-lg p-3 space-y-1" style={{ backgroundColor: tc.inputBg }}>
+                      <div className="flex items-start justify-between gap-2">
+                        <a href={article.link} target="_blank" rel="noopener noreferrer" className="text-xs font-medium leading-snug hover:underline flex-1" style={{ color: tc.textColor }}>{article.title}</a>
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(article.link); setMwCopied(article.link); setTimeout(() => setMwCopied(null), 2000); }} className="flex-shrink-0 p-1 rounded hover:opacity-70" style={{ color: mwCopied === article.link ? tc.accentColor : tc.mutedText }}>
+                          {mwCopied === article.link ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {article.category && <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{article.category}</span>}
+                        {article.pubDate && <span className="text-xs" style={ls}>{new Date(article.pubDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}</span>}
+                      </div>
+                      {article.description && <p className="text-xs leading-relaxed line-clamp-2" style={ls}>{article.description}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

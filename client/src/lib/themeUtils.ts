@@ -1,18 +1,18 @@
 import type React from "react";
 
 export const THEME_OPTIONS = [
-  { value: "blue",             label: "Blue" },
-  { value: "dark",             label: "Dark" },
-  { value: "pink",             label: "Pink" },
-  { value: "light-blue",       label: "Light Blue" },
-  { value: "dark-royal-purple",label: "Dark Royal Purple" },
-  { value: "dark-green",       label: "Green" },
-  { value: "gold",             label: "Gold" },
-  { value: "teal",             label: "Teal" },
-  { value: "red",              label: "Red" },
-  { value: "navy",             label: "Navy" },
-  { value: "coral",            label: "Coral" },
-  { value: "silver",           label: "Silver" },
+  { value: "blue",             label: "Abyss" },
+  { value: "dark",             label: "Obsidian" },
+  { value: "pink",             label: "Fuchsia" },
+  { value: "light-blue",       label: "Nimbus" },
+  { value: "dark-royal-purple",label: "Velour" },
+  { value: "dark-green",       label: "Verdant" },
+  { value: "gold",             label: "Aurum" },
+  { value: "teal",             label: "Lagoon" },
+  { value: "red",              label: "Inferno" },
+  { value: "navy",             label: "Admiral" },
+  { value: "coral",            label: "Ember" },
+  { value: "silver",           label: "Mercury" },
 ] as const;
 
 export const BACKGROUND_STYLE_OPTIONS = [
@@ -80,7 +80,7 @@ export function getThemeBackground(
   let accentRgba: string;
 
   if (t === "dark") {
-    accentRgba = "rgba(255,255,255,0.045)";
+    accentRgba = "rgba(255,255,255,0.18)";
     base = {
       backgroundColor: "#0a0a0a",
       backgroundImage: [
@@ -90,7 +90,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 24px 24px",
     };
   } else if (t === "pink") {
-    accentRgba = "rgba(190,24,93,0.045)";
+    accentRgba = "rgba(190,24,93,0.18)";
     base = {
       backgroundColor: "#fff0f5",
       backgroundImage: [
@@ -100,7 +100,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "light-blue") {
-    accentRgba = "rgba(14,165,233,0.07)";
+    accentRgba = "rgba(14,165,233,0.20)";
     base = {
       backgroundColor: "#e0f2fe",
       backgroundImage: [
@@ -110,7 +110,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 20px 20px",
     };
   } else if (t === "dark-royal-purple") {
-    accentRgba = "rgba(168,85,247,0.055)";
+    accentRgba = "rgba(168,85,247,0.20)";
     base = {
       backgroundColor: "#0d0a1a",
       backgroundImage: [
@@ -120,7 +120,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "dark-green") {
-    accentRgba = "rgba(34,197,94,0.06)";
+    accentRgba = "rgba(34,197,94,0.18)";
     base = {
       backgroundColor: "#061a0e",
       backgroundImage: [
@@ -130,7 +130,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "gold") {
-    accentRgba = "rgba(212,160,23,0.07)";
+    accentRgba = "rgba(212,160,23,0.20)";
     base = {
       backgroundColor: "#100e00",
       backgroundImage: [
@@ -140,7 +140,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "teal") {
-    accentRgba = "rgba(13,148,136,0.07)";
+    accentRgba = "rgba(13,148,136,0.20)";
     base = {
       backgroundColor: "#040f0e",
       backgroundImage: [
@@ -150,7 +150,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "red") {
-    accentRgba = "rgba(220,38,38,0.07)";
+    accentRgba = "rgba(220,38,38,0.20)";
     base = {
       backgroundColor: "#0f0303",
       backgroundImage: [
@@ -160,7 +160,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "navy") {
-    accentRgba = "rgba(29,78,216,0.07)";
+    accentRgba = "rgba(29,78,216,0.20)";
     base = {
       backgroundColor: "#020814",
       backgroundImage: [
@@ -170,7 +170,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "coral") {
-    accentRgba = "rgba(249,115,22,0.07)";
+    accentRgba = "rgba(249,115,22,0.20)";
     base = {
       backgroundColor: "#fff8f5",
       backgroundImage: [
@@ -180,7 +180,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else if (t === "silver") {
-    accentRgba = "rgba(107,114,128,0.07)";
+    accentRgba = "rgba(107,114,128,0.20)";
     base = {
       backgroundColor: "#f1f2f4",
       backgroundImage: [
@@ -190,7 +190,7 @@ export function getThemeBackground(
       backgroundSize: "100% 100%, 100% 100%",
     };
   } else {
-    accentRgba = "rgba(74,141,181,0.05)";
+    accentRgba = "rgba(74,141,181,0.20)";
     base = {
       backgroundColor: "#f0f7fc",
       backgroundImage: [

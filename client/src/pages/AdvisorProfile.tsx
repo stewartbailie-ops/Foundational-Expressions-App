@@ -340,9 +340,6 @@ function ServiceDropdown({
           >
             {service.description}
           </div>
-          {service.key === "tax-efficiency" && (
-            <TaxCalculator borderColor={borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} accentColor={accentColor} buttonBg={buttonBg} buttonText={buttonText} />
-          )}
         </div>
       )}
     </div>
@@ -435,7 +432,7 @@ const TRANSLATIONS: Record<Lang, {
     browserHint: `Open this page in your browser's menu and tap "Add to Home Screen" or "Install app".`,
     dismiss: "Dismiss",
     individualServices: "Individual Services", corporateServices: "Corporate Services",
-    moneyMap: "Money Map", moneyMapSub: "Get a complete over-view of all your current finances in one place",
+    moneyMap: "Finance Hub", moneyMapSub: "Request Financial Information",
     claimWill: "Claim Your Free Will", requestCallback: "Request a Call Back",
     referFriends: "Refer Friends & Family", documentsUpload: "Documents Upload",
     comingSoon: "In development — Coming soon",
@@ -473,7 +470,7 @@ const TRANSLATIONS: Record<Lang, {
     browserHint: `Maak hierdie bladsy oop in jou blaaier se kieslys en tik "Voeg by Tuisskerm" of "Installeer app".`,
     dismiss: "Toemaak",
     individualServices: "Individuele Dienste", corporateServices: "Korporatiewe Dienste",
-    moneyMap: "Geldkaart", moneyMapSub: "Kry 'n volledige oorsig van al u huidige finansies op een plek",
+    moneyMap: "Finance Hub", moneyMapSub: "Versoek Finansiële Inligting",
     claimWill: "Eis u Gratis Testament", requestCallback: "Versoek 'n Terugbel",
     referFriends: "Verwys Vriende & Familie", documentsUpload: "Laai Dokumente Op",
     comingSoon: "In ontwikkeling — Binnekort beskikbaar",
@@ -511,7 +508,7 @@ const TRANSLATIONS: Record<Lang, {
     browserHint: `Vula leli khasi kumenyu yebrowser yakho bese uthepha "Engeza Esikrini" noma "Faka i-app".`,
     dismiss: "Vala",
     individualServices: "Izinsiza Zabantu Siqu", corporateServices: "Izinsiza Zezinkampani",
-    moneyMap: "Imephu Yemali", moneyMapSub: "Thola ukubuka okuphelele kwezimali zakho zonke endaweni eyodwa",
+    moneyMap: "Finance Hub", moneyMapSub: "Cela Ulwazi Lwezezimali",
     claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi",
     referFriends: "Phendukela Izihlobo Nabangane", documentsUpload: "Layisha Amaxwebe",
     comingSoon: "Iyakhiwa — Iyoza Maduze",
@@ -557,6 +554,7 @@ export default function AdvisorProfile() {
 
   const [lang, setLang] = useState<Lang>("en");
   const [inDevClicked, setInDevClicked] = useState<string | null>(null);
+  const [feedbackOpen, setFeedbackOpen] = useState<string | null>(null);
   const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
   const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
@@ -973,41 +971,101 @@ export default function AdvisorProfile() {
 
         {/* h. Claim Your Free Will */}
         {(advisor as any).showComplimentaryWill && (
-          <button
-            onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-claim-will"
-          >
-            <BookOpen className="h-4 w-4" />
-            {t.claimWill}
-          </button>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
+            <button
+              onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-claim-will"
+            >
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="h-4 w-4 flex-shrink-0" />
+                <span>{t.claimWill}</span>
+              </div>
+              {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
+            </button>
+            {feedbackOpen === "will" && (
+              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
+                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
+                  Secure your family's future with a professionally drafted will at no cost. Complete a short form and our team will be in touch.
+                </p>
+                <button
+                  onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="button-claim-will-continue"
+                >
+                  Continue to Form →
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* i. Request a Call Back */}
         {advisor.showCallbackLink !== false && (
-          <button
-            onClick={() => navigate(`/${slug}/request-callback`)}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-request-callback"
-          >
-            <Phone className="h-4 w-4" />
-            {t.requestCallback}
-          </button>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-request-callback">
+            <button
+              onClick={() => setFeedbackOpen(feedbackOpen === "callback" ? null : "callback")}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-request-callback"
+            >
+              <div className="flex items-center gap-2.5">
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                <span>{t.requestCallback}</span>
+              </div>
+              {feedbackOpen === "callback" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
+            </button>
+            {feedbackOpen === "callback" && (
+              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
+                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
+                  Leave your details and we'll call you back at a time that suits you to discuss your financial goals and how we can help.
+                </p>
+                <button
+                  onClick={() => navigate(`/${slug}/request-callback`)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="button-request-callback-continue"
+                >
+                  Continue to Form →
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* j. Refer Friends & Family */}
         {advisor.showReferralsLink !== false && (
-          <button
-            onClick={() => navigate(`/${slug}/referrals`)}
-            className="flex items-center justify-center gap-2 w-full py-3.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
-            data-testid="button-refer-friends"
-          >
-            <Users className="h-4 w-4" />
-            {t.referFriends}
-          </button>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}` }} data-testid="section-refer-friends">
+            <button
+              onClick={() => setFeedbackOpen(feedbackOpen === "referral" ? null : "referral")}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor }}
+              data-testid="button-refer-friends"
+            >
+              <div className="flex items-center gap-2.5">
+                <Users className="h-4 w-4 flex-shrink-0" />
+                <span>{t.referFriends}</span>
+              </div>
+              {feedbackOpen === "referral" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
+            </button>
+            {feedbackOpen === "referral" && (
+              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.initialsCircleBorder}` }}>
+                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
+                  Know someone who could benefit from financial advice? Refer friends or family and help them take control of their financial future.
+                </p>
+                <button
+                  onClick={() => navigate(`/${slug}/referrals`)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
+                  data-testid="button-refer-friends-continue"
+                >
+                  Continue to Form →
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {/* k. Documents Upload */}
