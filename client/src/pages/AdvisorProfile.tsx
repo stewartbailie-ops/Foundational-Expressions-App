@@ -709,87 +709,170 @@ export default function AdvisorProfile() {
 
   const handleDownloadBusinessCard = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
-    const profileUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+    const W = 400, H = 680, SCALE = 2;
+    const HEADER_H = 300, BADGE_SIZE = 170, BADGE_X = (W - BADGE_SIZE) / 2, BADGE_Y = 30;
     const phone = (advisor as any).contactNumber || "";
     const location = (advisor as any).location || "";
     const workingHours = (advisor as any).workingHours || "";
-    const linkedin = advisor.linkedinUrl || "";
-    const website = advisor.websiteUrl || "";
+    const cardInitials = getInitials(advisor.name);
 
-    const qrEl = document.getElementById("hidden-qr-card");
-    const qrSvgData = qrEl ? `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(qrEl))}` : "";
+    const canvas = document.createElement("canvas");
+    canvas.width = W * SCALE; canvas.height = H * SCALE;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(SCALE, SCALE);
 
-    const contactRows = [
-      phone ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px;white-space:nowrap">📞</td><td style="font-size:12px;color:#222">${phone}</td></tr>` : "",
-      advisor.email ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">✉️</td><td style="font-size:12px;color:#222">${advisor.email}</td></tr>` : "",
-      location ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">📍</td><td style="font-size:12px;color:#222">${location}</td></tr>` : "",
-      workingHours ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">🕐</td><td style="font-size:12px;color:#222">${workingHours}</td></tr>` : "",
-      website ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">🌐</td><td style="font-size:12px;color:#222">${website}</td></tr>` : "",
-      linkedin ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">💼</td><td style="font-size:12px;color:#0077b5">${linkedin}</td></tr>` : "",
-    ].join("");
+    const drawCard = (photoImg?: HTMLImageElement) => {
+      // Header gradient
+      const headerGrad = ctx.createLinearGradient(0, 0, W, HEADER_H);
+      headerGrad.addColorStop(0, from);
+      headerGrad.addColorStop(1, to);
+      ctx.fillStyle = headerGrad;
+      ctx.fillRect(0, 0, W, HEADER_H);
 
-    const profilePic = advisor.profilePicUrl
-      ? `<img src="${advisor.profilePicUrl}" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous" />`
-      : "";
+      // White body
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, HEADER_H, W, H - HEADER_H);
 
-    const initials = getInitials(advisor.name);
+      // Profile photo or initials badge
+      if (photoImg) {
+        ctx.save();
+        ctx.beginPath();
+        const cx = BADGE_X + BADGE_SIZE / 2, cy = BADGE_Y + BADGE_SIZE / 2, r = BADGE_SIZE / 2;
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        const src = photoImg;
+        const aspect = src.naturalWidth / src.naturalHeight;
+        let sx = 0, sy = 0, sw = src.naturalWidth, sh = src.naturalHeight;
+        if (aspect > 1) { sw = sh; sx = (src.naturalWidth - sw) / 2; }
+        else if (aspect < 1) { sh = sw; sy = (src.naturalHeight - sh) / 2; }
+        ctx.drawImage(src, sx, sy, sw, sh, BADGE_X, BADGE_Y, BADGE_SIZE, BADGE_SIZE);
+        ctx.restore();
+        // White ring
+        ctx.beginPath();
+        ctx.arc(BADGE_X + BADGE_SIZE / 2, BADGE_Y + BADGE_SIZE / 2, BADGE_SIZE / 2, 0, Math.PI * 2);
+        ctx.strokeStyle = "rgba(255,255,255,0.55)";
+        ctx.lineWidth = 4;
+        ctx.stroke();
+      } else {
+        // Initials badge (rounded rect)
+        const r = BADGE_SIZE * 0.17;
+        const bx = BADGE_X, by = BADGE_Y, bs = BADGE_SIZE;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(bx + r, by); ctx.lineTo(bx + bs - r, by);
+        ctx.quadraticCurveTo(bx + bs, by, bx + bs, by + r);
+        ctx.lineTo(bx + bs, by + bs - r);
+        ctx.quadraticCurveTo(bx + bs, by + bs, bx + bs - r, by + bs);
+        ctx.lineTo(bx + r, by + bs);
+        ctx.quadraticCurveTo(bx, by + bs, bx, by + bs - r);
+        ctx.lineTo(bx, by + r);
+        ctx.quadraticCurveTo(bx, by, bx + r, by);
+        ctx.closePath();
+        const badgeGrad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
+        badgeGrad.addColorStop(0, "rgba(255,255,255,0.22)");
+        badgeGrad.addColorStop(1, "rgba(255,255,255,0.07)");
+        ctx.fillStyle = badgeGrad; ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.38)"; ctx.lineWidth = 2; ctx.stroke();
+        const fontSize = bs * 0.42;
+        ctx.font = `bold ${fontSize}px Georgia, serif`;
+        ctx.textBaseline = "middle"; ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255,255,255,0.92)";
+        ctx.fillText(cardInitials[0] || "", bx + bs * 0.3, by + bs * 0.55);
+        ctx.fillStyle = "rgba(255,255,255,0.72)";
+        ctx.fillText(cardInitials[1] || "", bx + bs * 0.7, by + bs * 0.55);
+        ctx.restore();
+      }
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
-<title>${advisor.name} — Business Card</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:'Inter',Arial,sans-serif; background:#f0f0f0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-  .card { width:90mm; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.18); page-break-inside:avoid; }
-  .card-top { background:linear-gradient(135deg,${from},${to}); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; }
-  .badge { width:72px; height:72px; border-radius:14px; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:28px; font-weight:bold; color:#fff; overflow:hidden; flex-shrink:0; }
-  .name { color:#fff; font-size:16px; font-weight:700; text-align:center; letter-spacing:0.3px; }
-  .title { color:rgba(255,255,255,0.8); font-size:10px; font-weight:500; text-align:center; letter-spacing:0.8px; text-transform:uppercase; margin-top:2px; }
-  .card-body { padding:16px 18px; display:flex; gap:14px; align-items:flex-start; }
-  .contact-table { flex:1; border-collapse:collapse; }
-  .qr-side { display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
-  .qr-side img { width:72px; height:72px; }
-  .qr-label { font-size:8px; color:#999; text-align:center; max-width:72px; line-height:1.2; }
-  .divider { height:1px; background:#eee; margin:0 18px; }
-  .footer { padding:8px 18px; display:flex; align-items:center; justify-content:space-between; }
-  .footer-url { font-size:9px; color:#aaa; }
-  .footer-brand { font-size:8px; color:#ccc; font-style:italic; }
-  @media print {
-    body { background:transparent; min-height:auto; }
-    .card { box-shadow:none; border:1px solid #ddd; }
-  }
-</style>
-</head>
-<body>
-<div class="card">
-  <div class="card-top">
-    <div class="badge">${profilePic || `<span>${initials}</span>`}</div>
-    <div>
-      <div class="name">${advisor.name}</div>
-      ${advisor.title ? `<div class="title">${advisor.title}</div>` : ""}
-    </div>
-  </div>
-  <div class="card-body">
-    <table class="contact-table">${contactRows || `<tr><td style="font-size:12px;color:#aaa;font-style:italic">No contact details added yet</td></tr>`}</table>
-    ${qrSvgData ? `<div class="qr-side"><img src="${qrSvgData}" alt="QR Code" /><div class="qr-label">Scan to view full profile</div></div>` : ""}
-  </div>
-  <div class="divider"></div>
-  <div class="footer">
-    <span class="footer-url">${profileUrl}</span>
-    <span class="footer-brand">Advisory Connect</span>
-  </div>
-</div>
-<script>window.onload = function(){ window.print(); }</script>
-</body>
-</html>`;
+      // Name
+      const nameY = BADGE_Y + BADGE_SIZE + 24;
+      ctx.textAlign = "center"; ctx.fillStyle = "#ffffff";
+      ctx.font = `bold 22px Arial, sans-serif`; ctx.textBaseline = "middle";
+      ctx.fillText(advisor.name, W / 2, nameY);
+      // Title
+      if (advisor.title) {
+        ctx.fillStyle = "rgba(255,255,255,0.72)";
+        ctx.font = `500 11px Arial, sans-serif`;
+        ctx.fillText(advisor.title.toUpperCase(), W / 2, nameY + 28);
+      }
 
-    const win = window.open("", "_blank");
-    if (!win) return;
-    win.document.write(html);
-    win.document.close();
+      // Thin divider line in white section
+      ctx.fillStyle = "#f0f0f0";
+      ctx.fillRect(24, HEADER_H + 1, W - 48, 1);
+
+      // Contact details
+      const contactItems: [string, string][] = [];
+      if (phone) contactItems.push(["📞", phone]);
+      if (advisor.email) contactItems.push(["✉", advisor.email]);
+      if (location) contactItems.push(["📍", location]);
+      if (workingHours) contactItems.push(["🕐", workingHours]);
+
+      ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#333333";
+      ctx.font = `14px Arial, sans-serif`;
+      let rowY = HEADER_H + 26;
+      for (const [icon, text] of contactItems) {
+        ctx.fillText(`${icon}  ${text}`, 28, rowY);
+        rowY += 32;
+      }
+      if (contactItems.length === 0) {
+        ctx.fillStyle = "#bbb"; ctx.font = `italic 13px Arial, sans-serif`;
+        ctx.fillText("No contact details added yet", 28, rowY);
+        rowY += 32;
+      }
+
+      // QR code — load from hidden SVG
+      const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
+      const afterQr = () => {
+        // "Powered by Advisory Connect" footer bar
+        ctx.fillStyle = "#f7f7f7";
+        ctx.fillRect(0, H - 30, W, 30);
+        ctx.fillStyle = "#aaa"; ctx.font = `9px Arial, sans-serif`;
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.fillText("Powered by Advisory Connect", W / 2, H - 15);
+        // Download
+        const link = document.createElement("a");
+        link.href = canvas.toDataURL("image/png");
+        link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
+        link.click();
+      };
+
+      if (qrEl) {
+        const QR_SIZE = 110;
+        const qrX = (W - QR_SIZE) / 2;
+        const qrY = H - 185;
+        const svgStr = new XMLSerializer().serializeToString(qrEl);
+        const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const qrImg = new Image();
+        qrImg.onload = () => {
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(qrX - 8, qrY - 8, QR_SIZE + 16, QR_SIZE + 16);
+          ctx.drawImage(qrImg, qrX, qrY, QR_SIZE, QR_SIZE);
+          URL.revokeObjectURL(url);
+          ctx.fillStyle = "#888"; ctx.font = `10px Arial, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.fillText("Scan to view full profile", W / 2, qrY + QR_SIZE + 16);
+          ctx.fillStyle = "#bbb"; ctx.font = `9px Arial, sans-serif`;
+          ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 30);
+          afterQr();
+        };
+        qrImg.onerror = () => { URL.revokeObjectURL(url); afterQr(); };
+        qrImg.src = url;
+      } else {
+        afterQr();
+      }
+    };
+
+    if (advisor.profilePicUrl) {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => drawCard(img);
+      img.onerror = () => drawCard();
+      img.src = advisor.profilePicUrl;
+    } else {
+      drawCard();
+    }
   };
 
   const handleAddToHomeScreen = async () => {
@@ -973,32 +1056,30 @@ export default function AdvisorProfile() {
           <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
         </div>
 
-        {/* c. Four utility buttons */}
-        <div className="space-y-2" data-testid="section-utility-buttons">
-          {/* Row 1: Save Business Card (full width) */}
-          <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, width: "100%" }} data-testid="button-save-business-card">
+        {/* c. Four utility buttons — 2×2 grid */}
+        <div className="grid grid-cols-2 gap-2" data-testid="section-utility-buttons">
+          <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
             <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
             {t.saveCard}
           </button>
-          {/* Row 2: WhatsApp Me + Save Contact Details */}
-          <div className="grid grid-cols-2 gap-2">
-            {hasWhatsApp ? (
-              <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
-                <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                </svg>
-                {t.whatsappMe}
-              </a>
-            ) : (
-              <div />
-            )}
-            <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
-              <Download className="h-3.5 w-3.5 flex-shrink-0" />
-              {t.saveContact}
+          {hasWhatsApp ? (
+            <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              {t.whatsappMe}
+            </a>
+          ) : (
+            <button disabled className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, opacity: 0.4, cursor: "default" }}>
+              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              {t.whatsappMe}
             </button>
-          </div>
-          {/* Row 3: Share Profile (full width) */}
-          <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}`, width: "100%" }} data-testid="button-share-profile">
+          )}
+          <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
+            <Download className="h-3.5 w-3.5 flex-shrink-0" />
+            {t.saveContact}
+          </button>
+          <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
             <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
             {shareCopied ? t.linkCopied : t.shareProfile}
           </button>
