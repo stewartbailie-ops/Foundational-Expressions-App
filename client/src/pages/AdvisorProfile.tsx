@@ -412,7 +412,7 @@ type Lang = "en" | "af" | "zu";
 type ServiceTrans = { name: string; description: string };
 
 const TRANSLATIONS: Record<Lang, {
-  shareProfile: string; linkCopied: string; whatsappMe: string; saveCard: string; addHomeScreen: string;
+  shareProfile: string; linkCopied: string; whatsappMe: string; saveCard: string; saveContact: string;
   iosHint: string; browserHint: string; dismiss: string;
   individualServices: string; corporateServices: string;
   moneyMap: string; moneyMapSub: string;
@@ -427,7 +427,7 @@ const TRANSLATIONS: Record<Lang, {
 }> = {
   en: {
     shareProfile: "Share Profile", linkCopied: "Link Copied!", whatsappMe: "WhatsApp Me",
-    saveCard: "Save Business Card", addHomeScreen: "Add to Home Screen",
+    saveCard: "Save Business Card", saveContact: "Save Contact Details",
     iosHint: `Tap the Share button in Safari, then choose "Add to Home Screen" to save this profile as an app icon.`,
     browserHint: `Open this page in your browser's menu and tap "Add to Home Screen" or "Install app".`,
     dismiss: "Dismiss",
@@ -465,7 +465,7 @@ const TRANSLATIONS: Record<Lang, {
   },
   af: {
     shareProfile: "Deel Profiel", linkCopied: "Skakel Gekopieer!", whatsappMe: "WhatsApp My",
-    saveCard: "Stoor Visitekaartjie", addHomeScreen: "Voeg by Tuisskerm",
+    saveCard: "Stoor Visitekaartjie", saveContact: "Stoor Kontakbesonderhede",
     iosHint: `Tik die Deel-knoppie in Safari, en kies dan "Voeg by Tuisskerm" om hierdie profiel as 'n app-ikoon te stoor.`,
     browserHint: `Maak hierdie bladsy oop in jou blaaier se kieslys en tik "Voeg by Tuisskerm" of "Installeer app".`,
     dismiss: "Toemaak",
@@ -503,7 +503,7 @@ const TRANSLATIONS: Record<Lang, {
   },
   zu: {
     shareProfile: "Yabelana Ngeprofile", linkCopied: "Isikhopishiwe!", whatsappMe: "Ngi-WhatsApp",
-    saveCard: "Gcina Ikhadi Lebhizinisi", addHomeScreen: "Engeza Esikrini Sasekhaya",
+    saveCard: "Gcina Ikhadi Lebhizinisi", saveContact: "Gcina Imininingwane Yoxhumano",
     iosHint: `Thepha inkinobho yeShayi ku-Safari, bese ukhetha "Engeza Esikrini Sasekhaya" ukuze ugcine le profile njenge-icon ye-app.`,
     browserHint: `Vula leli khasi kumenyu yebrowser yakho bese uthepha "Engeza Esikrini" noma "Faka i-app".`,
     dismiss: "Vala",
@@ -686,7 +686,7 @@ export default function AdvisorProfile() {
     }
   };
 
-  const handleSaveCard = () => {
+  const handleSaveContact = () => {
     const vcf = [
       "BEGIN:VCARD", "VERSION:3.0",
       `FN:${advisor.name}`,
@@ -705,6 +705,91 @@ export default function AdvisorProfile() {
     a.download = `${advisor.name.replace(/\s+/g, "-")}.vcf`;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadBusinessCard = () => {
+    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
+    const profileUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+    const phone = (advisor as any).contactNumber || "";
+    const location = (advisor as any).location || "";
+    const workingHours = (advisor as any).workingHours || "";
+    const linkedin = advisor.linkedinUrl || "";
+    const website = advisor.websiteUrl || "";
+
+    const qrEl = document.getElementById("hidden-qr-card");
+    const qrSvgData = qrEl ? `data:image/svg+xml;base64,${btoa(new XMLSerializer().serializeToString(qrEl))}` : "";
+
+    const contactRows = [
+      phone ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px;white-space:nowrap">📞</td><td style="font-size:12px;color:#222">${phone}</td></tr>` : "",
+      advisor.email ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">✉️</td><td style="font-size:12px;color:#222">${advisor.email}</td></tr>` : "",
+      location ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">📍</td><td style="font-size:12px;color:#222">${location}</td></tr>` : "",
+      workingHours ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">🕐</td><td style="font-size:12px;color:#222">${workingHours}</td></tr>` : "",
+      website ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">🌐</td><td style="font-size:12px;color:#222">${website}</td></tr>` : "",
+      linkedin ? `<tr><td style="padding:3px 8px 3px 0;color:#888;font-size:11px">💼</td><td style="font-size:12px;color:#0077b5">${linkedin}</td></tr>` : "",
+    ].join("");
+
+    const profilePic = advisor.profilePicUrl
+      ? `<img src="${advisor.profilePicUrl}" style="width:100%;height:100%;object-fit:cover;display:block" crossorigin="anonymous" />`
+      : "";
+
+    const initials = getInitials(advisor.name);
+
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<title>${advisor.name} — Business Card</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Inter',Arial,sans-serif; background:#f0f0f0; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+  .card { width:90mm; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 8px 32px rgba(0,0,0,0.18); page-break-inside:avoid; }
+  .card-top { background:linear-gradient(135deg,${from},${to}); padding:20px; display:flex; flex-direction:column; align-items:center; gap:12px; }
+  .badge { width:72px; height:72px; border-radius:14px; background:rgba(255,255,255,0.2); border:2px solid rgba(255,255,255,0.35); display:flex; align-items:center; justify-content:center; font-family:Georgia,serif; font-size:28px; font-weight:bold; color:#fff; overflow:hidden; flex-shrink:0; }
+  .name { color:#fff; font-size:16px; font-weight:700; text-align:center; letter-spacing:0.3px; }
+  .title { color:rgba(255,255,255,0.8); font-size:10px; font-weight:500; text-align:center; letter-spacing:0.8px; text-transform:uppercase; margin-top:2px; }
+  .card-body { padding:16px 18px; display:flex; gap:14px; align-items:flex-start; }
+  .contact-table { flex:1; border-collapse:collapse; }
+  .qr-side { display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
+  .qr-side img { width:72px; height:72px; }
+  .qr-label { font-size:8px; color:#999; text-align:center; max-width:72px; line-height:1.2; }
+  .divider { height:1px; background:#eee; margin:0 18px; }
+  .footer { padding:8px 18px; display:flex; align-items:center; justify-content:space-between; }
+  .footer-url { font-size:9px; color:#aaa; }
+  .footer-brand { font-size:8px; color:#ccc; font-style:italic; }
+  @media print {
+    body { background:transparent; min-height:auto; }
+    .card { box-shadow:none; border:1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="card-top">
+    <div class="badge">${profilePic || `<span>${initials}</span>`}</div>
+    <div>
+      <div class="name">${advisor.name}</div>
+      ${advisor.title ? `<div class="title">${advisor.title}</div>` : ""}
+    </div>
+  </div>
+  <div class="card-body">
+    <table class="contact-table">${contactRows || `<tr><td style="font-size:12px;color:#aaa;font-style:italic">No contact details added yet</td></tr>`}</table>
+    ${qrSvgData ? `<div class="qr-side"><img src="${qrSvgData}" alt="QR Code" /><div class="qr-label">Scan to view full profile</div></div>` : ""}
+  </div>
+  <div class="divider"></div>
+  <div class="footer">
+    <span class="footer-url">${profileUrl}</span>
+    <span class="footer-brand">Advisory Connect</span>
+  </div>
+</div>
+<script>window.onload = function(){ window.print(); }</script>
+</body>
+</html>`;
+
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
   };
 
   const handleAddToHomeScreen = async () => {
@@ -883,38 +968,40 @@ export default function AdvisorProfile() {
           </div>
         </div>
 
+        {/* Hidden QR for business card PDF generation */}
+        <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
+          <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
+        </div>
+
         {/* c. Four utility buttons */}
         <div className="space-y-2" data-testid="section-utility-buttons">
-          <div className={`grid gap-2 ${hasWhatsApp ? "grid-cols-2" : "grid-cols-1"}`}>
-            <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
-              <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
-              {shareCopied ? t.linkCopied : t.shareProfile}
-            </button>
-            {hasWhatsApp && (
+          {/* Row 1: Save Business Card (full width) */}
+          <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, width: "100%" }} data-testid="button-save-business-card">
+            <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
+            {t.saveCard}
+          </button>
+          {/* Row 2: WhatsApp Me + Save Contact Details */}
+          <div className="grid grid-cols-2 gap-2">
+            {hasWhatsApp ? (
               <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
                 <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
                 </svg>
                 {t.whatsappMe}
               </a>
+            ) : (
+              <div />
             )}
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={handleSaveCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-card">
-              <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
-              {t.saveCard}
-            </button>
-            <button onClick={handleAddToHomeScreen} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-add-home-screen">
-              <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
-              {t.addHomeScreen}
+            <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
+              <Download className="h-3.5 w-3.5 flex-shrink-0" />
+              {t.saveContact}
             </button>
           </div>
-          {showInstallHint && (
-            <div className="rounded-lg p-3 text-xs text-center space-y-1" style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, border: `1px solid ${tc.borderColor}` }} data-testid="install-hint">
-              <p>{isIOS ? t.iosHint : t.browserHint}</p>
-              <button onClick={() => setShowInstallHint(false)} className="underline opacity-60" data-testid="button-dismiss-hint">{t.dismiss}</button>
-            </div>
-          )}
+          {/* Row 3: Share Profile (full width) */}
+          <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}`, width: "100%" }} data-testid="button-share-profile">
+            <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
+            {shareCopied ? t.linkCopied : t.shareProfile}
+          </button>
         </div>
 
         {/* d. Introduction & Bio */}
