@@ -573,6 +573,18 @@ export default function AdvisorProfile() {
   const [ciRate, setCiRate] = useState("8");
   const [ciYears, setCiYears] = useState("10");
   const [ciMonthly, setCiMonthly] = useState("500");
+  const [penBalance, setPenBalance] = useState("50000");
+  const [penMonthly, setPenMonthly] = useState("2000");
+  const [penRate, setPenRate] = useState("9");
+  const [penYears, setPenYears] = useState("20");
+  const [cgtSalePrice, setCgtSalePrice] = useState("500000");
+  const [cgtCostBase, setCgtCostBase] = useState("300000");
+  const [cgtIncome, setCgtIncome] = useState("25000");
+  const [vehPrice, setVehPrice] = useState("350000");
+  const [vehDeposit, setVehDeposit] = useState("70000");
+  const [vehRate, setVehRate] = useState("11.75");
+  const [vehMonths, setVehMonths] = useState("60");
+  const [vehBalloon, setVehBalloon] = useState("0");
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -991,63 +1003,66 @@ export default function AdvisorProfile() {
   };
 
   const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
+  const whatsappSvg = <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>;
 
   return (
     <div className="min-h-screen" style={{ ...themeBg, color: textColor }} data-testid="profile-container">
-      <div className="max-w-md mx-auto px-5 py-8 space-y-6">
+      <div className="max-w-md mx-auto px-4 pt-6 pb-12 space-y-4">
 
         {/* Language toggle */}
         <div className="flex justify-end gap-1" data-testid="lang-toggle">
           {(["en", "af", "zu"] as Lang[]).map((l) => (
-            <button
-              key={l}
-              onClick={() => setLang(l)}
+            <button key={l} onClick={() => setLang(l)}
               className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
-              style={{
-                backgroundColor: lang === l ? accentColor : tc.buttonSecondaryBg,
-                color: lang === l ? tc.buttonText : mutedText,
-                border: `1px solid ${lang === l ? accentColor : tc.borderColor}`,
-              }}
-              data-testid={`button-lang-${l}`}
-            >
+              style={{ backgroundColor: lang === l ? accentColor : tc.buttonSecondaryBg, color: lang === l ? tc.buttonText : mutedText, border: `1px solid ${lang === l ? accentColor : tc.borderColor}` }}
+              data-testid={`button-lang-${l}`}>
               {l === "en" ? "EN" : l === "af" ? "AF" : "ZU"}
             </button>
           ))}
         </div>
 
-        {/* a+b. Unified profile header card — photo + name bar */}
-        <div className="w-full overflow-hidden rounded-2xl" style={{ border: `2px solid ${tc.initialsCircleBorder}`, boxShadow: "0 10px 32px rgba(0,0,0,0.22)" }} data-testid="profile-header">
-          {/* Photo (if available) */}
-          {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
-            <img
-              src={advisor.profilePicUrl}
-              alt={advisor.name}
-              className="w-full object-cover block"
-              style={{ aspectRatio: "1 / 1" }}
-              data-testid="img-profile-pic"
-            />
-          ) : (
-            /* No photo — show large initials badge on a gradient background */
-            <div className="w-full flex items-center justify-center" style={{ aspectRatio: "1 / 1", background: `linear-gradient(135deg, ${getInitialsBadgeColors(advisor.theme || "blue").from}, ${getInitialsBadgeColors(advisor.theme || "blue").to})` }} data-testid="section-initials-fallback">
-              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={200} downloadable={false} name={advisor.name} />
+        {/* 1. Portrait Profile Header */}
+        <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }} data-testid="profile-header">
+          {/* Top gradient bar */}
+          <div className="flex flex-col items-center pt-8 pb-6 px-5 gap-4" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
+            {/* Circular photo or initials badge */}
+            {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
+              <img src={advisor.profilePicUrl} alt={advisor.name}
+                className="w-32 h-32 rounded-full object-cover"
+                style={{ border: `4px solid rgba(255,255,255,0.55)`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}
+                data-testid="img-profile-pic"
+              />
+            ) : (
+              <div data-testid="section-initials-fallback">
+                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={128} downloadable={false} name={advisor.name} />
+              </div>
+            )}
+            {/* Name + Title */}
+            <div className="text-center">
+              <h1 className="text-xl font-bold tracking-wider leading-snug text-white uppercase" data-testid="text-advisor-name">{advisor.name}</h1>
+              {advisor.title && <p className="text-sm mt-1 font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.78)" }} data-testid="text-advisor-title">{advisor.title}</p>}
             </div>
-          )}
-
-          {/* Name bar */}
-          <div className="flex items-center gap-4 px-5 py-4 bg-white" data-testid="profile-name-bar">
-            <div className="flex-shrink-0">
-              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={80} downloadable={false} name={advisor.name} />
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <h1 className="text-lg font-bold tracking-wider leading-snug text-gray-900 uppercase w-full text-center" data-testid="text-advisor-name">
-                {advisor.name}
-              </h1>
-              {advisor.title && (
-                <p className="text-sm font-medium mt-0.5 tracking-wide text-gray-500 w-full text-center" data-testid="text-advisor-title">
-                  {advisor.title}
-                </p>
-              )}
-            </div>
+          </div>
+          {/* Bottom utility row */}
+          <div className="grid grid-cols-2 gap-2 p-3" style={{ backgroundColor: cardBg }} data-testid="section-utility-buttons">
+            <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
+              <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />{t.saveCard}
+            </button>
+            {hasWhatsApp ? (
+              <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
+                {whatsappSvg}{t.whatsappMe}
+              </a>
+            ) : (
+              <button disabled className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, opacity: 0.38, cursor: "default" }}>
+                {whatsappSvg}{t.whatsappMe}
+              </button>
+            )}
+            <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
+              <Download className="h-3.5 w-3.5 flex-shrink-0" />{t.saveContact}
+            </button>
+            <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
+              <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
+            </button>
           </div>
         </div>
 
@@ -1056,43 +1071,14 @@ export default function AdvisorProfile() {
           <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
         </div>
 
-        {/* c. Four utility buttons — 2×2 grid */}
-        <div className="grid grid-cols-2 gap-2" data-testid="section-utility-buttons">
-          <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
-            <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
-            {t.saveCard}
-          </button>
-          {hasWhatsApp ? (
-            <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
-              {t.whatsappMe}
-            </a>
-          ) : (
-            <button disabled className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, opacity: 0.4, cursor: "default" }}>
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              {t.whatsappMe}
-            </button>
-          )}
-          <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
-            <Download className="h-3.5 w-3.5 flex-shrink-0" />
-            {t.saveContact}
-          </button>
-          <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
-            <Share2 className="h-3.5 w-3.5 flex-shrink-0" />
-            {shareCopied ? t.linkCopied : t.shareProfile}
-          </button>
-        </div>
-
-        {/* d. Introduction & Bio */}
+        {/* 2. Introduction & Bio */}
         {bioText && (
-          <div className="rounded-xl p-5" style={{ backgroundColor: cardBg }} data-testid="section-bio">
+          <div className="rounded-xl p-5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-bio">
             <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">{bioText}</p>
           </div>
         )}
 
-        {/* e. Individual Services */}
+        {/* 3. Individual Services */}
         {individualServices.length > 0 && (
           <ServiceGroupDropdown
             title={t.individualServices} services={individualServices}
@@ -1103,7 +1089,7 @@ export default function AdvisorProfile() {
           />
         )}
 
-        {/* f. Corporate Services */}
+        {/* 4. Corporate Services */}
         {corporateServices.length > 0 && (
           <ServiceGroupDropdown
             title={t.corporateServices} services={corporateServices}
@@ -1114,151 +1100,9 @@ export default function AdvisorProfile() {
           />
         )}
 
-        {/* g. Money Map */}
-        {(advisor as any).showAstute && (
-          <div className="space-y-1.5" data-testid="section-money-map">
-            <button
-              onClick={() => setInDevClicked(inDevClicked === "astute" ? null : "astute")}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-indev-astute"
-            >
-              <Calculator className="h-4 w-4" />
-              {t.moneyMap}
-            </button>
-            <p className="text-center text-xs px-2" style={{ color: mutedText }}>
-              {t.moneyMapSub}
-            </p>
-            {inDevClicked === "astute" && (
-              <div className="text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                {t.comingSoon}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* h. Claim Your Free Will */}
-        {(advisor as any).showComplimentaryWill && (
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
-            <button
-              onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
-              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-claim-will"
-            >
-              <div className="flex items-center gap-2.5">
-                <BookOpen className="h-4 w-4 flex-shrink-0" />
-                <span>{t.claimWill}</span>
-              </div>
-              {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
-            </button>
-            {feedbackOpen === "will" && (
-              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
-                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
-                  Secure your family's future with a professionally drafted will at no cost. Complete a short form and our team will be in touch.
-                </p>
-                <button
-                  onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="button-claim-will-continue"
-                >
-                  Continue to Form →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* i. Request a Call Back */}
-        {advisor.showCallbackLink !== false && (
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-request-callback">
-            <button
-              onClick={() => setFeedbackOpen(feedbackOpen === "callback" ? null : "callback")}
-              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-request-callback"
-            >
-              <div className="flex items-center gap-2.5">
-                <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>{t.requestCallback}</span>
-              </div>
-              {feedbackOpen === "callback" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
-            </button>
-            {feedbackOpen === "callback" && (
-              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
-                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
-                  Leave your details and we'll call you back at a time that suits you to discuss your financial goals and how we can help.
-                </p>
-                <button
-                  onClick={() => navigate(`/${slug}/request-callback`)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="button-request-callback-continue"
-                >
-                  Continue to Form →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* j. Refer Friends & Family */}
-        {advisor.showReferralsLink !== false && (
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}` }} data-testid="section-refer-friends">
-            <button
-              onClick={() => setFeedbackOpen(feedbackOpen === "referral" ? null : "referral")}
-              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
-              style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor }}
-              data-testid="button-refer-friends"
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className="h-4 w-4 flex-shrink-0" />
-                <span>{t.referFriends}</span>
-              </div>
-              {feedbackOpen === "referral" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
-            </button>
-            {feedbackOpen === "referral" && (
-              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.initialsCircleBorder}` }}>
-                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>
-                  Know someone who could benefit from financial advice? Refer friends or family and help them take control of their financial future.
-                </p>
-                <button
-                  onClick={() => navigate(`/${slug}/referrals`)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
-                  style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
-                  data-testid="button-refer-friends-continue"
-                >
-                  Continue to Form →
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* k. Documents Upload */}
-        {(advisor as any).showDocuments && (
-          <div data-testid="section-documents">
-            <button
-              onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-indev-documents"
-            >
-              <FileText className="h-4 w-4" />
-              {t.documentsUpload}
-            </button>
-            {inDevClicked === "documents" && (
-              <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                {t.comingSoon}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* l. Links to socials */}
-        {(advisor.showSocials !== false) && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
-          <div className="space-y-2.5" data-testid="section-socials">
+        {/* 5. Social Links */}
+        {advisor.showSocials !== false && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
+          <div className="space-y-2" data-testid="section-socials">
             {[
               { url: advisor.linkedinUrl, label: t.linkedin, Icon: Linkedin, testId: "link-linkedin" },
               { url: (advisor as any).facebookUrl, label: t.facebook, Icon: Facebook, testId: "link-facebook" },
@@ -1267,13 +1111,83 @@ export default function AdvisorProfile() {
               { url: advisor.websiteUrl, label: t.website, Icon: Globe, testId: "link-website" },
             ].filter(s => !!s.url).map(({ url, label, Icon, testId }) => (
               <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-lg font-medium text-sm transition-opacity hover:opacity-80"
+                className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
                 style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
                 data-testid={testId}>
-                <Icon className="h-4 w-4" />
-                {label}
+                <Icon className="h-4 w-4" />{label}
               </a>
             ))}
+          </div>
+        )}
+
+        {/* 6a. Request a Call Back — direct navigation button */}
+        {advisor.showCallbackLink !== false && (
+          <button
+            onClick={() => navigate(`/${slug}/request-callback`)}
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+            data-testid="button-request-callback"
+          >
+            <Phone className="h-4 w-4 flex-shrink-0" />
+            {t.requestCallback}
+          </button>
+        )}
+
+        {/* 6b. Refer Friends & Family — direct navigation button */}
+        {advisor.showReferralsLink !== false && (
+          <button
+            onClick={() => navigate(`/${slug}/referrals`)}
+            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+            data-testid="button-refer-friends"
+          >
+            <Users className="h-4 w-4 flex-shrink-0" />
+            {t.referFriends}
+          </button>
+        )}
+
+        {/* Claim Your Free Will */}
+        {(advisor as any).showComplimentaryWill && (
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
+            <button
+              onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
+              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-claim-will"
+            >
+              <div className="flex items-center gap-2.5"><BookOpen className="h-4 w-4 flex-shrink-0" /><span>{t.claimWill}</span></div>
+              {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
+            </button>
+            {feedbackOpen === "will" && (
+              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
+                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>Secure your family's future with a professionally drafted will at no cost. Complete a short form and our team will be in touch.</p>
+                <button onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="button-claim-will-continue">
+                  Continue to Form →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Request Your Financial Documents */}
+        {(advisor as any).showDocuments && (
+          <div data-testid="section-documents">
+            <button
+              onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-indev-documents"
+            >
+              <FileText className="h-4 w-4" />{t.documentsUpload}
+            </button>
+            {inDevClicked === "documents" && (
+              <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                {t.comingSoon}
+              </div>
+            )}
           </div>
         )}
 
@@ -1370,7 +1284,39 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolTax !== false && "tax",
                 (advisor as any).showToolExchange !== false && "exchange",
                 (advisor as any).showToolCompound !== false && "compound",
+                !!(advisor as any).showToolPension && "pension",
+                !!(advisor as any).showToolCgt && "cgt",
+                !!(advisor as any).showToolVehicle && "vehicle",
               ].filter(Boolean) as string[];
+
+              // Pension calc
+              const penB = parseFloat(penBalance) || 0, penM = parseFloat(penMonthly) || 0;
+              const penR = parseFloat(penRate) / 100, penY = parseFloat(penYears) || 1;
+              const penN = 12;
+              const penFV = penB * Math.pow(1 + penR / penN, penN * penY)
+                + (penR > 0 ? penM * ((Math.pow(1 + penR / penN, penN * penY) - 1) / (penR / penN)) : penM * penN * penY);
+              const penContrib = penB + penM * penN * penY;
+
+              // CGT calc (SA 2024/25 — individuals)
+              const cgtGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0));
+              const cgtAnnualExclusion = 40000;
+              const cgtNet = Math.max(0, cgtGain - cgtAnnualExclusion);
+              const cgtInclusion = cgtNet * 0.4; // 40% inclusion rate
+              const cgtAnnualInc = (parseFloat(cgtIncome) || 0) * 12;
+              const cgtTaxable = cgtAnnualInc + cgtInclusion;
+              const cgtTaxFull = (() => { const TAX_B = [{min:0,max:237100,rate:0.18,base:0},{min:237101,max:370500,rate:0.26,base:42678},{min:370501,max:512800,rate:0.31,base:77362},{min:512801,max:673000,rate:0.36,base:121475},{min:673001,max:857900,rate:0.39,base:179147},{min:857901,max:1817000,rate:0.41,base:251258},{min:1817001,max:Infinity,rate:0.45,base:644489}]; let g=0; for(const b of TAX_B){if(cgtTaxable>=b.min)g=b.base+(Math.min(cgtTaxable,b.max)-b.min)*b.rate;} return Math.max(0,g-17235); })();
+              const cgtTaxBase = (() => { const TAX_B = [{min:0,max:237100,rate:0.18,base:0},{min:237101,max:370500,rate:0.26,base:42678},{min:370501,max:512800,rate:0.31,base:77362},{min:512801,max:673000,rate:0.36,base:121475},{min:673001,max:857900,rate:0.39,base:179147},{min:857901,max:1817000,rate:0.41,base:251258},{min:1817001,max:Infinity,rate:0.45,base:644489}]; let g=0; for(const b of TAX_B){if(cgtAnnualInc>=b.min)g=b.base+(Math.min(cgtAnnualInc,b.max)-b.min)*b.rate;} return Math.max(0,g-17235); })();
+              const cgtTaxDue = Math.max(0, cgtTaxFull - cgtTaxBase);
+
+              // Vehicle finance calc
+              const vehP = (parseFloat(vehPrice) || 0) - (parseFloat(vehDeposit) || 0);
+              const vehR = parseFloat(vehRate) / 100 / 12;
+              const vehN2 = parseInt(vehMonths) || 60;
+              const vehBal = parseFloat(vehBalloon) || 0;
+              const vehPMT = vehR > 0
+                ? (vehP - vehBal * Math.pow(1 + vehR, -vehN2)) * (vehR * Math.pow(1 + vehR, vehN2)) / (Math.pow(1 + vehR, vehN2) - 1)
+                : (vehP - vehBal) / vehN2;
+              const vehTotal = vehPMT * vehN2 + vehBal;
 
               return (
                 <div className="px-4 pb-4 pt-3 space-y-2" style={{ backgroundColor: cardBg }}>
@@ -1386,6 +1332,9 @@ export default function AdvisorProfile() {
                           {toolKey === "tax" && <><TrendingUp className="h-3.5 w-3.5" /> SA Tax Calculator</>}
                           {toolKey === "exchange" && <><Calculator className="h-3.5 w-3.5" /> Exchange Rate Converter</>}
                           {toolKey === "compound" && <><TrendingUp className="h-3.5 w-3.5" /> Compound Interest</>}
+                          {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Savings</>}
+                          {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
+                          {toolKey === "vehicle" && <><Calculator className="h-3.5 w-3.5" /> Vehicle Finance</>}
                         </span>
                         {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
                       </button>
@@ -1490,6 +1439,115 @@ export default function AdvisorProfile() {
                                     <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
                                   </div>
                                 ))}
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "pension" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Estimate your retirement fund value based on current savings and monthly contributions.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Current Balance (R)</label>
+                                  <input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} style={is} data-testid="input-tool-pen-balance" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Contribution (R)</label>
+                                  <input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} style={is} data-testid="input-tool-pen-monthly" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Annual Growth Rate (%)</label>
+                                  <input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} style={is} data-testid="input-tool-pen-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Years to Retirement</label>
+                                  <input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} style={is} data-testid="input-tool-pen-years" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Projected Fund Value", val: `R ${penFV.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                  { label: "Total Contributed", val: `R ${penContrib.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Growth Earned", val: `R ${(penFV - penContrib).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes inflation, tax, and fund charges.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "cgt" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Estimate SA Capital Gains Tax payable when selling an asset (2024/25).</p>
+                              <div className="space-y-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Sale Price (R)</label>
+                                  <input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} style={is} data-testid="input-tool-cgt-sale" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Cost Base / Purchase Price (R)</label>
+                                  <input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} style={is} data-testid="input-tool-cgt-cost" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Income (R)</label>
+                                  <input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} style={is} data-testid="input-tool-cgt-income" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Capital Gain", val: `R ${cgtGain.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Annual Exclusion", val: `R ${cgtAnnualExclusion.toLocaleString("en-ZA")}` },
+                                  { label: "Taxable Gain (40% inclusion)", val: `R ${cgtInclusion.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Estimated CGT Payable", val: `R ${cgtTaxDue.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — primary residence exclusion and other deductions not included.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "vehicle" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Calculate monthly vehicle finance instalments.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Vehicle Price (R)</label>
+                                  <input type="number" value={vehPrice} onChange={e => setVehPrice(e.target.value)} style={is} data-testid="input-tool-veh-price" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Deposit (R)</label>
+                                  <input type="number" value={vehDeposit} onChange={e => setVehDeposit(e.target.value)} style={is} data-testid="input-tool-veh-deposit" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Interest Rate (%)</label>
+                                  <input type="number" value={vehRate} onChange={e => setVehRate(e.target.value)} style={is} data-testid="input-tool-veh-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Term (months)</label>
+                                  <input type="number" value={vehMonths} onChange={e => setVehMonths(e.target.value)} style={is} data-testid="input-tool-veh-months" />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <label className="text-xs" style={{ color: mutedText }}>Balloon Payment (R)</label>
+                                  <input type="number" value={vehBalloon} onChange={e => setVehBalloon(e.target.value)} placeholder="0" style={is} data-testid="input-tool-veh-balloon" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Monthly Instalment", val: `R ${vehPMT.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                  { label: "Total Repayable", val: `R ${vehTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Total Interest", val: `R ${(vehTotal - vehP).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes initiation fees, insurance &amp; service plans.</p>
                               </div>
                             </>
                           )}

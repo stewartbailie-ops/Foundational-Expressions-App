@@ -764,13 +764,15 @@ function InitialsBadgeSvg({ initials, theme, size, id }: { initials: string; the
 function ImageCropper({ src, onConfirm, onCancel, tc }: {
   src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; tc: ReturnType<typeof getThemeColors>;
 }) {
-  const CONTAINER = 260;
+  const CONTAINER = 280;
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 1, h: 1 });
   const imgRef = useRef<HTMLImageElement>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartRef = useRef({ x: 0, y: 0 });
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const zoomRef = useRef(1);
 
   const initScale = naturalSize.w > 0 ? Math.max(CONTAINER / naturalSize.w, CONTAINER / naturalSize.h) : 1;
   const displayW = naturalSize.w * initScale * zoom;
@@ -785,15 +787,25 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   };
 
   const startDrag = (clientX: number, clientY: number) => {
-    setIsDragging(true);
-    setDragStart({ x: clientX - offset.x, y: clientY - offset.y });
+    isDraggingRef.current = true;
+    dragStartRef.current = { x: clientX - offsetRef.current.x, y: clientY - offsetRef.current.y };
   };
   const moveDrag = (clientX: number, clientY: number) => {
-    if (!isDragging) return;
-    const raw = { x: clientX - dragStart.x, y: clientY - dragStart.y };
-    setOffset(clampOffset(raw.x, raw.y, zoom));
+    if (!isDraggingRef.current) return;
+    const raw = { x: clientX - dragStartRef.current.x, y: clientY - dragStartRef.current.y };
+    const clamped = clampOffset(raw.x, raw.y, zoomRef.current);
+    offsetRef.current = clamped;
+    setOffset(clamped);
   };
-  const endDrag = () => setIsDragging(false);
+  const endDrag = () => { isDraggingRef.current = false; };
+
+  const handleZoomChange = (z: number) => {
+    zoomRef.current = z;
+    setZoom(z);
+    const clamped = clampOffset(offsetRef.current.x, offsetRef.current.y, z);
+    offsetRef.current = clamped;
+    setOffset(clamped);
+  };
 
   const handleConfirm = () => {
     if (!imgRef.current) return;
@@ -814,15 +826,15 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.75)" }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.82)" }}>
       <div className="rounded-2xl p-5 space-y-4 w-full max-w-xs" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.textColor }}>Crop Profile Picture</h3>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Square crop — drag to reposition · zoom to fit</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Drag to reposition · use slider to zoom in or out</p>
         <div
-          className="relative overflow-hidden mx-auto cursor-grab active:cursor-grabbing select-none"
-          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "12px", border: `3px solid ${tc.accentColor}`, touchAction: "none" }}
+          className="relative overflow-hidden mx-auto select-none"
+          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "50%", border: `3px solid ${tc.accentColor}`, cursor: isDraggingRef.current ? "grabbing" : "grab", touchAction: "none", boxShadow: `0 0 0 4px ${tc.cardBg}, 0 0 0 6px ${tc.accentColor}40` }}
           onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
-          onMouseMove={e => moveDrag(e.clientX, e.clientY)}
+          onMouseMove={e => { e.preventDefault(); moveDrag(e.clientX, e.clientY); }}
           onMouseUp={endDrag} onMouseLeave={endDrag}
           onTouchStart={e => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }}
           onTouchMove={e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }}
@@ -847,12 +859,8 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             <span className="text-xs" style={{ color: tc.mutedText }}>Zoom</span>
             <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{Math.round(zoom * 100)}%</span>
           </div>
-          <input type="range" min={1} max={3} step={0.02} value={zoom}
-            onChange={e => {
-              const z = parseFloat(e.target.value);
-              setZoom(z);
-              setOffset(prev => clampOffset(prev.x, prev.y, z));
-            }}
+          <input type="range" min={1} max={4} step={0.02} value={zoom}
+            onChange={e => handleZoomChange(parseFloat(e.target.value))}
             className="w-full accent-current" style={{ accentColor: tc.accentColor }}
           />
         </div>
@@ -921,6 +929,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
+  const [showToolPension, setShowToolPension] = useState(!!(advisor as any).showToolPension);
+  const [showToolCgt, setShowToolCgt] = useState(!!(advisor as any).showToolCgt);
+  const [showToolVehicle, setShowToolVehicle] = useState(!!(advisor as any).showToolVehicle);
+  const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -969,6 +981,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolTax,
         showToolExchange,
         showToolCompound,
+        showToolPension,
+        showToolCgt,
+        showToolVehicle,
+        patternOpacity,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
       });
@@ -1397,6 +1413,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
               { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
               { label: "Compound Interest Calculator", value: showToolCompound, set: setShowToolCompound },
+              { label: "Pension Savings Calculator", value: showToolPension, set: setShowToolPension },
+              { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
+              { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-1 pl-2">
                 <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -1450,6 +1469,21 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             </button>
           ))}
         </div>
+        {backgroundStyle > 1 && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex justify-between items-center">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
+              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
+            </div>
+            <input type="range" min={5} max={100} step={5} value={patternOpacity}
+              onChange={e => setPatternOpacity(parseInt(e.target.value))}
+              className="w-full" style={{ accentColor: tc.accentColor }}
+            />
+            <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
+              <span>Barely visible</span><span>Solid</span>
+            </div>
+          </div>
+        )}
       </div>
 
       <button
@@ -1592,6 +1626,10 @@ function AdditionalProfileForm({
   const [showToolTax, setShowToolTax] = useState((existingProfile as any)?.showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((existingProfile as any)?.showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((existingProfile as any)?.showToolCompound !== false);
+  const [showToolPension, setShowToolPension] = useState(!!(existingProfile as any)?.showToolPension);
+  const [showToolCgt, setShowToolCgt] = useState(!!(existingProfile as any)?.showToolCgt);
+  const [showToolVehicle, setShowToolVehicle] = useState(!!(existingProfile as any)?.showToolVehicle);
+  const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const isEditing = !!existingProfile;
@@ -1638,6 +1676,10 @@ function AdditionalProfileForm({
         showToolTax,
         showToolExchange,
         showToolCompound,
+        showToolPension,
+        showToolCgt,
+        showToolVehicle,
+        patternOpacity,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
         active: true,
@@ -1876,6 +1918,15 @@ function AdditionalProfileForm({
               </button>
             ))}
           </div>
+          {backgroundStyle > 1 && (
+            <div className="flex items-center gap-3 mt-2">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
+              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
+              <input type="range" min={5} max={100} step={5} value={patternOpacity}
+                onChange={e => setPatternOpacity(parseInt(e.target.value))}
+                className="flex-1 h-1.5 rounded cursor-pointer" style={{ accentColor: tc.accentColor }} />
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -1904,6 +1955,9 @@ function AdditionalProfileForm({
                 { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
                 { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
                 { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
+                { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
+                { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
+                { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">
                   <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3510,7 +3564,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       {/* Financial Media */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set your MoneyWeb links — copy & share to socials, and they populate your profile." />
+          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Request Your Financial Documents" subtitle="Set media links — copy & share to socials, and they populate your profile." />
         </div>
         {openSections.media && (
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
