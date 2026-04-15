@@ -2018,6 +2018,238 @@ function calcSarsOnAmount(n: number): number {
   return 130500 + (n - 1050000) * 0.36;
 }
 
+function calcSAIncomeTax(income: number): number {
+  if (income <= 0) return 0;
+  const brackets = [
+    { limit: 237100, rate: 0.18, base: 0 },
+    { limit: 370500, rate: 0.26, base: 42678 },
+    { limit: 512800, rate: 0.31, base: 77362 },
+    { limit: 673000, rate: 0.36, base: 121475 },
+    { limit: 857900, rate: 0.39, base: 179147 },
+    { limit: 1817000, rate: 0.41, base: 251258 },
+    { limit: Infinity, rate: 0.45, base: 644489 },
+  ];
+  const prev = [0, 237100, 370500, 512800, 673000, 857900, 1817000];
+  for (let i = 0; i < brackets.length; i++) {
+    if (income <= brackets[i].limit) {
+      return brackets[i].base + (income - prev[i]) * brackets[i].rate - 17235;
+    }
+  }
+  return 0;
+}
+
+function CGTCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [assetType, setAssetType] = useState("Property");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [sellingPrice, setSellingPrice] = useState("");
+  const [buyingCosts, setBuyingCosts] = useState("");
+  const [sellingCosts, setSellingCosts] = useState("");
+  const [improvements, setImprovements] = useState("");
+  const [annualIncome, setAnnualIncome] = useState("");
+  const [isPrimaryResidence, setIsPrimaryResidence] = useState(false);
+
+  const is = { backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` };
+  const ls = { color: tc.mutedText };
+  const ac = { color: tc.accentColor };
+  const inpCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
+  const labelCls = "text-xs font-medium";
+
+  const num = (s: string) => parseFloat(s.replace(/\D/g, "")) || 0;
+  const purchase = num(purchasePrice);
+  const selling = num(sellingPrice);
+  const bCosts = num(buyingCosts);
+  const sCosts = num(sellingCosts);
+  const impr = num(improvements);
+  const income = num(annualIncome);
+
+  const totalCosts = bCosts + sCosts + impr;
+  let rawGain = selling - purchase - totalCosts;
+  const primaryExclusion = isPrimaryResidence && rawGain > 0 ? Math.min(2000000, rawGain) : 0;
+  let gainAfterPrimary = rawGain - primaryExclusion;
+  const annualExclusion = gainAfterPrimary > 0 ? Math.min(40000, gainAfterPrimary) : 0;
+  let taxableGain = Math.max(0, gainAfterPrimary - annualExclusion);
+  const includedGain = taxableGain * 0.4;
+  const originalTax = Math.max(0, calcSAIncomeTax(income));
+  const newTax = Math.max(0, calcSAIncomeTax(income + includedGain));
+  const cgtPayable = Math.max(0, newTax - originalTax);
+  const effectiveRate = taxableGain > 0 ? (cgtPayable / taxableGain) * 100 : 0;
+  const netProceeds = selling - cgtPayable;
+  const hasResult = selling > 0 || purchase > 0;
+
+  const incomeSteps = income > 0
+    ? Array.from({ length: 9 }, (_, i) => {
+        const inc = income + i * 100000;
+        const cgt = Math.max(0, calcSAIncomeTax(inc + includedGain) - calcSAIncomeTax(inc));
+        return { income: `R${Math.round(inc / 1000)}k`, cgt: Math.round(cgt) };
+      })
+    : [];
+
+  const handleExportPdf = () => {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>CGT Calculator Summary</title>
+<style>body{font-family:Arial,sans-serif;padding:32px;color:#222;max-width:600px;margin:0 auto}h1{color:#1a1a2e;border-bottom:2px solid #4a8db5;padding-bottom:8px}h2{color:#4a8db5;margin-top:24px;font-size:15px}table{width:100%;border-collapse:collapse;margin-top:8px}td{padding:7px 10px;border-bottom:1px solid #eee;font-size:13px}td:last-child{text-align:right;font-weight:600}.highlight{background:#f0f7ff}.disc{font-size:10px;color:#999;margin-top:32px;border-top:1px solid #eee;padding-top:10px}@media print{body{padding:16px}}</style>
+</head><body>
+<h1>Capital Gains Tax Summary</h1>
+<p style="font-size:12px;color:#888">Generated ${new Date().toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</p>
+<h2>Asset Details</h2><table>
+<tr><td>Asset Type</td><td>${assetType}</td></tr>
+<tr><td>Purchase Price</td><td>${fmt(purchase)}</td></tr>
+<tr><td>Selling Price</td><td>${fmt(selling)}</td></tr>
+<tr><td>Total Costs (buying + selling + improvements)</td><td>${fmt(totalCosts)}</td></tr>
+<tr><td>Primary Residence</td><td>${isPrimaryResidence ? "Yes" : "No"}</td></tr>
+</table>
+<h2>CGT Calculation</h2><table>
+<tr><td>Raw Capital Gain</td><td>${fmt(rawGain)}</td></tr>
+${isPrimaryResidence ? `<tr><td>Primary Residence Exclusion</td><td>- ${fmt(primaryExclusion)}</td></tr>` : ""}
+<tr><td>Annual Exclusion (R40,000)</td><td>- ${fmt(annualExclusion)}</td></tr>
+<tr class="highlight"><td>Taxable Gain</td><td>${fmt(taxableGain)}</td></tr>
+<tr><td>Inclusion Rate (40%)</td><td>${fmt(includedGain)}</td></tr>
+<tr><td>Annual Income</td><td>${fmt(income)}</td></tr>
+<tr><td>CGT Payable</td><td>${fmt(cgtPayable)}</td></tr>
+<tr><td>Effective CGT Rate</td><td>${effectiveRate.toFixed(1)}%</td></tr>
+<tr class="highlight"><td>Net Proceeds After Tax</td><td>${fmt(netProceeds)}</td></tr>
+</table>
+<p class="disc">This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice. CGT uses a 40% inclusion rate. Primary residence exclusion up to R2,000,000. Annual exclusion R40,000. SA income tax brackets (2024/25) applied.</p>
+<script>window.onload=function(){window.print()}</script></body></html>`;
+    const w = window.open("", "_blank");
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
+  return (
+    <div className="px-4 pb-4 space-y-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+      <p className="text-xs pt-3 leading-relaxed rounded-lg p-3" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+        This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice.
+      </p>
+
+      {/* Section 1: Asset Details */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>1. Asset Details</p>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Asset Type</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {["Property", "Shares", "Crypto", "Other"].map(t => (
+              <button key={t} onClick={() => setAssetType(t)}
+                className="py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{ backgroundColor: assetType === t ? tc.buttonBg : tc.buttonSecondaryBg, color: assetType === t ? tc.buttonText : tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+                {t}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Purchase Price (ZAR)</label>
+            <input className={inpCls} style={is} placeholder="R 0" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} data-testid="cgt-purchase-price" />
+          </div>
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Selling Price (ZAR)</label>
+            <input className={inpCls} style={is} placeholder="R 0" value={sellingPrice} onChange={e => setSellingPrice(e.target.value)} data-testid="cgt-selling-price" />
+          </div>
+        </div>
+      </div>
+
+      {/* Section 2: Costs */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>2. Costs</p>
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Buying Costs", val: buyingCosts, set: setBuyingCosts, id: "cgt-buying-costs" },
+            { label: "Selling Costs", val: sellingCosts, set: setSellingCosts, id: "cgt-selling-costs" },
+            { label: "Improvements", val: improvements, set: setImprovements, id: "cgt-improvements" },
+          ].map(({ label, val, set, id }) => (
+            <div key={id} className="space-y-1">
+              <label className={labelCls} style={ls}>{label}</label>
+              <input className={inpCls} style={is} placeholder="R 0" value={val} onChange={e => set(e.target.value)} data-testid={id} />
+            </div>
+          ))}
+        </div>
+        {totalCosts > 0 && <p className="text-xs" style={ls}>Total deductible costs: <span className="font-semibold" style={ac}>{fmt(totalCosts)}</span></p>}
+      </div>
+
+      {/* Section 3: Tax Info */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>3. Tax Info</p>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Annual Income (ZAR) — used to determine marginal rate</label>
+          <input className={inpCls} style={is} placeholder="R 0" value={annualIncome} onChange={e => setAnnualIncome(e.target.value)} data-testid="cgt-annual-income" />
+        </div>
+      </div>
+
+      {/* Section 4: Special Case */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>4. Special Case</p>
+        <button onClick={() => setIsPrimaryResidence(p => !p)}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all"
+          style={{ backgroundColor: isPrimaryResidence ? "rgba(74,141,181,0.15)" : tc.buttonSecondaryBg, border: `1px solid ${isPrimaryResidence ? tc.accentColor : tc.borderColor}` }}
+          data-testid="cgt-primary-residence">
+          <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: isPrimaryResidence ? tc.accentColor : tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+            {isPrimaryResidence && <Check className="h-2.5 w-2.5 text-white" />}
+          </div>
+          <div className="text-left">
+            <p className="text-xs font-medium" style={{ color: tc.textColor }}>Primary Residence</p>
+            <p className="text-xs" style={ls}>Excludes up to R2,000,000 of the gain</p>
+          </div>
+        </button>
+      </div>
+
+      {/* Results */}
+      {hasResult && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>CGT Results</p>
+          <div className="space-y-1.5">
+            {[
+              { label: "Capital gain", val: fmt(rawGain), warn: rawGain < 0 },
+              ...(isPrimaryResidence && primaryExclusion > 0 ? [{ label: "Primary residence exclusion", val: `- ${fmt(primaryExclusion)}` }] : []),
+              { label: "Annual exclusion (R40,000)", val: `- ${fmt(annualExclusion)}` },
+              { label: "Taxable gain", val: fmt(taxableGain) },
+              { label: "Included at 40% (CGT inclusion rate)", val: fmt(includedGain) },
+              { label: "CGT payable", val: fmt(cgtPayable), red: true },
+              { label: "Effective CGT rate", val: `${effectiveRate.toFixed(1)}%` },
+              { label: "Net proceeds after tax", val: fmt(netProceeds), green: true },
+            ].map(({ label, val, red, green, warn }) => (
+              <div key={label} className="flex justify-between text-xs">
+                <span style={ls}>{label}</span>
+                <span className="font-semibold" style={{ color: green ? "#22c55e" : red ? "#ef4444" : warn ? "#f59e0b" : tc.textColor }}>{val}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Exclusion breakdown callout */}
+          <div className="mt-2 pt-2 space-y-1 text-xs" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="font-medium" style={ls}>Exclusion Breakdown</p>
+            <div className="flex justify-between"><span style={ls}>Primary residence (if applicable)</span><span style={{ color: tc.textColor }}>Up to R2,000,000</span></div>
+            <div className="flex justify-between"><span style={ls}>Annual exclusion (everyone)</span><span style={{ color: tc.textColor }}>R40,000 per year</span></div>
+            <div className="flex justify-between"><span style={ls}>CGT inclusion rate</span><span style={{ color: tc.textColor }}>40% of gain added to income</span></div>
+          </div>
+        </div>
+      )}
+
+      {/* Graph: Tax impact vs income */}
+      {incomeSteps.length > 0 && includedGain > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>CGT Impact vs Income Level</p>
+          <ResponsiveContainer width="100%" height={150}>
+            <BarChart data={incomeSteps}>
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} />
+              <XAxis dataKey="income" tick={{ fontSize: 8, fill: tc.mutedText }} />
+              <YAxis tick={{ fontSize: 8, fill: tc.mutedText }} tickFormatter={v => `R${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => fmt(v)} labelFormatter={v => `Income: ${v}`} contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="cgt" name="CGT Payable" fill={tc.accentColor} radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-xs" style={ls}>Shows how CGT changes as your income increases (same gain applied)</p>
+        </div>
+      )}
+
+      <button onClick={handleExportPdf}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+        style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+        data-testid="cgt-export-pdf">
+        <Download className="h-4 w-4" /> Export PDF Summary
+      </button>
+    </div>
+  );
+}
+
 function PensionCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const [income, setIncome] = useState("");
   const [contribMode, setContribMode] = useState<"monthly" | "annual">("monthly");
@@ -2317,7 +2549,7 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Standard calculator state
@@ -3130,6 +3362,12 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <SectionHeader sectionKey="pension" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Pension Savings Calculator" subtitle="SA-specific lump sum tax, growth projections & scenario comparison." />
         {openSections.pension && <PensionCalcPanel tc={tc} />}
+      </div>
+
+      {/* Capital Gains Tax Calculator */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <SectionHeader sectionKey="cgt" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Capital Gains Tax Calculator" subtitle="SA CGT on property, shares & crypto — with primary residence exclusion." />
+        {openSections.cgt && <CGTCalcPanel tc={tc} />}
       </div>
 
     </div>
