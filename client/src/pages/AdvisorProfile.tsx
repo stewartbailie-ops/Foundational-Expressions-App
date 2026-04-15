@@ -1002,17 +1002,17 @@ export default function AdvisorProfile() {
         {/* 1. Portrait Profile Header */}
         <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }} data-testid="profile-header">
           {/* Top gradient bar */}
-          <div className="flex flex-col items-center pt-8 pb-6 px-5 gap-4" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
+          <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
             {/* Circular photo or initials badge */}
             {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
               <img src={advisor.profilePicUrl} alt={advisor.name}
-                className="w-32 h-32 rounded-full object-cover"
-                style={{ border: `4px solid rgba(255,255,255,0.55)`, boxShadow: "0 4px 20px rgba(0,0,0,0.35)" }}
+                className="w-52 h-52 rounded-full object-cover"
+                style={{ border: `5px solid rgba(255,255,255,0.65)`, boxShadow: "0 6px 32px rgba(0,0,0,0.45)" }}
                 data-testid="img-profile-pic"
               />
             ) : (
               <div data-testid="section-initials-fallback">
-                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={128} downloadable={false} name={advisor.name} />
+                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={200} downloadable={false} name={advisor.name} />
               </div>
             )}
             {/* Name + Title */}
