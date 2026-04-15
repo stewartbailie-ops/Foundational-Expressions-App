@@ -24,12 +24,21 @@ export const BACKGROUND_STYLE_OPTIONS = [
   { value: 6, label: "Concentric Rings" },
 ] as const;
 
+function scaleRgbaOpacity(rgba: string, multiplier: number): string {
+  const m = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
+  if (!m) return rgba;
+  const newOp = Math.min(1, parseFloat(m[4]) * multiplier);
+  return `rgba(${m[1]},${m[2]},${m[3]},${newOp.toFixed(3)})`;
+}
+
 function applyPatternOverlay(
   base: React.CSSProperties,
   accentRgba: string,
   style: number,
+  opacityMultiplier = 1,
 ): React.CSSProperties {
   if (style === 1 || !style) return base;
+  const accent = opacityMultiplier !== 1 ? scaleRgbaOpacity(accentRgba, opacityMultiplier) : accentRgba;
   const baseImg = typeof base.backgroundImage === "string" ? base.backgroundImage : "";
   const baseSize = typeof base.backgroundSize === "string" ? base.backgroundSize : "100% 100%";
 
@@ -37,27 +46,27 @@ function applyPatternOverlay(
   let overlaySize = "";
 
   if (style === 2) {
-    overlay = `repeating-linear-gradient(45deg, ${accentRgba} 0px, ${accentRgba} 1px, transparent 1px, transparent 18px)`;
+    overlay = `repeating-linear-gradient(45deg, ${accent} 0px, ${accent} 1px, transparent 1px, transparent 18px)`;
     overlaySize = "26px 26px";
   } else if (style === 3) {
-    overlay = `radial-gradient(circle, ${accentRgba} 1.5px, transparent 1.5px)`;
+    overlay = `radial-gradient(circle, ${accent} 1.5px, transparent 1.5px)`;
     overlaySize = "20px 20px";
   } else if (style === 4) {
     overlay = [
-      `repeating-linear-gradient(45deg, ${accentRgba} 0px, ${accentRgba} 1px, transparent 1px, transparent 14px)`,
-      `repeating-linear-gradient(-45deg, ${accentRgba} 0px, ${accentRgba} 1px, transparent 1px, transparent 14px)`,
+      `repeating-linear-gradient(45deg, ${accent} 0px, ${accent} 1px, transparent 1px, transparent 14px)`,
+      `repeating-linear-gradient(-45deg, ${accent} 0px, ${accent} 1px, transparent 1px, transparent 14px)`,
     ].join(", ");
     overlaySize = "20px 20px, 20px 20px";
   } else if (style === 5) {
     overlay = [
-      `repeating-linear-gradient(0deg, ${accentRgba} 0px, ${accentRgba} 1px, transparent 1px, transparent 24px)`,
-      `repeating-linear-gradient(90deg, ${accentRgba} 0px, ${accentRgba} 1px, transparent 1px, transparent 24px)`,
+      `repeating-linear-gradient(0deg, ${accent} 0px, ${accent} 1px, transparent 1px, transparent 24px)`,
+      `repeating-linear-gradient(90deg, ${accent} 0px, ${accent} 1px, transparent 1px, transparent 24px)`,
     ].join(", ");
     overlaySize = "24px 24px, 24px 24px";
   } else if (style === 6) {
     overlay = [
-      `radial-gradient(circle at 50% 50%, transparent 20px, ${accentRgba} 21px, transparent 22px)`,
-      `radial-gradient(circle at 50% 50%, transparent 40px, ${accentRgba} 41px, transparent 42px)`,
+      `radial-gradient(circle at 50% 50%, transparent 20px, ${accent} 21px, transparent 22px)`,
+      `radial-gradient(circle at 50% 50%, transparent 40px, ${accent} 41px, transparent 42px)`,
     ].join(", ");
     overlaySize = "88px 88px, 88px 88px";
   }
@@ -72,9 +81,11 @@ function applyPatternOverlay(
 export function getThemeBackground(
   theme: string | null | undefined,
   backgroundStyle?: number | null,
+  patternOpacity?: number | null,
 ): React.CSSProperties {
   const t = theme || "blue";
   const s = Number(backgroundStyle) || 1;
+  const opacityMult = patternOpacity != null ? Math.max(0.05, patternOpacity / 100) : 1;
 
   let base: React.CSSProperties;
   let accentRgba: string;
@@ -201,7 +212,7 @@ export function getThemeBackground(
     };
   }
 
-  return applyPatternOverlay(base, accentRgba, s);
+  return applyPatternOverlay(base, accentRgba, s, opacityMult);
 }
 
 export function getInitialsBadgeColors(theme: string | null | undefined): { from: string; to: string; border: string; accent: string } {

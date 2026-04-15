@@ -684,7 +684,7 @@ export default function AdvisorProfile() {
     (advisor as any).contactNumber || (advisor as any).workingHours || advisor.email
   );
 
-  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle);
+  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity);
 
   const profileShareUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
   const hasWhatsApp = !!(advisor as any).contactNumber;
@@ -721,8 +721,8 @@ export default function AdvisorProfile() {
 
   const handleDownloadBusinessCard = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
-    const W = 400, H = 680, SCALE = 2;
-    const HEADER_H = 300, BADGE_SIZE = 170, BADGE_X = (W - BADGE_SIZE) / 2, BADGE_Y = 30;
+    const W = 400, H = 700, SCALE = 2;
+    const HEADER_H = 330, BADGE_SIZE = 220, BADGE_X = (W - BADGE_SIZE) / 2, BADGE_Y = 22;
     const phone = (advisor as any).contactNumber || "";
     const location = (advisor as any).location || "";
     const workingHours = (advisor as any).workingHours || "";

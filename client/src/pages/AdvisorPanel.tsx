@@ -800,9 +800,12 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   const endDrag = () => { isDraggingRef.current = false; };
 
   const handleZoomChange = (z: number) => {
+    const ratio = z / Math.max(zoomRef.current, 0.001);
+    const scaledX = offsetRef.current.x * ratio;
+    const scaledY = offsetRef.current.y * ratio;
+    const clamped = clampOffset(scaledX, scaledY, z);
     zoomRef.current = z;
     setZoom(z);
-    const clamped = clampOffset(offsetRef.current.x, offsetRef.current.y, z);
     offsetRef.current = clamped;
     setOffset(clamped);
   };
@@ -1393,7 +1396,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "QR Code", value: showQrCode, set: setShowQrCode },
           { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-          { label: "Money Map", value: showAstute, set: setShowAstute },
+          { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
@@ -1919,12 +1922,17 @@ function AdditionalProfileForm({
             ))}
           </div>
           {backgroundStyle > 1 && (
-            <div className="flex items-center gap-3 mt-2">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
-              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
+                <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
+              </div>
               <input type="range" min={5} max={100} step={5} value={patternOpacity}
                 onChange={e => setPatternOpacity(parseInt(e.target.value))}
-                className="flex-1 h-1.5 rounded cursor-pointer" style={{ accentColor: tc.accentColor }} />
+                className="w-full" style={{ accentColor: tc.accentColor }} />
+              <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
+                <span>Barely visible</span><span>Solid</span>
+              </div>
             </div>
           )}
         </div>
@@ -1935,7 +1943,7 @@ function AdditionalProfileForm({
             { label: "QR Code", value: showQrCode, set: setShowQrCode },
             { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-            { label: "Money Map", value: showAstute, set: setShowAstute },
+            { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
             { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
             { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
@@ -3090,7 +3098,7 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false, vehicle: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false, vehicle: false, astute: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Standard calculator state
@@ -3798,10 +3806,48 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         )}
       </div>
 
+      {/* Request Your Financial Information */}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="astute" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Request Your Financial Information" subtitle="In development" />
+        </div>
+        {openSections.astute && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="pt-4 flex flex-col items-center gap-3">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                <ExternalLink className="h-5 w-5" style={{ color: tc.accentColor }} />
+              </div>
+              <div className="text-center space-y-1">
+                <p className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Request Your Financial Information</p>
+                <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>This feature is currently in development. Once live, clients will be able to submit a financial information request directly from your profile.</p>
+              </div>
+              {(advisor as any).astuteUrl ? (
+                <div className="w-full space-y-2">
+                  <div className="rounded-lg px-3 py-2.5 text-xs flex items-center justify-between gap-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                    <span className="truncate" style={{ color: tc.mutedText }}>{(advisor as any).astuteUrl}</span>
+                    <a href={(advisor as any).astuteUrl} target="_blank" rel="noopener noreferrer" className="flex-shrink-0 flex items-center gap-1 text-xs font-medium" style={{ color: tc.accentColor }}>
+                      <ExternalLink className="h-3 w-3" /> Open
+                    </a>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText((advisor as any).astuteUrl); }} className="w-full py-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+                    <Copy className="h-3.5 w-3.5" /> Copy Link
+                  </button>
+                </div>
+              ) : (
+                <p className="text-xs text-center py-1" style={{ color: tc.mutedText }}>No link set — add it in your Profiles tab.</p>
+              )}
+              <div className="w-full py-2 rounded-lg text-center text-xs font-semibold" style={{ backgroundColor: "#f59e0b22", border: "1px solid #f59e0b", color: "#f59e0b" }}>
+                🚧 In Development
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Financial Media */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Request Your Financial Documents" subtitle="Set media links — copy & share to socials, and they populate your profile." />
+          <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set media links — copy & share to socials, and they populate your profile." />
         </div>
         {openSections.media && (
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
