@@ -721,8 +721,8 @@ export default function AdvisorProfile() {
 
   const handleDownloadBusinessCard = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
-    const W = 400, H = 700, SCALE = 2;
-    const PHOTO_H = 370;
+    const W = 400, H = 800, SCALE = 2;
+    const PHOTO_H = 440;
     const phone = (advisor as any).contactNumber || "";
     const location = (advisor as any).location || "";
     const workingHours = (advisor as any).workingHours || "";
@@ -752,11 +752,11 @@ export default function AdvisorProfile() {
         }
         ctx.drawImage(photoImg, sx, sy, sw, sh, 0, 0, W, PHOTO_H);
         // Dark gradient overlay at bottom for text legibility
-        const textGrad = ctx.createLinearGradient(0, PHOTO_H - 140, 0, PHOTO_H);
+        const textGrad = ctx.createLinearGradient(0, PHOTO_H - 160, 0, PHOTO_H);
         textGrad.addColorStop(0, "rgba(0,0,0,0)");
-        textGrad.addColorStop(1, "rgba(0,0,0,0.75)");
+        textGrad.addColorStop(1, "rgba(0,0,0,0.80)");
         ctx.fillStyle = textGrad;
-        ctx.fillRect(0, PHOTO_H - 140, W, 140);
+        ctx.fillRect(0, PHOTO_H - 160, W, 160);
       } else {
         // Gradient header when no photo
         const headerGrad = ctx.createLinearGradient(0, 0, W, PHOTO_H);
@@ -796,7 +796,7 @@ export default function AdvisorProfile() {
       if (advisor.email) contactItems.push(["✉", advisor.email]);
       if (location) contactItems.push(["📍", location]);
       if (workingHours) contactItems.push(["🕐", workingHours]);
-      if (showAstute && astuteUrl) contactItems.push(["🔗", "Request Your Financial Info"]);
+      if (showAstute) contactItems.push(["🔗", "Request Your Financial Info"]);
 
       ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#333333";
       ctx.font = `13px Arial, sans-serif`;
@@ -811,7 +811,11 @@ export default function AdvisorProfile() {
         rowY += 28;
       }
 
-      // QR code — load from hidden SVG
+      // QR code — position dynamically after contact items
+      const QR_SIZE = 110;
+      const qrY = Math.max(rowY + 18, PHOTO_H + 20);
+      const qrX = (W - QR_SIZE) / 2;
+
       const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
       const afterQr = () => {
         // Footer bar
@@ -827,9 +831,6 @@ export default function AdvisorProfile() {
       };
 
       if (qrEl) {
-        const QR_SIZE = 110;
-        const qrX = (W - QR_SIZE) / 2;
-        const qrY = H - 170;
         const svgStr = new XMLSerializer().serializeToString(qrEl);
         const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
