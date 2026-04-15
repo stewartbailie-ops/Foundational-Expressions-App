@@ -85,7 +85,7 @@ export function getThemeBackground(
 ): React.CSSProperties {
   const t = theme || "blue";
   const s = Number(backgroundStyle) || 1;
-  const opacityMult = patternOpacity != null ? Math.max(0.05, patternOpacity / 100) : 1;
+  const opacityMult = patternOpacity != null ? Math.max(0.05, Math.min(3, patternOpacity / 50)) : 1;
 
   let base: React.CSSProperties;
   let accentRgba: string;

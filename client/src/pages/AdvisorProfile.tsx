@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -722,10 +722,12 @@ export default function AdvisorProfile() {
   const handleDownloadBusinessCard = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
     const W = 400, H = 700, SCALE = 2;
-    const HEADER_H = 330, BADGE_SIZE = 220, BADGE_X = (W - BADGE_SIZE) / 2, BADGE_Y = 22;
+    const PHOTO_H = 370;
     const phone = (advisor as any).contactNumber || "";
     const location = (advisor as any).location || "";
     const workingHours = (advisor as any).workingHours || "";
+    const showAstute = !!(advisor as any).showAstute;
+    const astuteUrl = (advisor as any).astuteUrl || "";
     const cardInitials = getInitials(advisor.name);
 
     const canvas = document.createElement("canvas");
@@ -735,83 +737,58 @@ export default function AdvisorProfile() {
     ctx.scale(SCALE, SCALE);
 
     const drawCard = (photoImg?: HTMLImageElement) => {
-      // Header gradient
-      const headerGrad = ctx.createLinearGradient(0, 0, W, HEADER_H);
-      headerGrad.addColorStop(0, from);
-      headerGrad.addColorStop(1, to);
-      ctx.fillStyle = headerGrad;
-      ctx.fillRect(0, 0, W, HEADER_H);
+      // === HEADER: full-bleed photo or gradient ===
+      if (photoImg) {
+        // Draw photo to fill entire header width, cropped centre
+        const aspect = photoImg.naturalWidth / photoImg.naturalHeight;
+        let sx = 0, sy = 0, sw = photoImg.naturalWidth, sh = photoImg.naturalHeight;
+        const targetAspect = W / PHOTO_H;
+        if (aspect > targetAspect) {
+          sw = Math.round(sh * targetAspect);
+          sx = Math.round((photoImg.naturalWidth - sw) / 2);
+        } else {
+          sh = Math.round(sw / targetAspect);
+          sy = Math.round((photoImg.naturalHeight - sh) / 2);
+        }
+        ctx.drawImage(photoImg, sx, sy, sw, sh, 0, 0, W, PHOTO_H);
+        // Dark gradient overlay at bottom for text legibility
+        const textGrad = ctx.createLinearGradient(0, PHOTO_H - 140, 0, PHOTO_H);
+        textGrad.addColorStop(0, "rgba(0,0,0,0)");
+        textGrad.addColorStop(1, "rgba(0,0,0,0.75)");
+        ctx.fillStyle = textGrad;
+        ctx.fillRect(0, PHOTO_H - 140, W, 140);
+      } else {
+        // Gradient header when no photo
+        const headerGrad = ctx.createLinearGradient(0, 0, W, PHOTO_H);
+        headerGrad.addColorStop(0, from);
+        headerGrad.addColorStop(1, to);
+        ctx.fillStyle = headerGrad;
+        ctx.fillRect(0, 0, W, PHOTO_H);
+        // Large initials centred in header
+        ctx.textBaseline = "middle"; ctx.textAlign = "center";
+        ctx.fillStyle = "rgba(255,255,255,0.18)";
+        ctx.font = `bold 160px Georgia, serif`;
+        ctx.fillText((cardInitials[0] || "") + (cardInitials[1] || ""), W / 2, PHOTO_H / 2);
+      }
+
+      // Name + title on photo (bottom)
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillStyle = "#ffffff";
+      ctx.font = `bold 26px Arial, sans-serif`;
+      ctx.fillText(advisor.name, W / 2, PHOTO_H - 44);
+      if (advisor.title) {
+        ctx.fillStyle = "rgba(255,255,255,0.82)";
+        ctx.font = `500 13px Arial, sans-serif`;
+        ctx.fillText(advisor.title.toUpperCase(), W / 2, PHOTO_H - 18);
+      }
 
       // White body
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, HEADER_H, W, H - HEADER_H);
+      ctx.fillRect(0, PHOTO_H, W, H - PHOTO_H);
 
-      // Profile photo or initials badge
-      if (photoImg) {
-        ctx.save();
-        ctx.beginPath();
-        const cx = BADGE_X + BADGE_SIZE / 2, cy = BADGE_Y + BADGE_SIZE / 2, r = BADGE_SIZE / 2;
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.closePath();
-        ctx.clip();
-        const src = photoImg;
-        const aspect = src.naturalWidth / src.naturalHeight;
-        let sx = 0, sy = 0, sw = src.naturalWidth, sh = src.naturalHeight;
-        if (aspect > 1) { sw = sh; sx = (src.naturalWidth - sw) / 2; }
-        else if (aspect < 1) { sh = sw; sy = (src.naturalHeight - sh) / 2; }
-        ctx.drawImage(src, sx, sy, sw, sh, BADGE_X, BADGE_Y, BADGE_SIZE, BADGE_SIZE);
-        ctx.restore();
-        // White ring
-        ctx.beginPath();
-        ctx.arc(BADGE_X + BADGE_SIZE / 2, BADGE_Y + BADGE_SIZE / 2, BADGE_SIZE / 2, 0, Math.PI * 2);
-        ctx.strokeStyle = "rgba(255,255,255,0.55)";
-        ctx.lineWidth = 4;
-        ctx.stroke();
-      } else {
-        // Initials badge (rounded rect)
-        const r = BADGE_SIZE * 0.17;
-        const bx = BADGE_X, by = BADGE_Y, bs = BADGE_SIZE;
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(bx + r, by); ctx.lineTo(bx + bs - r, by);
-        ctx.quadraticCurveTo(bx + bs, by, bx + bs, by + r);
-        ctx.lineTo(bx + bs, by + bs - r);
-        ctx.quadraticCurveTo(bx + bs, by + bs, bx + bs - r, by + bs);
-        ctx.lineTo(bx + r, by + bs);
-        ctx.quadraticCurveTo(bx, by + bs, bx, by + bs - r);
-        ctx.lineTo(bx, by + r);
-        ctx.quadraticCurveTo(bx, by, bx + r, by);
-        ctx.closePath();
-        const badgeGrad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
-        badgeGrad.addColorStop(0, "rgba(255,255,255,0.22)");
-        badgeGrad.addColorStop(1, "rgba(255,255,255,0.07)");
-        ctx.fillStyle = badgeGrad; ctx.fill();
-        ctx.strokeStyle = "rgba(255,255,255,0.38)"; ctx.lineWidth = 2; ctx.stroke();
-        const fontSize = bs * 0.42;
-        ctx.font = `bold ${fontSize}px Georgia, serif`;
-        ctx.textBaseline = "middle"; ctx.textAlign = "center";
-        ctx.fillStyle = "rgba(255,255,255,0.92)";
-        ctx.fillText(cardInitials[0] || "", bx + bs * 0.3, by + bs * 0.55);
-        ctx.fillStyle = "rgba(255,255,255,0.72)";
-        ctx.fillText(cardInitials[1] || "", bx + bs * 0.7, by + bs * 0.55);
-        ctx.restore();
-      }
-
-      // Name
-      const nameY = BADGE_Y + BADGE_SIZE + 24;
-      ctx.textAlign = "center"; ctx.fillStyle = "#ffffff";
-      ctx.font = `bold 22px Arial, sans-serif`; ctx.textBaseline = "middle";
-      ctx.fillText(advisor.name, W / 2, nameY);
-      // Title
-      if (advisor.title) {
-        ctx.fillStyle = "rgba(255,255,255,0.72)";
-        ctx.font = `500 11px Arial, sans-serif`;
-        ctx.fillText(advisor.title.toUpperCase(), W / 2, nameY + 28);
-      }
-
-      // Thin divider line in white section
+      // Thin divider
       ctx.fillStyle = "#f0f0f0";
-      ctx.fillRect(24, HEADER_H + 1, W - 48, 1);
+      ctx.fillRect(24, PHOTO_H + 1, W - 48, 1);
 
       // Contact details
       const contactItems: [string, string][] = [];
@@ -819,30 +796,30 @@ export default function AdvisorProfile() {
       if (advisor.email) contactItems.push(["✉", advisor.email]);
       if (location) contactItems.push(["📍", location]);
       if (workingHours) contactItems.push(["🕐", workingHours]);
+      if (showAstute && astuteUrl) contactItems.push(["🔗", "Request Your Financial Info"]);
 
       ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#333333";
-      ctx.font = `14px Arial, sans-serif`;
-      let rowY = HEADER_H + 26;
+      ctx.font = `13px Arial, sans-serif`;
+      let rowY = PHOTO_H + 22;
       for (const [icon, text] of contactItems) {
-        ctx.fillText(`${icon}  ${text}`, 28, rowY);
-        rowY += 32;
+        ctx.fillText(`${icon}  ${text}`, 24, rowY);
+        rowY += 28;
       }
       if (contactItems.length === 0) {
         ctx.fillStyle = "#bbb"; ctx.font = `italic 13px Arial, sans-serif`;
-        ctx.fillText("No contact details added yet", 28, rowY);
-        rowY += 32;
+        ctx.fillText("No contact details added yet", 24, rowY);
+        rowY += 28;
       }
 
       // QR code — load from hidden SVG
       const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
       const afterQr = () => {
-        // "Powered by Advisory Connect" footer bar
+        // Footer bar
         ctx.fillStyle = "#f7f7f7";
-        ctx.fillRect(0, H - 30, W, 30);
+        ctx.fillRect(0, H - 28, W, 28);
         ctx.fillStyle = "#aaa"; ctx.font = `9px Arial, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText("Powered by Advisory Connect", W / 2, H - 15);
-        // Download
+        ctx.fillText("Powered by Advisory Connect", W / 2, H - 14);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
@@ -852,7 +829,7 @@ export default function AdvisorProfile() {
       if (qrEl) {
         const QR_SIZE = 110;
         const qrX = (W - QR_SIZE) / 2;
-        const qrY = H - 185;
+        const qrY = H - 170;
         const svgStr = new XMLSerializer().serializeToString(qrEl);
         const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
         const url = URL.createObjectURL(blob);
@@ -864,9 +841,9 @@ export default function AdvisorProfile() {
           URL.revokeObjectURL(url);
           ctx.fillStyle = "#888"; ctx.font = `10px Arial, sans-serif`;
           ctx.textAlign = "center";
-          ctx.fillText("Scan to view full profile", W / 2, qrY + QR_SIZE + 16);
+          ctx.fillText("Scan to view full profile", W / 2, qrY + QR_SIZE + 14);
           ctx.fillStyle = "#bbb"; ctx.font = `9px Arial, sans-serif`;
-          ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 30);
+          ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 28);
           afterQr();
         };
         qrImg.onerror = () => { URL.revokeObjectURL(url); afterQr(); };
@@ -1151,11 +1128,11 @@ export default function AdvisorProfile() {
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
             <button
               onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
-              className="flex items-center justify-between w-full px-4 py-3.5 font-semibold text-sm"
+              className="flex items-center justify-center gap-2.5 w-full px-4 py-3.5 font-semibold text-sm"
               style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
               data-testid="button-claim-will"
             >
-              <div className="flex items-center gap-2.5"><BookOpen className="h-4 w-4 flex-shrink-0" /><span>{t.claimWill}</span></div>
+              <BookOpen className="h-4 w-4 flex-shrink-0" /><span>{t.claimWill}</span>
               {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
             </button>
             {feedbackOpen === "will" && (
@@ -1232,7 +1209,23 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* n. Financial Tools */}
+        {/* n. Request Your Financial Information (Astute) */}
+        {(advisor as any).showAstute && (advisor as any).astuteUrl && (
+          <div data-testid="section-astute">
+            <a
+              href={(advisor as any).astuteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="link-astute"
+            >
+              <ExternalLink className="h-4 w-4" />{t.moneyMapSub}
+            </a>
+          </div>
+        )}
+
+        {/* o. Financial Tools */}
         {(advisor as any).showTools && (
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-tools">
             <button
