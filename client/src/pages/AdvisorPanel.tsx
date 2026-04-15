@@ -2038,6 +2038,245 @@ function calcSAIncomeTax(income: number): number {
   return 0;
 }
 
+function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [assetType, setAssetType] = useState("Vehicle");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [purchaseYear, setPurchaseYear] = useState(String(new Date().getFullYear() - 3));
+  const [deprRate, setDeprRate] = useState("15");
+  const [manualValue, setManualValue] = useState("");
+  const [financed, setFinanced] = useState(false);
+  const [loanAmount, setLoanAmount] = useState("");
+  const [interestRate, setInterestRate] = useState("11.25");
+  const [loanTermMonths, setLoanTermMonths] = useState("72");
+  const [insurance, setInsurance] = useState("");
+  const [fuel, setFuel] = useState("");
+  const [maintenance, setMaintenance] = useState("");
+  const [otherCost, setOtherCost] = useState("");
+
+  const is = { backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` };
+  const ls = { color: tc.mutedText };
+  const ac = { color: tc.accentColor };
+  const inpCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
+  const labelCls = "text-xs font-medium";
+
+  const num = (s: string) => parseFloat(s.replace(/\D/g, "")) || 0;
+  const numF = (s: string) => parseFloat(s) || 0;
+
+  const purchase = num(purchasePrice);
+  const pYear = parseInt(purchaseYear) || new Date().getFullYear();
+  const yearsOwned = Math.max(0, new Date().getFullYear() - pYear);
+  const dr = numF(deprRate) / 100;
+  const calcValue = purchase > 0 ? purchase * Math.pow(1 - dr, yearsOwned) : 0;
+  const currentValue = manualValue ? num(manualValue) : calcValue;
+  const deprLoss = Math.max(0, purchase - currentValue);
+
+  const loanP = num(loanAmount);
+  const monthlyR = (numF(interestRate) / 100) / 12;
+  const nMonths = parseInt(loanTermMonths) || 72;
+  const monthsElapsed = Math.min(yearsOwned * 12, nMonths);
+  let monthlyPayment = 0;
+  let remainingBalance = 0;
+  if (financed && loanP > 0 && monthlyR > 0 && nMonths > 0) {
+    const factor = Math.pow(1 + monthlyR, nMonths);
+    monthlyPayment = loanP * monthlyR * factor / (factor - 1);
+    const elapsedFactor = Math.pow(1 + monthlyR, monthsElapsed);
+    remainingBalance = Math.max(0, loanP * elapsedFactor - monthlyPayment * (elapsedFactor - 1) / monthlyR);
+  }
+
+  const netPosition = currentValue - remainingBalance;
+  const ins = num(insurance);
+  const fl = num(fuel);
+  const maint = num(maintenance);
+  const oth = num(otherCost);
+  const totalMonthly = monthlyPayment + ins + fl + maint + oth;
+  const annualCost = totalMonthly * 12;
+
+  const maxYears = Math.min(Math.max(yearsOwned + 5, 10), 20);
+  const declineData = purchase > 0 ? Array.from({ length: maxYears + 1 }, (_, i) => ({
+    year: pYear + i,
+    value: Math.round(purchase * Math.pow(1 - dr, i)),
+    balance: financed && loanP > 0 && monthlyR > 0 ? (() => {
+      const elFactor = Math.pow(1 + monthlyR, Math.min(i * 12, nMonths));
+      return Math.max(0, Math.round(loanP * elFactor - monthlyPayment * (elFactor - 1) / monthlyR));
+    })() : 0,
+  })) : [];
+
+  const hasResult = purchase > 0 || currentValue > 0;
+
+  return (
+    <div className="px-4 pb-4 space-y-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+      <p className="text-xs pt-3 leading-relaxed rounded-lg p-3" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+        Estimate current asset value, depreciation, loan equity position, and total monthly cost of ownership.
+      </p>
+
+      {/* Asset type */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>1. Asset Info</p>
+        <div className="flex gap-1.5">
+          {["Vehicle", "Equipment", "Other"].map(t => (
+            <button key={t} onClick={() => setAssetType(t)}
+              className="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ backgroundColor: assetType === t ? tc.buttonBg : tc.buttonSecondaryBg, color: assetType === t ? tc.buttonText : tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+              {t}
+            </button>
+          ))}
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Purchase Price (ZAR)</label>
+            <input className={inpCls} style={is} placeholder="R 0" value={purchasePrice} onChange={e => setPurchasePrice(e.target.value)} data-testid="vehicle-purchase-price" />
+          </div>
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Purchase Year</label>
+            <input className={inpCls} style={is} placeholder={String(new Date().getFullYear())} type="number" value={purchaseYear} onChange={e => setPurchaseYear(e.target.value)} data-testid="vehicle-purchase-year" />
+          </div>
+        </div>
+        {yearsOwned > 0 && <p className="text-xs" style={ls}>Years owned: <span className="font-semibold" style={ac}>{yearsOwned}</span></p>}
+      </div>
+
+      {/* Depreciation */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>2. Depreciation</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Annual Depreciation Rate (%)</label>
+            <input className={inpCls} style={is} placeholder="15" type="number" value={deprRate} onChange={e => setDeprRate(e.target.value)} data-testid="vehicle-depr-rate" />
+          </div>
+          <div className="space-y-1">
+            <label className={labelCls} style={ls}>Manual Current Value (optional)</label>
+            <input className={inpCls} style={is} placeholder="Override value" value={manualValue} onChange={e => setManualValue(e.target.value)} data-testid="vehicle-manual-value" />
+          </div>
+        </div>
+        {purchase > 0 && <p className="text-xs" style={ls}>Calculated value: <span className="font-semibold" style={{ color: manualValue ? tc.mutedText : tc.accentColor }}>{fmt(calcValue)}</span>{manualValue ? <span style={ac}> → Manual: {fmt(num(manualValue))}</span> : ""}</p>}
+      </div>
+
+      {/* Financing */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>3. Financing</p>
+        <button onClick={() => setFinanced(p => !p)}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm transition-all"
+          style={{ backgroundColor: financed ? "rgba(74,141,181,0.15)" : tc.buttonSecondaryBg, border: `1px solid ${financed ? tc.accentColor : tc.borderColor}` }}
+          data-testid="vehicle-financed">
+          <div className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: financed ? tc.accentColor : tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+            {financed && <Check className="h-2.5 w-2.5 text-white" />}
+          </div>
+          <p className="text-xs font-medium" style={{ color: tc.textColor }}>This asset is financed (on loan)</p>
+        </button>
+        {financed && (
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "Loan Amount", val: loanAmount, set: setLoanAmount, id: "vehicle-loan-amount", placeholder: "R 0" },
+              { label: "Interest Rate (%)", val: interestRate, set: setInterestRate, id: "vehicle-interest", placeholder: "11.25", isNum: true },
+              { label: "Term (months)", val: loanTermMonths, set: setLoanTermMonths, id: "vehicle-term", placeholder: "72", isNum: true },
+            ].map(({ label, val, set, id, placeholder, isNum }) => (
+              <div key={id} className="space-y-1">
+                <label className={labelCls} style={ls}>{label}</label>
+                <input className={inpCls} style={is} placeholder={placeholder} type={isNum ? "number" : "text"} value={val} onChange={e => set(e.target.value)} data-testid={id} />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Monthly costs */}
+      <div className="space-y-2">
+        <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>4. Monthly Costs</p>
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { label: "Insurance", val: insurance, set: setInsurance, id: "vehicle-insurance" },
+            { label: "Fuel", val: fuel, set: setFuel, id: "vehicle-fuel" },
+            { label: "Maintenance", val: maintenance, set: setMaintenance, id: "vehicle-maintenance" },
+            { label: "Other", val: otherCost, set: setOtherCost, id: "vehicle-other" },
+          ].map(({ label, val, set, id }) => (
+            <div key={id} className="space-y-1">
+              <label className={labelCls} style={ls}>{label}</label>
+              <input className={inpCls} style={is} placeholder="R 0" value={val} onChange={e => set(e.target.value)} data-testid={id} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Results */}
+      {hasResult && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Results</p>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs"><span style={ls}>Current value</span><span className="font-semibold" style={ac}>{fmt(currentValue)}</span></div>
+            <div className="flex justify-between text-xs"><span style={ls}>Depreciation loss</span><span className="font-semibold" style={{ color: "#f59e0b" }}>{fmt(deprLoss)}</span></div>
+            {financed && (<>
+              <div className="flex justify-between text-xs"><span style={ls}>Monthly loan payment</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(monthlyPayment)}</span></div>
+              <div className="flex justify-between text-xs"><span style={ls}>Remaining loan balance</span><span className="font-semibold" style={{ color: "#ef4444" }}>{fmt(remainingBalance)}</span></div>
+              <div className="flex justify-between text-xs items-center">
+                <span style={ls}>Net position (equity)</span>
+                <span className="font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: netPosition >= 0 ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)", color: netPosition >= 0 ? "#22c55e" : "#ef4444" }}>
+                  {netPosition >= 0 ? "+" : ""}{fmt(netPosition)}
+                </span>
+              </div>
+            </>)}
+            <div style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: 8, marginTop: 4 }}>
+              <div className="flex justify-between text-xs"><span style={ls}>Total monthly cost</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(totalMonthly)}</span></div>
+              <div className="flex justify-between text-xs mt-1"><span style={ls}>Total annual cost</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(annualCost)}</span></div>
+            </div>
+          </div>
+          {/* Monthly cost breakdown */}
+          {totalMonthly > 0 && (
+            <div className="mt-2 pt-2 space-y-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              <p className="text-xs font-medium" style={ls}>Monthly breakdown</p>
+              {[
+                { label: "Loan payment", val: monthlyPayment, show: financed },
+                { label: "Insurance", val: ins, show: ins > 0 },
+                { label: "Fuel", val: fl, show: fl > 0 },
+                { label: "Maintenance", val: maint, show: maint > 0 },
+                { label: "Other", val: oth, show: oth > 0 },
+              ].filter(x => x.show).map(({ label, val }) => (
+                <div key={label} className="flex items-center gap-2">
+                  <div className="flex-1">
+                    <div className="flex justify-between text-xs mb-0.5">
+                      <span style={ls}>{label}</span><span style={{ color: tc.textColor }}>{fmt(val)}</span>
+                    </div>
+                    <div className="w-full rounded-full h-1" style={{ backgroundColor: tc.borderColor }}>
+                      <div className="h-1 rounded-full" style={{ width: `${totalMonthly > 0 ? (val / totalMonthly) * 100 : 0}%`, backgroundColor: tc.accentColor }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Value decline graph */}
+      {declineData.length > 1 && purchase > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Value Decline Over Time</p>
+          <ResponsiveContainer width="100%" height={150}>
+            <AreaChart data={declineData}>
+              <defs>
+                <linearGradient id="valueGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={tc.accentColor} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={tc.accentColor} stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="balGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} />
+              <XAxis dataKey="year" tick={{ fontSize: 9, fill: tc.mutedText }} />
+              <YAxis tick={{ fontSize: 9, fill: tc.mutedText }} tickFormatter={v => `R${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: 8, fontSize: 11 }} />
+              <Area type="monotone" dataKey="value" name="Asset Value" stroke={tc.accentColor} strokeWidth={2} fill="url(#valueGrad)" />
+              {financed && <Area type="monotone" dataKey="balance" name="Loan Balance" stroke="#ef4444" strokeWidth={1.5} strokeDasharray="4 2" fill="url(#balGrad)" />}
+              <Legend wrapperStyle={{ fontSize: 10, color: tc.mutedText }} />
+            </AreaChart>
+          </ResponsiveContainer>
+          <p className="text-xs" style={ls}>Where the lines cross = break-even point (equity turns positive)</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CGTCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const [assetType, setAssetType] = useState("Property");
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -2549,7 +2788,7 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false, vehicle: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Standard calculator state
@@ -3368,6 +3607,12 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <SectionHeader sectionKey="cgt" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Capital Gains Tax Calculator" subtitle="SA CGT on property, shares & crypto — with primary residence exclusion." />
         {openSections.cgt && <CGTCalcPanel tc={tc} />}
+      </div>
+
+      {/* Vehicle & Assets Calculator */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <SectionHeader sectionKey="vehicle" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Vehicle & Assets Calculator" subtitle="Depreciation, loan equity, net position & total cost of ownership." />
+        {openSections.vehicle && <VehicleCalcPanel tc={tc} />}
       </div>
 
     </div>
