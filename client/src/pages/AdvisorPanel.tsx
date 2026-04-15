@@ -3652,21 +3652,39 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Pension Savings Calculator */}
-      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <SectionHeader sectionKey="pension" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Pension Savings Calculator" subtitle="SA-specific lump sum tax, growth projections & scenario comparison." />
-        {openSections.pension && <PensionCalcPanel tc={tc} />}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pension" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Pension Savings Calculator" subtitle="SA-specific lump sum tax, growth projections & scenario comparison." />
+        </div>
+        {openSections.pension && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <PensionCalcPanel tc={tc} />
+          </div>
+        )}
       </div>
 
       {/* Capital Gains Tax Calculator */}
-      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <SectionHeader sectionKey="cgt" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Capital Gains Tax Calculator" subtitle="SA CGT on property, shares & crypto — with primary residence exclusion." />
-        {openSections.cgt && <CGTCalcPanel tc={tc} />}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="cgt" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Capital Gains Tax Calculator" subtitle="SA CGT on property, shares & crypto — with primary residence exclusion." />
+        </div>
+        {openSections.cgt && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <CGTCalcPanel tc={tc} />
+          </div>
+        )}
       </div>
 
       {/* Vehicle & Assets Calculator */}
-      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <SectionHeader sectionKey="vehicle" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Vehicle & Assets Calculator" subtitle="Depreciation, loan equity, net position & total cost of ownership." />
-        {openSections.vehicle && <VehicleCalcPanel tc={tc} />}
+      <div className="rounded-xl overflow-hidden" style={cs}>
+        <div className="p-4">
+          <SectionHeader sectionKey="vehicle" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Vehicle & Assets Calculator" subtitle="Depreciation, loan equity, net position & total cost of ownership." />
+        </div>
+        {openSections.vehicle && (
+          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <VehicleCalcPanel tc={tc} />
+          </div>
+        )}
       </div>
 
     </div>
