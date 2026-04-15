@@ -2092,6 +2092,254 @@ function calcSAIncomeTax(income: number): number {
   return 0;
 }
 
+function ForexCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [currencyPair, setCurrencyPair] = useState("USD/ZAR");
+  const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [lotSizeType, setLotSizeType] = useState<"standard" | "mini" | "micro" | "custom">("standard");
+  const [customLots, setCustomLots] = useState("1");
+  const [entryPrice, setEntryPrice] = useState("");
+  const [exitPrice, setExitPrice] = useState("");
+  const [accountCurrency, setAccountCurrency] = useState("ZAR");
+  const [leverage, setLeverage] = useState("100");
+  const [spread, setSpread] = useState("2");
+  const [commission, setCommission] = useState("0");
+  const [swap, setSwap] = useState("0");
+  const [accountBalance, setAccountBalance] = useState("");
+  const [riskPct, setRiskPct] = useState("2");
+
+  const LOT_SIZES: Record<string, number> = { standard: 1, mini: 0.1, micro: 0.01, custom: parseFloat(customLots) || 0 };
+  const CONTRACT_SIZE = 100000;
+  const lots = LOT_SIZES[lotSizeType];
+  const positionSize = lots * CONTRACT_SIZE;
+  const entry = parseFloat(entryPrice) || 0;
+  const exit = parseFloat(exitPrice) || 0;
+  const lev = parseFloat(leverage) || 100;
+  const spr = parseFloat(spread) || 0;
+  const comm = parseFloat(commission) || 0;
+  const swapCost = parseFloat(swap) || 0;
+  const hasInput = entry > 0 && exit > 0;
+
+  const diff = tradeType === "buy" ? exit - entry : entry - exit;
+  const profit = diff * positionSize;
+  const pipValue = entry > 0 ? (lots * 0.0001) / entry : 0;
+  const spreadCost = pipValue * spr * CONTRACT_SIZE;
+  const margin = entry > 0 ? (positionSize * entry) / lev : 0;
+  const totalCost = spreadCost + comm + swapCost;
+  const netProfit = profit - totalCost;
+  const returnPct = margin > 0 ? (netProfit / margin) * 100 : 0;
+  const balance = parseFloat(accountBalance) || 0;
+  const riskAmount = balance > 0 ? balance * (parseFloat(riskPct) / 100) : 0;
+  const exceedsRisk = balance > 0 && Math.abs(netProfit) > riskAmount && netProfit < 0;
+
+  const fmt = (v: number, ccy = accountCurrency) =>
+    `${ccy} ${Math.abs(v).toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+  const is: React.CSSProperties = {
+    backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`,
+    color: tc.textColor, borderRadius: "8px", padding: "8px 10px",
+    fontSize: "13px", outline: "none", width: "100%",
+  };
+  const ls: React.CSSProperties = { color: tc.mutedText };
+
+  const LOT_OPTIONS = [
+    { key: "standard", label: "Standard (1.0)" },
+    { key: "mini",     label: "Mini (0.1)" },
+    { key: "micro",    label: "Micro (0.01)" },
+    { key: "custom",   label: "Custom" },
+  ] as const;
+
+  const resultRows = !hasInput ? [] : [
+    { label: "Gross Profit / Loss",  val: fmt(profit),    color: profit >= 0 ? "#22c55e" : "#ef4444" },
+    { label: "Total Cost",           val: fmt(totalCost), color: tc.mutedText },
+    { label: "Net Profit / Loss",    val: fmt(netProfit), color: netProfit >= 0 ? "#22c55e" : "#ef4444" },
+    { label: "Margin Required",      val: fmt(margin),    color: tc.textColor },
+    { label: "Return %",             val: `${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(2)}%`, color: returnPct >= 0 ? "#22c55e" : "#ef4444" },
+  ];
+
+  const chartData = hasInput && margin > 0 ? [
+    { name: "Gross P/L", value: Math.abs(profit),     fill: profit >= 0 ? "#22c55e" : "#ef4444" },
+    { name: "Total Cost", value: Math.abs(totalCost), fill: tc.accentColor },
+    { name: "Net P/L",    value: Math.abs(netProfit), fill: netProfit >= 0 ? "#22c55e" : "#ef4444" },
+    { name: "Margin",     value: Math.abs(margin),    fill: tc.mutedText },
+  ] : [];
+
+  return (
+    <div className="pt-4 space-y-5">
+      {/* 1. Trade Setup */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>Trade Setup</p>
+        <div className="space-y-1">
+          <label className="text-xs" style={ls}>Currency Pair</label>
+          <input value={currencyPair} onChange={e => setCurrencyPair(e.target.value.toUpperCase())} placeholder="e.g. USD/ZAR" style={is} data-testid="input-forex-pair" />
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs" style={ls}>Trade Type</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["buy", "sell"] as const).map(t => (
+              <button key={t} onClick={() => setTradeType(t)}
+                className="py-2 rounded-lg text-sm font-semibold transition-all"
+                style={{ backgroundColor: tradeType === t ? (t === "buy" ? "#22c55e" : "#ef4444") : tc.inputBg, color: tradeType === t ? "#fff" : tc.mutedText, border: `1px solid ${tradeType === t ? (t === "buy" ? "#22c55e" : "#ef4444") : tc.inputBorder}` }}
+                data-testid={`button-forex-${t}`}>
+                {t === "buy" ? "▲ Buy" : "▼ Sell"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <label className="text-xs" style={ls}>Lot Size</label>
+          <div className="grid grid-cols-2 gap-2">
+            {LOT_OPTIONS.map(({ key, label }) => (
+              <button key={key} onClick={() => setLotSizeType(key)}
+                className="py-2 px-2 rounded-lg text-xs font-medium transition-all text-left"
+                style={{ backgroundColor: lotSizeType === key ? tc.buttonSecondaryBg : tc.inputBg, color: lotSizeType === key ? tc.accentColor : tc.mutedText, border: `1px solid ${lotSizeType === key ? tc.accentColor : tc.inputBorder}` }}
+                data-testid={`button-forex-lot-${key}`}>
+                {label}
+              </button>
+            ))}
+          </div>
+          {lotSizeType === "custom" && (
+            <input type="number" value={customLots} onChange={e => setCustomLots(e.target.value)} placeholder="e.g. 0.5" style={{ ...is, marginTop: "6px" }} data-testid="input-forex-custom-lots" />
+          )}
+        </div>
+      </div>
+
+      {/* 2. Trade Prices */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>Trade Prices</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Entry Price</label>
+            <input type="number" value={entryPrice} onChange={e => setEntryPrice(e.target.value)} placeholder="e.g. 18.45" style={is} data-testid="input-forex-entry" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Exit Price</label>
+            <input type="number" value={exitPrice} onChange={e => setExitPrice(e.target.value)} placeholder="e.g. 18.60" style={is} data-testid="input-forex-exit" />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Account Settings */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>Account Settings</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Account Currency</label>
+            <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value)} style={is} data-testid="select-forex-currency">
+              {["ZAR","USD","EUR","GBP","AUD","JPY","CHF","CAD"].map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Leverage (e.g. 1:100)</label>
+            <select value={leverage} onChange={e => setLeverage(e.target.value)} style={is} data-testid="select-forex-leverage">
+              {["10","20","30","50","100","200","500"].map(l => <option key={l} value={l}>1:{l}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Costs */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>Costs</p>
+        <div className="grid grid-cols-3 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Spread (pips)</label>
+            <input type="number" value={spread} onChange={e => setSpread(e.target.value)} placeholder="2" style={is} data-testid="input-forex-spread" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Commission</label>
+            <input type="number" value={commission} onChange={e => setCommission(e.target.value)} placeholder="0" style={is} data-testid="input-forex-commission" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Swap</label>
+            <input type="number" value={swap} onChange={e => setSwap(e.target.value)} placeholder="0" style={is} data-testid="input-forex-swap" />
+          </div>
+        </div>
+      </div>
+
+      {/* 5. Risk (optional) */}
+      <div className="space-y-2.5">
+        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.sectionTitle }}>Risk (optional)</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Account Balance</label>
+            <input type="number" value={accountBalance} onChange={e => setAccountBalance(e.target.value)} placeholder="e.g. 50000" style={is} data-testid="input-forex-balance" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs" style={ls}>Risk %</label>
+            <input type="number" value={riskPct} onChange={e => setRiskPct(e.target.value)} placeholder="2" style={is} data-testid="input-forex-risk" />
+          </div>
+        </div>
+      </div>
+
+      {/* Results */}
+      {hasInput && (
+        <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+          <div className="px-3 py-2.5" style={{ backgroundColor: tc.inputBg + "99" }}>
+            <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>
+              {currencyPair} · {tradeType === "buy" ? "▲ Buy" : "▼ Sell"} · {lots} lot{lots !== 1 ? "s" : ""} · 1:{leverage}
+            </p>
+          </div>
+          <div className="px-3 py-3 space-y-2.5" style={{ backgroundColor: tc.cardBg }}>
+            {resultRows.map(({ label, val, color }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-xs" style={ls}>{label}</span>
+                <span className="text-xs font-bold" style={{ color }}>{val}</span>
+              </div>
+            ))}
+            {exceedsRisk && (
+              <div className="rounded-lg px-3 py-2 flex items-start gap-2 mt-1" style={{ backgroundColor: "#ef444422", border: "1px solid #ef4444" }}>
+                <span className="text-xs font-semibold" style={{ color: "#ef4444" }}>⚠ Risk Warning — This trade's loss exceeds your {riskPct}% risk limit ({fmt(riskAmount)}).</span>
+              </div>
+            )}
+          </div>
+          {chartData.length > 0 && (
+            <div className="px-3 pb-4 pt-2" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
+              <p className="text-xs font-semibold mb-2" style={{ color: tc.sectionTitle }}>Profit Chart</p>
+              <ResponsiveContainer width="100%" height={140}>
+                <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 9, fill: tc.mutedText }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 9, fill: tc.mutedText }} axisLine={false} tickLine={false} width={45}
+                    tickFormatter={v => v >= 1000 ? `${(v/1000).toFixed(0)}k` : v.toFixed(0)} />
+                  <Tooltip
+                    contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: "8px", fontSize: "11px" }}
+                    labelStyle={{ color: tc.sectionTitle }} itemStyle={{ color: tc.textColor }}
+                    formatter={(v: number) => [fmt(v), ""]}
+                  />
+                  <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                    {chartData.map((entry, i) => (
+                      <Cell key={i} fill={entry.fill} fillOpacity={0.85} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!hasInput && (
+        <p className="text-xs text-center py-2" style={{ color: tc.mutedText }}>Enter entry and exit prices to see results.</p>
+      )}
+
+      <div className="rounded-lg px-3 py-2 space-y-0.5" style={{ backgroundColor: tc.inputBg + "66", border: `1px solid ${tc.borderColor}` }}>
+        <p className="text-xs font-medium" style={{ color: tc.sectionTitle }}>Formula Reference</p>
+        {[
+          ["Position Size", `${lots} lots × 100,000 = ${positionSize.toLocaleString("en-ZA")} units`],
+          ["Pip Value", entry > 0 ? `(${lots} × 0.0001) ÷ ${entry} = ${pipValue.toFixed(6)}` : "Enter entry price"],
+          ["Spread Cost", entry > 0 ? fmt(spreadCost) : "—"],
+          ["Margin", entry > 0 ? fmt(margin) : "—"],
+        ].map(([k, v]) => (
+          <div key={k} className="flex justify-between text-xs py-0.5">
+            <span style={ls}>{k}</span>
+            <span style={{ color: tc.textColor }}>{v}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const [assetType, setAssetType] = useState("Vehicle");
   const [purchasePrice, setPurchasePrice] = useState("");
@@ -3429,22 +3677,11 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       {/* Forex Calculator */}
       <div className="rounded-xl overflow-hidden" style={cs}>
         <div className="p-4">
-          <SectionHeader sectionKey="forex" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Forex Calculator" subtitle="Foreign exchange trading calculations — coming soon." />
+          <SectionHeader sectionKey="forex" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Forex Calculator" subtitle="Pip value, lot sizing, margin, spread cost & net profit/loss." />
         </div>
         {openSections.forex && (
           <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-            <div className="pt-4 pb-2 flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
-                <TrendingUp className="h-6 w-6" style={{ color: tc.accentColor }} />
-              </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Forex Calculator</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>Advanced foreign exchange trading calculator with pip values, lot sizing, and margin calculations.</p>
-              </div>
-              <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.mutedText }}>
-                Still in development — Coming soon
-              </div>
-            </div>
+            <ForexCalcPanel tc={tc} />
           </div>
         )}
       </div>
