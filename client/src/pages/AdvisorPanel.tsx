@@ -15,7 +15,7 @@ import { format } from "date-fns";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
 type EmailRow = Email & { advisorName?: string };
@@ -2009,10 +2009,315 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
   );
 }
 
+function fmt(n: number) { return "R " + Math.round(n).toLocaleString("en-ZA"); }
+function calcSarsOnAmount(n: number): number {
+  if (n <= 0) return 0;
+  if (n <= 500000) return 0;
+  if (n <= 700000) return (n - 500000) * 0.18;
+  if (n <= 1050000) return 36000 + (n - 700000) * 0.27;
+  return 130500 + (n - 1050000) * 0.36;
+}
+
+function PensionCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [income, setIncome] = useState("");
+  const [contribMode, setContribMode] = useState<"monthly" | "annual">("monthly");
+  const [contribution, setContribution] = useState("");
+  const [age, setAge] = useState("");
+  const [retirementAge, setRetirementAge] = useState("65");
+  const [prevWithdrawals, setPrevWithdrawals] = useState("");
+  const [currentWithdrawal, setCurrentWithdrawal] = useState("");
+  const [mode, setMode] = useState<"retirement" | "early">("retirement");
+  const [annualReturn, setAnnualReturn] = useState("8");
+
+  const is = { backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` };
+  const ls = { color: tc.mutedText };
+  const ac = { color: tc.accentColor };
+
+  const incomeNum = parseFloat(income.replace(/\D/g, "")) || 0;
+  const annualContrib = contribMode === "monthly"
+    ? (parseFloat(contribution.replace(/\D/g, "")) || 0) * 12
+    : (parseFloat(contribution.replace(/\D/g, "")) || 0);
+  const maxDeductible = Math.min(incomeNum * 0.275, 350000);
+  const prevNum = parseFloat(prevWithdrawals.replace(/\D/g, "")) || 0;
+  const currNum = parseFloat(currentWithdrawal.replace(/\D/g, "")) || 0;
+  const totalLifetime = prevNum + currNum;
+  const taxPayable = calcSarsOnAmount(totalLifetime) - calcSarsOnAmount(prevNum);
+  const netPayout = Math.max(0, currNum - taxPayable);
+  const effectiveRate = currNum > 0 ? (taxPayable / currNum) * 100 : 0;
+  const taxFreePct = Math.min(100, (prevNum / 500000) * 100);
+  const taxFreeRemaining = Math.max(0, 500000 - prevNum);
+  const yearsLeft = Math.max(0, (parseFloat(retirementAge) || 65) - (parseFloat(age) || 30));
+  const r = (parseFloat(annualReturn) || 8) / 100;
+  const projectedValue = annualContrib > 0 && r > 0
+    ? annualContrib * ((Math.pow(1 + r, yearsLeft) - 1) / r)
+    : annualContrib * yearsLeft;
+
+  const taxNoPrev = calcSarsOnAmount(currNum);
+  const netNoPrev = Math.max(0, currNum - taxNoPrev);
+
+  const growthData = yearsLeft > 0 ? Array.from({ length: Math.min(yearsLeft + 1, 41) }, (_, i) => ({
+    year: (parseFloat(age) || 30) + i,
+    value: annualContrib > 0 && r > 0
+      ? Math.round(annualContrib * ((Math.pow(1 + r, i) - 1) / r))
+      : Math.round(annualContrib * i),
+  })) : [];
+
+  const pieData = currNum > 0 ? [
+    { name: "Net Payout", value: netPayout, color: "#22c55e" },
+    { name: "Tax Payable", value: taxPayable, color: "#ef4444" },
+  ] : [];
+
+  const scenarioData = currNum > 0 ? [
+    { name: "Without Prior\nWithdrawals", tax: Math.round(taxNoPrev), net: Math.round(netNoPrev) },
+    { name: "With Prior\nWithdrawals", tax: Math.round(taxPayable), net: Math.round(netPayout) },
+  ] : [];
+
+  const handleExportPdf = () => {
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"/><title>Pension Calculator Summary</title>
+<style>body{font-family:Arial,sans-serif;padding:32px;color:#222;max-width:600px;margin:0 auto}h1{color:#1a1a2e;border-bottom:2px solid #4a8db5;padding-bottom:8px}h2{color:#4a8db5;margin-top:24px;font-size:15px}table{width:100%;border-collapse:collapse;margin-top:8px}td{padding:7px 10px;border-bottom:1px solid #eee;font-size:13px}td:last-child{text-align:right;font-weight:600}.alert{background:#fff8e1;border-left:4px solid #f59e0b;padding:10px 14px;margin:16px 0;font-size:13px}.disc{font-size:10px;color:#999;margin-top:32px;border-top:1px solid #eee;padding-top:10px}@media print{body{padding:16px}}</style>
+</head><body>
+<h1>Pension Savings Calculator Summary</h1>
+<p style="font-size:12px;color:#888">Generated ${new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" })}</p>
+<h2>Inputs</h2><table>
+<tr><td>Annual Income</td><td>${fmt(incomeNum)}</td></tr>
+<tr><td>Annual Contribution</td><td>${fmt(annualContrib)}</td></tr>
+<tr><td>Current Age</td><td>${age || "—"}</td></tr>
+<tr><td>Retirement Age</td><td>${retirementAge}</td></tr>
+<tr><td>Years to Retirement</td><td>${yearsLeft}</td></tr>
+<tr><td>Expected Annual Return</td><td>${annualReturn}%</td></tr>
+<tr><td>Withdrawal Type</td><td>${mode === "early" ? "Early Withdrawal" : "Retirement Withdrawal"}</td></tr>
+</table>
+<h2>Contribution Deductibility</h2><table>
+<tr><td>Maximum Deductible (27.5% of income, max R350,000)</td><td>${fmt(maxDeductible)}</td></tr>
+<tr><td>Your Annual Contribution</td><td>${fmt(annualContrib)}</td></tr>
+<tr><td>Deductibility Used</td><td>${maxDeductible > 0 ? Math.min(100, Math.round((annualContrib / maxDeductible) * 100)) : 0}%</td></tr>
+</table>
+<h2>Lump Sum Tax Calculation</h2><table>
+<tr><td>Previous Lifetime Withdrawals</td><td>${fmt(prevNum)}</td></tr>
+<tr><td>Current Withdrawal</td><td>${fmt(currNum)}</td></tr>
+<tr><td>Total Lifetime Withdrawals</td><td>${fmt(totalLifetime)}</td></tr>
+<tr><td>Tax Payable (SARS table)</td><td>${fmt(taxPayable)}</td></tr>
+<tr><td>Net Payout</td><td>${fmt(netPayout)}</td></tr>
+<tr><td>Effective Tax Rate</td><td>${effectiveRate.toFixed(1)}%</td></tr>
+</table>
+${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance. Remaining: ${fmt(taxFreeRemaining)}</div>` : ""}
+<h2>Projected Retirement Value</h2><table>
+<tr><td>Projected Fund Value at Retirement</td><td>${fmt(projectedValue)}</td></tr>
+</table>
+<p class="disc">This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice. SARS lump sum tax table: R0–R500,000 = 0%; R500,001–R700,000 = 18%; R700,001–R1,050,000 = 27%; R1,050,001+ = 36%.</p>
+<script>window.onload=function(){window.print()}</script></body></html>`;
+    const w = window.open("", "_blank");
+    if (w) { w.document.write(html); w.document.close(); }
+  };
+
+  const inpCls = "w-full px-3 py-2 rounded-lg text-sm outline-none";
+  const labelCls = "text-xs font-medium";
+
+  return (
+    <div className="px-4 pb-4 space-y-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+      <p className="text-xs pt-3 leading-relaxed rounded-lg p-3" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+        This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice.
+      </p>
+
+      {/* Mode toggle */}
+      <div className="flex gap-2">
+        {(["retirement", "early"] as const).map(m => (
+          <button key={m} onClick={() => setMode(m)}
+            className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
+            style={{ backgroundColor: mode === m ? tc.buttonBg : tc.buttonSecondaryBg, color: mode === m ? tc.buttonText : tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+            {m === "retirement" ? "Retirement Withdrawal" : "Early Withdrawal"}
+          </button>
+        ))}
+      </div>
+
+      {/* Inputs grid */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Annual Income (ZAR)</label>
+          <input className={inpCls} style={is} placeholder="R 0" value={income} onChange={e => setIncome(e.target.value)} data-testid="pension-income" />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Expected Return (%)</label>
+          <input className={inpCls} style={is} placeholder="8" type="number" value={annualReturn} onChange={e => setAnnualReturn(e.target.value)} data-testid="pension-return" />
+        </div>
+        <div className="space-y-1 col-span-2">
+          <div className="flex items-center justify-between">
+            <label className={labelCls} style={ls}>Contribution Amount</label>
+            <div className="flex gap-1">
+              {(["monthly", "annual"] as const).map(m => (
+                <button key={m} onClick={() => setContribMode(m)}
+                  className="px-2 py-0.5 rounded text-xs font-medium transition-all"
+                  style={{ backgroundColor: contribMode === m ? tc.buttonBg : tc.buttonSecondaryBg, color: contribMode === m ? tc.buttonText : tc.accentColor }}>
+                  {m === "monthly" ? "Monthly" : "Annual"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <input className={inpCls} style={is} placeholder={`R 0 (${contribMode})`} value={contribution} onChange={e => setContribution(e.target.value)} data-testid="pension-contribution" />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Current Age</label>
+          <input className={inpCls} style={is} placeholder="30" type="number" value={age} onChange={e => setAge(e.target.value)} data-testid="pension-age" />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Retirement Age</label>
+          <input className={inpCls} style={is} placeholder="65" type="number" value={retirementAge} onChange={e => setRetirementAge(e.target.value)} data-testid="pension-retirement-age" />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Previous Withdrawals (ZAR)</label>
+          <input className={inpCls} style={is} placeholder="R 0" value={prevWithdrawals} onChange={e => setPrevWithdrawals(e.target.value)} data-testid="pension-prev-withdrawals" />
+        </div>
+        <div className="space-y-1">
+          <label className={labelCls} style={ls}>Current Withdrawal (ZAR)</label>
+          <input className={inpCls} style={is} placeholder="R 0" value={currentWithdrawal} onChange={e => setCurrentWithdrawal(e.target.value)} data-testid="pension-current-withdrawal" />
+        </div>
+      </div>
+
+      {/* Tax-free allowance alert */}
+      {prevNum > 0 && (
+        <div className="rounded-lg p-3" style={{ backgroundColor: taxFreePct >= 100 ? "rgba(239,68,68,0.12)" : taxFreePct >= 70 ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.12)", border: `1px solid ${taxFreePct >= 100 ? "#ef4444" : taxFreePct >= 70 ? "#f59e0b" : "#22c55e"}` }}>
+          <p className="text-xs font-medium" style={{ color: taxFreePct >= 100 ? "#ef4444" : taxFreePct >= 70 ? "#f59e0b" : "#22c55e" }}>
+            ⚠ You have used {taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance.
+          </p>
+          <p className="text-xs mt-0.5" style={ls}>Remaining tax-free: {fmt(taxFreeRemaining)}</p>
+        </div>
+      )}
+
+      {/* Contribution deductibility */}
+      {incomeNum > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Contribution Deductibility</p>
+          <div className="flex justify-between text-xs"><span style={ls}>Max deductible (27.5% of income, cap R350k)</span><span className="font-semibold" style={ac}>{fmt(maxDeductible)}</span></div>
+          <div className="flex justify-between text-xs"><span style={ls}>Your annual contribution</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(annualContrib)}</span></div>
+          {annualContrib > maxDeductible && (
+            <p className="text-xs" style={{ color: "#f59e0b" }}>⚠ Contribution exceeds deductible limit by {fmt(annualContrib - maxDeductible)}</p>
+          )}
+          <div className="w-full rounded-full h-1.5 mt-1" style={{ backgroundColor: tc.borderColor }}>
+            <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, maxDeductible > 0 ? (annualContrib / maxDeductible) * 100 : 0)}%`, backgroundColor: tc.accentColor }} />
+          </div>
+        </div>
+      )}
+
+      {/* Lump sum tax results */}
+      {currNum > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>SARS Lump Sum Tax Results</p>
+          <div className="space-y-1.5">
+            {[
+              { label: "Total lifetime withdrawals", val: fmt(totalLifetime) },
+              { label: "Tax payable (SARS table)", val: fmt(taxPayable), highlight: true },
+              { label: "Net payout", val: fmt(netPayout), green: true },
+              { label: "Effective tax rate", val: `${effectiveRate.toFixed(1)}%` },
+              { label: "Amounts still withdrawable tax-free", val: taxFreeRemaining > 0 ? fmt(taxFreeRemaining) : "R 0 — allowance used" },
+            ].map(({ label, val, highlight, green }) => (
+              <div key={label} className="flex justify-between text-xs">
+                <span style={ls}>{label}</span>
+                <span className="font-semibold" style={{ color: green ? "#22c55e" : highlight ? "#ef4444" : tc.textColor }}>{val}</span>
+              </div>
+            ))}
+          </div>
+          {/* SARS slab breakdown */}
+          <div className="mt-2 pt-2 space-y-1" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs font-medium" style={ls}>SARS Lump Sum Table</p>
+            {[
+              { slab: "R0 – R500,000", rate: "0%", active: totalLifetime <= 500000 },
+              { slab: "R500,001 – R700,000", rate: "18%", active: totalLifetime > 500000 && totalLifetime <= 700000 },
+              { slab: "R700,001 – R1,050,000", rate: "27%", active: totalLifetime > 700000 && totalLifetime <= 1050000 },
+              { slab: "R1,050,001+", rate: "36%", active: totalLifetime > 1050000 },
+            ].map(({ slab, rate, active }) => (
+              <div key={slab} className="flex justify-between text-xs px-2 py-1 rounded" style={{ backgroundColor: active ? "rgba(74,141,181,0.18)" : "transparent", border: active ? `1px solid ${tc.accentColor}` : "1px solid transparent" }}>
+                <span style={{ color: active ? tc.textColor : tc.mutedText }}>{slab}</span>
+                <span className="font-medium" style={{ color: active ? tc.accentColor : tc.mutedText }}>{rate}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Scenario comparison chart */}
+      {scenarioData.length > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Scenario Comparison — With vs Without Prior Withdrawals</p>
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart data={scenarioData} barGap={4}>
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} />
+              <XAxis dataKey="name" tick={{ fontSize: 9, fill: tc.mutedText }} />
+              <YAxis tick={{ fontSize: 9, fill: tc.mutedText }} tickFormatter={v => `R${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: 8, fontSize: 11 }} />
+              <Bar dataKey="net" name="Net Payout" fill="#22c55e" radius={[4,4,0,0]} />
+              <Bar dataKey="tax" name="Tax" fill="#ef4444" radius={[4,4,0,0]} />
+              <Legend wrapperStyle={{ fontSize: 10, color: tc.mutedText }} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Pie chart */}
+      {pieData.length > 0 && currNum > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Withdrawal Breakdown</p>
+          <div className="flex items-center gap-4">
+            <PieChart width={130} height={130}>
+              <Pie data={pieData} cx={60} cy={60} innerRadius={35} outerRadius={60} dataKey="value" startAngle={90} endAngle={-270}>
+                {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+              </Pie>
+              <Tooltip formatter={(v: number) => fmt(v)} contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: 8, fontSize: 11 }} />
+            </PieChart>
+            <div className="space-y-2 flex-1">
+              {pieData.map(d => (
+                <div key={d.name} className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: d.color }} />
+                  <div>
+                    <p className="text-xs font-medium" style={{ color: tc.textColor }}>{d.name}</p>
+                    <p className="text-xs" style={ls}>{fmt(d.value)} ({currNum > 0 ? ((d.value / currNum) * 100).toFixed(1) : 0}%)</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Growth over time chart */}
+      {growthData.length > 1 && annualContrib > 0 && (
+        <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Projected Fund Growth</p>
+            <p className="text-xs font-semibold" style={ac}>{fmt(projectedValue)}</p>
+          </div>
+          <ResponsiveContainer width="100%" height={150}>
+            <AreaChart data={growthData}>
+              <defs>
+                <linearGradient id="growthGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor={tc.accentColor} stopOpacity={0.3} />
+                  <stop offset="95%" stopColor={tc.accentColor} stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} />
+              <XAxis dataKey="year" tick={{ fontSize: 9, fill: tc.mutedText }} label={{ value: "Age", position: "insideBottomRight", offset: -5, fontSize: 9, fill: tc.mutedText }} />
+              <YAxis tick={{ fontSize: 9, fill: tc.mutedText }} tickFormatter={v => v >= 1000000 ? `R${(v/1000000).toFixed(1)}M` : `R${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v: number) => fmt(v)} labelFormatter={v => `Age ${v}`} contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderRadius: 8, fontSize: 11 }} />
+              <Area type="monotone" dataKey="value" name="Fund Value" stroke={tc.accentColor} strokeWidth={2} fill="url(#growthGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Export PDF */}
+      <button onClick={handleExportPdf}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium hover:opacity-80 transition-opacity"
+        style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+        data-testid="pension-export-pdf">
+        <Download className="h-4 w-4" /> Export PDF Summary
+      </button>
+    </div>
+  );
+}
+
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Standard calculator state
@@ -2819,6 +3124,12 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
             </div>
           </div>
         )}
+      </div>
+
+      {/* Pension Savings Calculator */}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <SectionHeader sectionKey="pension" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Pension Savings Calculator" subtitle="SA-specific lump sum tax, growth projections & scenario comparison." />
+        {openSections.pension && <PensionCalcPanel tc={tc} />}
       </div>
 
     </div>
