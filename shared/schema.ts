@@ -51,6 +51,7 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   showToolVehicle: boolean("show_tool_vehicle").default(false),
   showMoneywebFeed: boolean("show_moneyweb_feed").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
+  profileSectionOrder: text("profile_section_order"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -119,6 +120,7 @@ export const advisors = pgTable("advisors", {
   showToolVehicle: boolean("show_tool_vehicle").default(false),
   showMoneywebFeed: boolean("show_moneyweb_feed").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
+  profileSectionOrder: text("profile_section_order"),
   advisorPasswordHash: text("advisor_password_hash"),
   advisorPasswordSet: boolean("advisor_password_set").default(false),
   advisorEmailVerified: boolean("advisor_email_verified").default(false),
@@ -132,6 +134,25 @@ export const insertAdvisorSchema = createInsertSchema(advisors).omit({
 });
 export type InsertAdvisor = z.infer<typeof insertAdvisorSchema>;
 export type Advisor = typeof advisors.$inferSelect;
+
+export const DEFAULT_PROFILE_SECTION_ORDER = [
+  "bio", "moneyweb", "individual", "corporate", "socials",
+  "callback", "referral", "will", "astute", "media", "tools",
+] as const;
+
+export const PROFILE_SECTION_LABELS: Record<string, string> = {
+  bio: "Introduction & Bio",
+  moneyweb: "Financial Media",
+  individual: "Individual Services",
+  corporate: "Corporate Services",
+  socials: "Social Links",
+  callback: "Call Back Button",
+  referral: "Refer Friends Button",
+  will: "Complimentary Will",
+  astute: "Astute Tools",
+  media: "Media Links",
+  tools: "Financial Tools",
+};
 
 export const TITLE_OPTIONS = [
   "Executive Financial Planner",

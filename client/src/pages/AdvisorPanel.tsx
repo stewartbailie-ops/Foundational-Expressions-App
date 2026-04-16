@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
-import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -988,6 +988,20 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolCgt, setShowToolCgt] = useState(!!(advisor as any).showToolCgt);
   const [showToolVehicle, setShowToolVehicle] = useState(!!(advisor as any).showToolVehicle);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
+  const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
+    const raw = (advisor as any).profileSectionOrder as string | null;
+    if (raw) return raw.split(",").filter(Boolean);
+    return [...DEFAULT_PROFILE_SECTION_ORDER];
+  });
+  const [organizingProfile, setOrganizingProfile] = useState(false);
+
+  const moveSectionUp = (idx: number) => {
+    if (idx === 0) return;
+    setSectionOrder(o => { const n = [...o]; [n[idx-1], n[idx]] = [n[idx], n[idx-1]]; return n; });
+  };
+  const moveSectionDown = (idx: number) => {
+    setSectionOrder(o => { if (idx >= o.length-1) return o; const n = [...o]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n; });
+  };
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -1041,6 +1055,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolCgt,
         showToolVehicle,
         patternOpacity,
+        profileSectionOrder: sectionOrder.join(","),
         nickname: nickname || null,
         profileDescription: profileDescription || null,
       });
@@ -1453,7 +1468,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
-          { label: "MoneyWeb News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
+          { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
@@ -1512,6 +1527,50 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Section Order */}
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Section Order</h3>
+          <button
+            onClick={() => setOrganizingProfile(v => !v)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{ backgroundColor: organizingProfile ? tc.accentColor : tc.buttonSecondaryBg, color: organizingProfile ? tc.buttonText : tc.accentColor, border: `1px solid ${organizingProfile ? tc.accentColor : tc.borderColor}` }}
+            data-testid="button-organize-sections"
+          >
+            <GripVertical className="h-3.5 w-3.5" />
+            {organizingProfile ? "Done" : "Organise"}
+          </button>
+        </div>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Control the order sections appear on your public profile.</p>
+        {organizingProfile ? (
+          <div className="space-y-1.5">
+            {sectionOrder.map((key, idx) => (
+              <div key={key} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                <GripVertical className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.mutedText }} />
+                <span className="flex-1 text-xs font-medium" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
+                <div className="flex gap-1">
+                  <button onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }}>
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }}>
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {sectionOrder.map((key, idx) => (
+              <div key={key} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+                <span className="font-bold" style={{ color: tc.accentColor }}>{idx + 1}.</span>
+                {PROFILE_SECTION_LABELS[key] || key}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
@@ -2022,7 +2081,7 @@ function AdditionalProfileForm({
                 { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
                 { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
-                { label: "MoneyWeb News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
+                { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">
                   <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>

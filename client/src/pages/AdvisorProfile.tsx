@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, Fragment } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss } from "lucide-react";
 import type { Advisor } from "@shared/schema";
-import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
@@ -1040,6 +1040,12 @@ export default function AdvisorProfile() {
     }
   };
 
+  const profileSectionOrder = useMemo<string[]>(() => {
+    const raw = (advisor as any).profileSectionOrder as string | null;
+    if (raw) return raw.split(",").filter(Boolean);
+    return [...DEFAULT_PROFILE_SECTION_ORDER];
+  }, [(advisor as any).profileSectionOrder]);
+
   const btnBase = "flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-medium text-xs transition-opacity hover:opacity-80";
   const whatsappSvg = <svg viewBox="0 0 24 24" className="h-3.5 w-3.5 flex-shrink-0" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>;
 
@@ -1061,26 +1067,34 @@ export default function AdvisorProfile() {
 
         {/* 1. Portrait Profile Header */}
         <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }} data-testid="profile-header">
-          {/* Top gradient bar */}
-          <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
-            {/* Circular photo or initials badge */}
-            {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
+          {/* Top area — full-width cover photo or gradient initials */}
+          {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
+            <div className="relative w-full" style={{ minHeight: 300 }}>
               <img src={advisor.profilePicUrl} alt={advisor.name}
-                className="w-52 h-52 rounded-full object-cover"
-                style={{ border: `5px solid rgba(255,255,255,0.65)`, boxShadow: "0 6px 32px rgba(0,0,0,0.45)" }}
+                className="w-full object-cover block"
+                style={{ height: 300 }}
                 data-testid="img-profile-pic"
               />
-            ) : (
-              <div data-testid="section-initials-fallback">
-                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={200} downloadable={false} name={advisor.name} />
+              {/* Gradient overlay at bottom */}
+              <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.22) 50%, transparent 100%)" }} />
+              {/* Name + Title overlay */}
+              <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 text-center">
+                <h1 className="text-xl font-bold tracking-wider leading-snug text-white uppercase drop-shadow-md" data-testid="text-advisor-name">{advisor.name}</h1>
+                {advisor.title && <p className="text-sm mt-1 font-medium tracking-wide drop-shadow-md" style={{ color: "rgba(255,255,255,0.88)" }} data-testid="text-advisor-title">{advisor.title}</p>}
               </div>
-            )}
-            {/* Name + Title */}
-            <div className="text-center">
-              <h1 className="text-xl font-bold tracking-wider leading-snug text-white uppercase" data-testid="text-advisor-name">{advisor.name}</h1>
-              {advisor.title && <p className="text-sm mt-1 font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.78)" }} data-testid="text-advisor-title">{advisor.title}</p>}
             </div>
-          </div>
+          ) : (
+            <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
+              <div data-testid="section-initials-fallback">
+                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={220} downloadable={false} name={advisor.name} />
+              </div>
+              {/* Name + Title */}
+              <div className="text-center">
+                <h1 className="text-xl font-bold tracking-wider leading-snug text-white uppercase" data-testid="text-advisor-name">{advisor.name}</h1>
+                {advisor.title && <p className="text-sm mt-1 font-medium tracking-wide" style={{ color: "rgba(255,255,255,0.78)" }} data-testid="text-advisor-title">{advisor.title}</p>}
+              </div>
+            </div>
+          )}
           {/* Bottom utility row */}
           <div className="grid grid-cols-2 gap-2 p-3" style={{ backgroundColor: cardBg }} data-testid="section-utility-buttons">
             <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
@@ -1109,136 +1123,111 @@ export default function AdvisorProfile() {
           <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
         </div>
 
-        {/* MoneyWeb Live News Feed */}
-        {!!(advisor as any).showMoneywebFeed && (
-          <MoneywebTicker
-            cardBg={cardBg} borderColor={tc.borderColor}
-            accentColor={accentColor} textColor={textColor} mutedText={mutedText}
-          />
-        )}
+        {/* Ordered Sections */}
+        {(() => {
+          const sectionMap: Record<string, React.ReactNode> = {
+            moneyweb: !!(advisor as any).showMoneywebFeed ? (
+              <MoneywebTicker
+                cardBg={cardBg} borderColor={tc.borderColor}
+                accentColor={accentColor} textColor={textColor} mutedText={mutedText}
+              />
+            ) : null,
 
-        {/* 2. Introduction & Bio */}
-        {bioText && (
-          <div className="rounded-xl p-5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-bio">
-            <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">{bioText}</p>
-          </div>
-        )}
+            bio: bioText ? (
+              <div className="rounded-xl p-5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-bio">
+                <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: mutedText }} data-testid="text-bio">{bioText}</p>
+              </div>
+            ) : null,
 
-        {/* 3. Individual Services */}
-        {individualServices.length > 0 && (
-          <ServiceGroupDropdown
-            title={t.individualServices} services={individualServices}
-            borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
-            mutedText={mutedText} accentColor={accentColor}
-            buttonBg={tc.buttonBg} buttonText={tc.buttonText}
-            testId="section-individual-services"
-          />
-        )}
+            individual: individualServices.length > 0 ? (
+              <ServiceGroupDropdown
+                title={t.individualServices} services={individualServices}
+                borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
+                mutedText={mutedText} accentColor={accentColor}
+                buttonBg={tc.buttonBg} buttonText={tc.buttonText}
+                testId="section-individual-services"
+              />
+            ) : null,
 
-        {/* 4. Corporate Services */}
-        {corporateServices.length > 0 && (
-          <ServiceGroupDropdown
-            title={t.corporateServices} services={corporateServices}
-            borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
-            mutedText={mutedText} accentColor={accentColor}
-            buttonBg={tc.buttonBg} buttonText={tc.buttonText}
-            testId="section-corporate-services"
-          />
-        )}
+            corporate: corporateServices.length > 0 ? (
+              <ServiceGroupDropdown
+                title={t.corporateServices} services={corporateServices}
+                borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor}
+                mutedText={mutedText} accentColor={accentColor}
+                buttonBg={tc.buttonBg} buttonText={tc.buttonText}
+                testId="section-corporate-services"
+              />
+            ) : null,
 
-        {/* 5. Social Links */}
-        {advisor.showSocials !== false && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl) && (
-          <div className="space-y-2" data-testid="section-socials">
-            {[
-              { url: advisor.linkedinUrl, label: t.linkedin, Icon: Linkedin, testId: "link-linkedin" },
-              { url: (advisor as any).facebookUrl, label: t.facebook, Icon: Facebook, testId: "link-facebook" },
-              { url: (advisor as any).instagramUrl, label: t.instagram, Icon: Instagram, testId: "link-instagram" },
-              { url: (advisor as any).youtubeUrl, label: t.youtube, Icon: Youtube, testId: "link-youtube" },
-              { url: advisor.websiteUrl, label: t.website, Icon: Globe, testId: "link-website" },
-            ].filter(s => !!s.url).map(({ url, label, Icon, testId }) => (
-              <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2.5 w-full py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
+            socials: (advisor.showSocials !== false && (advisor.linkedinUrl || (advisor as any).facebookUrl || (advisor as any).instagramUrl || (advisor as any).youtubeUrl || advisor.websiteUrl)) ? (
+              <div className="space-y-2" data-testid="section-socials">
+                {[
+                  { url: advisor.linkedinUrl, label: t.linkedin, Icon: Linkedin, testId: "link-linkedin" },
+                  { url: (advisor as any).facebookUrl, label: t.facebook, Icon: Facebook, testId: "link-facebook" },
+                  { url: (advisor as any).instagramUrl, label: t.instagram, Icon: Instagram, testId: "link-instagram" },
+                  { url: (advisor as any).youtubeUrl, label: t.youtube, Icon: Youtube, testId: "link-youtube" },
+                  { url: advisor.websiteUrl, label: t.website, Icon: Globe, testId: "link-website" },
+                ].filter(s => !!s.url).map(({ url, label, testId }) => (
+                  <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center justify-center w-full py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                    data-testid={testId}>
+                    {label}
+                  </a>
+                ))}
+              </div>
+            ) : null,
+
+            callback: advisor.showCallbackLink !== false ? (
+              <button
+                onClick={() => navigate(`/${slug}/request-callback`)}
+                className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                data-testid="button-request-callback"
+              >
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                {t.requestCallback}
+              </button>
+            ) : null,
+
+            referral: advisor.showReferralsLink !== false ? (
+              <button
+                onClick={() => navigate(`/${slug}/referrals`)}
+                className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
                 style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                data-testid={testId}>
-                <Icon className="h-4 w-4" />{label}
-              </a>
-            ))}
-          </div>
-        )}
+                data-testid="button-refer-friends"
+              >
+                <Users className="h-4 w-4 flex-shrink-0" />
+                {t.referFriends}
+              </button>
+            ) : null,
 
-        {/* 6a. Request a Call Back — direct navigation button */}
-        {advisor.showCallbackLink !== false && (
-          <button
-            onClick={() => navigate(`/${slug}/request-callback`)}
-            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-            data-testid="button-request-callback"
-          >
-            <Phone className="h-4 w-4 flex-shrink-0" />
-            {t.requestCallback}
-          </button>
-        )}
-
-        {/* 6b. Refer Friends & Family — direct navigation button */}
-        {advisor.showReferralsLink !== false && (
-          <button
-            onClick={() => navigate(`/${slug}/referrals`)}
-            className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-            data-testid="button-refer-friends"
-          >
-            <Users className="h-4 w-4 flex-shrink-0" />
-            {t.referFriends}
-          </button>
-        )}
-
-        {/* Claim Your Free Will */}
-        {(advisor as any).showComplimentaryWill && (
-          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
-            <button
-              onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
-              className="flex items-center justify-center gap-2.5 w-full px-4 py-3.5 font-semibold text-sm"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-claim-will"
-            >
-              <BookOpen className="h-4 w-4 flex-shrink-0" /><span>{t.claimWill}</span>
-              {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
-            </button>
-            {feedbackOpen === "will" && (
-              <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
-                <p className="text-sm leading-relaxed" style={{ color: mutedText }}>Secure your family's future with a professionally drafted will at no cost. Complete a short form and our team will be in touch.</p>
-                <button onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+            will: !!(advisor as any).showComplimentaryWill ? (
+              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-claim-will">
+                <button
+                  onClick={() => setFeedbackOpen(feedbackOpen === "will" ? null : "will")}
+                  className="flex items-center justify-center gap-2.5 w-full px-4 py-3.5 font-semibold text-sm"
                   style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="button-claim-will-continue">
-                  Continue to Form →
+                  data-testid="button-claim-will"
+                >
+                  <BookOpen className="h-4 w-4 flex-shrink-0" /><span>{t.claimWill}</span>
+                  {feedbackOpen === "will" ? <ChevronUp className="h-4 w-4 flex-shrink-0 opacity-70" /> : <ChevronDown className="h-4 w-4 flex-shrink-0 opacity-70" />}
                 </button>
+                {feedbackOpen === "will" && (
+                  <div className="px-4 py-3.5 space-y-3" style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}>
+                    <p className="text-sm leading-relaxed" style={{ color: mutedText }}>Secure your family's future with a professionally drafted will at no cost. Complete a short form and our team will be in touch.</p>
+                    <button onClick={() => navigate(`/${advisor.profileSlug}/claim-will`)}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
+                      style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                      data-testid="button-claim-will-continue">
+                      Continue to Form →
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            ) : null,
 
-        {/* Request Your Financial Documents */}
-        {(advisor as any).showDocuments && (
-          <div data-testid="section-documents">
-            <button
-              onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="button-indev-documents"
-            >
-              <FileText className="h-4 w-4" />{t.documentsUpload}
-            </button>
-            {inDevClicked === "documents" && (
-              <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
-                {t.comingSoon}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* m. General Financial Media */}
-        {(advisor as any).showFinancialMedia && (
+            media: !!(advisor as any).showFinancialMedia ? (
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-media">
             <button
               onClick={() => setFinancialMediaOpen(v => !v)}
@@ -1276,26 +1265,24 @@ export default function AdvisorProfile() {
               </div>
             )}
           </div>
-        )}
+            ) : null,
 
-        {/* n. Request Your Financial Information (Astute) */}
-        {(advisor as any).showAstute && (advisor as any).astuteUrl && (
-          <div data-testid="section-astute">
-            <a
-              href={(advisor as any).astuteUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
-              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-              data-testid="link-astute"
-            >
-              <ExternalLink className="h-4 w-4" />{t.moneyMapSub}
-            </a>
-          </div>
-        )}
+            astute: (!!(advisor as any).showAstute && !!(advisor as any).astuteUrl) ? (
+              <div data-testid="section-astute">
+                <a
+                  href={(advisor as any).astuteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="link-astute"
+                >
+                  <ExternalLink className="h-4 w-4" />{t.moneyMapSub}
+                </a>
+              </div>
+            ) : null,
 
-        {/* o. Financial Tools */}
-        {(advisor as any).showTools && (
+            tools: !!(advisor as any).showTools ? (
           <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }} data-testid="section-financial-tools">
             <button
               onClick={() => setToolsOpen(v => !v)}
@@ -1620,6 +1607,30 @@ export default function AdvisorProfile() {
                 </div>
               );
             })()}
+          </div>
+            ) : null,
+          };
+          return profileSectionOrder.map(key =>
+            sectionMap[key] ? <Fragment key={key}>{sectionMap[key]}</Fragment> : null
+          );
+        })()}
+
+        {/* Documents — fixed position, not in section ordering */}
+        {(advisor as any).showDocuments && (
+          <div data-testid="section-documents">
+            <button
+              onClick={() => setInDevClicked(inDevClicked === "documents" ? null : "documents")}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+              data-testid="button-indev-documents"
+            >
+              <FileText className="h-4 w-4" />{t.documentsUpload}
+            </button>
+            {inDevClicked === "documents" && (
+              <div className="mt-1.5 text-center py-2.5 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: mutedText }}>
+                {t.comingSoon}
+              </div>
+            )}
           </div>
         )}
 
