@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -541,6 +541,63 @@ const TRANSLATIONS: Record<Lang, {
   },
 };
 
+function MoneywebTicker({ cardBg, borderColor, accentColor, textColor, mutedText }: {
+  cardBg: string; borderColor: string; accentColor: string; textColor: string; mutedText: string;
+}) {
+  const [articles, setArticles] = useState<Array<{ title: string; link: string; pubDate: string }>>([]);
+  const [idx, setIdx] = useState(0);
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/moneyweb/feed?category=personal-finance")
+      .then(r => r.json())
+      .then(d => setArticles(d.items || []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (articles.length < 2) return;
+    const timer = setInterval(() => {
+      setVisible(false);
+      setTimeout(() => {
+        setIdx(i => (i + 1) % articles.length);
+        setVisible(true);
+      }, 400);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [articles.length]);
+
+  if (articles.length === 0) return null;
+  const art = articles[idx];
+
+  return (
+    <div className="rounded-xl p-4" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="section-moneyweb-feed">
+      <div className="flex items-center gap-2 mb-3">
+        <Rss className="h-3.5 w-3.5 flex-shrink-0" style={{ color: accentColor }} />
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: accentColor }}>MoneyWeb Live</span>
+        <div className="flex gap-1 ml-auto">
+          {articles.slice(0, Math.min(articles.length, 5)).map((_, i) => (
+            <div key={i} onClick={() => setIdx(i)} className="w-1.5 h-1.5 rounded-full cursor-pointer transition-all"
+              style={{ backgroundColor: i === idx ? accentColor : borderColor }} />
+          ))}
+        </div>
+      </div>
+      <a
+        href={art.link} target="_blank" rel="noopener noreferrer"
+        className="block transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+        data-testid="link-moneyweb-article"
+      >
+        <p className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: textColor }}>{art.title}</p>
+        <div className="flex items-center gap-1.5 mt-2">
+          <ExternalLink className="h-3 w-3 flex-shrink-0" style={{ color: accentColor }} />
+          <span className="text-xs" style={{ color: accentColor }}>Read on MoneyWeb</span>
+        </div>
+      </a>
+    </div>
+  );
+}
+
 export default function AdvisorProfile() {
   const [, profileParams] = useRoute("/profile/:slug");
   const [, directParams] = useRoute("/:slug");
@@ -1051,6 +1108,14 @@ export default function AdvisorProfile() {
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
           <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
         </div>
+
+        {/* MoneyWeb Live News Feed */}
+        {!!(advisor as any).showMoneywebFeed && (
+          <MoneywebTicker
+            cardBg={cardBg} borderColor={tc.borderColor}
+            accentColor={accentColor} textColor={textColor} mutedText={mutedText}
+          />
+        )}
 
         {/* 2. Introduction & Bio */}
         {bioText && (

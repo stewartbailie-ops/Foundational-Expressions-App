@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -768,6 +768,10 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   const [zoom, setZoom] = useState(1);
   const [offset, setOffset] = useState({ x: 0, y: 0 });
   const [naturalSize, setNaturalSize] = useState({ w: 1, h: 1 });
+  const [brightness, setBrightness] = useState(100);
+  const [contrast, setContrast] = useState(100);
+  const [saturation, setSaturation] = useState(100);
+  const [posterize, setPosterize] = useState(0);
   const imgRef = useRef<HTMLImageElement>(null);
   const isDraggingRef = useRef(false);
   const dragStartRef = useRef({ x: 0, y: 0 });
@@ -824,7 +828,20 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
     const sy = (0 - imgTop) / scale;
     const sw = CONTAINER / scale;
     const sh = CONTAINER / scale;
+    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
     ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, OUT, OUT);
+    ctx.filter = "none";
+    if (posterize > 0) {
+      const levels = posterize;
+      const imageData = ctx.getImageData(0, 0, OUT, OUT);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        d[i]   = Math.round(d[i]   / 255 * levels) / levels * 255;
+        d[i+1] = Math.round(d[i+1] / 255 * levels) / levels * 255;
+        d[i+2] = Math.round(d[i+2] / 255 * levels) / levels * 255;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
     onConfirm(canvas.toDataURL("image/jpeg", 0.92));
   };
 
@@ -852,6 +869,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
               left: CONTAINER / 2 - displayW / 2 + offset.x,
               top: CONTAINER / 2 - displayH / 2 + offset.y,
               userSelect: "none", pointerEvents: "none",
+              filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
             }}
             alt="crop"
             draggable={false}
@@ -867,6 +885,39 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             className="w-full accent-current" style={{ accentColor: tc.accentColor }}
           />
         </div>
+        <div className="space-y-2" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: 10 }}>
+          <p className="text-xs font-medium" style={{ color: tc.sectionTitle }}>Artistic Filters</p>
+          {[
+            { label: "Brightness", value: brightness, set: setBrightness, min: 30, max: 200 },
+            { label: "Contrast", value: contrast, set: setContrast, min: 50, max: 250 },
+            { label: "Saturation", value: saturation, set: setSaturation, min: 0, max: 300 },
+          ].map(f => (
+            <div key={f.label} className="space-y-0.5">
+              <div className="flex justify-between">
+                <span className="text-xs" style={{ color: tc.mutedText }}>{f.label}</span>
+                <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{f.value}%</span>
+              </div>
+              <input type="range" min={f.min} max={f.max} step={1} value={f.value}
+                onChange={e => f.set(Number(e.target.value))}
+                className="w-full" style={{ accentColor: tc.accentColor }}
+              />
+            </div>
+          ))}
+          <div className="space-y-0.5">
+            <div className="flex justify-between">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Posterize</span>
+              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{posterize === 0 ? "Off" : `${posterize} levels`}</span>
+            </div>
+            <input type="range" min={0} max={8} step={1} value={posterize}
+              onChange={e => setPosterize(Number(e.target.value))}
+              className="w-full" style={{ accentColor: tc.accentColor }}
+            />
+          </div>
+          {(brightness !== 100 || contrast !== 100 || saturation !== 100 || posterize !== 0) && (
+            <button onClick={() => { setBrightness(100); setContrast(100); setSaturation(100); setPosterize(0); }}
+              className="text-xs underline" style={{ color: tc.mutedText }}>Reset filters</button>
+          )}
+        </div>
         <div className="flex gap-2 pt-1">
           <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs font-medium"
             style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
@@ -874,7 +925,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
           </button>
           <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
             style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-            Apply Crop
+            Apply & Save
           </button>
         </div>
       </div>
@@ -929,6 +980,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showComplimentaryWill, setShowComplimentaryWill] = useState(!!(advisor as any).showComplimentaryWill);
   const [showFinancialMedia, setShowFinancialMedia] = useState(!!(advisor as any).showFinancialMedia);
   const [showTools, setShowTools] = useState(!!(advisor as any).showTools);
+  const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(advisor as any).showMoneywebFeed);
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
@@ -980,6 +1032,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showDocuments,
         showComplimentaryWill,
         showFinancialMedia,
+        showMoneywebFeed,
         showTools,
         showToolTax,
         showToolExchange,
@@ -1400,6 +1453,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
+          { label: "MoneyWeb News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
@@ -1632,6 +1686,7 @@ function AdditionalProfileForm({
   const [showToolPension, setShowToolPension] = useState(!!(existingProfile as any)?.showToolPension);
   const [showToolCgt, setShowToolCgt] = useState(!!(existingProfile as any)?.showToolCgt);
   const [showToolVehicle, setShowToolVehicle] = useState(!!(existingProfile as any)?.showToolVehicle);
+  const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
@@ -1682,6 +1737,7 @@ function AdditionalProfileForm({
         showToolPension,
         showToolCgt,
         showToolVehicle,
+        showMoneywebFeed,
         patternOpacity,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
@@ -1966,6 +2022,7 @@ function AdditionalProfileForm({
                 { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
                 { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
+                { label: "MoneyWeb News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">
                   <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3101,6 +3158,74 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false, vehicle: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
+  // Toolbox ordering
+  const DEFAULT_TOOL_ORDER = ["std", "tax", "ci", "er", "forex", "scan", "cal", "media", "pension", "cgt", "vehicle"];
+  const [organizing, setOrganizing] = useState(false);
+  const [toolOrder, setToolOrder] = useState<string[]>(() => {
+    try { const s = localStorage.getItem("advisorToolboxOrder"); return s ? JSON.parse(s) : DEFAULT_TOOL_ORDER; }
+    catch { return DEFAULT_TOOL_ORDER; }
+  });
+  const moveSection = (key: string, dir: -1 | 1) => {
+    setToolOrder(prev => {
+      const idx = prev.indexOf(key);
+      if (idx < 0) return prev;
+      const next = [...prev];
+      const swapIdx = idx + dir;
+      if (swapIdx < 0 || swapIdx >= next.length) return prev;
+      [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
+      localStorage.setItem("advisorToolboxOrder", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // Camera scan state
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scanCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [scanStream, setScanStream] = useState<MediaStream | null>(null);
+  const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanPhase, setScanPhase] = useState<"idle" | "streaming" | "captured">("idle");
+
+  useEffect(() => {
+    if (!openSections.scan && scanStream) {
+      scanStream.getTracks().forEach(t => t.stop());
+      setScanStream(null);
+      setScanPhase("idle");
+    }
+  }, [openSections.scan]);
+
+  const startScan = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      setScanStream(stream);
+      setScanPhase("streaming");
+      setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 50);
+    } catch { }
+  };
+  const captureScan = () => {
+    if (!videoRef.current || !scanCanvasRef.current) return;
+    const v = videoRef.current;
+    const c = scanCanvasRef.current;
+    c.width = v.videoWidth || 1280; c.height = v.videoHeight || 720;
+    const ctx = c.getContext("2d");
+    if (ctx) { ctx.drawImage(v, 0, 0); setScanImage(c.toDataURL("image/png")); }
+    scanStream?.getTracks().forEach(t => t.stop());
+    setScanStream(null);
+    setScanPhase("captured");
+  };
+  const downloadScan = () => {
+    if (!scanImage) return;
+    const a = document.createElement("a"); a.href = scanImage; a.download = `scan-${Date.now()}.png`; a.click();
+  };
+  const shareScan = async () => {
+    if (!scanImage) return;
+    if (navigator.share && navigator.canShare?.({ files: [] })) {
+      const res = await fetch(scanImage); const blob = await res.blob();
+      const file = new File([blob], `scan-${Date.now()}.png`, { type: "image/png" });
+      try { await navigator.share({ files: [file], title: "Scanned Document" }); return; } catch { }
+    }
+    downloadScan();
+  };
+
   // Standard calculator state
   const [stdDisplay, setStdDisplay] = useState("0");
   const [stdPrev, setStdPrev] = useState<string | null>(null);
@@ -3413,21 +3538,54 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     </div>
   );
 
+  const sectionStyle = (key: string) => ({
+    ...cs, order: toolOrder.includes(key) ? toolOrder.indexOf(key) : 999
+  });
+
   const SectionHeader = ({ sectionKey, title, subtitle }: { sectionKey: keyof typeof openSections; icon?: React.ReactNode; title: string; subtitle: string }) => (
-    <button type="button" onClick={() => toggleSection(sectionKey)} className="w-full flex items-center justify-between text-left" style={{ color: tc.textColor }}>
-      <div>
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{title}</h3>
-        <p className="text-xs mt-0.5" style={ls}>{subtitle}</p>
-      </div>
-      <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${openSections[sectionKey] ? "rotate-180" : ""}`} style={ls} />
-    </button>
+    <div className="flex items-center gap-2">
+      {organizing && (
+        <div className="flex flex-col gap-0 flex-shrink-0">
+          <button type="button" onClick={() => moveSection(sectionKey, -1)} className="p-1 rounded hover:opacity-70" style={{ color: tc.mutedText }}>
+            <ArrowUp className="h-3 w-3" />
+          </button>
+          <button type="button" onClick={() => moveSection(sectionKey, 1)} className="p-1 rounded hover:opacity-70" style={{ color: tc.mutedText }}>
+            <ArrowDown className="h-3 w-3" />
+          </button>
+        </div>
+      )}
+      <button type="button" onClick={() => !organizing && toggleSection(sectionKey)} className="flex-1 flex items-center justify-between text-left" style={{ color: tc.textColor }}>
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{title}</h3>
+          <p className="text-xs mt-0.5" style={ls}>{subtitle}</p>
+        </div>
+        {organizing
+          ? <GripVertical className="h-4 w-4 flex-shrink-0 ml-3" style={{ color: tc.mutedText }} />
+          : <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${openSections[sectionKey] ? "rotate-180" : ""}`} style={ls} />
+        }
+      </button>
+    </div>
   );
 
   return (
-    <div className="space-y-3 pb-6">
+    <div className="flex flex-col gap-3 pb-6">
+      {/* Organize bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs" style={{ color: tc.mutedText }}>Drag tools into your preferred order</p>
+        <button
+          type="button"
+          onClick={() => setOrganizing(o => !o)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+          style={{ backgroundColor: organizing ? tc.accentColor : tc.buttonSecondaryBg, color: organizing ? (tc.isDark ? "#000" : "#fff") : tc.accentColor, border: `1px solid ${tc.accentColor}` }}
+          data-testid="button-organize-toolbox"
+        >
+          <GripVertical className="h-3 w-3" />
+          {organizing ? "Done" : "Organise"}
+        </button>
+      </div>
 
       {/* Standard Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("std")}>
         <div className="p-4">
           <SectionHeader sectionKey="std" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Standard Calculator" subtitle="Basic arithmetic — add, subtract, multiply, divide." />
         </div>
@@ -3476,7 +3634,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* SA Tax Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("tax")}>
         <div className="p-4">
           <SectionHeader sectionKey="tax" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Tax Calculator" subtitle="2024/2025 — monthly PAYE with lifetime retirement projection." />
         </div>
@@ -3551,7 +3709,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Compound Interest Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("ci")}>
         <div className="p-4">
           <SectionHeader sectionKey="ci" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Compound Interest Calculator" subtitle="Future value with regular monthly contributions." />
         </div>
@@ -3595,7 +3753,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Exchange Rate Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("er")}>
         <div className="p-4 flex items-center justify-between gap-3">
           <div className="flex-1">
             <SectionHeader sectionKey="er" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Exchange Rate Calculator" subtitle={`Live rates via ExchangeRate-API${erUpdated ? ` · ${erUpdated}` : ""}`} />
@@ -3683,7 +3841,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Forex Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("forex")}>
         <div className="p-4">
           <SectionHeader sectionKey="forex" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Forex Calculator" subtitle="Pip value, lot sizing, margin, spread cost & net profit/loss." />
         </div>
@@ -3695,30 +3853,81 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Scan Documents */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("scan")}>
         <div className="p-4">
-          <SectionHeader sectionKey="scan" icon={<FileText className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Scan Documents" subtitle="AI-powered document scanning and analysis — coming soon." />
+          <SectionHeader sectionKey="scan" icon={<Camera className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Scan Documents" subtitle="Use your camera to capture, save, share or download documents." />
         </div>
         {openSections.scan && (
-          <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-            <div className="pt-4 pb-2 flex flex-col items-center gap-3">
-              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
-                <FileText className="h-6 w-6" style={{ color: tc.accentColor }} />
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <canvas ref={scanCanvasRef} style={{ display: "none" }} />
+            {scanPhase === "idle" && (
+              <div className="pt-4 flex flex-col items-center gap-3">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                  <Camera className="h-8 w-8" style={{ color: tc.accentColor }} />
+                </div>
+                <p className="text-xs text-center leading-relaxed" style={{ color: tc.mutedText }}>Point your camera at a document to capture it — works best in good lighting.</p>
+                <button
+                  type="button"
+                  onClick={startScan}
+                  className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                  data-testid="button-start-scan"
+                >
+                  <Camera className="h-4 w-4" /> Open Camera
+                </button>
               </div>
-              <div className="text-center">
-                <p className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Document Scanner</p>
-                <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>Scan and analyse financial documents, extract key data, and summarise reports using AI.</p>
+            )}
+            {scanPhase === "streaming" && (
+              <div className="pt-3 space-y-3">
+                <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full" style={{ display: "block", maxHeight: "300px", objectFit: "cover", background: "#000" }} />
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => { scanStream?.getTracks().forEach(t => t.stop()); setScanStream(null); setScanPhase("idle"); }}
+                    className="flex-1 py-2.5 rounded-xl text-xs font-medium" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+                    Cancel
+                  </button>
+                  <button type="button" onClick={captureScan}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+                    style={{ backgroundColor: tc.accentColor, color: tc.isDark ? "#000" : "#fff" }}
+                    data-testid="button-capture-scan">
+                    <Camera className="h-4 w-4" /> Capture
+                  </button>
+                </div>
               </div>
-              <div className="w-full py-2.5 rounded-lg text-center text-xs font-medium" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.mutedText }}>
-                Still in development — Coming soon
+            )}
+            {scanPhase === "captured" && scanImage && (
+              <div className="pt-3 space-y-3">
+                <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+                  <img src={scanImage} alt="Captured document" className="w-full" style={{ display: "block", maxHeight: "300px", objectFit: "contain", background: "#000" }} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" onClick={downloadScan}
+                    className="py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}
+                    data-testid="button-download-scan">
+                    <Download className="h-3.5 w-3.5" /> Download
+                  </button>
+                  <button type="button" onClick={shareScan}
+                    className="py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}
+                    data-testid="button-share-scan">
+                    <ExternalLink className="h-3.5 w-3.5" /> Share
+                  </button>
+                </div>
+                <button type="button" onClick={() => { setScanImage(null); setScanPhase("idle"); }}
+                  className="w-full py-2.5 rounded-xl text-xs font-medium"
+                  style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+                  Scan Another
+                </button>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>
 
       {/* SA Calendar */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("cal")}>
         <div className="p-4">
           <SectionHeader sectionKey="cal" icon={<span className="text-sm" style={{ color: tc.accentColor }}>📅</span>} title="SA Calendar" subtitle="South African public holidays — navigate by month." />
         </div>
@@ -3807,7 +4016,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Financial Media */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("media")}>
         <div className="p-4">
           <SectionHeader sectionKey="media" icon={<ExternalLink className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Media" subtitle="Set media links — copy & share to socials, and they populate your profile." />
         </div>
@@ -3897,7 +4106,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Pension Savings Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pension")}>
         <div className="p-4">
           <SectionHeader sectionKey="pension" icon={<TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Pension Savings Calculator" subtitle="SA-specific lump sum tax, growth projections & scenario comparison." />
         </div>
@@ -3909,7 +4118,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Capital Gains Tax Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("cgt")}>
         <div className="p-4">
           <SectionHeader sectionKey="cgt" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Capital Gains Tax Calculator" subtitle="SA CGT on property, shares & crypto — with primary residence exclusion." />
         </div>
@@ -3921,7 +4130,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       </div>
 
       {/* Vehicle & Assets Calculator */}
-      <div className="rounded-xl overflow-hidden" style={cs}>
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("vehicle")}>
         <div className="p-4">
           <SectionHeader sectionKey="vehicle" icon={<ArrowLeftRight className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Vehicle & Assets Calculator" subtitle="Depreciation, loan equity, net position & total cost of ownership." />
         </div>
@@ -3932,6 +4141,66 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         )}
       </div>
 
+    </div>
+  );
+}
+
+function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const platforms = [
+    {
+      key: "liberty",
+      name: "My Liberty",
+      description: "Access your Liberty client portal — policies, statements, and account management.",
+      url: "https://myliberty.liberty.co.za/logon",
+      color: "#e31837",
+      emoji: "🦁",
+    },
+    {
+      key: "stanlib",
+      name: "Stanlib",
+      description: "Log in to the Stanlib investment platform — fund performance and portfolio access.",
+      url: "https://login.stanlib.com/Account/Login",
+      color: "#003087",
+      emoji: "📈",
+    },
+  ];
+
+  return (
+    <div className="space-y-4">
+      <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
+          Quick-access links to your key financial platforms. These open in a new browser tab.
+        </p>
+      </div>
+      {platforms.map(p => (
+        <a
+          key={p.key}
+          href={p.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-xl p-5 transition-opacity hover:opacity-90 active:scale-95"
+          style={{ backgroundColor: tc.cardBg, border: `2px solid ${tc.borderColor}` }}
+          data-testid={`link-platform-${p.key}`}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+              style={{ backgroundColor: p.color + "22", border: `2px solid ${p.color}44` }}>
+              {p.emoji}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-bold" style={{ color: tc.textColor }}>{p.name}</h3>
+                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.mutedText }} />
+              </div>
+              <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>{p.description}</p>
+            </div>
+          </div>
+          <div className="mt-4 py-2.5 rounded-lg text-center text-xs font-semibold"
+            style={{ backgroundColor: p.color, color: "#fff" }}>
+            Open {p.name} →
+          </div>
+        </a>
+      ))}
     </div>
   );
 }
@@ -4061,7 +4330,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles">("toolbox");
+  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles" | "platforms">("toolbox");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -4131,6 +4400,7 @@ export default function AdvisorPanel() {
     { key: "profiles" as const, label: "Profiles", icon: Layers },
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
+    { key: "platforms" as const, label: "Platforms", icon: Globe },
   ];
 
   return (
@@ -4198,6 +4468,7 @@ export default function AdvisorPanel() {
           {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
+          {activeTab === "platforms" && <PlatformsTab tc={tc} />}
         </div>
       </div>
     </div>
