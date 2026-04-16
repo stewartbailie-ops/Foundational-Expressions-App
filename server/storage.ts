@@ -117,6 +117,34 @@ export class DatabaseStorage implements IStorage {
 
   async updateAdvisor(id: number, data: Partial<InsertAdvisor>): Promise<Advisor | undefined> {
     const [updated] = await db.update(advisors).set(data).where(eq(advisors.id, id)).returning();
+    if (!updated) return undefined;
+
+    // Sync shared profile fields to advisor_profiles so the merge in getAdvisorBySlug
+    // reads the correct values (boolean defaults of false would otherwise win over true).
+    const profileSync: Partial<InsertAdvisorProfile> = {};
+    const sharedKeys: (keyof InsertAdvisorProfile)[] = [
+      "title", "bio", "bioOption", "customBio", "theme", "themeColor",
+      "backgroundStyle", "patternOpacity", "profilePicUrl",
+      "linkedinUrl", "websiteUrl", "facebookUrl", "instagramUrl", "youtubeUrl",
+      "astuteUrl", "documentsUrl", "qaUrl",
+      "financialsNewsUrl", "financialsFunFactsUrl", "financialsVideosUrl",
+      "nickname", "profileDescription",
+      "individualServices", "corporateServices",
+      "showCallbackLink", "showReferralsLink", "showQrCode",
+      "showHeader", "showProfilePic", "showIntro",
+      "showIndividualServices", "showCorporateServices", "showSocials",
+      "showAstute", "showDocuments", "showComplimentaryWill",
+      "showFinancialMedia", "showTools",
+      "showToolTax", "showToolExchange", "showToolCompound",
+      "showToolPension", "showToolCgt", "showToolVehicle",
+    ];
+    for (const key of sharedKeys) {
+      if (key in data) (profileSync as any)[key] = (data as any)[key];
+    }
+    if (Object.keys(profileSync).length > 0) {
+      await db.update(advisorProfiles).set(profileSync).where(eq(advisorProfiles.advisorId, id));
+    }
+
     return updated;
   }
 

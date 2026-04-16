@@ -699,6 +699,9 @@ export default function AdvisorProfile() {
   };
 
   const handleSaveContact = () => {
+    const noteLines = [`View my full advisory profile at ${profileShareUrl}`];
+    if ((advisor as any).showAstute && (advisor as any).astuteUrl)
+      noteLines.push(`Request Your Financial Information: ${(advisor as any).astuteUrl}`);
     const vcf = [
       "BEGIN:VCARD", "VERSION:3.0",
       `FN:${advisor.name}`,
@@ -707,7 +710,7 @@ export default function AdvisorProfile() {
       (advisor as any).contactNumber ? `TEL:${(advisor as any).contactNumber}` : null,
       advisor.websiteUrl ? `URL:${advisor.websiteUrl}` : null,
       advisor.linkedinUrl ? `X-SOCIALPROFILE;TYPE=linkedin:${advisor.linkedinUrl}` : null,
-      `NOTE:View my full advisory profile at ${profileShareUrl}`,
+      `NOTE:${noteLines.join("\\n")}`,
       "END:VCARD",
     ].filter(Boolean).join("\r\n");
     const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8" });
