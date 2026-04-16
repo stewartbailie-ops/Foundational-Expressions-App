@@ -91,7 +91,9 @@ export class DatabaseStorage implements IStorage {
       showDocuments: profile.profile.showDocuments ?? profile.advisor.showDocuments,
       showComplimentaryWill: profile.profile.showComplimentaryWill ?? profile.advisor.showComplimentaryWill,
       showFinancialMedia: profile.profile.showFinancialMedia ?? profile.advisor.showFinancialMedia,
+      showMoneywebFeed: (profile.profile as any).showMoneywebFeed ?? (profile.advisor as any).showMoneywebFeed,
       showTools: profile.profile.showTools ?? profile.advisor.showTools,
+      profileSectionOrder: (profile.profile as any).profileSectionOrder ?? (profile.advisor as any).profileSectionOrder,
       showToolTax: profile.profile.showToolTax ?? profile.advisor.showToolTax,
       showToolExchange: profile.profile.showToolExchange ?? profile.advisor.showToolExchange,
       showToolCompound: profile.profile.showToolCompound ?? profile.advisor.showToolCompound,
@@ -134,9 +136,10 @@ export class DatabaseStorage implements IStorage {
       "showHeader", "showProfilePic", "showIntro",
       "showIndividualServices", "showCorporateServices", "showSocials",
       "showAstute", "showDocuments", "showComplimentaryWill",
-      "showFinancialMedia", "showTools",
+      "showFinancialMedia", "showMoneywebFeed", "showTools",
       "showToolTax", "showToolExchange", "showToolCompound",
       "showToolPension", "showToolCgt", "showToolVehicle",
+      "profileSectionOrder",
     ];
     for (const key of sharedKeys) {
       if (key in data) (profileSync as any)[key] = (data as any)[key];

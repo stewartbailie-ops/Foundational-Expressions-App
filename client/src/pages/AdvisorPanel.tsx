@@ -1467,7 +1467,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
           { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
-          { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
           { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
         ].map(item => (
@@ -2061,7 +2060,6 @@ function AdditionalProfileForm({
             { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
             { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
-            { label: "General Financial Media", value: showFinancialMedia, set: setShowFinancialMedia },
             { label: "Financial Tools Section", value: showTools, set: setShowTools },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -4212,7 +4210,7 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
       description: "Access your Liberty client portal — policies, statements, and account management.",
       url: "https://myliberty.liberty.co.za/logon",
       color: "#e31837",
-      emoji: "🦁",
+      emoji: "📈",
     },
     {
       key: "stanlib",
