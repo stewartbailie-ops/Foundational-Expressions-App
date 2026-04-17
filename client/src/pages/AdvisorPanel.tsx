@@ -2727,9 +2727,9 @@ function CGTCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 
   const totalCosts = bCosts + sCosts + impr;
   let rawGain = selling - purchase - totalCosts;
-  const primaryExclusion = isPrimaryResidence && rawGain > 0 ? Math.min(2000000, rawGain) : 0;
+  const primaryExclusion = isPrimaryResidence && rawGain > 0 ? Math.min(3000000, rawGain) : 0;
   let gainAfterPrimary = rawGain - primaryExclusion;
-  const annualExclusion = gainAfterPrimary > 0 ? Math.min(40000, gainAfterPrimary) : 0;
+  const annualExclusion = gainAfterPrimary > 0 ? Math.min(50000, gainAfterPrimary) : 0;
   let taxableGain = Math.max(0, gainAfterPrimary - annualExclusion);
   const includedGain = taxableGain * 0.4;
   const originalTax = Math.max(0, calcSAIncomeTax(income));
@@ -2763,7 +2763,7 @@ function CGTCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 <h2>CGT Calculation</h2><table>
 <tr><td>Raw Capital Gain</td><td>${fmt(rawGain)}</td></tr>
 ${isPrimaryResidence ? `<tr><td>Primary Residence Exclusion</td><td>- ${fmt(primaryExclusion)}</td></tr>` : ""}
-<tr><td>Annual Exclusion (R40,000)</td><td>- ${fmt(annualExclusion)}</td></tr>
+<tr><td>Annual Exclusion (R50,000)</td><td>- ${fmt(annualExclusion)}</td></tr>
 <tr class="highlight"><td>Taxable Gain</td><td>${fmt(taxableGain)}</td></tr>
 <tr><td>Inclusion Rate (40%)</td><td>${fmt(includedGain)}</td></tr>
 <tr><td>Annual Income</td><td>${fmt(income)}</td></tr>
@@ -2771,7 +2771,7 @@ ${isPrimaryResidence ? `<tr><td>Primary Residence Exclusion</td><td>- ${fmt(prim
 <tr><td>Effective CGT Rate</td><td>${effectiveRate.toFixed(1)}%</td></tr>
 <tr class="highlight"><td>Net Proceeds After Tax</td><td>${fmt(netProceeds)}</td></tr>
 </table>
-<p class="disc">This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice. CGT uses a 40% inclusion rate. Primary residence exclusion up to R2,000,000. Annual exclusion R40,000. SA income tax brackets (2024/25) applied.</p>
+<p class="disc">This calculator provides estimates based on current South African tax legislation. It does not constitute financial or tax advice. CGT uses a 40% inclusion rate. Primary residence exclusion up to R3,000,000. Annual exclusion R50,000. SA income tax brackets (2026 Budget) applied.</p>
 <script>window.onload=function(){window.print()}</script></body></html>`;
     const w = window.open("", "_blank");
     if (w) { w.document.write(html); w.document.close(); }
@@ -2862,7 +2862,7 @@ ${isPrimaryResidence ? `<tr><td>Primary Residence Exclusion</td><td>- ${fmt(prim
             {[
               { label: "Capital gain", val: fmt(rawGain), warn: rawGain < 0 },
               ...(isPrimaryResidence && primaryExclusion > 0 ? [{ label: "Primary residence exclusion", val: `- ${fmt(primaryExclusion)}` }] : []),
-              { label: "Annual exclusion (R40,000)", val: `- ${fmt(annualExclusion)}` },
+              { label: "Annual exclusion (R50,000)", val: `- ${fmt(annualExclusion)}` },
               { label: "Taxable gain", val: fmt(taxableGain) },
               { label: "Included at 40% (CGT inclusion rate)", val: fmt(includedGain) },
               { label: "CGT payable", val: fmt(cgtPayable), red: true },
@@ -2879,8 +2879,8 @@ ${isPrimaryResidence ? `<tr><td>Primary Residence Exclusion</td><td>- ${fmt(prim
           {/* Exclusion breakdown callout */}
           <div className="mt-2 pt-2 space-y-1 text-xs" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
             <p className="font-medium" style={ls}>Exclusion Breakdown</p>
-            <div className="flex justify-between"><span style={ls}>Primary residence (if applicable)</span><span style={{ color: tc.textColor }}>Up to R2,000,000</span></div>
-            <div className="flex justify-between"><span style={ls}>Annual exclusion (everyone)</span><span style={{ color: tc.textColor }}>R40,000 per year</span></div>
+            <div className="flex justify-between"><span style={ls}>Primary residence (if applicable)</span><span style={{ color: tc.textColor }}>Up to R3,000,000</span></div>
+            <div className="flex justify-between"><span style={ls}>Annual exclusion (everyone)</span><span style={{ color: tc.textColor }}>R50,000 per year</span></div>
             <div className="flex justify-between"><span style={ls}>CGT inclusion rate</span><span style={{ color: tc.textColor }}>40% of gain added to income</span></div>
           </div>
         </div>
@@ -2932,7 +2932,7 @@ function PensionCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const annualContrib = contribMode === "monthly"
     ? (parseFloat(contribution.replace(/\D/g, "")) || 0) * 12
     : (parseFloat(contribution.replace(/\D/g, "")) || 0);
-  const maxDeductible = Math.min(incomeNum * 0.275, 350000);
+  const maxDeductible = Math.min(incomeNum * 0.275, 430000);
   const prevNum = parseFloat(prevWithdrawals.replace(/\D/g, "")) || 0;
   const currNum = parseFloat(currentWithdrawal.replace(/\D/g, "")) || 0;
   const totalLifetime = prevNum + currNum;
@@ -2983,7 +2983,7 @@ function PensionCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 <tr><td>Withdrawal Type</td><td>${mode === "early" ? "Early Withdrawal" : "Retirement Withdrawal"}</td></tr>
 </table>
 <h2>Contribution Deductibility</h2><table>
-<tr><td>Maximum Deductible (27.5% of income, max R350,000)</td><td>${fmt(maxDeductible)}</td></tr>
+<tr><td>Maximum Deductible (27.5% of income, max R430,000)</td><td>${fmt(maxDeductible)}</td></tr>
 <tr><td>Your Annual Contribution</td><td>${fmt(annualContrib)}</td></tr>
 <tr><td>Deductibility Used</td><td>${maxDeductible > 0 ? Math.min(100, Math.round((annualContrib / maxDeductible) * 100)) : 0}%</td></tr>
 </table>
@@ -3082,7 +3082,7 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
       {incomeNum > 0 && (
         <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
           <p className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Contribution Deductibility</p>
-          <div className="flex justify-between text-xs"><span style={ls}>Max deductible (27.5% of income, cap R350k)</span><span className="font-semibold" style={ac}>{fmt(maxDeductible)}</span></div>
+          <div className="flex justify-between text-xs"><span style={ls}>Max deductible (27.5% of income, cap R430k)</span><span className="font-semibold" style={ac}>{fmt(maxDeductible)}</span></div>
           <div className="flex justify-between text-xs"><span style={ls}>Your annual contribution</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(annualContrib)}</span></div>
           {annualContrib > maxDeductible && (
             <p className="text-xs" style={{ color: "#f59e0b" }}>⚠ Contribution exceeds deductible limit by {fmt(annualContrib - maxDeductible)}</p>

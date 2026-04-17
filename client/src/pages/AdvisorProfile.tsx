@@ -1348,7 +1348,7 @@ export default function AdvisorProfile() {
 
               // CGT calc (SA 2024/25 — individuals)
               const cgtGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0));
-              const cgtAnnualExclusion = 40000;
+              const cgtAnnualExclusion = 50000;
               const cgtNet = Math.max(0, cgtGain - cgtAnnualExclusion);
               const cgtInclusion = cgtNet * 0.4; // 40% inclusion rate
               const cgtAnnualInc = (parseFloat(cgtIncome) || 0) * 12;
