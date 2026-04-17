@@ -1503,18 +1503,18 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
         <div className="grid grid-cols-4 gap-2">
           {[
-            { key: "dark",               label: "Obsidian",  bg: "#1a1a1a" },
-            { key: "blue",               label: "Abyss",     bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
-            { key: "pink",               label: "Fuchsia",   bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-            { key: "light-blue",         label: "Nimbus",    bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-            { key: "dark-royal-purple",  label: "Velour",    bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-            { key: "dark-green",         label: "Verdant",   bg: "linear-gradient(135deg, #052e16, #22c55e)" },
-            { key: "gold",               label: "Aurum",     bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
-            { key: "teal",               label: "Lagoon",    bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
-            { key: "red",                label: "Inferno",   bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
-            { key: "navy",               label: "Admiral",   bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
-            { key: "coral",              label: "Ember",     bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
-            { key: "silver",             label: "Mercury",   bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
+            { key: "dark",               label: "Obsidian Black",  bg: "#1a1a1a" },
+            { key: "blue",               label: "Blue Abyss",      bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
+            { key: "pink",               label: "Pink",            bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+            { key: "light-blue",         label: "Nimbus Blue",     bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+            { key: "dark-royal-purple",  label: "Velour Purple",   bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+            { key: "dark-green",         label: "Verdant Green",   bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+            { key: "gold",               label: "Aurum Yellow",    bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
+            { key: "teal",               label: "Lagoon Teal",     bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
+            { key: "red",                label: "Inferno Red",     bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
+            { key: "navy",               label: "Admiral Navy",    bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
+            { key: "coral",              label: "Orange Ember",    bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
+            { key: "silver",             label: "Silver Mercury",  bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
           ].map(t => (
             <button key={t.key} onClick={() => setTheme(t.key)}
               className="rounded-xl border-2 p-2 text-center transition-all"
@@ -1626,10 +1626,10 @@ function getThemeDot(theme: string) {
 }
 function getThemeLabel(theme: string) {
   const labels: Record<string, string> = {
-    dark: "Obsidian", blue: "Abyss", pink: "Fuchsia", "light-blue": "Nimbus",
-    "dark-royal-purple": "Velour", "dark-green": "Verdant",
-    gold: "Aurum", teal: "Lagoon", red: "Inferno",
-    navy: "Admiral", coral: "Ember", silver: "Mercury",
+    dark: "Obsidian Black", blue: "Blue Abyss", pink: "Pink", "light-blue": "Nimbus Blue",
+    "dark-royal-purple": "Velour Purple", "dark-green": "Verdant Green",
+    gold: "Aurum Yellow", teal: "Lagoon Teal", red: "Inferno Red",
+    navy: "Admiral Navy", coral: "Orange Ember", silver: "Silver Mercury",
   };
   return labels[theme] || theme;
 }
@@ -2001,18 +2001,18 @@ function AdditionalProfileForm({
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme</label>
           <div className="grid grid-cols-4 gap-2">
             {[
-              { key: "dark",               label: "Obsidian",  bg: "#1a1a1a" },
-              { key: "blue",               label: "Abyss",     bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
-              { key: "pink",               label: "Fuchsia",   bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-              { key: "light-blue",         label: "Nimbus",    bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-              { key: "dark-royal-purple",  label: "Velour",    bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-              { key: "dark-green",         label: "Verdant",   bg: "linear-gradient(135deg, #052e16, #22c55e)" },
-              { key: "gold",               label: "Aurum",     bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
-              { key: "teal",               label: "Lagoon",    bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
-              { key: "red",                label: "Inferno",   bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
-              { key: "navy",               label: "Admiral",   bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
-              { key: "coral",              label: "Ember",     bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
-              { key: "silver",             label: "Mercury",   bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
+              { key: "dark",               label: "Obsidian Black",  bg: "#1a1a1a" },
+              { key: "blue",               label: "Blue Abyss",      bg: "linear-gradient(135deg, #4a8db5, #1e3a5f)" },
+              { key: "pink",               label: "Pink",            bg: "linear-gradient(135deg, #f472b6, #be185d)" },
+              { key: "light-blue",         label: "Nimbus Blue",     bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
+              { key: "dark-royal-purple",  label: "Velour Purple",   bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
+              { key: "dark-green",         label: "Verdant Green",   bg: "linear-gradient(135deg, #052e16, #22c55e)" },
+              { key: "gold",               label: "Aurum Yellow",    bg: "linear-gradient(135deg, #7c5a00, #d4a017)" },
+              { key: "teal",               label: "Lagoon Teal",     bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
+              { key: "red",                label: "Inferno Red",     bg: "linear-gradient(135deg, #7f1d1d, #dc2626)" },
+              { key: "navy",               label: "Admiral Navy",    bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
+              { key: "coral",              label: "Orange Ember",    bg: "linear-gradient(135deg, #fed7aa, #f97316)" },
+              { key: "silver",             label: "Silver Mercury",  bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
             ].map(t => (
               <button key={t.key} onClick={() => setTheme(t.key)} className="rounded-lg border-2 p-2 text-center transition-all"
                 style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}>
