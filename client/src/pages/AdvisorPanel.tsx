@@ -4527,32 +4527,9 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
             })}
           </div>
         </div>
-        <div className="space-y-1.5">
-          <div style={fieldLabel}>Background Pattern</div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {BACKGROUND_STYLE_OPTIONS.map(opt => {
-              const selected = panelBackgroundStyle === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => setPanelBackgroundStyle(opt.value)}
-                  className="px-2 py-1.5 rounded-md text-[10px] font-medium transition-all"
-                  style={{
-                    backgroundColor: selected ? tc.buttonSecondaryBg : "transparent",
-                    border: `1px solid ${selected ? tc.accentColor : tc.borderColor}`,
-                    color: selected ? tc.accentColor : tc.mutedText,
-                  }}
-                  data-testid={`button-panel-pattern-${opt.value}`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
         <Button
           size="sm"
-          onClick={() => saveMutation.mutate({ panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor, panelBackgroundStyle } as any)}
+          onClick={() => saveMutation.mutate({ panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor } as any)}
           disabled={saveMutation.isPending}
           style={{ backgroundColor: tc.accentColor, color: "#fff" }}
           className="gap-1.5 w-full"

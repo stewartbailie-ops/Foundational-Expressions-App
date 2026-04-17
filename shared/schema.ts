@@ -137,8 +137,8 @@ export const advisors = pgTable("advisors", {
 
 export const SUBSCRIPTION_TIERS = [
   { value: "trial", label: "Trial", description: "Free 30-day evaluation period to explore all features.", price: "Free" },
-  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R299/mo" },
-  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R599/mo" },
+  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R120/mo" },
+  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R200/mo" },
 ] as const;
 
 export const insertAdvisorSchema = createInsertSchema(advisors).omit({
