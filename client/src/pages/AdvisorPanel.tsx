@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -4262,6 +4262,394 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   );
 }
 
+function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+  const picInputRef = useRef<HTMLInputElement>(null);
+  const faisInputRef = useRef<HTMLInputElement>(null);
+
+  // Personal details
+  const [name, setName] = useState(advisor.name || "");
+  const [title, setTitle] = useState(advisor.title || "");
+  const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
+  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(advisor.profilePicUrl || null);
+  const [picUploading, setPicUploading] = useState(false);
+
+  // FA details
+  const [advisorCode, setAdvisorCode] = useState((advisor as any).advisorCode || "");
+  const [faisAgreementUrl, setFaisAgreementUrl] = useState<string | null>((advisor as any).faisAgreementUrl || null);
+  const [faisUploading, setFaisUploading] = useState(false);
+
+  // Panel theme (separate from Contact Card)
+  const [panelTheme, setPanelTheme] = useState<string>((advisor as any).panelTheme || "blue");
+  const [panelBackgroundStyle, setPanelBackgroundStyle] = useState<number>((advisor as any).panelBackgroundStyle || 1);
+
+  // Password change
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [pwOtpStep, setPwOtpStep] = useState(false);
+  const [pwOtp, setPwOtp] = useState("");
+
+  const saveMutation = useMutation({
+    mutationFn: async (patch: Partial<Advisor>) => {
+      const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}`, patch);
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Save failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/slug/${slug}`] });
+      toast({ title: "Saved", description: "Your changes have been saved." });
+    },
+    onError: (e: Error) => toast({ title: "Save failed", description: e.message, variant: "destructive" }),
+  });
+
+  const handlePicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setPicUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/profile-pic", { method: "POST", body: fd });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setProfilePicUrl(data.url);
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally { setPicUploading(false); }
+  };
+
+  const handleFaisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "PDF only", variant: "destructive" });
+      return;
+    }
+    setFaisUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/fais", { method: "POST", body: fd });
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setFaisAgreementUrl(data.url);
+      toast({ title: "FAIS uploaded", description: "Don't forget to save changes." });
+    } catch {
+      toast({ title: "Upload failed", variant: "destructive" });
+    } finally { setFaisUploading(false); }
+  };
+
+  const requestPwChange = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/advisor-auth/${slug}/request-password-change`, { currentPassword, newPassword });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Request failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      setPwOtpStep(true);
+      toast({ title: "Code sent", description: `We've sent a confirmation code to ${advisor.email}.` });
+    },
+    onError: (e: Error) => toast({ title: "Couldn't send code", description: e.message, variant: "destructive" }),
+  });
+
+  const confirmPwChange = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", `/api/advisor-auth/${slug}/confirm-password-change`, { code: pwOtp });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Confirm failed"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password updated", description: "Use your new password from now on." });
+      setCurrentPassword(""); setNewPassword(""); setConfirmPassword(""); setPwOtp(""); setPwOtpStep(false);
+    },
+    onError: (e: Error) => toast({ title: "Code rejected", description: e.message, variant: "destructive" }),
+  });
+
+  const pwStrong = newPassword.length >= 10 && /[A-Z]/.test(newPassword) && /[a-z]/.test(newPassword) && /\d/.test(newPassword);
+  const pwMatch = newPassword !== "" && newPassword === confirmPassword;
+
+  const Section = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${tc.borderColor}` }}>
+        <Icon className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <span className="text-sm font-semibold" style={{ color: tc.textColor }}>{title}</span>
+      </div>
+      <div className="p-4 space-y-3">{children}</div>
+    </div>
+  );
+
+  const fieldLabel = { color: tc.mutedText, fontSize: "11px", fontWeight: 500, textTransform: "uppercase" as const, letterSpacing: "0.05em" };
+  const inputStyle = { backgroundColor: tc.bgColor, border: `1px solid ${tc.borderColor}`, color: tc.textColor };
+
+  return (
+    <div className="space-y-4">
+      {/* Personal Details */}
+      <Section icon={User} title="Personal Details">
+        <div className="flex items-center gap-3">
+          {profilePicUrl ? (
+            <img src={profilePicUrl} alt="" className="h-16 w-16 rounded-full object-cover" style={{ border: `2px solid ${tc.borderColor}` }} />
+          ) : (
+            <div className="h-16 w-16 rounded-full flex items-center justify-center text-lg font-bold" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+              {getInitials(name || advisor.name)}
+            </div>
+          )}
+          <input type="file" ref={picInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePicUpload} />
+          <div className="flex flex-col gap-1.5">
+            <button
+              onClick={() => picInputRef.current?.click()}
+              disabled={picUploading}
+              className="text-xs px-3 py-1.5 rounded-md font-medium transition-opacity hover:opacity-80 flex items-center gap-1.5"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}
+              data-testid="button-settings-upload-pic"
+            >
+              {picUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
+              {profilePicUrl ? "Change Photo" : "Upload Photo"}
+            </button>
+            {profilePicUrl && (
+              <button onClick={() => setProfilePicUrl(null)} className="text-xs px-3 py-1 rounded-md flex items-center gap-1" style={{ color: tc.mutedText }}>
+                <X className="h-3 w-3" /> Remove
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Full Name</div>
+          <Input value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} data-testid="input-settings-name" />
+        </div>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Title</div>
+          <select
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="w-full px-3 py-2 rounded-md text-sm outline-none appearance-none"
+            style={inputStyle}
+            data-testid="select-settings-title"
+          >
+            {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ color: "#000" }}>{t}</option>)}
+          </select>
+        </div>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Contact Number</div>
+          <Input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="+27 82 123 4567" style={inputStyle} data-testid="input-settings-contact" />
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate({ name, title, contactNumber: contactNumber || null, profilePicUrl } as any)}
+          disabled={saveMutation.isPending || !name.trim()}
+          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          className="gap-1.5 w-full"
+          data-testid="button-save-personal"
+        >
+          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save Personal Details
+        </Button>
+      </Section>
+
+      {/* FA Details */}
+      <Section icon={FileText} title="Financial Advisor Details">
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Advisor Code</div>
+          <Input value={advisorCode} onChange={(e) => setAdvisorCode(e.target.value)} placeholder="e.g. FA-12345" style={inputStyle} data-testid="input-settings-advisor-code" />
+        </div>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>FAIS Agreement (PDF)</div>
+          <input type="file" ref={faisInputRef} accept="application/pdf" className="hidden" onChange={handleFaisUpload} />
+          {faisAgreementUrl ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg" style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}>
+              <FileCheck className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+              <a href={faisAgreementUrl} target="_blank" rel="noopener noreferrer" className="flex-1 text-xs font-medium underline" style={{ color: tc.textColor }} data-testid="link-fais-view">
+                View current FAIS agreement
+              </a>
+              <button
+                onClick={() => faisInputRef.current?.click()}
+                disabled={faisUploading}
+                className="text-xs px-2 py-1 rounded-md font-medium"
+                style={{ backgroundColor: tc.bgColor, color: tc.accentColor }}
+                data-testid="button-replace-fais"
+              >
+                {faisUploading ? <Loader2 className="h-3 w-3 animate-spin" /> : "Replace"}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => faisInputRef.current?.click()}
+              disabled={faisUploading}
+              className="w-full flex flex-col items-center gap-1 py-5 rounded-lg border-2 border-dashed transition-colors"
+              style={{ borderColor: tc.borderColor, color: tc.mutedText }}
+              data-testid="button-upload-fais-settings"
+            >
+              {faisUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
+              <span className="text-xs">{faisUploading ? "Uploading..." : "Upload FAIS PDF (max 10MB)"}</span>
+            </button>
+          )}
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate({ advisorCode: advisorCode || null, faisAgreementUrl } as any)}
+          disabled={saveMutation.isPending}
+          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          className="gap-1.5 w-full"
+          data-testid="button-save-fa-details"
+        >
+          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save FA Details
+        </Button>
+      </Section>
+
+      {/* Panel Theme */}
+      <Section icon={Palette} title="Sub-Control Panel Theme">
+        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
+          Choose the look of <strong>your control panel</strong>. This is independent of your public Contact Card theme.
+        </p>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Theme</div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {THEME_OPTIONS.map(opt => {
+              const selected = panelTheme === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setPanelTheme(opt.value)}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all"
+                  style={{
+                    backgroundColor: selected ? tc.buttonSecondaryBg : "transparent",
+                    border: `1px solid ${selected ? tc.accentColor : tc.borderColor}`,
+                    color: selected ? tc.accentColor : tc.mutedText,
+                  }}
+                  data-testid={`button-panel-theme-${opt.value}`}
+                >
+                  <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: getThemeColors(opt.value).accentColor }} />
+                  {opt.label}
+                  {selected && <Check className="h-3 w-3 ml-auto" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Background Pattern</div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {BACKGROUND_STYLE_OPTIONS.map(opt => {
+              const selected = panelBackgroundStyle === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setPanelBackgroundStyle(opt.value)}
+                  className="px-2 py-1.5 rounded-md text-[10px] font-medium transition-all"
+                  style={{
+                    backgroundColor: selected ? tc.buttonSecondaryBg : "transparent",
+                    border: `1px solid ${selected ? tc.accentColor : tc.borderColor}`,
+                    color: selected ? tc.accentColor : tc.mutedText,
+                  }}
+                  data-testid={`button-panel-pattern-${opt.value}`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate({ panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor, panelBackgroundStyle } as any)}
+          disabled={saveMutation.isPending}
+          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          className="gap-1.5 w-full"
+          data-testid="button-save-panel-theme"
+        >
+          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save Panel Theme
+        </Button>
+      </Section>
+
+      {/* Change Password */}
+      <Section icon={KeyRound} title="Change Password">
+        {!pwOtpStep ? (
+          <>
+            <div className="space-y-1.5">
+              <div style={fieldLabel}>Current Password</div>
+              <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} style={inputStyle} data-testid="input-current-password" />
+            </div>
+            <div className="space-y-1.5">
+              <div style={fieldLabel}>New Password</div>
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={inputStyle} data-testid="input-new-password" />
+              {newPassword.length > 0 && (
+                <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: tc.mutedText }}>
+                  <span style={{ color: newPassword.length >= 10 ? "#10b981" : tc.mutedText }}>{newPassword.length >= 10 ? "✓" : "○"} 10+ chars</span>
+                  <span style={{ color: /[A-Z]/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/[A-Z]/.test(newPassword) ? "✓" : "○"} Uppercase</span>
+                  <span style={{ color: /[a-z]/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/[a-z]/.test(newPassword) ? "✓" : "○"} Lowercase</span>
+                  <span style={{ color: /\d/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/\d/.test(newPassword) ? "✓" : "○"} Number</span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <div style={fieldLabel}>Confirm New Password</div>
+              <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} style={inputStyle} data-testid="input-confirm-password" />
+              {confirmPassword.length > 0 && !pwMatch && <p className="text-[11px]" style={{ color: "#ef4444" }}>Passwords don't match</p>}
+            </div>
+            <Button
+              size="sm"
+              onClick={() => requestPwChange.mutate()}
+              disabled={requestPwChange.isPending || !currentPassword || !pwStrong || !pwMatch}
+              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              className="gap-1.5 w-full"
+              data-testid="button-request-pw-change"
+            >
+              {requestPwChange.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+              Send Confirmation Code
+            </Button>
+            <p className="text-[11px] leading-relaxed" style={{ color: tc.mutedText }}>
+              We'll email a one-time code to <strong>{advisor.email}</strong> to confirm the change.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="p-3 rounded-lg" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+              <p className="text-xs" style={{ color: tc.textColor }}>
+                We sent a 6-digit code to <strong>{advisor.email}</strong>. Enter it below to confirm your new password.
+              </p>
+            </div>
+            <div className="space-y-1.5">
+              <div style={fieldLabel}>Confirmation Code</div>
+              <Input
+                value={pwOtp}
+                onChange={(e) => setPwOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                placeholder="000000"
+                className="text-center tracking-widest text-lg font-mono"
+                style={inputStyle}
+                data-testid="input-pw-otp"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => { setPwOtpStep(false); setPwOtp(""); }}
+                style={{ borderColor: tc.borderColor, color: tc.mutedText }}
+                data-testid="button-cancel-pw-otp"
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => confirmPwChange.mutate()}
+                disabled={confirmPwChange.isPending || pwOtp.length !== 6}
+                style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                className="gap-1.5"
+                data-testid="button-confirm-pw-change"
+              >
+                {confirmPwChange.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />}
+                Confirm
+              </Button>
+            </div>
+          </>
+        )}
+      </Section>
+    </div>
+  );
+}
+
 function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
@@ -4387,7 +4775,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles" | "platforms">("toolbox");
+  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings">("toolbox");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -4437,7 +4825,9 @@ export default function AdvisorPanel() {
     );
   }
 
-  const tc = getThemeColors(advisor.theme);
+  // Sub-Control Panel uses panelTheme (separate from public Contact Card theme)
+  const panelThemeKey = (advisor as any).panelTheme || advisor.theme;
+  const tc = getThemeColors(panelThemeKey);
 
   if (authState === "login") {
     return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;
@@ -4458,6 +4848,7 @@ export default function AdvisorPanel() {
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
     { key: "platforms" as const, label: "Platforms", icon: Globe },
+    { key: "settings" as const, label: "Settings", icon: Settings },
   ];
 
   return (
@@ -4526,6 +4917,7 @@ export default function AdvisorPanel() {
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
           {activeTab === "platforms" && <PlatformsTab tc={tc} />}
+          {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
         </div>
       </div>
     </div>

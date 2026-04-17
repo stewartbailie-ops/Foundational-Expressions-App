@@ -60,6 +60,14 @@ const upload = multer({
   },
 });
 
+const pdfUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    cb(null, file.mimetype === "application/pdf");
+  },
+});
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -101,6 +109,15 @@ export async function registerRoutes(
     const base64 = req.file.buffer.toString("base64");
     const url = `data:${req.file.mimetype};base64,${base64}`;
     res.json({ url });
+  });
+
+  app.post("/api/upload/fais", pdfUpload.single("file"), async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: "PDF required (max 10MB)" });
+    }
+    const base64 = req.file.buffer.toString("base64");
+    const url = `data:application/pdf;base64,${base64}`;
+    res.json({ url, filename: req.file.originalname });
   });
 
   app.get("/api/dashboard/stats", async (_req, res) => {
@@ -723,6 +740,68 @@ export async function registerRoutes(
         </div>`
       );
     } catch { return res.status(500).json({ message: "Failed to resend code." }); }
+    res.json({ success: true });
+  });
+
+  // Request password change — verify current password, send OTP, stash pending hash
+  app.post("/api/advisor-auth/:slug/request-password-change", async (req, res) => {
+    if (!(req.session as any)?.[`advisor_${req.params.slug}`]) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) return res.status(400).json({ message: "Both current and new password required" });
+    if (newPassword.length < 10) return res.status(400).json({ message: "New password must be at least 10 characters" });
+    if (!/[A-Z]/.test(newPassword) || !/[a-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      return res.status(400).json({ message: "Password must contain upper-case, lower-case and a number" });
+    }
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor || !advisor.advisorPasswordHash) return res.status(404).json({ message: "Advisor not found" });
+    const valid = await bcrypt.compare(currentPassword, advisor.advisorPasswordHash);
+    if (!valid) return res.status(401).json({ message: "Current password is incorrect" });
+    const newHash = await bcrypt.hash(newPassword, 10);
+    const code = generateOtp();
+    otpStore.set(`pwchange_${req.params.slug}`, { code, expires: Date.now() + 10 * 60 * 1000 });
+    (req.session as any)[`pwchange_${req.params.slug}`] = newHash;
+    try {
+      await sendEmail(
+        advisor.email!,
+        "Confirm your password change",
+        `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
+          <h2 style="color:#4a8db5;margin-bottom:8px;">Confirm Password Change</h2>
+          <p style="color:#555;margin-bottom:8px;">Hi ${advisor.name},</p>
+          <p style="color:#555;margin-bottom:24px;">Use the code below to confirm the change to your control panel password:</p>
+          <div style="background:#f5f7fa;border-radius:12px;padding:24px;text-align:center;letter-spacing:8px;font-size:36px;font-weight:bold;color:#1a1a1a;">${code}</div>
+          <p style="color:#999;font-size:12px;margin-top:24px;">Code expires in 10 minutes. If you didn't request this, sign in and change your password immediately.</p>
+        </div>`
+      );
+    } catch (err) {
+      console.error("Password change email error:", err);
+      return res.status(500).json({ message: "Failed to send confirmation email." });
+    }
+    res.json({ success: true });
+  });
+
+  // Confirm password change — apply OTP + pending hash
+  app.post("/api/advisor-auth/:slug/confirm-password-change", async (req, res) => {
+    if (!(req.session as any)?.[`advisor_${req.params.slug}`]) {
+      return res.status(401).json({ message: "Not authenticated" });
+    }
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: "Code required" });
+    const entry = otpStore.get(`pwchange_${req.params.slug}`);
+    const pendingHash = (req.session as any)[`pwchange_${req.params.slug}`];
+    if (!entry || !pendingHash) return res.status(400).json({ message: "No pending password change. Please start again." });
+    if (Date.now() > entry.expires) {
+      otpStore.delete(`pwchange_${req.params.slug}`);
+      delete (req.session as any)[`pwchange_${req.params.slug}`];
+      return res.status(400).json({ message: "Code expired. Please start again." });
+    }
+    if (entry.code !== code.trim()) return res.status(400).json({ message: "Incorrect code." });
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    await storage.updateAdvisor(advisor.id, { advisorPasswordHash: pendingHash });
+    otpStore.delete(`pwchange_${req.params.slug}`);
+    delete (req.session as any)[`pwchange_${req.params.slug}`];
     res.json({ success: true });
   });
 

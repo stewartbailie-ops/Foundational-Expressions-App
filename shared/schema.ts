@@ -124,13 +124,28 @@ export const advisors = pgTable("advisors", {
   advisorPasswordHash: text("advisor_password_hash"),
   advisorPasswordSet: boolean("advisor_password_set").default(false),
   advisorEmailVerified: boolean("advisor_email_verified").default(false),
+  advisorCode: text("advisor_code"),
+  faisAgreementUrl: text("fais_agreement_url"),
+  tosAcceptedAt: timestamp("tos_accepted_at"),
+  subscriptionTier: text("subscription_tier").default("trial"),
+  panelTheme: text("panel_theme").default("blue"),
+  panelThemeColor: text("panel_theme_color").default("#4a8db5"),
+  panelBackgroundStyle: integer("panel_background_style").default(1),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const SUBSCRIPTION_TIERS = [
+  { value: "trial", label: "Trial", description: "Free 30-day evaluation period to explore all features.", price: "Free" },
+  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R299/mo" },
+  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R599/mo" },
+] as const;
+
 export const insertAdvisorSchema = createInsertSchema(advisors).omit({
   id: true,
   createdAt: true,
+}).extend({
+  tosAcceptedAt: z.coerce.date().nullable().optional(),
 });
 export type InsertAdvisor = z.infer<typeof insertAdvisorSchema>;
 export type Advisor = typeof advisors.$inferSelect;
