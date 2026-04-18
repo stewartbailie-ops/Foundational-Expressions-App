@@ -732,8 +732,12 @@ export default function AdvisorProfile() {
 
   const profileSectionOrder = useMemo<string[]>(() => {
     const raw = (advisor as any)?.profileSectionOrder as string | null | undefined;
-    if (raw) return raw.split(",").filter(Boolean);
-    return [...DEFAULT_PROFILE_SECTION_ORDER];
+    const saved = raw ? raw.split(",").filter(Boolean) : [...DEFAULT_PROFILE_SECTION_ORDER];
+    // Ensure any default keys missing from the saved order are appended,
+    // so newly-added sections (moneyweb, media, astute, etc.) still render
+    // for advisors whose stored order pre-dates them.
+    const missing = DEFAULT_PROFILE_SECTION_ORDER.filter(k => !saved.includes(k));
+    return [...saved, ...missing];
   }, [(advisor as any)?.profileSectionOrder]);
 
   if (isLoading) {

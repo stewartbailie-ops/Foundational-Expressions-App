@@ -31,32 +31,30 @@ export default function HomePage() {
     },
   ];
 
+  const CARD_BG = "rgba(255,255,255,0.05)";
+  const CARD_BORDER = "rgba(255,255,255,0.12)";
+
   return (
     <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="text-center pt-4 pb-2">
-        <h1 className="text-4xl font-bold tracking-tight text-primary">Control Panel</h1>
-        <p className="text-muted-foreground mt-3 text-base max-w-xl mx-auto">
+        <h1 className="text-4xl font-bold tracking-tight text-white">Control Panel</h1>
+        <p className="mt-3 text-base max-w-xl mx-auto" style={{ color: "rgba(255,255,255,0.6)" }}>
           Your central hub for managing advisor profiles, tracking referrals, and monitoring activity.
         </p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-3xl mx-auto">
-        <div className="bg-primary rounded-xl p-5 text-center">
-          <div className="text-3xl font-bold text-white" data-testid="home-stat-emails">{stats?.totalEmails ?? 0}</div>
-          <div className="text-xs text-white/60 mt-1 font-medium uppercase tracking-wide">Emails</div>
-        </div>
-        <div className="bg-primary rounded-xl p-5 text-center">
-          <div className="text-3xl font-bold text-white" data-testid="home-stat-accesses">{stats?.totalAccesses ?? 0}</div>
-          <div className="text-xs text-white/60 mt-1 font-medium uppercase tracking-wide">Accesses</div>
-        </div>
-        <div className="bg-primary rounded-xl p-5 text-center">
-          <div className="text-3xl font-bold text-white" data-testid="home-stat-referrals">{stats?.totalReferrals ?? 0}</div>
-          <div className="text-xs text-white/60 mt-1 font-medium uppercase tracking-wide">Referrals</div>
-        </div>
-        <div className="bg-primary rounded-xl p-5 text-center">
-          <div className="text-3xl font-bold text-white" data-testid="home-stat-advisors">{stats?.activeAdvisors ?? 0}</div>
-          <div className="text-xs text-white/60 mt-1 font-medium uppercase tracking-wide">Active Advisors</div>
-        </div>
+        {[
+          { label: "Emails", value: stats?.totalEmails ?? 0, testid: "home-stat-emails" },
+          { label: "Accesses", value: stats?.totalAccesses ?? 0, testid: "home-stat-accesses" },
+          { label: "Referrals", value: stats?.totalReferrals ?? 0, testid: "home-stat-referrals" },
+          { label: "Active Advisors", value: stats?.activeAdvisors ?? 0, testid: "home-stat-advisors" },
+        ].map((s) => (
+          <div key={s.label} className="rounded-xl p-5 text-center" style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_BORDER}` }}>
+            <div className="text-3xl font-bold text-white" data-testid={s.testid}>{s.value}</div>
+            <div className="text-xs mt-1 font-medium uppercase tracking-wide" style={{ color: "rgba(255,255,255,0.55)" }}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
@@ -64,18 +62,19 @@ export default function HomePage() {
           <Link
             key={link.href}
             href={link.href}
-            className="group flex items-start gap-4 p-5 rounded-xl border border-primary/20 bg-white hover:bg-primary hover:text-white transition-all duration-300 cursor-pointer"
+            className="group flex items-start gap-4 p-5 rounded-xl text-white transition-all duration-300 cursor-pointer hover:bg-white hover:text-black"
+            style={{ backgroundColor: CARD_BG, border: `1px solid ${CARD_BORDER}` }}
             data-testid={`home-link-${link.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
           >
-            <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 group-hover:bg-white/15 flex items-center justify-center transition-colors">
-              <link.icon className="h-5 w-5 text-primary group-hover:text-white transition-colors" />
+            <div className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors" style={{ backgroundColor: "rgba(255,255,255,0.08)" }}>
+              <link.icon className="h-5 w-5 text-white group-hover:text-black transition-colors" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-sm flex items-center gap-2">
                 {link.label}
                 <ArrowRight className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-              <p className="text-xs mt-1 text-black/50 group-hover:text-white/60 transition-colors leading-relaxed">
+              <p className="text-xs mt-1 leading-relaxed transition-colors" style={{ color: "rgba(255,255,255,0.55)" }}>
                 {link.description}
               </p>
             </div>

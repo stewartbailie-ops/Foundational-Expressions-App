@@ -1689,35 +1689,26 @@ function getThemeLabel(theme: string) {
 
 function ProfileCard({
   profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
-  name, profilePicUrl, notes, onSaveNotes,
+  name, profilePicUrl,
 }: {
   profileSlug: string; title: string; theme: string; tc: ReturnType<typeof getThemeColors>;
   label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
   nickname?: string; profileDesc?: string;
-  name: string; profilePicUrl?: string | null; notes?: string | null;
-  onSaveNotes: (n: string) => void;
+  name: string; profilePicUrl?: string | null;
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const [notesDraft, setNotesDraft] = useState(notes || "");
-  const [notesDirty, setNotesDirty] = useState(false);
   const url = `advisoryconnect.pro/${profileSlug}`;
   const themeBg = getThemeColors(theme).cardBg;
   const themeAccent = getThemeColors(theme).accentColor;
   const initials = getInitials(name);
+  const hasAdminNotes = !!(nickname || profileDesc);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`https://${url}`).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }).catch(() => toast({ title: "Copy failed", variant: "destructive" }));
-  };
-
-  const handleNotesBlur = () => {
-    if (notesDirty && notesDraft !== (notes || "")) {
-      onSaveNotes(notesDraft);
-      setNotesDirty(false);
-    }
   };
 
   return (
@@ -1746,18 +1737,18 @@ function ProfileCard({
         <div className="flex flex-col gap-2 min-w-0">
           {/* Top row: A2 notes (wide) + A1 badge (small) */}
           <div className="grid grid-cols-[1fr_auto] gap-2">
-            <div className="rounded-lg p-1.5" style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66` }}>
+            <div className="rounded-lg p-1.5 min-h-[58px]" style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66` }}>
               <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Admin Notes</div>
-              <textarea
-                value={notesDraft}
-                onChange={(e) => { setNotesDraft(e.target.value); setNotesDirty(true); }}
-                onBlur={handleNotesBlur}
-                placeholder="Add notes…"
-                rows={2}
-                className="w-full bg-transparent text-[11px] resize-none outline-none placeholder:text-white/40"
-                style={{ color: "#fff" }}
-                data-testid={`textarea-notes-${profileSlug}`}
-              />
+              {hasAdminNotes ? (
+                <div className="text-[11px] leading-snug" style={{ color: "#fff" }} data-testid={`text-notes-${profileSlug}`}>
+                  {nickname && <div className="font-semibold truncate">"{nickname}"</div>}
+                  {profileDesc && <div className="italic line-clamp-2 mt-0.5" style={{ color: "rgba(255,255,255,0.85)" }}>{profileDesc}</div>}
+                </div>
+              ) : (
+                <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.5)" }}>
+                  Add a nickname &amp; description in Edit Profile.
+                </div>
+              )}
             </div>
             <div className="flex items-start">
               <span
@@ -1800,8 +1791,6 @@ function ProfileCard({
         <div className="text-[10px] truncate font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>
           {url} · {title} · {getThemeLabel(theme)}
         </div>
-        {nickname && <div className="text-[10px] italic mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>"{nickname}"</div>}
-        {profileDesc && <div className="text-[10px] italic mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>{profileDesc}</div>}
       </div>
 
       {/* A6 — Edit Profile (full width) */}
@@ -4789,32 +4778,6 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const savePrimaryNotesMutation = useMutation({
-    mutationFn: async (notes: string) => {
-      const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}`, { notes });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to save notes"); }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/advisors/slug/${advisor.profileSlug}`] });
-      toast({ title: "Notes saved" });
-    },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
-  const saveSecondaryNotesMutation = useMutation({
-    mutationFn: async ({ profileId, notes }: { profileId: number; notes: string }) => {
-      const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}/profiles/${profileId}`, { notes });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to save notes"); }
-      return res.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisor.id}/profiles`] });
-      toast({ title: "Notes saved" });
-    },
-    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
-  });
-
   const totalProfiles = 1 + additionalProfiles.length;
   const canAddMore = totalProfiles < 2 && !showNewForm;
 
@@ -4837,8 +4800,8 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         isPrimary={true}
         name={advisor.name}
         profilePicUrl={advisor.profilePicUrl}
-        notes={(advisor as any).notes}
-        onSaveNotes={(n) => savePrimaryNotesMutation.mutate(n)}
+        nickname={(advisor as any).nickname}
+        profileDesc={(advisor as any).profileDescription}
         onEditClick={() => setEditingPrimary(v => !v)}
       />
 
@@ -4878,8 +4841,6 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             profileDesc={(profile as any).profileDescription}
             name={advisor.name}
             profilePicUrl={profile.profilePicUrl}
-            notes={(profile as any).notes}
-            onSaveNotes={(n) => saveSecondaryNotesMutation.mutate({ profileId: profile.id, notes: n })}
             onEditClick={() => setEditingProfileId(profile.id)}
             onDeleteClick={() => {
               if (window.confirm("Delete Secondary Profile? This cannot be undone.")) {
