@@ -4612,7 +4612,7 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           size="sm"
           onClick={() => saveMutation.mutate({ name, title, contactNumber: contactNumber || null, profilePicUrl } as any)}
           disabled={saveMutation.isPending || !name.trim()}
-          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
           className="gap-1.5 w-full"
           data-testid="button-save-personal"
         >
@@ -4663,7 +4663,7 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           size="sm"
           onClick={() => saveMutation.mutate({ advisorCode: advisorCode || null, faisAgreementUrl } as any)}
           disabled={saveMutation.isPending}
-          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
           className="gap-1.5 w-full"
           data-testid="button-save-fa-details"
         >
@@ -4706,7 +4706,7 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           size="sm"
           onClick={() => saveMutation.mutate({ panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor } as any)}
           disabled={saveMutation.isPending}
-          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
           className="gap-1.5 w-full"
           data-testid="button-save-panel-theme"
         >
@@ -4744,7 +4744,7 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
               size="sm"
               onClick={() => requestPwChange.mutate()}
               disabled={requestPwChange.isPending || !currentPassword || !pwStrong || !pwMatch}
-              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
               className="gap-1.5 w-full"
               data-testid="button-request-pw-change"
             >
@@ -4787,7 +4787,7 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
                 size="sm"
                 onClick={() => confirmPwChange.mutate()}
                 disabled={confirmPwChange.isPending || pwOtp.length !== 6}
-                style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
                 className="gap-1.5"
                 data-testid="button-confirm-pw-change"
               >
