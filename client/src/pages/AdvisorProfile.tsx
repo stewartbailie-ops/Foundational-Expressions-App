@@ -1783,9 +1783,24 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        <p className="text-center text-xs pt-4 pb-2" style={{ color: mutedText }}>
-          {t.poweredBy}
-        </p>
+        <div className="text-center pt-4 pb-2 space-y-1">
+          <p className="text-xs" style={{ color: mutedText }}>
+            {t.poweredBy}
+          </p>
+          <p className="text-xs" style={{ color: mutedText }}>
+            Elevate your professional presence —{" "}
+            <a
+              href="https://www.advisoryconnect.pro"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline font-medium"
+              style={{ color: themeAccent }}
+              data-testid="link-advisoryconnect"
+            >
+              www.advisoryconnect.pro
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
