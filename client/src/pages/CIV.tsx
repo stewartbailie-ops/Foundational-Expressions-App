@@ -42,23 +42,23 @@ type EmailRow = {
 };
 
 const gradeStyles: Record<string, string> = {
-  Gold: "bg-yellow-500/20 text-yellow-300 border-yellow-400/40",
-  Silver: "bg-white/10 text-gray-200 border-white/25",
-  Bronze: "bg-orange-500/20 text-orange-300 border-orange-400/40",
-  Development: "bg-sky-500/20 text-sky-300 border-sky-400/40",
+  Gold: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
+  Silver: "bg-gray-300/20 text-gray-600 border-gray-400/30",
+  Bronze: "bg-orange-500/15 text-orange-700 border-orange-500/30",
+  Development: "bg-blue-500/15 text-blue-700 border-blue-500/30",
 };
 
 const gradeDot: Record<string, string> = {
-  Gold: "bg-yellow-400",
-  Silver: "bg-gray-300",
-  Bronze: "bg-orange-400",
-  Development: "bg-sky-400",
+  Gold: "bg-yellow-500",
+  Silver: "bg-gray-400",
+  Bronze: "bg-orange-500",
+  Development: "bg-blue-500",
 };
 
 const statusStyles: Record<string, string> = {
-  "Need to Contact": "bg-amber-500/20 text-amber-300 border-amber-400/40",
-  "Contacted": "bg-emerald-500/20 text-emerald-300 border-emerald-400/40",
-  "Archive": "bg-white/8 text-gray-300 border-white/20",
+  "Need to Contact": "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  "Contacted": "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  "Archive": "bg-gray-200/60 text-gray-500 border-gray-300/40",
 };
 
 const statusDot: Record<string, string> = {
@@ -70,7 +70,7 @@ const statusDot: Record<string, string> = {
 function BoolBadge({ value, label }: { value: boolean | null; label: string }) {
   if (value === null || value === undefined) return null;
   return (
-    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${value ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/40" : "bg-white/5 text-white/50 border-white/15"}`}>
+    <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${value ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
       {value ? <Check className="h-3 w-3" /> : <X className="h-3 w-3" />}
       {label}
     </span>
@@ -269,14 +269,11 @@ export default function CIV() {
         )}
       </div>
 
-      <Card
-        className="overflow-hidden border-0 text-white"
-        style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
-      >
+      <Card className="border-border shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-              <TableRow className="hover:bg-transparent" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="border-border hover:bg-transparent">
                 <TableHead className="w-[60px]">ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
@@ -304,8 +301,7 @@ export default function CIV() {
                 filtered.map((email) => (
                   <Fragment key={email.id}>
                     <TableRow
-                      className="hover:bg-white/[0.04] transition-colors cursor-pointer"
-                      style={{ borderColor: "rgba(255,255,255,0.08)" }}
+                      className="border-border hover:bg-muted/50 transition-colors cursor-pointer"
                       data-testid={`row-email-${email.id}`}
                       onClick={() => {
                         const opening = expandedId !== email.id;

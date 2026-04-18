@@ -136,14 +136,11 @@ export default function ManageAdvisors() {
         </div>
       </div>
 
-      <Card
-        className="overflow-hidden border-0 text-white"
-        style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
-      >
+      <Card className="border-border overflow-hidden">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
-              <TableRow className="hover:bg-transparent" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
+            <TableHeader className="bg-muted/50">
+              <TableRow className="border-border hover:bg-transparent">
                 <TableHead>Advisor Profile</TableHead>
                 <TableHead>Custom Email</TableHead>
                 <TableHead>Entity Type</TableHead>
@@ -165,7 +162,7 @@ export default function ManageAdvisors() {
                 </TableRow>
               ) : (
                 filtered.map((advisor) => (
-                  <TableRow key={advisor.id} className="hover:bg-white/[0.03]" style={{ borderColor: "rgba(255,255,255,0.08)" }} data-testid={`row-advisor-${advisor.id}`}>
+                  <TableRow key={advisor.id} className="border-border" data-testid={`row-advisor-${advisor.id}`}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs shrink-0">
