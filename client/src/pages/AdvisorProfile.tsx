@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss } from "lucide-react";
 import type { Advisor } from "@shared/schema";
-import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER } from "@shared/schema";
+import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 
 function getInitials(name: string): string {
@@ -594,6 +594,61 @@ function MoneywebTicker({ cardBg, borderColor, accentColor, textColor, mutedText
           <span className="text-xs" style={{ color: accentColor }}>Read on MoneyWeb</span>
         </div>
       </a>
+    </div>
+  );
+}
+
+function EmergencyContactsSection({ tc, accentColor, mutedText, t }: {
+  tc: ReturnType<typeof getThemeColors>; accentColor: string; mutedText: string; t: any;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string>("");
+  const selected = EMERGENCY_CONTACTS.find(c => c.key === selectedKey);
+
+  return (
+    <div data-testid="section-emergency-contacts">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+        style={{ backgroundColor: "#dc2626", color: "#fff" }}
+        data-testid="button-emergency-contacts"
+      >
+        <AlertCircle className="h-4 w-4" /> Emergency Contacts
+        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+
+      {open && (
+        <div
+          className="mt-2 rounded-xl p-3 space-y-2"
+          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+        >
+          <p className="text-xs" style={{ color: mutedText }}>
+            Select an emergency contact to dial directly from your phone.
+          </p>
+          <select
+            value={selectedKey}
+            onChange={(e) => setSelectedKey(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
+            data-testid="select-emergency-contact"
+          >
+            <option value="">— Choose an emergency service —</option>
+            {EMERGENCY_CONTACTS.map(c => (
+              <option key={c.key} value={c.key}>{c.label}</option>
+            ))}
+          </select>
+          {selected && (
+            <a
+              href={`tel:${selected.number}`}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+              style={{ backgroundColor: "#dc2626", color: "#fff" }}
+              data-testid={`button-call-${selected.key}`}
+            >
+              <Phone className="h-4 w-4" /> Call {selected.number}
+            </a>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1614,6 +1669,11 @@ export default function AdvisorProfile() {
             sectionMap[key] ? <Fragment key={key}>{sectionMap[key]}</Fragment> : null
           );
         })()}
+
+        {/* Emergency Contacts — fixed position, not in section ordering */}
+        {!!(advisor as any).showEmergencyContacts && (
+          <EmergencyContactsSection tc={tc} accentColor={accentColor} mutedText={mutedText} t={t} />
+        )}
 
         {/* Documents — fixed position, not in section ordering */}
         {(advisor as any).showDocuments && (

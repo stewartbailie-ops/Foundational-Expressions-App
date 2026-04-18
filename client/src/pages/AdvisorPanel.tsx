@@ -1038,6 +1038,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolCgt, setShowToolCgt] = useState(!!(advisor as any).showToolCgt);
   const [showToolVehicle, setShowToolVehicle] = useState(!!(advisor as any).showToolVehicle);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
+  const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
     const raw = (advisor as any).profileSectionOrder as string | null;
     if (raw) return raw.split(",").filter(Boolean);
@@ -1105,6 +1106,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolCgt,
         showToolVehicle,
         patternOpacity,
+        showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
         nickname: nickname || null,
         profileDescription: profileDescription || null,
@@ -1519,6 +1521,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
+          { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -1686,14 +1689,22 @@ function getThemeLabel(theme: string) {
 
 function ProfileCard({
   profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
+  name, profilePicUrl, notes, onSaveNotes,
 }: {
   profileSlug: string; title: string; theme: string; tc: ReturnType<typeof getThemeColors>;
   label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
   nickname?: string; profileDesc?: string;
+  name: string; profilePicUrl?: string | null; notes?: string | null;
+  onSaveNotes: (n: string) => void;
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
+  const [notesDraft, setNotesDraft] = useState(notes || "");
+  const [notesDirty, setNotesDirty] = useState(false);
   const url = `advisoryconnect.pro/${profileSlug}`;
+  const themeBg = getThemeColors(theme).cardBg;
+  const themeAccent = getThemeColors(theme).accentColor;
+  const initials = getInitials(name);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`https://${url}`).then(() => {
@@ -1702,40 +1713,115 @@ function ProfileCard({
     }).catch(() => toast({ title: "Copy failed", variant: "destructive" }));
   };
 
+  const handleNotesBlur = () => {
+    if (notesDirty && notesDraft !== (notes || "")) {
+      onSaveNotes(notesDraft);
+      setNotesDirty(false);
+    }
+  };
+
   return (
-    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>{label}</span>
-          {nickname && <span className="ml-2 text-xs font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>"{nickname}"</span>}
+    <div
+      className="rounded-2xl p-3 space-y-3"
+      style={{
+        background: `linear-gradient(135deg, ${themeBg}, ${themeAccent}33)`,
+        border: `2px solid ${themeAccent}`,
+      }}
+    >
+      <div className="grid grid-cols-[1fr_1.2fr] gap-3">
+        {/* A3 — Profile Picture (large square, left) */}
+        <div
+          className="aspect-square rounded-xl overflow-hidden flex items-center justify-center"
+          style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${themeAccent}66` }}
+          data-testid={`pic-profile-${profileSlug}`}
+        >
+          {profilePicUrl ? (
+            <img src={profilePicUrl} alt={name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="text-3xl font-bold" style={{ color: "#fff" }}>{initials}</div>
+          )}
         </div>
-        {isPrimary && (
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Primary</span>
-        )}
+
+        {/* Right column */}
+        <div className="flex flex-col gap-2 min-w-0">
+          {/* Top row: A2 notes (wide) + A1 badge (small) */}
+          <div className="grid grid-cols-[1fr_auto] gap-2">
+            <div className="rounded-lg p-1.5" style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66` }}>
+              <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Admin Notes</div>
+              <textarea
+                value={notesDraft}
+                onChange={(e) => { setNotesDraft(e.target.value); setNotesDirty(true); }}
+                onBlur={handleNotesBlur}
+                placeholder="Add notes…"
+                rows={2}
+                className="w-full bg-transparent text-[11px] resize-none outline-none placeholder:text-white/40"
+                style={{ color: "#fff" }}
+                data-testid={`textarea-notes-${profileSlug}`}
+              />
+            </div>
+            <div className="flex items-start">
+              <span
+                className="text-[10px] px-2 py-1 rounded-full font-semibold whitespace-nowrap"
+                style={{ backgroundColor: "#fff", color: themeAccent }}
+              >
+                {isPrimary ? "Primary" : "Secondary"}
+              </span>
+            </div>
+          </div>
+
+          {/* Middle row: A4 Copy/Share + A5 View Profile */}
+          <div className="grid grid-cols-2 gap-2 flex-1">
+            <button
+              onClick={handleCopy}
+              className="rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66`, color: "#fff" }}
+              data-testid={`button-copy-${profileSlug}`}
+            >
+              {copied ? <Check className="h-4 w-4" style={{ color: "#22c55e" }} /> : <Copy className="h-4 w-4" />}
+              <span className="text-[10px] font-medium leading-tight text-center">{copied ? "Copied!" : "Copy / Share"}</span>
+            </button>
+            <a
+              href={`/${profileSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-80"
+              style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66`, color: "#fff" }}
+              data-testid={`button-view-${profileSlug}`}
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="text-[10px] font-medium leading-tight text-center">View Profile</span>
+            </a>
+          </div>
+        </div>
       </div>
-      {profileDesc && <p className="text-xs italic" style={{ color: tc.mutedText }}>{profileDesc}</p>}
-      <div className="flex items-center gap-2">
-        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: getThemeDot(theme) }} />
-        <span className="text-xs" style={{ color: tc.mutedText }}>{title} · {getThemeLabel(theme)}</span>
+
+      {/* Slug under cover */}
+      <div className="px-1">
+        <div className="text-[10px] truncate font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>
+          {url} · {title} · {getThemeLabel(theme)}
+        </div>
+        {nickname && <div className="text-[10px] italic mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>"{nickname}"</div>}
+        {profileDesc && <div className="text-[10px] italic mt-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>{profileDesc}</div>}
       </div>
-      <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
-        <span className="text-xs flex-1 truncate font-mono" style={{ color: tc.textColor }}>{url}</span>
-        <button onClick={handleCopy} title="Copy profile link" className="transition-opacity hover:opacity-70" data-testid={`button-copy-${profileSlug}`}>
-          {copied ? <Check className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#22c55e" }} /> : <Copy className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.accentColor }} />}
-        </button>
-        <a href={`/${profileSlug}`} target="_blank" rel="noopener noreferrer" title="View profile">
-          <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.accentColor }} />
-        </a>
-      </div>
+
+      {/* A6 — Edit Profile (full width) */}
       <div className="flex gap-2">
-        <button onClick={onEditClick} className="flex-1 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
-          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
-          Edit
+        <button
+          onClick={onEditClick}
+          className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "#fff", color: themeAccent }}
+          data-testid={`button-edit-${profileSlug}`}
+        >
+          Edit Profile
         </button>
         {!isPrimary && onDeleteClick && (
-          <button onClick={onDeleteClick} className="px-3 py-2 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
-            style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}>
-            <Trash2 className="h-3.5 w-3.5" />
+          <button
+            onClick={onDeleteClick}
+            className="px-4 py-3 rounded-xl text-sm font-medium transition-opacity hover:opacity-80"
+            style={{ backgroundColor: "rgba(239,68,68,0.9)", color: "#fff" }}
+            data-testid={`button-delete-${profileSlug}`}
+          >
+            <Trash2 className="h-4 w-4" />
           </button>
         )}
       </div>
@@ -1796,6 +1882,7 @@ function AdditionalProfileForm({
   const [showToolVehicle, setShowToolVehicle] = useState(!!(existingProfile as any)?.showToolVehicle);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
+  const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
 
   const isEditing = !!existingProfile;
@@ -1847,6 +1934,7 @@ function AdditionalProfileForm({
         showToolVehicle,
         showMoneywebFeed,
         patternOpacity,
+        showEmergencyContacts,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
         active: true,
@@ -2111,6 +2199,7 @@ function AdditionalProfileForm({
             { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
             { label: "Financial Tools Section", value: showTools, set: setShowTools },
+            { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -4700,6 +4789,32 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const savePrimaryNotesMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}`, { notes });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to save notes"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/slug/${advisor.profileSlug}`] });
+      toast({ title: "Notes saved" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const saveSecondaryNotesMutation = useMutation({
+    mutationFn: async ({ profileId, notes }: { profileId: number; notes: string }) => {
+      const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}/profiles/${profileId}`, { notes });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || "Failed to save notes"); }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisor.id}/profiles`] });
+      toast({ title: "Notes saved" });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
   const totalProfiles = 1 + additionalProfiles.length;
   const canAddMore = totalProfiles < 2 && !showNewForm;
 
@@ -4720,6 +4835,10 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         tc={tc}
         label="Primary"
         isPrimary={true}
+        name={advisor.name}
+        profilePicUrl={advisor.profilePicUrl}
+        notes={(advisor as any).notes}
+        onSaveNotes={(n) => savePrimaryNotesMutation.mutate(n)}
         onEditClick={() => setEditingPrimary(v => !v)}
       />
 
@@ -4757,6 +4876,10 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             isPrimary={false}
             nickname={(profile as any).nickname}
             profileDesc={(profile as any).profileDescription}
+            name={advisor.name}
+            profilePicUrl={profile.profilePicUrl}
+            notes={(profile as any).notes}
+            onSaveNotes={(n) => saveSecondaryNotesMutation.mutate({ profileId: profile.id, notes: n })}
             onEditClick={() => setEditingProfileId(profile.id)}
             onDeleteClick={() => {
               if (window.confirm("Delete Secondary Profile? This cannot be undone.")) {

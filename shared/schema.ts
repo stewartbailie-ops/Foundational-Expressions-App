@@ -52,6 +52,8 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   showMoneywebFeed: boolean("show_moneyweb_feed").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
+  notes: text("notes"),
+  showEmergencyContacts: boolean("show_emergency_contacts").default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -131,6 +133,8 @@ export const advisors = pgTable("advisors", {
   panelTheme: text("panel_theme").default("blue"),
   panelThemeColor: text("panel_theme_color").default("#4a8db5"),
   panelBackgroundStyle: integer("panel_background_style").default(1),
+  notes: text("notes"),
+  showEmergencyContacts: boolean("show_emergency_contacts").default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -246,6 +250,18 @@ export const CORPORATE_SERVICES = [
     name: "Corporate Short-Term Insurance",
     description: "Tailored coverage for company vehicles, equipment, offices, and facilities, with competitive premiums and comprehensive protection.",
   },
+] as const;
+
+export const EMERGENCY_CONTACTS = [
+  { key: "police",    label: "Police (Immediate Danger)",      number: "10111" },
+  { key: "ambulance", label: "Ambulance (Medical Emergencies)", number: "10177" },
+  { key: "fire",      label: "Fire (Fire Outbreaks)",           number: "10177" },
+  { key: "childline", label: "Childline Support",               number: "0800055555" },
+  { key: "domestic",  label: "Domestic Violence",               number: "0800150150" },
+  { key: "lifeline",  label: "Lifeline (Suicide Crisis)",       number: "0861322322" },
+  { key: "gbv",       label: "Gender-Based Violence",           number: "0800428428" },
+  { key: "poison",    label: "Poison Information",              number: "0824468946" },
+  { key: "searescue", label: "National Sea Rescue",             number: "087094977" },
 ] as const;
 
 export const LEAD_STATUS_OPTIONS = ["Need to Contact", "Contacted", "Archive"] as const;
