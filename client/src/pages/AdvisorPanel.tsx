@@ -1699,10 +1699,16 @@ function ProfileCard({
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const url = `advisoryconnect.pro/${profileSlug}`;
-  const themeBg = getThemeColors(theme).cardBg;
   const themeAccent = getThemeColors(theme).accentColor;
+  const badgeColors = getInitialsBadgeColors(theme);
   const initials = getInitials(name);
   const hasAdminNotes = !!(nickname || profileDesc);
+  // Inner contrast palette — always dark surface + white text inside the card,
+  // regardless of the host control-panel theme, so buttons & notes stay legible.
+  const innerBg = "rgba(0,0,0,0.55)";
+  const innerBorder = "rgba(255,255,255,0.18)";
+  const innerText = "#ffffff";
+  const innerMuted = "rgba(255,255,255,0.78)";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(`https://${url}`).then(() => {
@@ -1715,21 +1721,22 @@ function ProfileCard({
     <div
       className="rounded-2xl p-3 space-y-3"
       style={{
-        background: `linear-gradient(135deg, ${themeBg}, ${themeAccent}33)`,
+        background: `linear-gradient(135deg, ${badgeColors.from}, ${badgeColors.to})`,
         border: `2px solid ${themeAccent}`,
+        boxShadow: `0 6px 24px rgba(0,0,0,0.35)`,
       }}
     >
       <div className="grid grid-cols-[1fr_1.2fr] gap-3">
         {/* A3 — Profile Picture (large square, left) */}
         <div
           className="aspect-square rounded-xl overflow-hidden flex items-center justify-center"
-          style={{ backgroundColor: "rgba(255,255,255,0.08)", border: `1px solid ${themeAccent}66` }}
+          style={{ backgroundColor: innerBg, border: `1px solid ${innerBorder}` }}
           data-testid={`pic-profile-${profileSlug}`}
         >
           {profilePicUrl ? (
             <img src={profilePicUrl} alt={name} className="w-full h-full object-cover" />
           ) : (
-            <div className="text-3xl font-bold" style={{ color: "#fff" }}>{initials}</div>
+            <div className="text-3xl font-bold" style={{ color: innerText }}>{initials}</div>
           )}
         </div>
 
@@ -1737,15 +1744,15 @@ function ProfileCard({
         <div className="flex flex-col gap-2 min-w-0">
           {/* Top row: A2 notes (wide) + A1 badge (small) */}
           <div className="grid grid-cols-[1fr_auto] gap-2">
-            <div className="rounded-lg p-1.5 min-h-[58px]" style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66` }}>
-              <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.6)" }}>Admin Notes</div>
+            <div className="rounded-lg p-1.5 min-h-[58px]" style={{ backgroundColor: innerBg, border: `1px solid ${innerBorder}` }}>
+              <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>Admin Notes</div>
               {hasAdminNotes ? (
-                <div className="text-[11px] leading-snug" style={{ color: "#fff" }} data-testid={`text-notes-${profileSlug}`}>
+                <div className="text-[11px] leading-snug" style={{ color: innerText }} data-testid={`text-notes-${profileSlug}`}>
                   {nickname && <div className="font-semibold truncate">"{nickname}"</div>}
-                  {profileDesc && <div className="italic line-clamp-2 mt-0.5" style={{ color: "rgba(255,255,255,0.85)" }}>{profileDesc}</div>}
+                  {profileDesc && <div className="italic line-clamp-2 mt-0.5" style={{ color: innerMuted }}>{profileDesc}</div>}
                 </div>
               ) : (
-                <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.5)" }}>
+                <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.6)" }}>
                   Add a nickname &amp; description in Edit Profile.
                 </div>
               )}
@@ -1753,7 +1760,7 @@ function ProfileCard({
             <div className="flex items-start">
               <span
                 className="text-[10px] px-2 py-1 rounded-full font-semibold whitespace-nowrap"
-                style={{ backgroundColor: "#fff", color: themeAccent }}
+                style={{ backgroundColor: "#ffffff", color: badgeColors.from }}
               >
                 {isPrimary ? "Primary" : "Secondary"}
               </span>
@@ -1765,22 +1772,22 @@ function ProfileCard({
             <button
               onClick={handleCopy}
               className="rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-80"
-              style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66`, color: "#fff" }}
+              style={{ backgroundColor: "#ffffff", color: badgeColors.from, border: `1px solid rgba(255,255,255,0.4)` }}
               data-testid={`button-copy-${profileSlug}`}
             >
-              {copied ? <Check className="h-4 w-4" style={{ color: "#22c55e" }} /> : <Copy className="h-4 w-4" />}
-              <span className="text-[10px] font-medium leading-tight text-center">{copied ? "Copied!" : "Copy / Share"}</span>
+              {copied ? <Check className="h-4 w-4" style={{ color: "#16a34a" }} /> : <Copy className="h-4 w-4" />}
+              <span className="text-[10px] font-bold leading-tight text-center">{copied ? "Copied!" : "Copy / Share"}</span>
             </button>
             <a
               href={`/${profileSlug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg p-2 flex flex-col items-center justify-center gap-1 transition-opacity hover:opacity-80"
-              style={{ backgroundColor: "rgba(0,0,0,0.25)", border: `1px solid ${themeAccent}66`, color: "#fff" }}
+              style={{ backgroundColor: "#ffffff", color: badgeColors.from, border: `1px solid rgba(255,255,255,0.4)` }}
               data-testid={`button-view-${profileSlug}`}
             >
               <ExternalLink className="h-4 w-4" />
-              <span className="text-[10px] font-medium leading-tight text-center">View Profile</span>
+              <span className="text-[10px] font-bold leading-tight text-center">View Profile</span>
             </a>
           </div>
         </div>
@@ -1788,7 +1795,7 @@ function ProfileCard({
 
       {/* Slug under cover */}
       <div className="px-1">
-        <div className="text-[10px] truncate font-mono" style={{ color: "rgba(255,255,255,0.7)" }}>
+        <div className="text-[10px] truncate font-mono" style={{ color: "rgba(255,255,255,0.85)" }}>
           {url} · {title} · {getThemeLabel(theme)}
         </div>
       </div>
@@ -1797,8 +1804,8 @@ function ProfileCard({
       <div className="flex gap-2">
         <button
           onClick={onEditClick}
-          className="flex-1 py-3 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90"
-          style={{ backgroundColor: "#fff", color: themeAccent }}
+          className="flex-1 py-3 rounded-xl text-sm font-bold transition-opacity hover:opacity-90"
+          style={{ backgroundColor: "#ffffff", color: badgeColors.from, border: `2px solid rgba(255,255,255,0.5)` }}
           data-testid={`button-edit-${profileSlug}`}
         >
           Edit Profile
