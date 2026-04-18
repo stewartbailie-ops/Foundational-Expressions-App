@@ -1134,13 +1134,6 @@ export default function AdvisorProfile() {
                 style={{ height: 300 }}
                 data-testid="img-profile-pic"
               />
-              {/* Gradient overlay at bottom */}
-              <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.22) 50%, transparent 100%)" }} />
-              {/* Name + Title overlay */}
-              <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 text-center">
-                <h1 className="text-xl font-bold tracking-wider leading-snug text-white uppercase drop-shadow-md" data-testid="text-advisor-name">{advisor.name}</h1>
-                {advisor.title && <p className="text-sm mt-1 font-medium tracking-wide drop-shadow-md" style={{ color: "rgba(255,255,255,0.88)" }} data-testid="text-advisor-title">{advisor.title}</p>}
-              </div>
             </div>
           ) : (
             <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
@@ -1161,18 +1154,29 @@ export default function AdvisorProfile() {
               style={{ backgroundColor: "#ffffff", borderTop: `1px solid ${tc.borderColor}` }}
               data-testid="section-header-badge"
             >
-              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={48} downloadable={false} name={advisor.name} />
-              <span
-                className="font-bold tracking-widest leading-none truncate uppercase"
-                style={{
-                  color: getInitialsBadgeColors(advisor.theme || "blue").from,
-                  fontSize: 18,
-                  letterSpacing: 3,
-                }}
-                data-testid="text-header-badge-name"
-              >
-                {advisor.name}
-              </span>
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={52} downloadable={false} name={advisor.name} />
+              <div className="flex-1 min-w-0">
+                <div
+                  className="font-bold tracking-widest leading-tight truncate uppercase"
+                  style={{
+                    color: getInitialsBadgeColors(advisor.theme || "blue").from,
+                    fontSize: 17,
+                    letterSpacing: 2.5,
+                  }}
+                  data-testid="text-header-badge-name"
+                >
+                  {advisor.name}
+                </div>
+                {advisor.title && (
+                  <div
+                    className="font-medium leading-tight truncate mt-0.5"
+                    style={{ color: "#444", fontSize: 11, letterSpacing: 0.5 }}
+                    data-testid="text-header-badge-title"
+                  >
+                    {advisor.title}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
