@@ -110,14 +110,14 @@ export default function ManageAdvisors() {
             <div className="text-3xl font-bold" data-testid="text-total-advisors">{advisors.length}</div>
           </CardContent>
         </Card>
-        <Card className="border-border bg-muted/30">
+        <Card className="border-transparent" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "#ffffff" }}>
           <CardContent className="p-6 flex flex-col justify-center h-full relative overflow-hidden group">
-            <div className="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+            <div className="absolute right-0 top-0 p-4 opacity-20 group-hover:opacity-30 transition-opacity">
               <CreditCard className="h-16 w-16" />
             </div>
-            <div className="text-sm font-medium text-muted-foreground mb-1 z-10">Subscription Service</div>
-            <div className="text-sm font-semibold z-10">Coming Soon</div>
-            <p className="text-xs text-muted-foreground mt-2 z-10">Monthly fee management will be added here in a future update.</p>
+            <div className="text-sm font-medium opacity-80 mb-1 z-10">Subscription Service</div>
+            <div className="text-base font-bold z-10">Coming Soon</div>
+            <p className="text-xs opacity-70 mt-2 z-10">Monthly fee management will be added here in a future update.</p>
           </CardContent>
         </Card>
       </div>
@@ -127,7 +127,8 @@ export default function ManageAdvisors() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search advisors by name or email..."
-            className="pl-8 bg-background border-border"
+            className="pl-8 border-0 placeholder:text-white/40 text-white"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-advisors"

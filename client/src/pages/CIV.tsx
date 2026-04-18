@@ -224,7 +224,8 @@ export default function CIV() {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search clients, advisors, referrers..."
-            className="pl-8 bg-background border-border"
+            className="pl-8 border-0 placeholder:text-white/40 text-white"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             data-testid="input-search-civ"
@@ -233,18 +234,24 @@ export default function CIV() {
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Referral" ? "bg-white text-black border-white" : "bg-background border-border hover:bg-muted"
-            }`}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={
+              typeFilter === "Referral"
+                ? { backgroundColor: "#ffffff", color: "#000000", border: "1px solid #ffffff" }
+                : { backgroundColor: "rgba(255,255,255,0.06)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.10)" }
+            }
             data-testid="filter-type-referral"
           >
             Referrals ({typeCounts.Referral})
           </button>
           <button
             onClick={() => setTypeFilter(typeFilter === "Call Back" ? "all" : "Call Back")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Call Back" ? "bg-white text-black border-white" : "bg-background border-border hover:bg-muted"
-            }`}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={
+              typeFilter === "Call Back"
+                ? { backgroundColor: "#ffffff", color: "#000000", border: "1px solid #ffffff" }
+                : { backgroundColor: "rgba(255,255,255,0.06)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.10)" }
+            }
             data-testid="filter-type-callback"
           >
             Call Backs ({typeCounts["Call Back"]})
