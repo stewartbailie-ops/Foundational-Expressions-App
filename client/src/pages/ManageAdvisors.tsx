@@ -104,9 +104,9 @@ export default function ManageAdvisors() {
             </div>
           </CardContent>
         </Card>
-        <Card className="border-border">
+        <Card className="border-transparent" style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}>
           <CardContent className="p-6">
-            <div className="text-sm font-medium text-muted-foreground mb-1">Total Advisors</div>
+            <div className="text-sm font-medium opacity-80 mb-1">Total Advisors</div>
             <div className="text-3xl font-bold" data-testid="text-total-advisors">{advisors.length}</div>
           </CardContent>
         </Card>

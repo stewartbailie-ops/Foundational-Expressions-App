@@ -155,12 +155,11 @@ export type InsertAdvisor = z.infer<typeof insertAdvisorSchema>;
 export type Advisor = typeof advisors.$inferSelect;
 
 export const DEFAULT_PROFILE_SECTION_ORDER = [
-  "headerbadge", "bio", "moneyweb", "individual", "corporate", "socials",
+  "bio", "moneyweb", "individual", "corporate", "socials",
   "callback", "referral", "will", "astute", "media", "tools",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
-  headerbadge: "Header Image",
   bio: "Introduction & Bio",
   moneyweb: "Financial Media",
   individual: "Individual Services",

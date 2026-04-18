@@ -1873,6 +1873,16 @@ function AdditionalProfileForm({
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
+  const [organizingProfile, setOrganizingProfile] = useState(false);
+  const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
+    const raw = (existingProfile as any)?.profileSectionOrder as string | null;
+    const stored = raw ? raw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const merged = [...stored];
+    for (const k of DEFAULT_PROFILE_SECTION_ORDER) if (!merged.includes(k)) merged.push(k);
+    return merged.length ? merged : [...DEFAULT_PROFILE_SECTION_ORDER];
+  });
+  const moveSectionUp = (idx: number) => { if (idx <= 0) return; const a = [...sectionOrder]; [a[idx-1], a[idx]] = [a[idx], a[idx-1]]; setSectionOrder(a); };
+  const moveSectionDown = (idx: number) => { if (idx >= sectionOrder.length - 1) return; const a = [...sectionOrder]; [a[idx+1], a[idx]] = [a[idx], a[idx+1]]; setSectionOrder(a); };
 
   const isEditing = !!existingProfile;
   const slugValid = profileSlug.length > 0 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(profileSlug);
@@ -1926,6 +1936,7 @@ function AdditionalProfileForm({
         showEmergencyContacts,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
+        profileSectionOrder: sectionOrder.join(","),
         active: true,
       };
       if (isEditing) {
@@ -2214,6 +2225,42 @@ function AdditionalProfileForm({
                   <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
                     <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Section Order</label>
+            <button
+              type="button"
+              onClick={() => setOrganizingProfile(v => !v)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+              style={{ backgroundColor: organizingProfile ? tc.accentColor : tc.buttonSecondaryBg, color: organizingProfile ? tc.buttonText : tc.accentColor, border: `1px solid ${organizingProfile ? tc.accentColor : tc.borderColor}` }}
+            >
+              <GripVertical className="h-3 w-3" />
+              {organizingProfile ? "Done" : "Organise"}
+            </button>
+          </div>
+          {organizingProfile ? (
+            <div className="space-y-1.5">
+              {sectionOrder.map((key, idx) => (
+                <div key={key} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                  <GripVertical className="h-3 w-3 flex-shrink-0" style={{ color: tc.mutedText }} />
+                  <span className="flex-1 text-xs" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
+                  <button type="button" onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded disabled:opacity-25" style={{ color: tc.accentColor }}><ArrowUp className="h-3 w-3" /></button>
+                  <button type="button" onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded disabled:opacity-25" style={{ color: tc.accentColor }}><ArrowDown className="h-3 w-3" /></button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {sectionOrder.map((key, idx) => (
+                <div key={key} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px]" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+                  <span className="font-bold" style={{ color: tc.accentColor }}>{idx + 1}.</span>
+                  {PROFILE_SECTION_LABELS[key] || key}
                 </div>
               ))}
             </div>

@@ -1154,6 +1154,28 @@ export default function AdvisorProfile() {
               </div>
             </div>
           )}
+          {/* Auto-generated header badge — sits inside the profile card, just below the photo */}
+          {(advisor as any).showHeader !== false && (
+            <div
+              className="flex items-center gap-3 px-4 py-3"
+              style={{ backgroundColor: "#ffffff", borderTop: `1px solid ${tc.borderColor}` }}
+              data-testid="section-header-badge"
+            >
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={48} downloadable={false} name={advisor.name} />
+              <span
+                className="font-bold tracking-widest leading-none truncate uppercase"
+                style={{
+                  color: getInitialsBadgeColors(advisor.theme || "blue").from,
+                  fontSize: 18,
+                  letterSpacing: 3,
+                }}
+                data-testid="text-header-badge-name"
+              >
+                {advisor.name}
+              </span>
+            </div>
+          )}
+
           {/* Bottom utility row */}
           <div className="grid grid-cols-2 gap-2 p-3" style={{ backgroundColor: cardBg }} data-testid="section-utility-buttons">
             <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
@@ -1185,27 +1207,6 @@ export default function AdvisorProfile() {
         {/* Ordered Sections */}
         {(() => {
           const sectionMap: Record<string, React.ReactNode> = {
-            headerbadge: ((advisor as any).showHeader !== false) ? (
-              <div
-                className="rounded-xl flex items-center gap-4 px-5 py-4 overflow-hidden"
-                style={{ backgroundColor: "#ffffff", border: `1px solid ${tc.borderColor}` }}
-                data-testid="section-header-badge"
-              >
-                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={64} downloadable={false} name={advisor.name} />
-                <span
-                  className="font-bold tracking-widest leading-none truncate uppercase"
-                  style={{
-                    color: getInitialsBadgeColors(advisor.theme || "blue").from,
-                    fontSize: 22,
-                    letterSpacing: 3,
-                  }}
-                  data-testid="text-header-badge-name"
-                >
-                  {advisor.name}
-                </span>
-              </div>
-            ) : null,
-
             moneyweb: !!(advisor as any).showMoneywebFeed ? (
               <MoneywebTicker
                 cardBg={cardBg} borderColor={tc.borderColor}

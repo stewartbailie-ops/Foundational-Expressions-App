@@ -181,7 +181,7 @@ export default function CIV() {
             key={g}
             onClick={() => setGradeFilter(gradeFilter === g ? "all" : g)}
             className={`rounded-xl p-4 text-left border transition-all ${
-              gradeFilter === g ? "ring-2 ring-primary shadow-md" : "hover:shadow-sm"
+              gradeFilter === g ? "ring-2 ring-white shadow-md" : "hover:shadow-sm"
             }`}
             data-testid={`filter-grade-${g.toLowerCase()}`}
           >
@@ -206,7 +206,7 @@ export default function CIV() {
             key={s}
             onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
             className={`rounded-xl p-3 text-left border transition-all ${
-              statusFilter === s ? "ring-2 ring-primary shadow-md" : "hover:shadow-sm"
+              statusFilter === s ? "ring-2 ring-white shadow-md" : "hover:shadow-sm"
             }`}
             data-testid={`filter-status-${s.toLowerCase().replace(/ /g, "-")}`}
           >
@@ -234,7 +234,7 @@ export default function CIV() {
           <button
             onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Referral" ? "bg-primary text-white border-primary" : "bg-background border-border hover:bg-muted"
+              typeFilter === "Referral" ? "bg-white text-black border-white" : "bg-background border-border hover:bg-muted"
             }`}
             data-testid="filter-type-referral"
           >
@@ -243,7 +243,7 @@ export default function CIV() {
           <button
             onClick={() => setTypeFilter(typeFilter === "Call Back" ? "all" : "Call Back")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              typeFilter === "Call Back" ? "bg-primary text-white border-primary" : "bg-background border-border hover:bg-muted"
+              typeFilter === "Call Back" ? "bg-white text-black border-white" : "bg-background border-border hover:bg-muted"
             }`}
             data-testid="filter-type-callback"
           >
@@ -318,7 +318,7 @@ export default function CIV() {
                         <Badge
                           variant="outline"
                           className={
-                            email.type === "Referral" ? "bg-primary/10 text-primary border-primary/20" :
+                            email.type === "Referral" ? "bg-white/10 text-white border-white/20" :
                             email.type === "Call Back" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
                             "bg-muted text-muted-foreground"
                           }
