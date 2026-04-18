@@ -269,11 +269,14 @@ export default function CIV() {
         )}
       </div>
 
-      <Card className="border-border shadow-sm overflow-hidden">
+      <Card
+        className="overflow-hidden border-0 text-white"
+        style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.10)" }}
+      >
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-muted/50">
-              <TableRow className="border-border hover:bg-transparent">
+            <TableHeader style={{ backgroundColor: "rgba(255,255,255,0.06)" }}>
+              <TableRow className="hover:bg-transparent" style={{ borderColor: "rgba(255,255,255,0.10)" }}>
                 <TableHead className="w-[60px]">ID</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Client</TableHead>
@@ -301,7 +304,8 @@ export default function CIV() {
                 filtered.map((email) => (
                   <Fragment key={email.id}>
                     <TableRow
-                      className="border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="hover:bg-white/[0.04] transition-colors cursor-pointer"
+                      style={{ borderColor: "rgba(255,255,255,0.08)" }}
                       data-testid={`row-email-${email.id}`}
                       onClick={() => {
                         const opening = expandedId !== email.id;
