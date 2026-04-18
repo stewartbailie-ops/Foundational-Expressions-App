@@ -399,41 +399,49 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
   );
 }
 
-function HomeTab({ tc, onNavigate }: { tc: ReturnType<typeof getThemeColors>; onNavigate: (k: "home" | "toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings") => void }) {
-  const shortcuts = [
+function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
+  const sections = [
     { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers },
     { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator },
     { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe },
-    { key: "leads" as const,     label: "Leads",     desc: "Callbacks, referrals & client enquiries",      icon: Inbox },
-    { key: "stats" as const,     label: "Stats",     desc: "Track views, leads & engagement",              icon: BarChart2 },
-    { key: "settings" as const,  label: "Settings",  desc: "Personal details, FA info, theme & password",  icon: Settings },
   ];
   return (
     <div className="space-y-3">
       <div className="space-y-1">
         <h2 className="text-lg font-semibold" style={{ color: tc.textColor }}>Welcome</h2>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Pick a section below to get started.</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Tap a section to expand it.</p>
       </div>
       <div className="space-y-2.5">
-        {shortcuts.map(s => {
+        {sections.map(s => {
           const Icon = s.icon;
+          const isOpen = expanded === s.key;
           return (
-            <button
-              key={s.key}
-              onClick={() => onNavigate(s.key)}
-              className="w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all hover:opacity-90 text-left"
-              style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}
-              data-testid={`button-home-${s.key}`}
-            >
-              <div className="h-11 w-11 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
-                <Icon className="h-5 w-5" style={{ color: tc.accentColor }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
-                <div className="text-xs truncate" style={{ color: tc.mutedText }}>{s.desc}</div>
-              </div>
-              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
-            </button>
+            <div key={s.key} className="rounded-xl border-2 overflow-hidden" style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}>
+              <button
+                onClick={() => setExpanded(isOpen ? null : s.key)}
+                className="w-full flex items-center gap-3 p-4 transition-all hover:opacity-90 text-left"
+                data-testid={`button-home-${s.key}`}
+              >
+                <div className="h-11 w-11 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                  <Icon className="h-5 w-5" style={{ color: tc.accentColor }} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
+                  <div className="text-xs truncate" style={{ color: tc.mutedText }}>{s.desc}</div>
+                </div>
+                {isOpen
+                  ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
+                  : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />}
+              </button>
+              {isOpen && (
+                <div className="p-4 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                  {s.key === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
+                  {s.key === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
+                  {s.key === "platforms" && <PlatformsTab tc={tc} />}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
@@ -4794,7 +4802,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "leads" | "stats" | "settings">("home");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -4863,9 +4871,6 @@ export default function AdvisorPanel() {
 
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
-    { key: "profiles" as const, label: "Profiles", icon: Layers },
-    { key: "toolbox" as const, label: "Toolbox", icon: User },
-    { key: "platforms" as const, label: "Platforms", icon: Globe },
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
     { key: "settings" as const, label: "Settings", icon: Settings },
@@ -4921,12 +4926,9 @@ export default function AdvisorPanel() {
         </div>
 
         <div className="p-5 pb-12">
-          {activeTab === "home" && <HomeTab tc={tc} onNavigate={setActiveTab} />}
-          {activeTab === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
-          {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
+          {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
-          {activeTab === "platforms" && <PlatformsTab tc={tc} />}
           {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
         </div>
       </div>
