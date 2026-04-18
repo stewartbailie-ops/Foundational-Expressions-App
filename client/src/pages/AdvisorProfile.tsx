@@ -1794,7 +1794,7 @@ export default function AdvisorProfile() {
               target="_blank"
               rel="noopener noreferrer"
               className="underline font-medium"
-              style={{ color: themeAccent }}
+              style={{ color: tc.accentColor }}
               data-testid="link-advisoryconnect"
             >
               www.advisoryconnect.pro
