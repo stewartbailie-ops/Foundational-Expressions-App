@@ -84,7 +84,10 @@ export default function ManageAdvisors() {
         </div>
         <div className="flex gap-3">
           <Link href="/create">
-            <Button className="gap-2" data-testid="button-new-advisor">
+            <Button
+              className="gap-2 bg-white text-black hover:bg-white/90"
+              data-testid="button-new-advisor"
+            >
               <Plus className="h-4 w-4" />
               New Advisor
             </Button>
@@ -93,7 +96,7 @@ export default function ManageAdvisors() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-primary text-primary-foreground border-transparent">
+        <Card className="border-transparent" style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff" }}>
           <CardContent className="p-6">
             <div className="text-sm font-medium opacity-80 mb-1">Total Active Apps</div>
             <div className="text-3xl font-bold" data-testid="text-active-count">
@@ -194,7 +197,7 @@ export default function ManageAdvisors() {
                           </Button>
                         </Link>
                         <a href={`/advisor/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-50" title="Advisor Control Panel" data-testid={`button-panel-${advisor.id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/80 hover:text-white hover:bg-white/10" title="Advisor Control Panel" data-testid={`button-panel-${advisor.id}`}>
                             <LayoutDashboard className="h-3.5 w-3.5" />
                           </Button>
                         </a>
@@ -229,7 +232,7 @@ export default function ManageAdvisors() {
                       <Switch
                         checked={advisor.active}
                         onCheckedChange={(checked) => toggleMutation.mutate({ id: advisor.id, active: checked })}
-                        className="data-[state=checked]:bg-primary"
+                        className="data-[state=checked]:bg-white data-[state=checked]:[&>span]:bg-black"
                         data-testid={`switch-advisor-${advisor.id}`}
                       />
                     </TableCell>

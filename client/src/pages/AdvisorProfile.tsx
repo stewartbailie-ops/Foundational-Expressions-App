@@ -1185,6 +1185,27 @@ export default function AdvisorProfile() {
         {/* Ordered Sections */}
         {(() => {
           const sectionMap: Record<string, React.ReactNode> = {
+            headerbadge: ((advisor as any).showHeader !== false) ? (
+              <div
+                className="rounded-xl flex items-center gap-4 px-5 py-4 overflow-hidden"
+                style={{ backgroundColor: "#ffffff", border: `1px solid ${tc.borderColor}` }}
+                data-testid="section-header-badge"
+              >
+                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={64} downloadable={false} name={advisor.name} />
+                <span
+                  className="font-bold tracking-widest leading-none truncate uppercase"
+                  style={{
+                    color: getInitialsBadgeColors(advisor.theme || "blue").from,
+                    fontSize: 22,
+                    letterSpacing: 3,
+                  }}
+                  data-testid="text-header-badge-name"
+                >
+                  {advisor.name}
+                </span>
+              </div>
+            ) : null,
+
             moneyweb: !!(advisor as any).showMoneywebFeed ? (
               <MoneywebTicker
                 cardBg={cardBg} borderColor={tc.borderColor}
@@ -1326,18 +1347,29 @@ export default function AdvisorProfile() {
           </div>
             ) : null,
 
-            astute: (!!(advisor as any).showAstute && !!(advisor as any).astuteUrl) ? (
+            astute: !!(advisor as any).showAstute ? (
               <div data-testid="section-astute">
-                <a
-                  href={(advisor as any).astuteUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
-                  style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                  data-testid="link-astute"
-                >
-                  <ExternalLink className="h-4 w-4" />{t.moneyMapSub}
-                </a>
+                {(advisor as any).astuteUrl ? (
+                  <a
+                    href={(advisor as any).astuteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
+                    style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                    data-testid="link-astute"
+                  >
+                    <ExternalLink className="h-4 w-4" />{t.moneyMapSub}
+                  </a>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center gap-1 w-full py-3 rounded-xl font-semibold text-sm"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px dashed ${tc.borderColor}` }}
+                    data-testid="placeholder-astute"
+                  >
+                    <span className="flex items-center gap-2"><ExternalLink className="h-4 w-4" />{t.moneyMapSub}</span>
+                    <span className="text-[11px] font-normal italic" style={{ color: mutedText }}>In development</span>
+                  </div>
+                )}
               </div>
             ) : null,
 
