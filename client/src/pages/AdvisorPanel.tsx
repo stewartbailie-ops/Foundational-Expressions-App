@@ -2332,9 +2332,9 @@ function TSelect({ value, onChange, options, className = "", colors, codeOnly = 
             minWidth: dropRect.width,
             zIndex: 9999,
             backgroundColor: colors.popupBg,
-            border: `1px solid ${colors.borderColor}`,
-            borderRadius: "8px",
-            boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+            border: `2px solid ${colors.accentColor}`,
+            borderRadius: "10px",
+            boxShadow: `0 18px 48px rgba(0,0,0,0.75), 0 0 0 4px ${colors.bgColor}`,
             maxHeight: "240px",
             overflowY: "auto",
           }}

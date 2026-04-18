@@ -619,34 +619,33 @@ function EmergencyContactsSection({ tc, accentColor, mutedText, t }: {
 
       {open && (
         <div
-          className="mt-2 rounded-xl p-3 space-y-2"
+          className="mt-2 rounded-xl p-2 space-y-1.5"
           style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
         >
-          <p className="text-xs" style={{ color: mutedText }}>
-            Select an emergency contact to dial directly from your phone.
+          <p className="text-[11px] px-1 pt-1 pb-0.5" style={{ color: mutedText }}>
+            Tap a service to dial directly from your phone.
           </p>
-          <select
-            value={selectedKey}
-            onChange={(e) => setSelectedKey(e.target.value)}
-            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
-            style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-            data-testid="select-emergency-contact"
-          >
-            <option value="">— Choose an emergency service —</option>
-            {EMERGENCY_CONTACTS.map(c => (
-              <option key={c.key} value={c.key}>{c.label}</option>
-            ))}
-          </select>
-          {selected && (
+          {EMERGENCY_CONTACTS.map(c => (
             <a
-              href={`tel:${selected.number}`}
-              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "#dc2626", color: "#fff" }}
-              data-testid={`button-call-${selected.key}`}
+              key={c.key}
+              href={`tel:${c.number}`}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-opacity hover:opacity-90 active:opacity-75"
+              style={{ backgroundColor: "rgba(220,38,38,0.10)", border: "1px solid rgba(220,38,38,0.35)" }}
+              data-testid={`button-call-${c.key}`}
             >
-              <Phone className="h-4 w-4" /> Call {selected.number}
+              <div
+                className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                <Phone className="h-4 w-4" style={{ color: "#fff" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold leading-tight truncate" style={{ color: tc.textColor }}>{c.label}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: mutedText }}>{c.number}</div>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-md flex-shrink-0" style={{ backgroundColor: "#dc2626", color: "#fff" }}>Call</span>
             </a>
-          )}
+          ))}
         </div>
       )}
     </div>
