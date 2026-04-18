@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -394,6 +394,48 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
             </button>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function HomeTab({ tc, onNavigate }: { tc: ReturnType<typeof getThemeColors>; onNavigate: (k: "home" | "toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings") => void }) {
+  const shortcuts = [
+    { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers },
+    { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator },
+    { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe },
+    { key: "leads" as const,     label: "Leads",     desc: "Callbacks, referrals & client enquiries",      icon: Inbox },
+    { key: "stats" as const,     label: "Stats",     desc: "Track views, leads & engagement",              icon: BarChart2 },
+    { key: "settings" as const,  label: "Settings",  desc: "Personal details, FA info, theme & password",  icon: Settings },
+  ];
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1">
+        <h2 className="text-lg font-semibold" style={{ color: tc.textColor }}>Welcome</h2>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Pick a section below to get started.</p>
+      </div>
+      <div className="space-y-2.5">
+        {shortcuts.map(s => {
+          const Icon = s.icon;
+          return (
+            <button
+              key={s.key}
+              onClick={() => onNavigate(s.key)}
+              className="w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all hover:opacity-90 text-left"
+              style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}
+              data-testid={`button-home-${s.key}`}
+            >
+              <div className="h-11 w-11 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                <Icon className="h-5 w-5" style={{ color: tc.accentColor }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
+                <div className="text-xs truncate" style={{ color: tc.mutedText }}>{s.desc}</div>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -4752,7 +4794,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings">("toolbox");
+  const [activeTab, setActiveTab] = useState<"home" | "toolbox" | "leads" | "stats" | "profiles" | "platforms" | "settings">("home");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -4820,11 +4862,12 @@ export default function AdvisorPanel() {
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
 
   const tabs = [
-    { key: "toolbox" as const, label: "Toolbox", icon: User },
+    { key: "home" as const, label: "Home", icon: Home },
     { key: "profiles" as const, label: "Profiles", icon: Layers },
+    { key: "toolbox" as const, label: "Toolbox", icon: User },
+    { key: "platforms" as const, label: "Platforms", icon: Globe },
     { key: "leads" as const, label: "Leads", icon: Inbox },
     { key: "stats" as const, label: "Stats", icon: BarChart2 },
-    { key: "platforms" as const, label: "Platforms", icon: Globe },
     { key: "settings" as const, label: "Settings", icon: Settings },
   ];
 
@@ -4846,17 +4889,6 @@ export default function AdvisorPanel() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a
-              href={`/${advisor.profileSlug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-lg transition-opacity hover:opacity-80"
-              style={{ backgroundColor: tc.buttonSecondaryBg }}
-              title="View public profile"
-              data-testid="link-view-profile"
-            >
-              <Eye className="h-4 w-4" style={{ color: tc.accentColor }} />
-            </a>
             <button
               onClick={handleLogout}
               className="p-2 rounded-lg transition-opacity hover:opacity-80"
@@ -4889,6 +4921,7 @@ export default function AdvisorPanel() {
         </div>
 
         <div className="p-5 pb-12">
+          {activeTab === "home" && <HomeTab tc={tc} onNavigate={setActiveTab} />}
           {activeTab === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
           {activeTab === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
           {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
