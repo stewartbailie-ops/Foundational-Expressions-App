@@ -47,3 +47,4 @@ mockupState = "FULLSTACK"
 
 [userenv.shared]
 VITE_RECAPTCHA_SITE_KEY = "6LdzfJwsAAAAL0uwyOf4Z9zMDhH4x8O4-encYT7"
+ADMIN_EMAIL = "info@advisoryconnect.pro"
