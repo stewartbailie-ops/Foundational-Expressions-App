@@ -198,7 +198,7 @@ export default function ManageAdvisors() {
                           </Button>
                         </Link>
                         <a href={`/advisor/${advisor.profileSlug}`} target="_blank" rel="noopener noreferrer">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-white/80 hover:text-white hover:bg-white/10" title="Advisor Control Panel" data-testid={`button-panel-${advisor.id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Advisor Control Panel" data-testid={`button-panel-${advisor.id}`}>
                             <LayoutDashboard className="h-3.5 w-3.5" />
                           </Button>
                         </a>

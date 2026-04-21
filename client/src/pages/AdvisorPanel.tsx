@@ -1719,13 +1719,20 @@ function ProfileCard({
 
   return (
     <div
-      className="rounded-2xl p-3 space-y-3"
+      className="relative rounded-2xl p-3 pt-7 space-y-3"
       style={{
         background: `linear-gradient(135deg, ${badgeColors.from}, ${badgeColors.to})`,
         border: `2px solid ${themeAccent}`,
         boxShadow: `0 6px 24px rgba(0,0,0,0.35)`,
       }}
     >
+      <span
+        className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full font-semibold whitespace-nowrap shadow-sm z-10"
+        style={{ backgroundColor: "#ffffff", color: badgeColors.from }}
+        data-testid={`badge-${isPrimary ? "primary" : "secondary"}-${profileSlug}`}
+      >
+        {isPrimary ? "Primary" : "Secondary"}
+      </span>
       <div className="grid grid-cols-[1fr_1.2fr] gap-3">
         {/* A3 — Profile Picture (large square, left) */}
         <div
@@ -1742,29 +1749,19 @@ function ProfileCard({
 
         {/* Right column */}
         <div className="flex flex-col gap-2 min-w-0">
-          {/* Top row: A2 notes (wide) + A1 badge (small) */}
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <div className="rounded-lg p-1.5 min-h-[58px]" style={{ backgroundColor: innerBg, border: `1px solid ${innerBorder}` }}>
-              <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>Admin Notes</div>
-              {hasAdminNotes ? (
-                <div className="text-[11px] leading-snug" style={{ color: innerText }} data-testid={`text-notes-${profileSlug}`}>
-                  {nickname && <div className="font-semibold truncate">"{nickname}"</div>}
-                  {profileDesc && <div className="italic line-clamp-2 mt-0.5" style={{ color: innerMuted }}>{profileDesc}</div>}
-                </div>
-              ) : (
-                <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.6)" }}>
-                  Add a nickname &amp; description in Edit Profile.
-                </div>
-              )}
-            </div>
-            <div className="flex items-start">
-              <span
-                className="text-[10px] px-2 py-1 rounded-full font-semibold whitespace-nowrap"
-                style={{ backgroundColor: "#ffffff", color: badgeColors.from }}
-              >
-                {isPrimary ? "Primary" : "Secondary"}
-              </span>
-            </div>
+          {/* Top row: A2 notes (wide) — badge moved to absolute top-right of card */}
+          <div className="rounded-lg p-1.5 min-h-[58px]" style={{ backgroundColor: innerBg, border: `1px solid ${innerBorder}` }}>
+            <div className="text-[9px] font-semibold uppercase tracking-wide mb-0.5" style={{ color: "rgba(255,255,255,0.7)" }}>Admin Notes</div>
+            {hasAdminNotes ? (
+              <div className="text-[11px] leading-snug" style={{ color: innerText }} data-testid={`text-notes-${profileSlug}`}>
+                {nickname && <div className="font-semibold truncate">"{nickname}"</div>}
+                {profileDesc && <div className="italic line-clamp-2 mt-0.5" style={{ color: innerMuted }}>{profileDesc}</div>}
+              </div>
+            ) : (
+              <div className="text-[10px] italic" style={{ color: "rgba(255,255,255,0.6)" }}>
+                Add a nickname &amp; description in Edit Profile.
+              </div>
+            )}
           </div>
 
           {/* Middle row: A4 Copy/Share + A5 View Profile */}
