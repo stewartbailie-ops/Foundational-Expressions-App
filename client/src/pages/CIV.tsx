@@ -154,6 +154,7 @@ export default function CIV() {
   const typeCounts = {
     Referral: emails.filter(e => e.type === "Referral").length,
     "Call Back": emails.filter(e => e.type === "Call Back").length,
+    "Will Request": emails.filter(e => e.type === "Will Request").length,
   };
 
   const statusCounts = {
@@ -168,9 +169,9 @@ export default function CIV() {
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight" data-testid="text-civ-title">Client Information Viewer</h2>
+          <h2 className="text-2xl font-bold tracking-tight" data-testid="text-civ-title">Registry</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Sort and grade all incoming client referrals, callbacks, and feedback.
+            Sort and grade all incoming client referrals, callbacks, and will requests.
           </p>
         </div>
       </div>
@@ -256,6 +257,18 @@ export default function CIV() {
           >
             Call Backs ({typeCounts["Call Back"]})
           </button>
+          <button
+            onClick={() => setTypeFilter(typeFilter === "Will Request" ? "all" : "Will Request")}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+            style={
+              typeFilter === "Will Request"
+                ? { backgroundColor: "#f59e0b", color: "#000000", border: "1px solid #f59e0b" }
+                : { backgroundColor: "rgba(245,158,11,0.10)", color: "#f59e0b", border: "1px solid rgba(245,158,11,0.25)" }
+            }
+            data-testid="filter-type-will"
+          >
+            Will Requests ({typeCounts["Will Request"]})
+          </button>
         </div>
         {hasActiveFilter && (
           <Button
@@ -325,8 +338,9 @@ export default function CIV() {
                         <Badge
                           variant="outline"
                           className={
-                            email.type === "Referral" ? "bg-white/10 text-white border-white/20" :
-                            email.type === "Call Back" ? "bg-amber-500/10 text-amber-600 border-amber-500/20" :
+                            email.type === "Referral" ? "bg-violet-500/10 text-violet-400 border-violet-500/20" :
+                            email.type === "Call Back" ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                            email.type === "Will Request" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
                             "bg-muted text-muted-foreground"
                           }
                         >

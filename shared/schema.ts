@@ -98,6 +98,7 @@ export const advisors = pgTable("advisors", {
   nickname: text("nickname"),
   profileDescription: text("profile_description"),
   profileSlug: text("profile_slug").notNull().unique(),
+  bookingUrl: text("booking_url"),
   individualServices: text("individual_services").array(),
   corporateServices: text("corporate_services").array(),
   showCallbackLink: boolean("show_callback_link").default(true),
@@ -140,9 +141,9 @@ export const advisors = pgTable("advisors", {
 });
 
 export const SUBSCRIPTION_TIERS = [
-  { value: "trial", label: "Trial", description: "Free 30-day evaluation period to explore all features.", price: "Free" },
-  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R120/mo" },
-  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R200/mo" },
+  { value: "trial", label: "Trial", description: "One month free — explore all features with no commitment.", price: "R0.00" },
+  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R199.99/mo" },
+  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R499.99/mo" },
 ] as const;
 
 export const insertAdvisorSchema = createInsertSchema(advisors).omit({
@@ -174,10 +175,10 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
 };
 
 export const TITLE_OPTIONS = [
-  "Executive Financial Planner",
-  "Financial Planner",
+  "Junior Financial Advisor",
+  "Senior Financial Advisor",
   "Executive Financial Advisor",
-  "Financial Advisor",
+  "CFP (Certified Financial Planner)",
 ] as const;
 
 export const BIO_OPTIONS: Record<string, string> = {

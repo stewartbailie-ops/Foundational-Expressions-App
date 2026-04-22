@@ -417,7 +417,7 @@ const TRANSLATIONS: Record<Lang, {
   iosHint: string; browserHint: string; dismiss: string;
   individualServices: string; corporateServices: string;
   moneyMap: string; moneyMapSub: string;
-  claimWill: string; requestCallback: string; referFriends: string; documentsUpload: string;
+  claimWill: string; requestCallback: string; bookMeeting: string; referFriends: string; documentsUpload: string;
   comingSoon: string;
   linkedin: string; facebook: string; instagram: string; youtube: string; website: string;
   financialMedia: string; latestNews: string; funfacts: string; tutorials: string;
@@ -434,7 +434,7 @@ const TRANSLATIONS: Record<Lang, {
     dismiss: "Dismiss",
     individualServices: "Individual Services", corporateServices: "Corporate Services",
     moneyMap: "Finance Hub", moneyMapSub: "Request Financial Information",
-    claimWill: "Claim Your Free Will", requestCallback: "Request a Call Back",
+    claimWill: "Claim Your Free Will", requestCallback: "Request a Call Back", bookMeeting: "Book a Meeting",
     referFriends: "Refer Friends & Family", documentsUpload: "Documents Upload",
     comingSoon: "In development — Coming soon",
     linkedin: "Connect on LinkedIn", facebook: "Follow on Facebook",
@@ -472,7 +472,7 @@ const TRANSLATIONS: Record<Lang, {
     dismiss: "Toemaak",
     individualServices: "Individuele Dienste", corporateServices: "Korporatiewe Dienste",
     moneyMap: "Finance Hub", moneyMapSub: "Versoek Finansiële Inligting",
-    claimWill: "Eis u Gratis Testament", requestCallback: "Versoek 'n Terugbel",
+    claimWill: "Eis u Gratis Testament", requestCallback: "Versoek 'n Terugbel", bookMeeting: "Bespreek 'n Vergadering",
     referFriends: "Verwys Vriende & Familie", documentsUpload: "Laai Dokumente Op",
     comingSoon: "In ontwikkeling — Binnekort beskikbaar",
     linkedin: "Verbind op LinkedIn", facebook: "Volg op Facebook",
@@ -510,7 +510,7 @@ const TRANSLATIONS: Record<Lang, {
     dismiss: "Vala",
     individualServices: "Izinsiza Zabantu Siqu", corporateServices: "Izinsiza Zezinkampani",
     moneyMap: "Finance Hub", moneyMapSub: "Cela Ulwazi Lwezezimali",
-    claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi",
+    claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi", bookMeeting: "Buka Umhlangano",
     referFriends: "Phendukela Izihlobo Nabangane", documentsUpload: "Layisha Amaxwebe",
     comingSoon: "Iyakhiwa — Iyoza Maduze",
     linkedin: "Xhumana ku-LinkedIn", facebook: "Landelela ku-Facebook",
@@ -595,6 +595,17 @@ function MoneywebTicker({ cardBg, borderColor, accentColor, textColor, mutedText
           <span className="text-xs" style={{ color: accentColor }}>Read on MoneyWeb</span>
         </div>
       </a>
+    </div>
+  );
+}
+
+function Step({ num, text, color }: { num: number; text: string; color: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ backgroundColor: `${color}22`, color }}>
+        {num}
+      </div>
+      <p className="text-sm leading-snug">{text}</p>
     </div>
   );
 }
@@ -1237,7 +1248,60 @@ export default function AdvisorProfile() {
             >
               <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
             </button>
+            {/* Add to Home Screen — full width */}
+            <button
+              onClick={handleAddToHomeScreen}
+              className={`${btnBase} col-span-2`}
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-add-to-homescreen"
+            >
+              <Smartphone className="h-3.5 w-3.5 flex-shrink-0" />
+              Save to Home Screen
+              <svg viewBox="0 0 24 24" className="h-3 w-3 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+            </button>
           </div>
+
+          {/* iOS Add to Home Screen modal */}
+          {showInstallHint && (
+            <div
+              className="fixed inset-0 z-50 flex items-end justify-center p-4"
+              style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+              onClick={() => setShowInstallHint(false)}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
+                className="w-full max-w-sm rounded-2xl p-5 space-y-4"
+                style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm" style={{ color: tc.textColor }}>Save to Home Screen</div>
+                  <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="text-lg leading-none">✕</button>
+                </div>
+                <div className="space-y-3">
+                  {isIOS ? (
+                    <>
+                      <Step num={1} text={`Open this page in Safari`} color={accentColor} />
+                      <Step num={2} text={`Tap the Share icon at the bottom of your screen`} color={accentColor} />
+                      <Step num={3} text={`Scroll down and tap "Add to Home Screen"`} color={accentColor} />
+                      <Step num={4} text={`Tap "Add" — the profile appears on your home screen`} color={accentColor} />
+                    </>
+                  ) : (
+                    <>
+                      <Step num={1} text={`Tap the 3-dot menu in your browser`} color={accentColor} />
+                      <Step num={2} text={`Tap "Add to Home Screen" or "Install app"`} color={accentColor} />
+                      <Step num={3} text={`Tap "Add" to confirm`} color={accentColor} />
+                    </>
+                  )}
+                </div>
+                <p className="text-xs" style={{ color: mutedText }}>
+                  The profile will appear as an icon on your home screen — no app store needed.
+                </p>
+              </motion.div>
+            </div>
+          )}
         </motion.div>
 
         {/* Hidden QR for business card PDF generation */}
@@ -1300,16 +1364,33 @@ export default function AdvisorProfile() {
               </div>
             ) : null,
 
-            callback: advisor.showCallbackLink !== false ? (
-              <button
-                onClick={() => navigate(`/${slug}/request-callback`)}
-                className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                data-testid="button-request-callback"
-              >
-                <Phone className="h-4 w-4 flex-shrink-0" />
-                {t.requestCallback}
-              </button>
+            callback: (advisor.showCallbackLink !== false || !!(advisor as any).bookingUrl) ? (
+              <div className="space-y-2">
+                {advisor.showCallbackLink !== false && (
+                  <button
+                    onClick={() => navigate(`/${slug}/request-callback`)}
+                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                    data-testid="button-request-callback"
+                  >
+                    <Phone className="h-4 w-4 flex-shrink-0" />
+                    {t.requestCallback}
+                  </button>
+                )}
+                {!!(advisor as any).bookingUrl && (
+                  <a
+                    href={(advisor as any).bookingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
+                    data-testid="link-book-meeting"
+                  >
+                    <Clock className="h-4 w-4 flex-shrink-0" />
+                    Book a Meeting
+                  </a>
+                )}
+              </div>
             ) : null,
 
             referral: advisor.showReferralsLink !== false ? (

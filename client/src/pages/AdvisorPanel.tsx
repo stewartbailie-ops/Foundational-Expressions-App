@@ -592,6 +592,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [gradeFilter, setGradeFilter] = useState("all");
+  const [search, setSearch] = useState("");
 
   const { data: leads = [], isLoading } = useQuery<EmailRow[]>({
     queryKey: [`/api/advisors/${slug}/emails`],
@@ -637,7 +639,14 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const filtered = leads.filter(l => {
     const matchType = typeFilter === "all" || l.type === typeFilter;
     const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
-    return matchType && matchStatus;
+    const matchGrade = gradeFilter === "all" || (l.grade || "Silver") === gradeFilter;
+    const q = search.toLowerCase();
+    const matchSearch = q === "" ||
+      l.senderName.toLowerCase().includes(q) ||
+      l.senderEmail.toLowerCase().includes(q) ||
+      (l.clientPhone || "").includes(q) ||
+      (l.referrerName || "").toLowerCase().includes(q);
+    return matchType && matchStatus && matchGrade && matchSearch;
   });
 
   const statusColors: Record<string, string> = {
@@ -665,6 +674,24 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const gradeCount = (g: string) => leads.filter(l => (l.grade || "Silver") === g).length;
   const statusCount = (s: string) => leads.filter(l => (l.leadStatus || "Need to Contact") === s).length;
 
+  const handleExportCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Type", "Grade", "Status", "Age", "Income", "Industry", "Referrer", "Date"];
+    const rows = filtered.map(l => [
+      l.senderName, l.senderEmail, l.clientPhone || "", l.type,
+      l.grade || "Silver", l.leadStatus || "Need to Contact",
+      l.clientAge || "", l.clientIncome || "", l.clientIndustry || "",
+      l.referrerName || "", format(new Date(l.receivedAt), "yyyy-MM-dd"),
+    ]);
+    const csv = [headers, ...rows]
+      .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = url;
+    a.download = `registry-${new Date().toISOString().split("T")[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+  };
+
   if (isLoading) return (
     <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" style={{ color: tc.mutedText }} /></div>
   );
@@ -688,13 +715,32 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     { label: "Archive", short: "Archive", text: "#9ca3af", bg: "rgba(156,163,175,0.12)", border: "rgba(156,163,175,0.3)" },
   ];
 
+  const [selectedLead, setSelectedLead] = useState<EmailRow | null>(null);
+
   return (
     <div className="space-y-4">
+      {/* Export row */}
+      {leads.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            onClick={handleExportCSV}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-75"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+          >
+            <Download className="h-3.5 w-3.5" />
+            Export CSV
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-4 gap-2">
         {gradeCards.map(g => (
-          <button key={g.label} onClick={() => { setStatusFilter("all"); setTypeFilter("all"); }}
+          <button key={g.label} onClick={() => setGradeFilter(gradeFilter === g.label ? "all" : g.label)}
             className="rounded-xl p-2.5 text-center transition-all hover:opacity-80"
-            style={{ backgroundColor: g.bg, border: `1px solid ${g.border}` }}
+            style={{
+              backgroundColor: g.bg,
+              border: `${gradeFilter === g.label ? "2px" : "1px"} solid ${gradeFilter === g.label ? g.text : g.border}`,
+              boxShadow: gradeFilter === g.label ? `0 0 0 1px ${g.text}40` : "none",
+            }}
             data-testid={`civ-grade-${g.label.toLowerCase()}`}
           >
             <div className="text-lg font-bold" style={{ color: g.text }}>{gradeCount(g.label)}</div>
@@ -717,6 +763,21 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           </button>
         ))}
       </div>
+      {/* Search */}
+      <div className="relative">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 pointer-events-none" style={{ color: tc.mutedText }} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by name, email, phone…"
+          className="w-full text-xs rounded-xl pl-9 pr-3 py-2.5 outline-none"
+          style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+        />
+        {search && (
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: tc.mutedText }}>✕</button>
+        )}
+      </div>
+      {/* Type filter */}
       <div className="flex gap-2 flex-wrap">
         {["all", "Referral", "Call Back", "Will Request"].map(t => (
           <button key={t} onClick={() => setTypeFilter(t)}
@@ -730,6 +791,14 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             {t === "all" ? "All Types" : t}
           </button>
         ))}
+        {(gradeFilter !== "all" || search) && (
+          <button onClick={() => { setGradeFilter("all"); setSearch(""); }}
+            className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-auto"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+          >
+            Clear
+          </button>
+        )}
       </div>
 
       {filtered.length === 0 ? (
@@ -737,138 +806,201 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           <p className="text-sm">No leads match your filters.</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {filtered.map(lead => {
             const tb = typeBadge[lead.type] || { text: tc.mutedText, bg: tc.inputBg };
             const currentStatus = lead.leadStatus || "Need to Contact";
             const gc = gradeColors[lead.grade || "Silver"] || gradeColors["Silver"];
+            const isUnread = !lead.lastOpenedAt;
             return (
-              <div key={lead.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-                <button
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-left"
-                  onClick={() => {
-                    const opening = expandedId !== lead.id;
-                    setExpandedId(opening ? lead.id : null);
-                    if (opening) openMutation.mutate(lead.id);
-                  }}
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+              <button
+                key={lead.id}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-left transition-opacity active:opacity-70"
+                style={{ backgroundColor: tc.cardBg, border: `1px solid ${isUnread ? tc.accentColor + "60" : tc.borderColor}` }}
+                onClick={() => { setSelectedLead(lead); openMutation.mutate(lead.id); }}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="relative">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                       style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
                       {getInitials(lead.senderName)}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium" style={{ color: tc.textColor }}>{lead.senderName}</span>
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={{ color: tb.text, backgroundColor: tb.bg }}>{lead.type}</span>
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                        <span className="text-xs" style={{ color: tc.mutedText }}>{format(new Date(lead.receivedAt), "dd MMM yyyy")}</span>
-                        {lead.clientAge && <span className="text-xs" style={{ color: tc.mutedText }}>· Age {lead.clientAge}</span>}
-                        {lead.clientIncome && <span className="text-xs" style={{ color: tc.mutedText }}>· {lead.clientIncome}</span>}
-                      </div>
+                    {isUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2" style={{ borderColor: tc.bgColor }} />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium" style={{ color: tc.textColor }}>{lead.senderName}</span>
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={{ color: tb.text, backgroundColor: tb.bg }}>{lead.type}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-xs" style={{ color: tc.mutedText }}>{format(new Date(lead.receivedAt), "dd MMM yyyy")}</span>
+                      {lead.clientIncome && <span className="text-xs" style={{ color: tc.mutedText }}>· {lead.clientIncome}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                    {lead.grade && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full hidden sm:inline" style={{ color: gc.text, backgroundColor: gc.bg }}>
-                        {lead.grade}
-                      </span>
-                    )}
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[currentStatus] }} />
-                    {expandedId === lead.id ? <ChevronUp className="h-4 w-4" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4" style={{ color: tc.mutedText }} />}
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: gc.text, backgroundColor: gc.bg }}>{lead.grade || "Silver"}</span>
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[currentStatus] }} />
+                  <ChevronRight className="h-3.5 w-3.5 opacity-40" style={{ color: tc.mutedText }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Slide-up detail panel */}
+        {selectedLead && (() => {
+          const lead = selectedLead;
+          const tb = typeBadge[lead.type] || { text: tc.mutedText, bg: tc.inputBg };
+          const currentStatus = lead.leadStatus || "Need to Contact";
+          const gc = gradeColors[lead.grade || "Silver"] || gradeColors["Silver"];
+          const phone = lead.clientPhone?.replace(/[^0-9+]/g, "");
+          const whatsappHref = phone ? `https://wa.me/${phone.startsWith("+") ? phone.slice(1) : phone}` : null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-end"
+              style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)" }}
+              onClick={() => setSelectedLead(null)}
+            >
+              <motion.div
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 380, damping: 38 }}
+                className="w-full max-h-[90vh] overflow-y-auto rounded-t-2xl"
+                style={{ backgroundColor: tc.bgColor, border: `1px solid ${tc.borderColor}` }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Drag handle */}
+                <div className="flex justify-center pt-3 pb-1">
+                  <div className="w-10 h-1 rounded-full opacity-30" style={{ backgroundColor: tc.mutedText }} />
+                </div>
+
+                <div className="px-5 pb-8 space-y-5">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+                        style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+                        {getInitials(lead.senderName)}
+                      </div>
+                      <div>
+                        <div className="text-base font-semibold" style={{ color: tc.textColor }}>{lead.senderName}</div>
+                        <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{lead.senderEmail}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: tb.text, backgroundColor: tb.bg }}>{lead.type}</span>
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: gc.text, backgroundColor: gc.bg }}>{lead.grade || "Silver"}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <button onClick={() => setSelectedLead(null)} className="p-1.5 rounded-lg" style={{ color: tc.mutedText }}>✕</button>
                   </div>
-                </button>
-                {expandedId === lead.id && (
-                  <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: "12px" }}>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-xs font-medium" style={{ color: tc.mutedText }}>Status:</span>
+
+                  {/* Quick actions */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {whatsappHref && (
+                      <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+                        style={{ backgroundColor: "#25D366", color: "#fff" }}>
+                        <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        WhatsApp
+                      </a>
+                    )}
+                    <a href={`mailto:${lead.senderEmail}`}
+                      className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold col-span-1"
+                      style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+                      <Mail className="h-3.5 w-3.5" />
+                      Email
+                    </a>
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: tc.mutedText }}>Status</div>
+                    <div className="flex gap-2 flex-wrap">
                       {["Need to Contact", "Contacted", "Archive"].map(s => (
-                        <button
-                          key={s}
-                          onClick={() => statusMutation.mutate({ id: lead.id, leadStatus: s })}
-                          className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+                        <button key={s}
+                          onClick={() => { statusMutation.mutate({ id: lead.id, leadStatus: s }); setSelectedLead({ ...lead, leadStatus: s }); }}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                           style={{
                             backgroundColor: currentStatus === s ? statusBg[s] : tc.inputBg,
                             color: currentStatus === s ? statusColors[s] : tc.mutedText,
                             border: `1.5px solid ${currentStatus === s ? statusColors[s] : tc.borderColor}`,
-                          }}
-                        >
+                          }}>
                           {s}
                         </button>
                       ))}
                     </div>
-                    <div className="flex flex-wrap gap-2 items-center">
-                      <span className="text-xs font-medium" style={{ color: tc.mutedText }}>Grade:</span>
+                  </div>
+
+                  {/* Grade */}
+                  <div className="space-y-2">
+                    <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: tc.mutedText }}>Grade</div>
+                    <div className="flex gap-2 flex-wrap">
                       {["Gold", "Silver", "Bronze", "Development"].map(g => {
                         const gc2 = gradeColors[g];
                         return (
-                          <button
-                            key={g}
-                            onClick={() => gradeMutation.mutate({ id: lead.id, grade: g })}
-                            className="px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
+                          <button key={g}
+                            onClick={() => { gradeMutation.mutate({ id: lead.id, grade: g }); setSelectedLead({ ...lead, grade: g }); }}
+                            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
                             style={{
                               backgroundColor: (lead.grade || "Silver") === g ? gc2.bg : tc.inputBg,
                               color: (lead.grade || "Silver") === g ? gc2.text : tc.mutedText,
                               border: `1.5px solid ${(lead.grade || "Silver") === g ? gc2.text : tc.borderColor}`,
-                            }}
-                          >
+                            }}>
                             {g}
                           </button>
                         );
                       })}
                     </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 pt-1">
-                      {lead.senderEmail && <Row label="Email" value={lead.senderEmail} tc={tc} />}
+                  </div>
+
+                  {/* Client details */}
+                  <div className="rounded-xl p-4 space-y-2.5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+                    <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: tc.mutedText }}>Client Details</div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2">
                       {lead.clientPhone && <Row label="Phone" value={lead.clientPhone} tc={tc} />}
                       {lead.clientAge && <Row label="Age" value={String(lead.clientAge)} tc={tc} />}
                       {lead.clientIncome && <Row label="Income" value={lead.clientIncome} tc={tc} />}
                       {lead.clientIndustry && <Row label="Industry" value={lead.clientIndustry} tc={tc} />}
-                      {lead.clientMarried !== null && lead.clientMarried !== undefined && <Row label="Married" value={lead.clientMarried ? "Yes" : "No"} tc={tc} />}
-                      {lead.clientChildren !== null && lead.clientChildren !== undefined && <Row label="Children" value={lead.clientChildren ? "Yes" : "No"} tc={tc} />}
-                      {lead.clientVehicle !== null && lead.clientVehicle !== undefined && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
-                      {lead.clientProperty !== null && lead.clientProperty !== undefined && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
                       {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} />}
-                      {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
-                      {lead.referrerName && <Row label="Referred by" value={`${lead.referrerName}${lead.referrerEmail ? ` (${lead.referrerEmail})` : ""}`} tc={tc} full />}
+                      {lead.clientMarried != null && <Row label="Married" value={lead.clientMarried ? "Yes" : "No"} tc={tc} />}
+                      {lead.clientChildren != null && <Row label="Children" value={lead.clientChildren ? "Yes" : "No"} tc={tc} />}
+                      {lead.clientVehicle != null && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
+                      {lead.clientProperty != null && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
                     </div>
-                    <div className="flex items-center justify-between pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-                      <div className="space-y-0.5">
-                        <div className="text-xs" style={{ color: tc.mutedText }}>
-                          Received: {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
-                        </div>
-                        {lead.lastOpenedAt && (
-                          <div className="text-xs flex items-center gap-1" style={{ color: tc.mutedText }}>
-                            <Eye className="h-3 w-3" />
-                            Last viewed: {format(new Date(lead.lastOpenedAt), "dd MMM yyyy, HH:mm")}
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => statusMutation.mutate({ id: lead.id, leadStatus: "Archive" })}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70"
-                          style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
-                        >
-                          Hide
-                        </button>
-                        <button
-                          onClick={() => { if (window.confirm(`Delete this lead? This cannot be undone.`)) deleteMutation.mutate(lead.id); }}
-                          disabled={deleteMutation.isPending}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-70 disabled:opacity-40"
-                          style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Delete
-                        </button>
-                      </div>
-                    </div>
+                    {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
                   </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+
+                  {/* Referrer */}
+                  {(lead.referrerName || lead.referrerEmail) && (
+                    <div className="rounded-xl p-4 space-y-2" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+                      <div className="text-xs font-semibold uppercase tracking-wide mb-1" style={{ color: tc.mutedText }}>Referred By</div>
+                      {lead.referrerName && <Row label="Name" value={lead.referrerName} tc={tc} />}
+                      {lead.referrerEmail && <Row label="Email" value={lead.referrerEmail} tc={tc} />}
+                      {lead.referrerPhone && <Row label="Phone" value={lead.referrerPhone} tc={tc} />}
+                      {lead.referrerRelation && <Row label="Relation" value={lead.referrerRelation} tc={tc} />}
+                    </div>
+                  )}
+
+                  {/* Footer */}
+                  <div className="flex items-center justify-between pt-1">
+                    <div className="text-xs" style={{ color: tc.mutedText }}>
+                      Received {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
+                    </div>
+                    <button
+                      onClick={() => { if (window.confirm("Delete this lead? This cannot be undone.")) { deleteMutation.mutate(lead.id); setSelectedLead(null); } }}
+                      disabled={deleteMutation.isPending}
+                      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium"
+                      style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>
+                      <Trash2 className="h-3 w-3" /> Delete
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          );
+        })()}
       )}
     </div>
   );
@@ -4598,6 +4730,9 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
   const [faisAgreementUrl, setFaisAgreementUrl] = useState<string | null>((advisor as any).faisAgreementUrl || null);
   const [faisUploading, setFaisUploading] = useState(false);
 
+  // Booking URL
+  const [bookingUrl, setBookingUrl] = useState<string>((advisor as any).bookingUrl || "");
+
   // Panel theme (separate from Contact Card)
   const [panelTheme, setPanelTheme] = useState<string>((advisor as any).panelTheme || "blue");
   const [panelBackgroundStyle, setPanelBackgroundStyle] = useState<number>((advisor as any).panelBackgroundStyle || 1);
@@ -4813,6 +4948,80 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
         >
           {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
           Save FA Details
+        </Button>
+      </Section>
+
+      {/* Profile Completion Score */}
+      {(() => {
+        const checks = [
+          { label: "Profile photo", done: !!advisor.profilePicUrl },
+          { label: "Title", done: !!advisor.title },
+          { label: "Contact number", done: !!(advisor as any).contactNumber },
+          { label: "Bio / Intro", done: !!advisor.bio || !!advisor.customBio },
+          { label: "Individual services", done: (advisor.individualServices?.length ?? 0) > 0 },
+          { label: "Corporate services", done: (advisor.corporateServices?.length ?? 0) > 0 },
+          { label: "Social links", done: !!(advisor.linkedinUrl || advisor.websiteUrl || (advisor as any).facebookUrl) },
+          { label: "Booking URL", done: !!(advisor as any).bookingUrl },
+        ];
+        const done = checks.filter(c => c.done).length;
+        const pct = Math.round((done / checks.length) * 100);
+        const r = 28, circ = 2 * Math.PI * r;
+        const color = pct >= 80 ? "#10B981" : pct >= 50 ? tc.accentColor : "#F59E0B";
+        const missing = checks.filter(c => !c.done);
+        return (
+          <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-4">
+              <svg width="72" height="72" viewBox="0 0 72 72" className="flex-shrink-0">
+                <circle cx="36" cy="36" r={r} fill="none" stroke={`${color}22`} strokeWidth="6" />
+                <circle cx="36" cy="36" r={r} fill="none" stroke={color} strokeWidth="6"
+                  strokeDasharray={circ}
+                  strokeDashoffset={circ - (circ * pct) / 100}
+                  strokeLinecap="round"
+                  transform="rotate(-90 36 36)"
+                  style={{ transition: "stroke-dashoffset 0.6s ease" }}
+                />
+                <text x="36" y="41" textAnchor="middle" fontSize="14" fontWeight="700" fill={color}>{pct}%</text>
+              </svg>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold mb-0.5" style={{ color: tc.textColor }}>Profile Completion</div>
+                <div className="text-xs mb-2" style={{ color: tc.mutedText }}>{done} of {checks.length} sections filled in</div>
+                {missing.length > 0 && (
+                  <div className="text-xs" style={{ color: tc.mutedText }}>
+                    Add: {missing.slice(0, 3).map(m => m.label).join(" · ")}
+                    {missing.length > 3 && ` +${missing.length - 3} more`}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Booking URL */}
+      <Section icon={Globe} title="Booking Link (Outlook Calendar)">
+        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
+          Add your Outlook or Calendly booking link. A "Book a Meeting" button will appear on your public profile card.
+        </p>
+        <div className="space-y-1.5">
+          <div style={fieldLabel}>Booking URL</div>
+          <Input
+            value={bookingUrl}
+            onChange={e => setBookingUrl(e.target.value)}
+            placeholder="https://outlook.office365.com/book/..."
+            style={inputStyle}
+            data-testid="input-settings-booking-url"
+          />
+        </div>
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate({ bookingUrl: bookingUrl || null } as any)}
+          disabled={saveMutation.isPending || !bookingUrl.trim()}
+          style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+          className="gap-1.5 w-full"
+          data-testid="button-save-booking-url"
+        >
+          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+          Save Booking Link
         </Button>
       </Section>
 
@@ -5144,6 +5353,13 @@ export default function AdvisorPanel() {
   const initials = getInitials(advisor.name);
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
 
+  // Shares cache with CIVTab — no extra network request
+  const { data: panelLeads = [] } = useQuery<Email[]>({
+    queryKey: [`/api/advisors/${slug}/emails`],
+    enabled: authState === "authenticated",
+  });
+  const unreadCount = panelLeads.filter(l => !l.lastOpenedAt).length;
+
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
     { key: "registry" as const, label: "Registry", icon: Inbox },
@@ -5192,7 +5408,12 @@ export default function AdvisorPanel() {
                 style={{ color: isActive ? tc.accentColor : tc.mutedText }}
                 data-testid={`tab-panel-${tab.key}`}
               >
-                <Icon className="h-4 w-4" />
+                <span className="relative">
+                  <Icon className="h-4 w-4" />
+                  {tab.key === "registry" && unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                  )}
+                </span>
                 {tab.label}
                 {isActive && (
                   <motion.div
