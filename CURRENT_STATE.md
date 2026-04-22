@@ -1,9 +1,9 @@
 # Current State — Advisory Connect
 
-> **Last updated:** 21 April 2026
-> **Latest commit:** `80ffc402` (Published your App)
-> **Total commits:** 284
-> **Status:** Live in production on `advisoryconnect.pro` + `app.advisoryconnect.pro`. Healthy. No known production bugs.
+> **Last updated:** 22 April 2026
+> **Latest commit:** `cb633220` (Update project documentation with current status) — about to bump again with this edit
+> **Total commits:** ~292
+> **Status:** Live in production on `advisoryconnect.pro` + `app.advisoryconnect.pro`. Healthy. No known production bugs. Booking feature has been fully removed (see session log below). Advisor mini-panel hook-order bug fixed.
 
 Read `PROJECT_HANDOFF.md` first for the big picture. This file is *only* "where we left off and what's next."
 
@@ -13,7 +13,26 @@ Read `PROJECT_HANDOFF.md` first for the big picture. This file is *only* "where 
 
 In rough chronological order from this session (newest at top):
 
-### ✅ Just completed
+### ✅ Session of 22 April 2026 (this session)
+
+1. **Fixed React error #310 ("Rendered more hooks than during the previous render") on the advisor mini-panel.** White screen on `/advisor/[slug]` in production (also incognito). Root cause was a `useQuery` hook in the main `AdvisorPanel` component (was at ~line 5326) called *after* the early-return branches for loading / no-advisor / login / setup / verify states. Hoisted that `useQuery` (the `panelLeads` query that powers the unread-count badge) to sit immediately after the existing advisor `useQuery`, before any conditional return. `enabled` flag preserved so no extra network call happens until authenticated. File: `client/src/pages/AdvisorPanel.tsx`.
+
+2. **Removed the booking-link feature entirely** at user request. Stripped:
+   - `bookingUrl` column from `shared/schema.ts`.
+   - The startup `ensureSchema()` migration in `server/index.ts` (no longer needed).
+   - The `useState`, checklist entry, and Settings tab JSX section in `client/src/pages/AdvisorPanel.tsx`.
+   - The "Book a Meeting" button + wrapping div in `client/src/pages/AdvisorProfile.tsx`.
+   - The `booking_url` column **still exists in the production DB** (harmless, empty). Left in place so we don't need a destructive migration; will be available if/when the feature is reintroduced.
+
+3. **Diagnosed and fixed Manage Advisors empty-list bug** (the trigger for the booking removal). Production logs showed `column "booking_url" does not exist`. Production DB is read-only via the agent's executeSql tool, so we couldn't `ALTER` directly. Solution: added an idempotent `ensureSchema()` startup migration in `server/index.ts` (since removed, see point 2) that ran an `ALTER TABLE ... ADD COLUMN IF NOT EXISTS booking_url ...` on next deploy. Worked first time, Manage Advisors populated again.
+
+4. **Created two handoff docs** at user's request to make a full session-context-loss recoverable:
+   - `PROJECT_HANDOFF.md` (~430 lines, the full project description, stack, architecture, features, env vars, file tree, routes, glossary).
+   - `CURRENT_STATE.md` (this file).
+
+5. **Walked the user through a full local backup**: `zip -r advisory-backup.zip . -x "node_modules/*" ".git/*" "dist/*" ".cache/*" ".upm/*"` from the Shell tab → downloaded via the Files tab. Backup is now safely on the user's machine.
+
+### ✅ Previous session (21 April 2026)
 1. **Seeded 23 more test leads** (IDs 95–117) into Stewart Bailie's CIV (advisor ID 24) via the public APIs:
    - 8 Referrals (POST `/api/referral`)
    - 8 Call Backs (POST `/api/callback`)
@@ -57,7 +76,8 @@ In rough chronological order from this session (newest at top):
 | **Authz middleware on advisor CRUD** | Deferred. Currently only the global admin session gates these endpoints; per-advisor scoping not enforced. | Acceptable for single-operator launch; revisit before multi-tenant scale. |
 | **Full 12-theme contrast audit** | Partially done. ProfileCard, Dashboard, ManageAdvisors, CIV completed. Remaining surfaces (CreateAdvisor wizard, EditAdvisor, advisor mini-panel inner tabs) not yet swept. | Pick up incrementally as bugs surface. |
 | **Secondary profile "View Profile" UX confusion** | Investigation paused. Awaiting user confirmation on whether the URL bar / page title actually differ between primary and secondary profile preview. | Likely a perception issue (inheritance making them look identical), not a real bug. |
-| **`AdvisorPanel.tsx` size** (5,072 lines) | No refactor underway. | Top candidate for componentisation; safe to do incrementally because each section is a self-contained component within the file. |
+| **`AdvisorPanel.tsx` size** (now ~5,409 lines) | No refactor underway. | Top candidate for componentisation; safe to do incrementally because each section is a self-contained component within the file. **Watch hook order** when editing the main `AdvisorPanel` function (near the bottom) — all hooks must come before the early returns. |
+| **`booking_url` column** still in production DB | Harmless, empty. Schema no longer references it. | Either drop it deliberately later, or re-use it if the booking feature is reintroduced. No urgency. |
 
 ---
 
@@ -85,11 +105,12 @@ The user's next focus is **CIV upgrades / developments** — they intentionally 
 
 ## 4. Saved state confirmation
 
-- ✅ All edits committed via Replit auto-checkpoints; latest commit `80ffc402` ("Published your App"). Working tree at HEAD.
+- ✅ All edits committed via Replit auto-checkpoints; latest commits include `359d4d5a` (hook-order fix), `16a3e4c6` (zip backup), `cb633220` (docs update). Working tree at HEAD.
 - ✅ All test leads exist in **production** PostgreSQL only. No data lives in chat history that isn't also in the DB.
 - ✅ Admin credentials live only in Replit Secrets (`ADMIN_EMAIL` env var, `ADMIN_PASSWORD` secret). Nothing is in code.
 - ✅ Custom domains verified and serving traffic.
-- ✅ `PROJECT_HANDOFF.md` written alongside this file — both are committed in this same change.
+- ✅ `PROJECT_HANDOFF.md` written alongside this file — both are committed in repo and included in the user's local zip backup.
+- ✅ Local zip backup downloaded by user on 22 April 2026 (`advisory-backup.zip`).
 
 ---
 
