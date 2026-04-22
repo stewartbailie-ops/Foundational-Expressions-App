@@ -6,6 +6,7 @@ import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const safeUrlField = z
   .string()
@@ -121,6 +122,36 @@ const pdfUpload = multer({
     cb(null, file.mimetype === "application/pdf");
   },
 });
+
+function verifyZohoWebhook(req: import("express").Request): boolean {
+  const secret = process.env.ZOHO_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("ZOHO_WEBHOOK_SECRET is not configured — rejecting webhook request");
+    return false;
+  }
+  const token = req.headers["x-zoho-webhook-token"] as string | undefined;
+  if (!token) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+  } catch {
+    return false;
+  }
+}
+
+function verifySendGridWebhook(req: import("express").Request): boolean {
+  const secret = process.env.SENDGRID_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error("SENDGRID_WEBHOOK_SECRET is not configured — rejecting webhook request");
+    return false;
+  }
+  const token = req.headers["x-sendgrid-webhook-token"] as string | undefined;
+  if (!token) return false;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(token), Buffer.from(secret));
+  } catch {
+    return false;
+  }
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -623,6 +654,9 @@ export async function registerRoutes(
   });
 
   app.post("/api/webhook/zoho", async (req, res) => {
+    if (!verifyZohoWebhook(req)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     try {
       const body = req.body;
 
@@ -671,6 +705,9 @@ export async function registerRoutes(
   });
 
   app.post("/api/webhook/inbound-email", async (req, res) => {
+    if (!verifySendGridWebhook(req)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     try {
       const { from, to, subject, text: body } = req.body;
 
