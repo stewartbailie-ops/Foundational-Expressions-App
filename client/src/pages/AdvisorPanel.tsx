@@ -847,9 +847,10 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             );
           })}
         </div>
+      )}
 
-        {/* Slide-up detail panel */}
-        {selectedLead && (() => {
+      {/* Slide-up detail panel */}
+      {selectedLead && (() => {
           const lead = selectedLead;
           const tb = typeBadge[lead.type] || { text: tc.mutedText, bg: tc.inputBg };
           const currentStatus = lead.leadStatus || "Need to Contact";
@@ -1001,7 +1002,6 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             </div>
           );
         })()}
-      )}
     </div>
   );
 }
