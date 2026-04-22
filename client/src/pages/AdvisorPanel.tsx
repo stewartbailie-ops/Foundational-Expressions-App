@@ -5077,7 +5077,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "leads" | "stats" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "registry" | "settings">("home");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -5146,8 +5146,7 @@ export default function AdvisorPanel() {
 
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
-    { key: "leads" as const, label: "Leads", icon: Inbox },
-    { key: "stats" as const, label: "Stats", icon: BarChart2 },
+    { key: "registry" as const, label: "Registry", icon: Inbox },
     { key: "settings" as const, label: "Settings", icon: Settings },
   ];
 
@@ -5210,8 +5209,7 @@ export default function AdvisorPanel() {
 
         <div className="p-5 pb-12">
           {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
-          {activeTab === "leads" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
-          {activeTab === "stats" && <StatsTab slug={slug} tc={tc} />}
+          {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
         </div>
       </div>

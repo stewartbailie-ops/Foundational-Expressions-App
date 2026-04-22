@@ -660,6 +660,13 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  app.get("/api/advisors/:slug/profile-stats", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Not found" });
+    const totalViews = await storage.getAdvisorViewCount(advisor.id);
+    res.json({ totalViews });
+  });
+
   // Check if account has been set up (used on page load to auto-route first-timers)
   app.get("/api/advisor-auth/:slug/status", async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);

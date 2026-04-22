@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, Fragment } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -663,6 +664,11 @@ export default function AdvisorProfile() {
     enabled: !!slug,
   });
 
+  const { data: profileStats } = useQuery<{ totalViews: number }>({
+    queryKey: [`/api/advisors/${slug}/profile-stats`],
+    enabled: !!slug,
+  });
+
   const [lang, setLang] = useState<Lang>("en");
   const [inDevClicked, setInDevClicked] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState<string | null>(null);
@@ -1111,20 +1117,42 @@ export default function AdvisorProfile() {
     <div className="min-h-screen" style={{ ...themeBg, color: textColor }} data-testid="profile-container">
       <div className="max-w-md mx-auto px-4 pt-6 pb-12 space-y-4">
 
-        {/* Language toggle */}
-        <div className="flex justify-end gap-1" data-testid="lang-toggle">
-          {(["en", "af", "zu"] as Lang[]).map((l) => (
-            <button key={l} onClick={() => setLang(l)}
-              className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
-              style={{ backgroundColor: lang === l ? accentColor : tc.buttonSecondaryBg, color: lang === l ? tc.buttonText : mutedText, border: `1px solid ${lang === l ? accentColor : tc.borderColor}` }}
-              data-testid={`button-lang-${l}`}>
-              {l === "en" ? "EN" : l === "af" ? "AF" : "ZU"}
-            </button>
-          ))}
-        </div>
+        {/* Language toggle + view count */}
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex items-center justify-between"
+          data-testid="lang-toggle"
+        >
+          {profileStats && profileStats.totalViews > 0 && (
+            <div className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, border: `1px solid ${tc.borderColor}` }}>
+              <Eye className="h-3 w-3" />
+              {profileStats.totalViews.toLocaleString()} views
+            </div>
+          )}
+          {!(profileStats && profileStats.totalViews > 0) && <div />}
+          <div className="flex gap-1">
+            {(["en", "af", "zu"] as Lang[]).map((l) => (
+              <button key={l} onClick={() => setLang(l)}
+                className="px-2.5 py-1 rounded-md text-xs font-semibold transition-all"
+                style={{ backgroundColor: lang === l ? accentColor : tc.buttonSecondaryBg, color: lang === l ? tc.buttonText : mutedText, border: `1px solid ${lang === l ? accentColor : tc.borderColor}` }}
+                data-testid={`button-lang-${l}`}>
+                {l === "en" ? "EN" : l === "af" ? "AF" : "ZU"}
+              </button>
+            ))}
+          </div>
+        </motion.div>
 
         {/* 1. Portrait Profile Header */}
-        <div className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }} data-testid="profile-header">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+          className="rounded-2xl overflow-hidden"
+          style={{ border: `1px solid ${tc.initialsCircleBorder}`, boxShadow: "0 8px 28px rgba(0,0,0,0.2)" }}
+          data-testid="profile-header"
+        >
           {/* Top area — full-width cover photo or gradient initials */}
           {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
             <div className="relative w-full" style={{ minHeight: 300 }}>
@@ -1196,11 +1224,21 @@ export default function AdvisorProfile() {
             <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
               <Download className="h-3.5 w-3.5 flex-shrink-0" />{t.saveContact}
             </button>
-            <button onClick={handleShare} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-share-profile">
+            <button
+              onClick={handleShare}
+              className={btnBase}
+              style={{
+                backgroundColor: shareCopied ? accentColor : tc.buttonSecondaryBg,
+                color: shareCopied ? tc.buttonText : accentColor,
+                border: `1px solid ${shareCopied ? accentColor : tc.borderColor}`,
+                transition: "all 0.3s ease",
+              }}
+              data-testid="button-share-profile"
+            >
               <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
             </button>
           </div>
-        </div>
+        </motion.div>
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
@@ -1705,8 +1743,17 @@ export default function AdvisorProfile() {
           </div>
             ) : null,
           };
-          return profileSectionOrder.map(key =>
-            sectionMap[key] ? <Fragment key={key}>{sectionMap[key]}</Fragment> : null
+          return profileSectionOrder.map((key, i) =>
+            sectionMap[key] ? (
+              <motion.div
+                key={key}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.06, duration: 0.38, ease: "easeOut" }}
+              >
+                {sectionMap[key]}
+              </motion.div>
+            ) : null
           );
         })()}
 

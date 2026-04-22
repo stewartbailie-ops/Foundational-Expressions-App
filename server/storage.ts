@@ -34,6 +34,7 @@ export interface IStorage {
   }>;
   getWeeklyActivity(days?: number): Promise<{ name: string; emails: number; accesses: number }[]>;
   getLeadBreakdown(): Promise<{ typeBreakdown: { type: string; count: number }[]; gradeBreakdown: { grade: string; count: number }[] }>;
+  getAdvisorViewCount(advisorId: number): Promise<number>;
   recordStat(stat: InsertStat): Promise<Stat>;
 }
 
@@ -384,6 +385,14 @@ export class DatabaseStorage implements IStorage {
       typeBreakdown: typeRows.map(r => ({ type: r.type, count: r.cnt })),
       gradeBreakdown: gradeRows.map(r => ({ grade: r.grade ?? "Unknown", count: r.cnt })),
     };
+  }
+
+  async getAdvisorViewCount(advisorId: number): Promise<number> {
+    const result = await db
+      .select({ cnt: count() })
+      .from(stats)
+      .where(sql`${stats.advisorId} = ${advisorId} AND ${stats.eventType} = 'app_access'`);
+    return result[0]?.cnt ?? 0;
   }
 
   async recordStat(stat: InsertStat): Promise<Stat> {
