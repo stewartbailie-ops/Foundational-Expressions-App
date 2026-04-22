@@ -13,6 +13,34 @@ function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
 
+const PUBLIC_ADVISOR_FIELDS = [
+  "id", "name", "contactNumber", "location", "workingHours", "showContactDetails",
+  "title", "bio", "bioOption", "customBio", "entityType",
+  "themeColor", "theme", "backgroundStyle", "font",
+  "profilePicUrl", "coverImageUrl",
+  "linkedinUrl", "websiteUrl", "facebookUrl", "instagramUrl", "youtubeUrl",
+  "astuteUrl", "documentsUrl", "qaUrl",
+  "financialsNewsUrl", "financialsFunFactsUrl", "financialsVideosUrl",
+  "nickname", "profileDescription", "profileSlug",
+  "individualServices", "corporateServices",
+  "showCallbackLink", "showReferralsLink", "showQrCode", "showHeader",
+  "showProfilePic", "showIntro", "showIndividualServices", "showCorporateServices",
+  "showSocials", "showAstute", "showDocuments", "showComplimentaryWill",
+  "showFinancialMedia", "showTools", "showToolTax", "showToolExchange",
+  "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle",
+  "showMoneywebFeed", "showEmergencyContacts",
+  "patternOpacity", "profileSectionOrder", "active",
+] as const;
+
+type PublicAdvisor = Pick<import("@shared/schema").Advisor, (typeof PUBLIC_ADVISOR_FIELDS)[number]>;
+
+function toPublicAdvisor(advisor: import("@shared/schema").Advisor): PublicAdvisor {
+  return PUBLIC_ADVISOR_FIELDS.reduce((acc, key) => {
+    (acc as any)[key] = (advisor as any)[key];
+    return acc;
+  }, {} as PublicAdvisor);
+}
+
 export function registerOgImageRoute(app: Express) {
   app.get("/api/og-image/:slug", async (req, res) => {
     try {
@@ -154,7 +182,7 @@ export async function registerRoutes(
   app.get("/api/advisors/slug/:slug", async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    res.json(advisor);
+    res.json(toPublicAdvisor(advisor));
   });
 
   app.get("/api/advisors/:id", async (req, res) => {
