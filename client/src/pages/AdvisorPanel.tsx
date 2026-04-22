@@ -4730,8 +4730,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
   const [faisAgreementUrl, setFaisAgreementUrl] = useState<string | null>((advisor as any).faisAgreementUrl || null);
   const [faisUploading, setFaisUploading] = useState(false);
 
-  // Booking URL
-  const [bookingUrl, setBookingUrl] = useState<string>((advisor as any).bookingUrl || "");
 
   // Panel theme (separate from Contact Card)
   const [panelTheme, setPanelTheme] = useState<string>((advisor as any).panelTheme || "blue");
@@ -4961,7 +4959,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           { label: "Individual services", done: (advisor.individualServices?.length ?? 0) > 0 },
           { label: "Corporate services", done: (advisor.corporateServices?.length ?? 0) > 0 },
           { label: "Social links", done: !!(advisor.linkedinUrl || advisor.websiteUrl || (advisor as any).facebookUrl) },
-          { label: "Booking URL", done: !!(advisor as any).bookingUrl },
         ];
         const done = checks.filter(c => c.done).length;
         const pct = Math.round((done / checks.length) * 100);
@@ -4996,34 +4993,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           </div>
         );
       })()}
-
-      {/* Booking URL */}
-      <Section icon={Globe} title="Booking Link (Outlook Calendar)">
-        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-          Add your Outlook or Calendly booking link. A "Book a Meeting" button will appear on your public profile card.
-        </p>
-        <div className="space-y-1.5">
-          <div style={fieldLabel}>Booking URL</div>
-          <Input
-            value={bookingUrl}
-            onChange={e => setBookingUrl(e.target.value)}
-            placeholder="https://outlook.office365.com/book/..."
-            style={inputStyle}
-            data-testid="input-settings-booking-url"
-          />
-        </div>
-        <Button
-          size="sm"
-          onClick={() => saveMutation.mutate({ bookingUrl: bookingUrl || null } as any)}
-          disabled={saveMutation.isPending || !bookingUrl.trim()}
-          style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-          className="gap-1.5 w-full"
-          data-testid="button-save-booking-url"
-        >
-          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
-          Save Booking Link
-        </Button>
-      </Section>
 
       {/* Panel Theme */}
       <Section icon={Palette} title="Sub-Control Panel Theme">

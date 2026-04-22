@@ -98,7 +98,6 @@ export const advisors = pgTable("advisors", {
   nickname: text("nickname"),
   profileDescription: text("profile_description"),
   profileSlug: text("profile_slug").notNull().unique(),
-  bookingUrl: text("booking_url"),
   individualServices: text("individual_services").array(),
   corporateServices: text("corporate_services").array(),
   showCallbackLink: boolean("show_callback_link").default(true),

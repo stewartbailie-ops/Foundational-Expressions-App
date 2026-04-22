@@ -1364,33 +1364,16 @@ export default function AdvisorProfile() {
               </div>
             ) : null,
 
-            callback: (advisor.showCallbackLink !== false || !!(advisor as any).bookingUrl) ? (
-              <div className="space-y-2">
-                {advisor.showCallbackLink !== false && (
-                  <button
-                    onClick={() => navigate(`/${slug}/request-callback`)}
-                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-                    data-testid="button-request-callback"
-                  >
-                    <Phone className="h-4 w-4 flex-shrink-0" />
-                    {t.requestCallback}
-                  </button>
-                )}
-                {!!(advisor as any).bookingUrl && (
-                  <a
-                    href={(advisor as any).bookingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
-                    style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
-                    data-testid="link-book-meeting"
-                  >
-                    <Clock className="h-4 w-4 flex-shrink-0" />
-                    Book a Meeting
-                  </a>
-                )}
-              </div>
+            callback: advisor.showCallbackLink !== false ? (
+              <button
+                onClick={() => navigate(`/${slug}/request-callback`)}
+                className="flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+                style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+                data-testid="button-request-callback"
+              >
+                <Phone className="h-4 w-4 flex-shrink-0" />
+                {t.requestCallback}
+              </button>
             ) : null,
 
             referral: advisor.showReferralsLink !== false ? (
