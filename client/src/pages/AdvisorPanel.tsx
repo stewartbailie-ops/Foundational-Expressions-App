@@ -589,7 +589,14 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 }
 
 function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const toggleExpanded = (id: number) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
@@ -630,9 +637,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/emails/${id}`);
     },
-    onSuccess: () => {
+    onSuccess: (_d, id) => {
       queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/emails`] });
-      setExpandedId(null);
+      setExpandedIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     },
   });
 
@@ -810,7 +817,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             const currentStatus = lead.leadStatus || "Need to Contact";
             const gc = gradeColors[lead.grade || "Silver"] || gradeColors["Silver"];
             const isUnread = !lead.lastOpenedAt;
-            const isExpanded = expandedId === lead.id;
+            const isExpanded = expandedIds.has(lead.id);
             const phone = lead.clientPhone?.replace(/[^0-9+]/g, "");
             const whatsappHref = phone ? `https://wa.me/${phone.startsWith("+") ? phone.slice(1) : phone}` : null;
             return (
@@ -824,12 +831,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                   type="button"
                   className="w-full flex items-center justify-between px-4 py-3.5 text-left transition-opacity active:opacity-70"
                   onClick={() => {
-                    if (isExpanded) {
-                      setExpandedId(null);
-                    } else {
-                      setExpandedId(lead.id);
-                      if (isUnread) openMutation.mutate(lead.id);
-                    }
+                    toggleExpanded(lead.id);
+                    if (!isExpanded && isUnread) openMutation.mutate(lead.id);
                   }}
                   data-testid={`button-civ-row-${lead.id}`}
                 >
