@@ -6,7 +6,18 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
 import { storage } from "./storage";
+import { db } from "./db";
+import { sql } from "drizzle-orm";
 import fs from "fs";
+
+async function ensureSchema() {
+  try {
+    await db.execute(sql`ALTER TABLE advisors ADD COLUMN IF NOT EXISTS booking_url text`);
+    console.log("[schema] ensured advisors.booking_url");
+  } catch (err) {
+    console.error("[schema] ensure failed:", err);
+  }
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -100,6 +111,7 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await ensureSchema();
   await registerRoutes(httpServer, app);
   registerOgImageRoute(app);
 
