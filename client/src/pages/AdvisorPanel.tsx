@@ -5262,6 +5262,14 @@ export default function AdvisorPanel() {
     enabled: !!slug,
   });
 
+  // Shares cache with CIVTab — no extra network request.
+  // Must be called before any early returns to satisfy the rules of hooks.
+  const { data: panelLeads = [] } = useQuery<Email[]>({
+    queryKey: [`/api/advisors/${slug}/emails`],
+    enabled: !!slug && authState === "authenticated",
+  });
+  const unreadCount = panelLeads.filter(l => !l.lastOpenedAt).length;
+
   useEffect(() => {
     if (!slug) return;
     const checkAuth = async () => {
@@ -5321,13 +5329,6 @@ export default function AdvisorPanel() {
 
   const initials = getInitials(advisor.name);
   const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
-
-  // Shares cache with CIVTab — no extra network request
-  const { data: panelLeads = [] } = useQuery<Email[]>({
-    queryKey: [`/api/advisors/${slug}/emails`],
-    enabled: authState === "authenticated",
-  });
-  const unreadCount = panelLeads.filter(l => !l.lastOpenedAt).length;
 
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
