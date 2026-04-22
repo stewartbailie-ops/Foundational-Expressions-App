@@ -44,6 +44,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "id", "name", "contactNumber", "location", "workingHours", "showContactDetails",
   "title", "bio", "bioOption", "customBio", "entityType",
   "themeColor", "theme", "backgroundStyle", "font",
+  "panelTheme", "panelThemeColor", "panelBackgroundStyle",
   "profilePicUrl", "coverImageUrl",
   "linkedinUrl", "websiteUrl", "facebookUrl", "instagramUrl", "youtubeUrl",
   "astuteUrl", "documentsUrl", "qaUrl",
