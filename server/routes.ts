@@ -256,9 +256,13 @@ export async function registerRoutes(
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
-    const data = parsed.data;
+    const data: any = parsed.data;
     if (!data.grade || data.grade === "Silver") {
       data.grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
+    }
+    if (req.body?.receivedAt) {
+      const d = new Date(req.body.receivedAt);
+      if (!isNaN(d.getTime())) data.receivedAt = d;
     }
     const email = await storage.createEmail(data);
     res.status(201).json(email);

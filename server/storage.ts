@@ -257,8 +257,10 @@ export class DatabaseStorage implements IStorage {
     return { totalLeads: totalLeads.value, totalReferrals: totalReferrals.value, totalCallbacks: totalCallbacks.value, weeklyActivity };
   }
 
-  async createEmail(email: InsertEmail): Promise<Email> {
-    const [created] = await db.insert(emails).values(email).returning();
+  async createEmail(email: InsertEmail & { receivedAt?: Date }): Promise<Email> {
+    const values: any = { ...email };
+    if (email.receivedAt) values.receivedAt = email.receivedAt;
+    const [created] = await db.insert(emails).values(values).returning();
     await db.insert(stats).values({ advisorId: email.advisorId, eventType: "email_received" });
     if (email.type === "Referral") {
       await db.insert(stats).values({ advisorId: email.advisorId, eventType: "referral_sent" });
