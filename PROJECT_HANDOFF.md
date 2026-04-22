@@ -1,4 +1,4 @@
-# Advisory Connect — Project Handoff
+ok# Advisory Connect — Project Handoff
 
 > **Read this first.** This document is the single source of truth for understanding what Advisory Connect is, how it's built, how it runs, and where the bodies are buried. Pair it with `CURRENT_STATE.md` for "what's happening right now".
 
