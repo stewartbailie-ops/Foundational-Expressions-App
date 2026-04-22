@@ -16,6 +16,8 @@ const PUBLIC_API_ROUTES = [
   "/uploads/",
 ];
 
+const ADVISOR_SLUG_ROUTE_PATTERN = /^\/api\/advisors\/[^/]+\/(emails|stats|profile-stats)$/;
+
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.path.startsWith("/api/") && !req.path.startsWith("/uploads/")) {
     return next();
@@ -31,15 +33,11 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     }
   }
 
-  if ((req.session as any)?.authenticated) {
+  if (ADVISOR_SLUG_ROUTE_PATTERN.test(req.path)) {
     return next();
   }
 
-  const session = req.session as any;
-  const hasAdvisorSession = Object.keys(session || {}).some(
-    (key) => key.startsWith("advisor_") && session[key] === true
-  );
-  if (hasAdvisorSession) {
+  if ((req.session as any)?.authenticated) {
     return next();
   }
 

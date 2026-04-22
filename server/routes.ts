@@ -749,7 +749,7 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Account already set up. Please sign in." });
     }
     const hash = await bcrypt.hash(password, 10);
-    await storage.updateAdvisor(advisor.id, { advisorPasswordHash: hash });
+    (req.session as any)[`setup_hash_${req.params.slug}`] = hash;
     const code = generateOtp();
     otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
     try {
@@ -787,7 +787,15 @@ export async function registerRoutes(
     otpStore.delete(req.params.slug);
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    await storage.updateAdvisor(advisor.id, { advisorPasswordSet: true, advisorEmailVerified: true });
+    const pendingHash = (req.session as any)[`setup_hash_${req.params.slug}`];
+    if (pendingHash) {
+      await storage.updateAdvisor(advisor.id, { advisorPasswordHash: pendingHash, advisorPasswordSet: true, advisorEmailVerified: true });
+      delete (req.session as any)[`setup_hash_${req.params.slug}`];
+    } else if (advisor.advisorPasswordHash) {
+      await storage.updateAdvisor(advisor.id, { advisorPasswordSet: true, advisorEmailVerified: true });
+    } else {
+      return res.status(400).json({ message: "Setup session expired. Please go back and start again." });
+    }
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
@@ -797,7 +805,8 @@ export async function registerRoutes(
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (advisor.advisorEmailVerified) return res.status(400).json({ message: "Account already verified." });
-    if (!advisor.advisorPasswordHash) return res.status(400).json({ message: "Please complete account setup first." });
+    const hasPendingHash = !!(req.session as any)[`setup_hash_${req.params.slug}`] || !!advisor.advisorPasswordHash;
+    if (!hasPendingHash) return res.status(400).json({ message: "Please complete account setup first." });
     const code = generateOtp();
     otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
     try {
@@ -891,9 +900,8 @@ export async function registerRoutes(
     }
     const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
     if (!valid) return res.status(401).json({ message: "Incorrect email or password." });
-    // Auto-verify advisors who set a password through the old OTP system
     if (!advisor.advisorEmailVerified) {
-      await storage.updateAdvisor(advisor.id, { advisorEmailVerified: true, advisorPasswordSet: true });
+      return res.status(401).json({ message: "Email not verified. Please complete the verification step.", needsVerification: true });
     }
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });

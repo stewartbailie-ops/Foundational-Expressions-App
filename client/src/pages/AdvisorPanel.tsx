@@ -80,7 +80,7 @@ function LoginScreen({ slug, onDone, onSetup }: { slug: string; onDone: () => vo
       });
       const data = await res.json();
       if (!res.ok) {
-        if (data.needsSetup) { onSetup(); return; }
+        if (data.needsSetup || data.needsVerification) { onSetup(); return; }
         throw new Error(data.message || "Incorrect email or password.");
       }
       onDone();
