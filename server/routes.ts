@@ -7,6 +7,32 @@ import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 
+const safeUrlField = z
+  .string()
+  .nullable()
+  .optional()
+  .refine(
+    (val) => val === null || val === undefined || val === "" || /^https?:\/\//i.test(val.trim()),
+    { message: "URL must start with http:// or https://" }
+  );
+
+const URL_FIELD_OVERRIDES = {
+  linkedinUrl: safeUrlField,
+  websiteUrl: safeUrlField,
+  facebookUrl: safeUrlField,
+  instagramUrl: safeUrlField,
+  youtubeUrl: safeUrlField,
+  astuteUrl: safeUrlField,
+  documentsUrl: safeUrlField,
+  qaUrl: safeUrlField,
+  financialsNewsUrl: safeUrlField,
+  financialsFunFactsUrl: safeUrlField,
+  financialsVideosUrl: safeUrlField,
+} as const;
+
+const safeInsertAdvisorSchema = insertAdvisorSchema.extend(URL_FIELD_OVERRIDES);
+const safeInsertAdvisorProfileSchema = insertAdvisorProfileSchema.extend(URL_FIELD_OVERRIDES);
+
 const otpStore = new Map<string, { code: string; expires: number }>();
 
 function generateOtp(): string {
@@ -192,7 +218,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/advisors", async (req, res) => {
-    const parsed = insertAdvisorSchema.safeParse(req.body);
+    const parsed = safeInsertAdvisorSchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
@@ -201,7 +227,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/advisors/:id", async (req, res) => {
-    const partial = insertAdvisorSchema.partial().safeParse(req.body);
+    const partial = safeInsertAdvisorSchema.partial().safeParse(req.body);
     if (!partial.success) {
       return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
     }
@@ -232,7 +258,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/advisors/:id/profiles", async (req, res) => {
-    const parsed = insertAdvisorProfileSchema.safeParse({ ...req.body, advisorId: Number(req.params.id) });
+    const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId: Number(req.params.id) });
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
@@ -252,7 +278,7 @@ export async function registerRoutes(
   });
 
   app.patch("/api/advisors/:id/profiles/:profileId", async (req, res) => {
-    const partial = insertAdvisorProfileSchema.partial().safeParse(req.body);
+    const partial = safeInsertAdvisorProfileSchema.partial().safeParse(req.body);
     if (!partial.success) {
       return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
     }

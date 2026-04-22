@@ -8,6 +8,13 @@ import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return null;
+}
+
 function getInitials(name: string): string {
   return name
     .split(" ")
@@ -1353,8 +1360,8 @@ export default function AdvisorProfile() {
                   { url: (advisor as any).instagramUrl, label: t.instagram, Icon: Instagram, testId: "link-instagram" },
                   { url: (advisor as any).youtubeUrl, label: t.youtube, Icon: Youtube, testId: "link-youtube" },
                   { url: advisor.websiteUrl, label: t.website, Icon: Globe, testId: "link-website" },
-                ].filter(s => !!s.url).map(({ url, label, testId }) => (
-                  <a key={testId} href={url!} target="_blank" rel="noopener noreferrer"
+                ].filter(s => !!sanitizeUrl(s.url)).map(({ url, label, testId }) => (
+                  <a key={testId} href={sanitizeUrl(url)!} target="_blank" rel="noopener noreferrer"
                     className="flex items-center justify-center w-full py-3 rounded-xl font-medium text-sm transition-opacity hover:opacity-80"
                     style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
                     data-testid={testId}>
@@ -1455,9 +1462,9 @@ export default function AdvisorProfile() {
 
             astute: !!(advisor as any).showAstute ? (
               <div data-testid="section-astute">
-                {(advisor as any).astuteUrl ? (
+                {sanitizeUrl((advisor as any).astuteUrl) ? (
                   <a
-                    href={(advisor as any).astuteUrl}
+                    href={sanitizeUrl((advisor as any).astuteUrl)!}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90 no-underline"
