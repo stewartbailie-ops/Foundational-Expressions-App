@@ -400,25 +400,48 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
   );
 }
 
+const HOME_TYPE_COLORS: Record<string, string> = {
+  "Referral":     "#7c3aed",
+  "Call Back":    "#0369a1",
+  "Will Request": "#b45309",
+};
+const HOME_GRADE_COLORS: Record<string, string> = {
+  "Gold":        "#F59E0B",
+  "Silver":      "#94A3B8",
+  "Bronze":      "#CD7F32",
+  "Development": "#8B5CF6",
+};
+const HOME_GRADE_ORDER = ["Gold", "Silver", "Bronze", "Development"];
+
 function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
 
-  const { data: advisorStats } = useQuery<{ totalLeads: number; totalReferrals: number; totalCallbacks: number }>({
-    queryKey: [`/api/advisors/${advisor.profileSlug}/stats`],
+  const { data: advisorStats } = useQuery<{
+    totalLeads: number; totalReferrals: number; totalCallbacks: number;
+    weeklyActivity: { name: string; leads: number }[];
+  }>({ queryKey: [`/api/advisors/${advisor.profileSlug}/stats`] });
+
+  const { data: allLeads = [] } = useQuery<Email[]>({
+    queryKey: [`/api/advisors/${advisor.profileSlug}/emails`],
   });
 
   const firstName = advisor.name.split(" ")[0];
+  const totalLeads = allLeads.length;
+
+  const typeBreakdown = Object.entries(
+    allLeads.reduce((acc: Record<string, number>, l) => { acc[l.type] = (acc[l.type] || 0) + 1; return acc; }, {})
+  ).map(([type, count]) => ({ type, count }));
+
+  const gradeBreakdown = Object.entries(
+    allLeads.reduce((acc: Record<string, number>, l) => { const g = l.grade || "Silver"; acc[g] = (acc[g] || 0) + 1; return acc; }, {})
+  )
+    .map(([grade, count]) => ({ grade, count }))
+    .sort((a, b) => HOME_GRADE_ORDER.indexOf(a.grade) - HOME_GRADE_ORDER.indexOf(b.grade));
 
   const sections = [
     { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers,     accent: "#3B82F6" },
     { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator, accent: "#10B981" },
     { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe,      accent: "#8B5CF6" },
-  ];
-
-  const quickStats = [
-    { label: "Total Leads",  value: advisorStats?.totalLeads    ?? "–" },
-    { label: "Referrals",    value: advisorStats?.totalReferrals ?? "–" },
-    { label: "Callbacks",    value: advisorStats?.totalCallbacks ?? "–" },
   ];
 
   return (
@@ -428,15 +451,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Tap a section to expand it.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
-        {quickStats.map(({ label, value }) => (
-          <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="text-xl font-bold" style={{ color: tc.textColor }}>{value}</div>
-            <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{label}</div>
-          </div>
-        ))}
-      </div>
-
+      {/* Section drop-downs */}
       <div className="space-y-2.5">
         {sections.map(s => {
           const Icon = s.icon;
@@ -470,6 +485,104 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
             </div>
           );
         })}
+      </div>
+
+      {/* ── My Stats ── */}
+      <div className="space-y-3 pt-1">
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>My Stats</div>
+
+        {/* Quick stat tiles */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { label: "Total Leads", value: advisorStats?.totalLeads    ?? 0, accent: "#3B82F6" },
+            { label: "Referrals",   value: advisorStats?.totalReferrals ?? 0, accent: "#7c3aed" },
+            { label: "Callbacks",   value: advisorStats?.totalCallbacks ?? 0, accent: "#0369a1" },
+          ].map(({ label, value, accent }) => (
+            <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="text-xl font-bold" style={{ color: tc.textColor }}>{value}</div>
+              <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Weekly activity area chart */}
+        <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="text-xs font-semibold mb-3" style={{ color: tc.textColor }}>Lead Activity – Last 7 Days</div>
+          <div className="h-[120px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={advisorStats?.weeklyActivity ?? []} margin={{ top: 4, right: 0, left: -30, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="homeLeadGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor={tc.accentColor} stopOpacity={0.35} />
+                    <stop offset="95%" stopColor={tc.accentColor} stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tc.borderColor} />
+                <XAxis dataKey="name" tick={{ fill: tc.mutedText, fontSize: 10 }} tickLine={false} axisLine={false} dy={6} />
+                <YAxis tick={{ fill: tc.mutedText, fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
+                <Tooltip contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor, borderRadius: 8, fontSize: 12 }} />
+                <Area type="monotone" dataKey="leads" name="Leads" stroke={tc.accentColor} strokeWidth={2} fill="url(#homeLeadGrad)" dot={false} activeDot={{ r: 3, fill: tc.accentColor }} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Lead types + Grade breakdown side by side */}
+        {totalLeads > 0 && (
+          <div className="grid grid-cols-2 gap-2.5">
+
+            {/* Type donut */}
+            <div className="rounded-xl p-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: tc.textColor }}>Lead Types</div>
+              <div className="h-[90px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={typeBreakdown} cx="50%" cy="50%" innerRadius={24} outerRadius={38} paddingAngle={3} dataKey="count" nameKey="type" strokeWidth={0}>
+                      {typeBreakdown.map(e => (
+                        <Cell key={e.type} fill={HOME_TYPE_COLORS[e.type] ?? "#6B7280"} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor, borderRadius: 8, fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-1 mt-1">
+                {typeBreakdown.map(e => (
+                  <div key={e.type} className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color: tc.mutedText }}>
+                      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: HOME_TYPE_COLORS[e.type] ?? "#6B7280" }} />
+                      {e.type}
+                    </div>
+                    <span className="text-[10px] font-bold" style={{ color: tc.textColor }}>{e.count}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Grade breakdown */}
+            <div className="rounded-xl p-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="text-xs font-semibold mb-2" style={{ color: tc.textColor }}>By Grade</div>
+              <div className="space-y-2.5">
+                {gradeBreakdown.map(e => {
+                  const pct = totalLeads > 0 ? Math.round((e.count / totalLeads) * 100) : 0;
+                  const color = HOME_GRADE_COLORS[e.grade] ?? "#6B7280";
+                  return (
+                    <div key={e.grade}>
+                      <div className="flex justify-between text-[10px] mb-1">
+                        <span className="font-medium" style={{ color }}>{e.grade}</span>
+                        <span className="font-bold" style={{ color: tc.textColor }}>{e.count}</span>
+                      </div>
+                      <div className="h-1 rounded-full" style={{ backgroundColor: `${color}25` }}>
+                        <div className="h-1 rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+          </div>
+        )}
       </div>
     </div>
   );
@@ -544,8 +657,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     "Development": { text: "#6d28d9", bg: "rgba(109,40,217,0.12)" },
   };
   const typeBadge: Record<string, { text: string; bg: string }> = {
-    "Referral": { text: "#7c3aed", bg: "rgba(124,58,237,0.12)" },
-    "Call Back": { text: "#0369a1", bg: "rgba(3,105,161,0.12)" },
+    "Referral":     { text: "#7c3aed", bg: "rgba(124,58,237,0.12)" },
+    "Call Back":    { text: "#0369a1", bg: "rgba(3,105,161,0.12)"  },
+    "Will Request": { text: "#b45309", bg: "rgba(217,119,6,0.12)"  },
   };
 
   const gradeCount = (g: string) => leads.filter(l => (l.grade || "Silver") === g).length;
