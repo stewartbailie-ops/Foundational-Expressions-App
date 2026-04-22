@@ -125,9 +125,16 @@ export async function registerRoutes(
     res.json(stats);
   });
 
-  app.get("/api/dashboard/activity", async (_req, res) => {
-    const activity = await storage.getWeeklyActivity();
+  app.get("/api/dashboard/activity", async (req, res) => {
+    const raw = Number(req.query.days);
+    const days = [7, 30, 90].includes(raw) ? raw : 7;
+    const activity = await storage.getWeeklyActivity(days);
     res.json(activity);
+  });
+
+  app.get("/api/dashboard/breakdown", async (_req, res) => {
+    const breakdown = await storage.getLeadBreakdown();
+    res.json(breakdown);
   });
 
   app.get("/api/config/status", async (_req, res) => {

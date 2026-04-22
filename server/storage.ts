@@ -32,7 +32,8 @@ export interface IStorage {
     totalReferrals: number;
     activeAdvisors: number;
   }>;
-  getWeeklyActivity(): Promise<{ name: string; emails: number; accesses: number }[]>;
+  getWeeklyActivity(days?: number): Promise<{ name: string; emails: number; accesses: number }[]>;
+  getLeadBreakdown(): Promise<{ typeBreakdown: { type: string; count: number }[]; gradeBreakdown: { grade: string; count: number }[] }>;
   recordStat(stat: InsertStat): Promise<Stat>;
 }
 
@@ -298,34 +299,91 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  async getWeeklyActivity() {
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  async getWeeklyActivity(days: number = 7) {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - (days - 1));
+    startDate.setHours(0, 0, 0, 0);
+
+    const emailsByDay = await db
+      .select({
+        dateStr: sql<string>`to_char(${emails.receivedAt}, 'YYYY-MM-DD')`,
+        cnt: count(),
+      })
+      .from(emails)
+      .where(sql`${emails.receivedAt} >= ${startDate}`)
+      .groupBy(sql`to_char(${emails.receivedAt}, 'YYYY-MM-DD')`);
+
+    const accessesByDay = await db
+      .select({
+        dateStr: sql<string>`to_char(${stats.eventDate}, 'YYYY-MM-DD')`,
+        cnt: count(),
+      })
+      .from(stats)
+      .where(sql`${stats.eventType} = 'app_access' AND ${stats.eventDate} >= ${startDate}`)
+      .groupBy(sql`to_char(${stats.eventDate}, 'YYYY-MM-DD')`);
+
+    const emailMap = new Map(emailsByDay.map(r => [r.dateStr, r.cnt]));
+    const accessMap = new Map(accessesByDay.map(r => [r.dateStr, r.cnt]));
+
+    const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const result: { name: string; emails: number; accesses: number }[] = [];
 
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dayName = days[d.getDay()];
+    if (days <= 30) {
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const name = days <= 7
+          ? DAY_NAMES[d.getDay()]
+          : `${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+        result.push({ name, emails: emailMap.get(dateStr) ?? 0, accesses: accessMap.get(dateStr) ?? 0 });
+      }
+    } else {
+      for (let w = 12; w >= 0; w--) {
+        const weekEnd = new Date();
+        weekEnd.setDate(weekEnd.getDate() - w * 7);
+        weekEnd.setHours(23, 59, 59, 999);
+        const weekStart = new Date(weekEnd);
+        weekStart.setDate(weekStart.getDate() - 6);
+        weekStart.setHours(0, 0, 0, 0);
 
-      const dayStart = new Date(d);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
+        let emailCount = 0;
+        let accessCount = 0;
+        const cur = new Date(weekStart);
+        while (cur <= weekEnd) {
+          const ds = cur.toISOString().slice(0, 10);
+          emailCount += emailMap.get(ds) ?? 0;
+          accessCount += accessMap.get(ds) ?? 0;
+          cur.setDate(cur.getDate() + 1);
+        }
 
-      const [emailsDay] = await db
-        .select({ value: count() })
-        .from(emails)
-        .where(sql`${emails.receivedAt} >= ${dayStart} AND ${emails.receivedAt} <= ${dayEnd}`);
-
-      const [accessesDay] = await db
-        .select({ value: count() })
-        .from(stats)
-        .where(sql`${stats.eventType} = 'app_access' AND ${stats.eventDate} >= ${dayStart} AND ${stats.eventDate} <= ${dayEnd}`);
-
-      result.push({ name: dayName, emails: emailsDay.value, accesses: accessesDay.value });
+        result.push({
+          name: `${weekStart.getDate()} ${MONTH_NAMES[weekStart.getMonth()]}`,
+          emails: emailCount,
+          accesses: accessCount,
+        });
+      }
     }
 
     return result;
+  }
+
+  async getLeadBreakdown() {
+    const typeRows = await db
+      .select({ type: emails.type, cnt: count() })
+      .from(emails)
+      .groupBy(emails.type);
+
+    const gradeRows = await db
+      .select({ grade: emails.grade, cnt: count() })
+      .from(emails)
+      .groupBy(emails.grade);
+
+    return {
+      typeBreakdown: typeRows.map(r => ({ type: r.type, count: r.cnt })),
+      gradeBreakdown: gradeRows.map(r => ({ grade: r.grade ?? "Unknown", count: r.cnt })),
+    };
   }
 
   async recordStat(stat: InsertStat): Promise<Stat> {
