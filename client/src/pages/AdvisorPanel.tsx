@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -401,38 +402,63 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
 
 function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
+
+  const { data: advisorStats } = useQuery<{ totalLeads: number; totalReferrals: number; totalCallbacks: number }>({
+    queryKey: [`/api/advisors/${advisor.profileSlug}/stats`],
+  });
+
+  const firstName = advisor.name.split(" ")[0];
+
   const sections = [
-    { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers },
-    { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator },
-    { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe },
+    { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers,     accent: "#3B82F6" },
+    { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator, accent: "#10B981" },
+    { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe,      accent: "#8B5CF6" },
   ];
+
+  const quickStats = [
+    { label: "Total Leads",  value: advisorStats?.totalLeads    ?? "–" },
+    { label: "Referrals",    value: advisorStats?.totalReferrals ?? "–" },
+    { label: "Callbacks",    value: advisorStats?.totalCallbacks ?? "–" },
+  ];
+
   return (
-    <div className="space-y-3">
-      <div className="space-y-1">
-        <h2 className="text-lg font-semibold" style={{ color: tc.textColor }}>Welcome</h2>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Tap a section to expand it.</p>
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-semibold" style={{ color: tc.textColor }}>Welcome back, {firstName}</h2>
+        <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Tap a section to expand it.</p>
       </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {quickStats.map(({ label, value }) => (
+          <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="text-xl font-bold" style={{ color: tc.textColor }}>{value}</div>
+            <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{label}</div>
+          </div>
+        ))}
+      </div>
+
       <div className="space-y-2.5">
         {sections.map(s => {
           const Icon = s.icon;
           const isOpen = expanded === s.key;
           return (
-            <div key={s.key} className="rounded-xl border-2 overflow-hidden" style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}>
+            <div key={s.key} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
               <button
                 onClick={() => setExpanded(isOpen ? null : s.key)}
                 className="w-full flex items-center gap-3 p-4 transition-all hover:opacity-90 text-left"
                 data-testid={`button-home-${s.key}`}
               >
-                <div className="h-11 w-11 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
-                  <Icon className="h-5 w-5" style={{ color: tc.accentColor }} />
+                <div className="h-11 w-11 rounded-xl flex items-center justify-center shrink-0" style={{ backgroundColor: `${s.accent}18`, border: `1px solid ${s.accent}35` }}>
+                  <Icon className="h-5 w-5" style={{ color: s.accent }} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
                   <div className="text-xs truncate" style={{ color: tc.mutedText }}>{s.desc}</div>
                 </div>
-                {isOpen
-                  ? <ChevronUp className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
-                  : <ChevronDown className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />}
+                <ChevronDown
+                  className="h-4 w-4 shrink-0 transition-transform duration-200"
+                  style={{ color: tc.mutedText, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)" }}
+                />
               </button>
               {isOpen && (
                 <div className="p-4 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
@@ -5014,7 +5040,7 @@ export default function AdvisorPanel() {
   return (
     <div className="min-h-screen" style={{ backgroundColor: tc.bgColor }}>
       <div className="max-w-lg mx-auto">
-        <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor, borderBottom: `1px solid ${tc.borderColor}` }}>
+        <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor, borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
             {advisor.profilePicUrl ? (
               <img src={advisor.profilePicUrl} alt={advisor.name} className="h-9 w-9 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
@@ -5041,7 +5067,7 @@ export default function AdvisorPanel() {
           </div>
         </div>
 
-        <div className="flex border-b" style={{ borderColor: tc.borderColor }}>
+        <div className="flex border-b relative" style={{ borderColor: tc.borderColor }}>
           {tabs.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.key;
@@ -5049,12 +5075,20 @@ export default function AdvisorPanel() {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors"
-                style={{ color: isActive ? tc.accentColor : tc.mutedText, borderBottom: isActive ? `2px solid ${tc.accentColor}` : "2px solid transparent" }}
+                className="flex-1 flex flex-col items-center gap-1 py-3 text-xs font-medium transition-colors relative"
+                style={{ color: isActive ? tc.accentColor : tc.mutedText }}
                 data-testid={`tab-panel-${tab.key}`}
               >
                 <Icon className="h-4 w-4" />
                 {tab.label}
+                {isActive && (
+                  <motion.div
+                    layoutId="panel-tab-indicator"
+                    className="absolute bottom-0 left-0 right-0 h-0.5"
+                    style={{ backgroundColor: tc.accentColor }}
+                    transition={{ type: "spring", stiffness: 400, damping: 35 }}
+                  />
+                )}
               </button>
             );
           })}
