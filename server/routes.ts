@@ -349,6 +349,21 @@ export async function registerRoutes(
     res.json(emails);
   });
 
+  // Public demo-only lead wiper. Removes ALL leads for a single demo advisor.
+  app.delete("/api/demo-emails/by-advisor/:id", async (req, res) => {
+    const advisorId = Number(req.params.id);
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor.isDemo) return res.status(403).json({ message: "Only demo advisors can be wiped" });
+    const leads = await storage.getEmailsByAdvisor(advisorId);
+    let count = 0;
+    for (const l of leads) {
+      const ok = await storage.deleteEmail(l.id);
+      if (ok) count++;
+    }
+    res.json({ deleted: count });
+  });
+
   // Public demo-only lead seeder. Refuses any non-demo advisor.
   app.post("/api/demo-emails", async (req, res) => {
     const advisorId = Number(req.body?.advisorId);
