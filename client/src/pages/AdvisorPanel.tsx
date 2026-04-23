@@ -757,13 +757,41 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
 
   return (
     <div className="space-y-4">
-      {/* Export row */}
+      {/* Sort + Export row — sort chips on the left, Export CSV on the right */}
       {leads.length > 0 && (
-        <div className="flex justify-end">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Sort</span>
+          {([
+            { key: "date", label: "Date" },
+            { key: "name", label: "Name" },
+            { key: "grade", label: "Grade" },
+            { key: "status", label: "Status" },
+          ] as Array<{ key: SortKey; label: string }>).map(opt => {
+            const active = sortBy === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => handleSortClick(opt.key)}
+                onDoubleClick={() => handleSortDoubleClick(opt.key)}
+                className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1"
+                style={{
+                  backgroundColor: active ? tc.accentColor + "20" : "transparent",
+                  color: active ? tc.accentColor : tc.mutedText,
+                  border: `1px solid ${active ? tc.accentColor : tc.borderColor}`,
+                }}
+                title={active ? "Click to flip direction" : `Sort by ${opt.label.toLowerCase()}`}
+                data-testid={`button-sort-${opt.key}`}
+              >
+                {opt.label}
+                {active && <span className="text-[10px] leading-none">{sortDir === "asc" ? "▲" : "▼"}</span>}
+              </button>
+            );
+          })}
           <button
             onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-75"
+            className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-75"
             style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+            data-testid="button-export-csv"
           >
             <Download className="h-3.5 w-3.5" />
             Export CSV
@@ -837,37 +865,6 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             Clear
           </button>
         )}
-      </div>
-
-      {/* Sort row — click to activate, click again (or double-click) to flip direction */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Sort by</span>
-        {([
-          { key: "date", label: "Date" },
-          { key: "name", label: "Name" },
-          { key: "grade", label: "Grade" },
-          { key: "status", label: "Status" },
-        ] as Array<{ key: SortKey; label: string }>).map(opt => {
-          const active = sortBy === opt.key;
-          return (
-            <button
-              key={opt.key}
-              onClick={() => handleSortClick(opt.key)}
-              onDoubleClick={() => handleSortDoubleClick(opt.key)}
-              className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1"
-              style={{
-                backgroundColor: active ? tc.accentColor + "20" : "transparent",
-                color: active ? tc.accentColor : tc.mutedText,
-                border: `1px solid ${active ? tc.accentColor : tc.borderColor}`,
-              }}
-              title={active ? "Click to flip direction" : `Sort by ${opt.label.toLowerCase()}`}
-              data-testid={`button-sort-${opt.key}`}
-            >
-              {opt.label}
-              {active && <span className="text-[10px] leading-none">{sortDir === "asc" ? "▲" : "▼"}</span>}
-            </button>
-          );
-        })}
       </div>
 
       {filtered.length === 0 ? (
