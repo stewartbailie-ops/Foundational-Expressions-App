@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { NewsHero } from "@/components/NewsHero";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS } from "@shared/schema";
@@ -485,6 +486,15 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
             </div>
           );
         })}
+      </div>
+
+      {/* ── Live News (mirrors the public contact card) ── */}
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center gap-2">
+          <Rss className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Market News</div>
+        </div>
+        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} />
       </div>
 
       {/* ── My Stats ── */}
