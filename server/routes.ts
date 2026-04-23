@@ -1011,20 +1011,20 @@ export async function registerRoutes(
 
   app.get("/api/advisors/:slug/emails", async (req, res) => {
     const slug = req.params.slug;
-    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated;
-    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated || !!advisor.isDemo;
+    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
     const allEmails = await storage.getEmailsByAdvisor(advisor.id);
     res.json(allEmails);
   });
 
   app.get("/api/advisors/:slug/stats", async (req, res) => {
     const slug = req.params.slug;
-    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated;
-    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated || !!advisor.isDemo;
+    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
     const advisorStats = await storage.getAdvisorStats(advisor.id);
     res.json(advisorStats);
   });

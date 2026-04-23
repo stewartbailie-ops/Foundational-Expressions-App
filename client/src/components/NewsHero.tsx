@@ -27,7 +27,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200 }: {
       setTimeout(() => {
         setIdx(i => (i + 1) % articles.length);
         setVisible(true);
-      }, 350);
+      }, 500);
     }, 6000);
     return () => clearInterval(timer);
   }, [articles.length]);
@@ -49,8 +49,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200 }: {
       data-testid="section-news-hero"
     >
       <div
-        key={art.link}
-        className="absolute inset-0 transition-opacity duration-300"
+        className="absolute inset-0 transition-opacity duration-500 ease-out"
         style={{
           opacity: visible ? 1 : 0,
           backgroundImage: hasImage ? `url(${art.image})` : `linear-gradient(135deg, ${accentColor}, ${accentColor}aa)`,
@@ -64,7 +63,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200 }: {
           background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%)",
         }}
       />
-      <div className="relative z-10 h-full flex flex-col justify-between p-4 transition-opacity duration-300" style={{ opacity: visible ? 1 : 0 }}>
+      <div className="relative z-10 h-full flex flex-col justify-between p-4 transition-opacity duration-500 ease-out" style={{ opacity: visible ? 1 : 0 }}>
         <div className="flex items-center justify-between">
           <div
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
