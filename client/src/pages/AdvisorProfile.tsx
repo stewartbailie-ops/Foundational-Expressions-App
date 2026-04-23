@@ -2089,21 +2089,28 @@ export default function AdvisorProfile() {
                 <span style={{ color: textColor }} data-testid="text-contact-hours">{(advisor as any).workingHours}</span>
               </div>
             )}
-            {(advisor as any).location && (
-              <div className="flex items-center gap-3 text-sm">
-                <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
-                <a
-                  href={`https://maps.google.com/?q=${encodeURIComponent((advisor as any).location)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  style={{ color: textColor }}
-                  data-testid="link-location-maps"
-                >
-                  {(advisor as any).location}
-                </a>
-              </div>
-            )}
+            {(advisor as any).location && (() => {
+              const loc = String((advisor as any).location).trim();
+              const isUrl = /^https?:\/\//i.test(loc);
+              const mapHref = isUrl ? loc : `https://maps.google.com/?q=${encodeURIComponent(loc)}`;
+              const display = isUrl ? "Open in Maps" : loc;
+              return (
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: tc.accentColor }} />
+                  <a
+                    href={mapHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline inline-flex items-center gap-1.5"
+                    style={{ color: textColor }}
+                    data-testid="link-location-maps"
+                  >
+                    {display}
+                    {isUrl && <ExternalLink className="h-3 w-3 opacity-70" />}
+                  </a>
+                </div>
+              );
+            })()}
           </div>
         )}
 
