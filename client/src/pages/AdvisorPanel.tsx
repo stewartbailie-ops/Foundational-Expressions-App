@@ -5065,7 +5065,11 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
               return (
                 <button
                   key={opt.value}
-                  onClick={() => setPanelTheme(opt.value)}
+                  onClick={() => {
+                    const y = window.scrollY;
+                    setPanelTheme(opt.value);
+                    requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" }));
+                  }}
                   className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all"
                   style={{
                     backgroundColor: selected ? tc.buttonSecondaryBg : "transparent",
@@ -5084,7 +5088,13 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
         </div>
         <Button
           size="sm"
-          onClick={() => saveMutation.mutate({ panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor } as any)}
+          onClick={() => {
+            const y = window.scrollY;
+            saveMutation.mutate(
+              { panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor } as any,
+              { onSettled: () => requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" })) }
+            );
+          }}
           disabled={saveMutation.isPending}
           style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
           className="gap-1.5 w-full"
