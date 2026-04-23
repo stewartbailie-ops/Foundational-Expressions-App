@@ -177,7 +177,8 @@ export async function registerRoutes(
     (req.session as any).authenticated = true;
     req.session.save((err) => {
       if (err) {
-        return res.status(500).json({ message: "Session save failed" });
+        console.error("[LOGIN] Session save error:", err);
+        return res.status(500).json({ message: `Session save failed: ${err.message || err}` });
       }
       res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
       res.json({ authenticated: true });
