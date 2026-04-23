@@ -179,7 +179,7 @@ export default function CreateAdvisor() {
   // Per-step validation
   const step1Valid = name.trim() !== "" && ageConfirmed && notRobot;
   const step2Valid = tosAccepted;
-  const step3Valid = advisorCode.trim() !== "" && !!faisAgreementUrl;
+  const step3Valid = advisorCode.trim() !== "";
   const step4Valid = email.trim() !== "" && /\S+@\S+\.\S+/.test(email);
   const step5Valid = !!subscriptionTier;
 
@@ -389,7 +389,7 @@ export default function CreateAdvisor() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>FAIS Agreement (PDF only) <span className="text-red-500">*</span></Label>
+                    <Label>FAIS Agreement (PDF only) <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
                     <input type="file" ref={faisInputRef} accept="application/pdf" className="hidden" onChange={handleFaisUpload} />
                     {faisAgreementUrl ? (
                       <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50">
