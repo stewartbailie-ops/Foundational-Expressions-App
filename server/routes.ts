@@ -175,10 +175,19 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Invalid email or password" });
     }
     (req.session as any).authenticated = true;
-    res.json({ authenticated: true });
+    req.session.save((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Session save failed" });
+      }
+      res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+      res.json({ authenticated: true });
+    });
   });
 
   app.get("/api/auth/session", async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    res.set("Pragma", "no-cache");
+    res.set("Expires", "0");
     res.json({ authenticated: !!(req.session as any)?.authenticated });
   });
 
