@@ -1407,7 +1407,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     setSectionOrder(o => { if (idx >= o.length-1) return o; const n = [...o]; [n[idx], n[idx+1]] = [n[idx+1], n[idx]]; return n; });
   };
 
+  const savedScrollYRef = useRef<number | null>(null);
   const saveMutation = useMutation({
+    onMutate: () => {
+      savedScrollYRef.current = window.scrollY;
+    },
     mutationFn: async () => {
       const res = await apiRequest("PATCH", `/api/advisors/${advisor.id}`, {
         name,
@@ -1472,6 +1476,18 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       toast({ title: "Profile Updated", description: "Your changes have been saved." });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onSettled: () => {
+      const y = savedScrollYRef.current;
+      if (y == null) return;
+      const restore = () => window.scrollTo({ top: y, left: 0, behavior: "auto" });
+      requestAnimationFrame(() => {
+        restore();
+        requestAnimationFrame(restore);
+        setTimeout(restore, 80);
+        setTimeout(restore, 250);
+        setTimeout(() => { restore(); savedScrollYRef.current = null; }, 600);
+      });
+    },
   });
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
