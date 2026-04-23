@@ -1398,6 +1398,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolPension, setShowToolPension] = useState((advisor as any).showToolPension !== false);
   const [showToolCgt, setShowToolCgt] = useState((advisor as any).showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
+  const [showToolReality, setShowToolReality] = useState((advisor as any).showToolReality !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [indServicesOpen, setIndServicesOpen] = useState(false);
@@ -1473,6 +1474,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolPension,
         showToolCgt,
         showToolVehicle,
+        showToolReality,
         patternOpacity,
         showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
@@ -1980,6 +1982,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "Pension Savings Calculator", value: showToolPension, set: setShowToolPension },
               { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
+              { label: "30-Year Reality Check ✨", value: showToolReality, set: setShowToolReality },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-1 pl-2">
                 <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -2349,6 +2352,7 @@ function AdditionalProfileForm({
   const [showToolPension, setShowToolPension] = useState((existingProfile as any)?.showToolPension !== false);
   const [showToolCgt, setShowToolCgt] = useState((existingProfile as any)?.showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((existingProfile as any)?.showToolVehicle !== false);
+  const [showToolReality, setShowToolReality] = useState((existingProfile as any)?.showToolReality !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
@@ -2411,6 +2415,7 @@ function AdditionalProfileForm({
         showToolPension,
         showToolCgt,
         showToolVehicle,
+        showToolReality,
         showMoneywebFeed,
         patternOpacity,
         showEmergencyContacts,
@@ -2698,6 +2703,7 @@ function AdditionalProfileForm({
                 { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
                 { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
+                { label: "30-Year Reality Check ✨", value: showToolReality, set: setShowToolReality },
                 { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">

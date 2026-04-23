@@ -664,6 +664,10 @@ export default function AdvisorProfile() {
   const [vehRate, setVehRate] = useState("11.75");
   const [vehMonths, setVehMonths] = useState("60");
   const [vehBalloon, setVehBalloon] = useState("0");
+  // 30-Year Reality Check — fun shock-factor tool
+  const [rcSalary, setRcSalary] = useState("45000");
+  const [rcSavePct, setRcSavePct] = useState("10");
+  const [rcYears, setRcYears] = useState("30");
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -1502,6 +1506,7 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolPension !== false && "pension",
                 (advisor as any).showToolCgt !== false && "cgt",
                 (advisor as any).showToolVehicle !== false && "vehicle",
+                (advisor as any).showToolReality !== false && "reality",
               ].filter(Boolean) as string[];
 
               // Pension calc
@@ -1550,6 +1555,7 @@ export default function AdvisorProfile() {
                           {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Savings</>}
                           {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
                           {toolKey === "vehicle" && <><Calculator className="h-3.5 w-3.5" /> Vehicle Finance</>}
+                          {toolKey === "reality" && <><TrendingUp className="h-3.5 w-3.5" /> 30-Year Reality Check</>}
                         </span>
                         {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
                       </button>
@@ -1766,6 +1772,107 @@ export default function AdvisorProfile() {
                               </div>
                             </>
                           )}
+                          {toolKey === "reality" && (() => {
+                            const salary = Math.max(0, parseFloat(rcSalary) || 0);
+                            const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
+                            const years = Math.min(50, Math.max(1, parseFloat(rcYears) || 1));
+                            const monthlySave = salary * (savePct / 100);
+                            const r = 0.09 / 12;
+                            const n = years * 12;
+                            const futureValue = r > 0 ? monthlySave * ((Math.pow(1 + r, n) - 1) / r) : monthlySave * n;
+                            const todaysMoney = futureValue / Math.pow(1.06, years);
+                            const annualExpensesNow = salary * (1 - savePct / 100) * 12;
+                            const futureAnnualExpenses = annualExpensesNow * Math.pow(1.06, years);
+                            const needAtRetirement = futureAnnualExpenses * 25;
+                            const gapPct = needAtRetirement > 0 ? (futureValue / needAtRetirement) * 100 : 0;
+                            const onTrack = gapPct >= 100;
+                            const gapColor = onTrack ? "#10B981" : gapPct >= 50 ? "#F59E0B" : "#EF4444";
+                            const gapEmoji = onTrack ? "🎉" : gapPct >= 50 ? "😬" : "😱";
+                            const gapLabel = onTrack ? "On track!" : gapPct >= 50 ? "Halfway there" : "Big gap";
+                            const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+
+                            return (
+                              <>
+                                <p className="text-xs" style={{ color: mutedText }}>
+                                  A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
+                                </p>
+                                <div className="grid grid-cols-3 gap-2">
+                                  <div className="space-y-1">
+                                    <label className="text-[11px]" style={{ color: mutedText }}>Salary / month (R)</label>
+                                    <input type="number" value={rcSalary} onChange={e => setRcSalary(e.target.value)} style={is} data-testid="input-tool-rc-salary" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px]" style={{ color: mutedText }}>You save (%)</label>
+                                    <input type="number" value={rcSavePct} onChange={e => setRcSavePct(e.target.value)} style={is} data-testid="input-tool-rc-save" />
+                                  </div>
+                                  <div className="space-y-1">
+                                    <label className="text-[11px]" style={{ color: mutedText }}>Years to go</label>
+                                    <input type="number" value={rcYears} onChange={e => setRcYears(e.target.value)} style={is} data-testid="input-tool-rc-years" />
+                                  </div>
+                                </div>
+
+                                {/* Three big shock numbers */}
+                                <div className="grid grid-cols-3 gap-2">
+                                  {[
+                                    { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
+                                    { color: "#F59E0B", label: "In today's money", val: fmt(todaysMoney), sub: "after inflation", testId: "stat-rc-today" },
+                                    { color: "#EF4444", label: "What you'll need", val: fmt(needAtRetirement), sub: "to retire comfortably", testId: "stat-rc-need" },
+                                  ].map(s => (
+                                    <div
+                                      key={s.label}
+                                      className="rounded-xl p-3 text-center overflow-hidden"
+                                      style={{ background: `linear-gradient(160deg, ${s.color}28, ${s.color}10)`, border: `1px solid ${s.color}55` }}
+                                      data-testid={s.testId}
+                                    >
+                                      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>{s.label}</div>
+                                      <div className="text-sm font-extrabold mt-1 leading-tight" style={{ color: textColor }}>{s.val}</div>
+                                      <div className="text-[9px] mt-0.5" style={{ color: mutedText }}>{s.sub}</div>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                {/* Shock-o-meter banner */}
+                                <div
+                                  className="rounded-xl p-4 relative overflow-hidden"
+                                  style={{
+                                    background: `linear-gradient(135deg, ${gapColor}22, ${gapColor}08)`,
+                                    border: `1px solid ${gapColor}66`,
+                                  }}
+                                  data-testid="banner-rc-shock"
+                                >
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-2xl">{gapEmoji}</span>
+                                      <div>
+                                        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: gapColor }}>{gapLabel}</div>
+                                        <div className="text-[11px]" style={{ color: mutedText }}>
+                                          You're at <span className="font-bold" style={{ color: textColor }}>{gapPct.toFixed(0)}%</span> of your retirement target
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {/* Progress bar */}
+                                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${gapColor}22` }}>
+                                    <div
+                                      className="h-full transition-all duration-500"
+                                      style={{ width: `${Math.min(100, gapPct)}%`, backgroundColor: gapColor }}
+                                    />
+                                  </div>
+                                  {!onTrack && (
+                                    <p className="text-[11px] mt-2 leading-snug" style={{ color: textColor }}>
+                                      {gapPct >= 50
+                                        ? <>You're halfway there. Bumping your savings to <strong>{Math.min(50, Math.ceil(savePct + 5))}%</strong> could close the gap. Worth a chat?</>
+                                        : <>That's a meaningful shortfall. A small bump in monthly savings now compounds into a huge difference later. Let's chat.</>
+                                      }
+                                    </p>
+                                  )}
+                                </div>
+                                <p className="text-[10px]" style={{ color: mutedText }}>
+                                  Assumes 9% growth p.a. and 6% inflation (SA long-run averages). Retirement need uses the 25× rule (4% safe withdrawal). Estimate only — for fun, not advice.
+                                </p>
+                              </>
+                            );
+                          })()}
                         </div>
                       )}
                     </div>
