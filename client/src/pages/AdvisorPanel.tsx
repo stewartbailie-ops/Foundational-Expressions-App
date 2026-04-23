@@ -507,21 +507,41 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
         {/* Weekly activity area chart */}
         <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          <div className="text-xs font-semibold mb-3" style={{ color: tc.textColor }}>Lead Activity – Last 7 Days</div>
-          <div className="h-[120px]">
+          <div className="flex items-center justify-between mb-3">
+            <div className="text-xs font-semibold" style={{ color: tc.textColor }}>Lead Activity – Last 7 Days</div>
+            <div className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tc.accentColor}20`, color: tc.accentColor }}>
+              {(advisorStats?.weeklyActivity ?? []).reduce((sum, d) => sum + (d.leads || 0), 0)} this week
+            </div>
+          </div>
+          <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={advisorStats?.weeklyActivity ?? []} margin={{ top: 4, right: 0, left: -30, bottom: 0 }}>
+              <AreaChart data={advisorStats?.weeklyActivity ?? []} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
                 <defs>
                   <linearGradient id="homeLeadGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={tc.accentColor} stopOpacity={0.35} />
-                    <stop offset="95%" stopColor={tc.accentColor} stopOpacity={0} />
+                    <stop offset="0%"  stopColor={tc.accentColor} stopOpacity={0.55} />
+                    <stop offset="60%" stopColor={tc.accentColor} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={tc.accentColor} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tc.borderColor} />
                 <XAxis dataKey="name" tick={{ fill: tc.mutedText, fontSize: 10 }} tickLine={false} axisLine={false} dy={6} />
-                <YAxis tick={{ fill: tc.mutedText, fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} />
-                <Tooltip contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor, borderRadius: 8, fontSize: 12 }} />
-                <Area type="monotone" dataKey="leads" name="Leads" stroke={tc.accentColor} strokeWidth={2} fill="url(#homeLeadGrad)" dot={false} activeDot={{ r: 3, fill: tc.accentColor }} />
+                <YAxis tick={{ fill: tc.mutedText, fontSize: 10 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+                <Tooltip
+                  cursor={{ stroke: tc.accentColor, strokeWidth: 1, strokeDasharray: "3 3" }}
+                  contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor, borderRadius: 8, fontSize: 12 }}
+                />
+                <Area
+                  type="natural"
+                  dataKey="leads"
+                  name="Leads"
+                  stroke={tc.accentColor}
+                  strokeWidth={2.5}
+                  fill="url(#homeLeadGrad)"
+                  dot={{ r: 3, fill: tc.cardBg, stroke: tc.accentColor, strokeWidth: 2 }}
+                  activeDot={{ r: 5, fill: tc.accentColor, stroke: tc.cardBg, strokeWidth: 2 }}
+                  isAnimationActive
+                  animationDuration={800}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
