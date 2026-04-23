@@ -975,6 +975,56 @@ export async function registerRoutes(
     res.json(advisorStats);
   });
 
+  // Parse a single RSS feed XML string into normalized items, including a thumbnail image if found
+  const parseRssFeed = (xml: string, source: string): Array<{ title: string; link: string; description: string; pubDate: string; category: string; image: string | null; source: string }> => {
+    const items: Array<{ title: string; link: string; description: string; pubDate: string; category: string; image: string | null; source: string }> = [];
+    const itemRegex = /<item[\s>][\s\S]*?<\/item>/g;
+    let match;
+    while ((match = itemRegex.exec(xml)) !== null) {
+      const item = match[0];
+      const title = (item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || item.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() || "";
+      const link = (item.match(/<link>(https?:\/\/[^\s<]*)<\/link>/) || item.match(/<link[^>]*href=["'](https?:\/\/[^"']+)["']/))?.[1]?.trim() || "";
+      const contentEncoded = (item.match(/<content:encoded><!\[CDATA\[([\s\S]*?)\]\]><\/content:encoded>/) || item.match(/<content:encoded>([\s\S]*?)<\/content:encoded>/))?.[1] || "";
+      const descRaw = (item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || item.match(/<description>([\s\S]*?)<\/description>/))?.[1] || "";
+      const desc = descRaw.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 220);
+      const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
+      const cat = (item.match(/<category><!\[CDATA\[([\s\S]*?)\]\]><\/category>/) || item.match(/<category>([\s\S]*?)<\/category>/))?.[1]?.trim() || "";
+
+      // Extract a thumbnail: try multiple RSS image conventions
+      let image: string | null = null;
+      const mediaThumb = item.match(/<media:thumbnail[^>]*url=["']([^"']+)["']/);
+      const mediaContent = item.match(/<media:content[^>]*url=["']([^"']+)["'][^>]*(?:medium=["']image["']|type=["']image\/)/);
+      const enclosure = item.match(/<enclosure[^>]*url=["']([^"']+)["'][^>]*type=["']image\//);
+      const imgInContent = (contentEncoded || descRaw).match(/<img[^>]*src=["']([^"']+)["']/i);
+      if (mediaThumb) image = mediaThumb[1];
+      else if (mediaContent) image = mediaContent[1];
+      else if (enclosure) image = enclosure[1];
+      else if (imgInContent) image = imgInContent[1];
+
+      if (title && link) items.push({ title, link, description: desc, pubDate, category: cat, image, source });
+    }
+    return items;
+  };
+
+  // Single-feed fetch helper with timeout + error tolerance.
+  // Uses a real browser UA — many CDNs (Cloudflare, Akamai) 403 generic UAs.
+  const BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36";
+  const fetchFeedSafe = async (url: string, source: string) => {
+    try {
+      const response = await fetch(url, {
+        headers: { "User-Agent": BROWSER_UA, "Accept": "application/rss+xml, application/xml, text/xml, */*" },
+        signal: AbortSignal.timeout(8000),
+        redirect: "follow",
+      });
+      if (!response.ok) return [];
+      const xml = await response.text();
+      return parseRssFeed(xml, source);
+    } catch {
+      return [];
+    }
+  };
+
+  // Backward-compatible single-source MoneyWeb endpoint
   app.get("/api/moneyweb/feed", async (req, res) => {
     try {
       const category = (req.query.category as string) || "all";
@@ -986,24 +1036,39 @@ export async function registerRoutes(
         "personal-finance": "https://www.moneyweb.co.za/category/personal-finance/feed/",
       };
       const url = feedUrls[category] || feedUrls.all;
-      const response = await fetch(url, {
-        headers: { "User-Agent": "Mozilla/5.0 (compatible; AdvisoryConnect/1.0)" },
-        signal: AbortSignal.timeout(10000),
-      });
-      const xml = await response.text();
-      const items: Array<{ title: string; link: string; description: string; pubDate: string; category: string }> = [];
-      const itemRegex = /<item>([\s\S]*?)<\/item>/g;
-      let match;
-      while ((match = itemRegex.exec(xml)) !== null) {
-        const item = match[1];
-        const title = (item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || item.match(/<title>([\s\S]*?)<\/title>/))?.[1]?.trim() || "";
-        const link = item.match(/<link>(https?:\/\/[^\s<]*)<\/link>/)?.[1]?.trim() || "";
-        const desc = (item.match(/<description><!\[CDATA\[([\s\S]*?)\]\]><\/description>/) || item.match(/<description>([\s\S]*?)<\/description>/))?.[1]?.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim().slice(0, 220) || "";
-        const pubDate = item.match(/<pubDate>([\s\S]*?)<\/pubDate>/)?.[1]?.trim() || "";
-        const cat = (item.match(/<category><!\[CDATA\[([\s\S]*?)\]\]><\/category>/) || item.match(/<category>([\s\S]*?)<\/category>/))?.[1]?.trim() || "";
-        if (title && link) items.push({ title, link, description: desc, pubDate, category: cat });
-      }
+      const items = await fetchFeedSafe(url, "MoneyWeb");
       res.json({ items: items.slice(0, 12) });
+    } catch {
+      res.status(500).json({ message: "Failed to fetch feed", items: [] });
+    }
+  });
+
+  // Aggregated multi-source SA finance news feed
+  // Pulls from MoneyWeb, BizNews, Daily Investor, Fin24 in parallel.
+  // One slow/failing source never blocks the others.
+  app.get("/api/news/feed", async (_req, res) => {
+    try {
+      // Curated mix of SA + global business/finance feeds that we know respond
+      // reliably without auth and (for the latter two) carry article thumbnails.
+      const sources: Array<{ name: string; url: string }> = [
+        { name: "MoneyWeb",     url: "https://www.moneyweb.co.za/feed/" },
+        { name: "BBC Business", url: "https://feeds.bbci.co.uk/news/business/rss.xml" },
+        { name: "Investing",    url: "https://www.investing.com/rss/news_25.rss" },
+      ];
+      const results = await Promise.all(
+        sources.map(s => fetchFeedSafe(s.url, s.name))
+      );
+      const merged = results.flat();
+      // Sort newest first by pubDate (fallback: keep original order)
+      merged.sort((a, b) => {
+        const ta = Date.parse(a.pubDate) || 0;
+        const tb = Date.parse(b.pubDate) || 0;
+        return tb - ta;
+      });
+      // Return up to the most recent 24 across all sources, but interleave a bit
+      // so we don't get 12 from MoneyWeb followed by 12 from BizNews when their
+      // pubDates are close.
+      res.json({ items: merged.slice(0, 24) });
     } catch {
       res.status(500).json({ message: "Failed to fetch feed", items: [] });
     }

@@ -549,15 +549,17 @@ const TRANSLATIONS: Record<Lang, {
   },
 };
 
-function MoneywebTicker({ cardBg, borderColor, accentColor, textColor, mutedText }: {
-  cardBg: string; borderColor: string; accentColor: string; textColor: string; mutedText: string;
+type NewsItem = { title: string; link: string; pubDate: string; image: string | null; source: string };
+
+function NewsHero({ accentColor, borderColor, cardBg }: {
+  accentColor: string; borderColor: string; cardBg: string;
 }) {
-  const [articles, setArticles] = useState<Array<{ title: string; link: string; pubDate: string }>>([]);
+  const [articles, setArticles] = useState<NewsItem[]>([]);
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    fetch("/api/moneyweb/feed?category=personal-finance")
+    fetch("/api/news/feed")
       .then(r => r.json())
       .then(d => setArticles(d.items || []))
       .catch(() => {});
@@ -570,39 +572,80 @@ function MoneywebTicker({ cardBg, borderColor, accentColor, textColor, mutedText
       setTimeout(() => {
         setIdx(i => (i + 1) % articles.length);
         setVisible(true);
-      }, 400);
-    }, 6000);
+      }, 350);
+    }, 3000);
     return () => clearInterval(timer);
   }, [articles.length]);
 
   if (articles.length === 0) return null;
   const art = articles[idx];
+  const hasImage = !!art.image;
 
   return (
-    <div className="rounded-xl p-4" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="section-moneyweb-feed">
-      <div className="flex items-center gap-2 mb-3">
-        <Rss className="h-3.5 w-3.5 flex-shrink-0" style={{ color: accentColor }} />
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: accentColor }}>MoneyWeb Live</span>
-        <div className="flex gap-1 ml-auto">
-          {articles.slice(0, Math.min(articles.length, 5)).map((_, i) => (
-            <div key={i} onClick={() => setIdx(i)} className="w-1.5 h-1.5 rounded-full cursor-pointer transition-all"
-              style={{ backgroundColor: i === idx ? accentColor : borderColor }} />
-          ))}
+    <a
+      href={art.link} target="_blank" rel="noopener noreferrer"
+      className="block relative w-full overflow-hidden rounded-2xl"
+      style={{
+        height: 200,
+        border: `1px solid ${borderColor}`,
+        backgroundColor: cardBg,
+        boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
+      }}
+      data-testid="section-news-hero"
+    >
+      {/* Background image (or solid fallback) — fades on rotation */}
+      <div
+        key={art.link}
+        className="absolute inset-0 transition-opacity duration-300"
+        style={{
+          opacity: visible ? 1 : 0,
+          backgroundImage: hasImage ? `url(${art.image})` : `linear-gradient(135deg, ${accentColor}, ${accentColor}aa)`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      />
+      {/* Dark gradient for text legibility */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%)",
+        }}
+      />
+      {/* Content */}
+      <div className="relative z-10 h-full flex flex-col justify-between p-4 transition-opacity duration-300" style={{ opacity: visible ? 1 : 0 }}>
+        {/* Top row: Source badge + dots */}
+        <div className="flex items-center justify-between">
+          <div
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+            data-testid="badge-news-source"
+          >
+            <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: accentColor }} />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">{art.source} · Live</span>
+          </div>
+          <div className="flex gap-1">
+            {articles.slice(0, Math.min(articles.length, 5)).map((_, i) => (
+              <div key={i} className="w-1.5 h-1.5 rounded-full transition-all"
+                style={{ backgroundColor: i === idx ? "#fff" : "rgba(255,255,255,0.4)" }} />
+            ))}
+          </div>
+        </div>
+        {/* Bottom: headline + CTA */}
+        <div>
+          <p
+            className="text-base font-bold leading-snug text-white line-clamp-3"
+            style={{ textShadow: "0 1px 8px rgba(0,0,0,0.5)" }}
+            data-testid="text-news-headline"
+          >
+            {art.title}
+          </p>
+          <div className="flex items-center gap-1.5 mt-2">
+            <ExternalLink className="h-3 w-3 flex-shrink-0 text-white/85" />
+            <span className="text-xs font-medium text-white/85">Read full article</span>
+          </div>
         </div>
       </div>
-      <a
-        href={art.link} target="_blank" rel="noopener noreferrer"
-        className="block transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0 }}
-        data-testid="link-moneyweb-article"
-      >
-        <p className="text-sm font-semibold leading-snug line-clamp-2" style={{ color: textColor }}>{art.title}</p>
-        <div className="flex items-center gap-1.5 mt-2">
-          <ExternalLink className="h-3 w-3 flex-shrink-0" style={{ color: accentColor }} />
-          <span className="text-xs" style={{ color: accentColor }}>Read on MoneyWeb</span>
-        </div>
-      </a>
-    </div>
+    </a>
   );
 }
 
@@ -1311,6 +1354,11 @@ export default function AdvisorProfile() {
           )}
         </motion.div>
 
+        {/* News Hero — sits prominently right under the profile header */}
+        {!!(advisor as any).showMoneywebFeed && (
+          <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
+        )}
+
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
           <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
@@ -1319,12 +1367,8 @@ export default function AdvisorProfile() {
         {/* Ordered Sections */}
         {(() => {
           const sectionMap: Record<string, React.ReactNode> = {
-            moneyweb: !!(advisor as any).showMoneywebFeed ? (
-              <MoneywebTicker
-                cardBg={cardBg} borderColor={tc.borderColor}
-                accentColor={accentColor} textColor={textColor} mutedText={mutedText}
-              />
-            ) : null,
+            // moneyweb section removed — now renders as NewsHero above
+            moneyweb: null,
 
             bio: bioText ? (
               <div className="rounded-xl p-5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-bio">
