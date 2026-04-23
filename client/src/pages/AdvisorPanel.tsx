@@ -1367,9 +1367,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
-  const [showToolPension, setShowToolPension] = useState(!!(advisor as any).showToolPension);
-  const [showToolCgt, setShowToolCgt] = useState(!!(advisor as any).showToolCgt);
-  const [showToolVehicle, setShowToolVehicle] = useState(!!(advisor as any).showToolVehicle);
+  const [showToolPension, setShowToolPension] = useState((advisor as any).showToolPension !== false);
+  const [showToolCgt, setShowToolCgt] = useState((advisor as any).showToolCgt !== false);
+  const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
@@ -2203,9 +2203,9 @@ function AdditionalProfileForm({
   const [showToolTax, setShowToolTax] = useState((existingProfile as any)?.showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((existingProfile as any)?.showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((existingProfile as any)?.showToolCompound !== false);
-  const [showToolPension, setShowToolPension] = useState(!!(existingProfile as any)?.showToolPension);
-  const [showToolCgt, setShowToolCgt] = useState(!!(existingProfile as any)?.showToolCgt);
-  const [showToolVehicle, setShowToolVehicle] = useState(!!(existingProfile as any)?.showToolVehicle);
+  const [showToolPension, setShowToolPension] = useState((existingProfile as any)?.showToolPension !== false);
+  const [showToolCgt, setShowToolCgt] = useState((existingProfile as any)?.showToolCgt !== false);
+  const [showToolVehicle, setShowToolVehicle] = useState((existingProfile as any)?.showToolVehicle !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);

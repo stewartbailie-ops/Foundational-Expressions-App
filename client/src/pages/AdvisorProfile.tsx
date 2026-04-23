@@ -1581,9 +1581,9 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolTax !== false && "tax",
                 (advisor as any).showToolExchange !== false && "exchange",
                 (advisor as any).showToolCompound !== false && "compound",
-                !!(advisor as any).showToolPension && "pension",
-                !!(advisor as any).showToolCgt && "cgt",
-                !!(advisor as any).showToolVehicle && "vehicle",
+                (advisor as any).showToolPension !== false && "pension",
+                (advisor as any).showToolCgt !== false && "cgt",
+                (advisor as any).showToolVehicle !== false && "vehicle",
               ].filter(Boolean) as string[];
 
               // Pension calc
