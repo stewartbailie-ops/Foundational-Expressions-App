@@ -1007,6 +1007,20 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                             {s}
                           </button>
                         ))}
+                        <button
+                          type="button"
+                          title="Donate & Deduct — coming soon"
+                          onClick={() => alert("Donate & Deduct — coming soon. A new way to grade, give back and stay tax-smart. Stay tuned.")}
+                          className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all inline-flex items-center gap-1.5"
+                          style={{
+                            backgroundColor: "rgba(236,72,153,0.10)",
+                            color: "#db2777",
+                            border: "1.5px dashed rgba(236,72,153,0.55)",
+                          }}
+                          data-testid={`button-status-${lead.id}-donate-deduct`}>
+                          <span aria-hidden>♥</span> Donate &amp; Deduct
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(236,72,153,0.18)", color: "#be185d" }}>Soon</span>
+                        </button>
                       </div>
                     </div>
 
