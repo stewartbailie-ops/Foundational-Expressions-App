@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -1298,6 +1298,20 @@ export default function AdvisorProfile() {
             >
               <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
             </button>
+            {/* Book a Meeting — full width, only when advisor has set a booking link */}
+            {(advisor as any).bookingUrl && (
+              <a
+                href={(advisor as any).bookingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${btnBase} col-span-2`}
+                style={{ backgroundColor: accentColor, color: tc.buttonText }}
+                data-testid="link-book-meeting"
+              >
+                <CalendarDays className="h-3.5 w-3.5 flex-shrink-0" />
+                Book a Meeting
+              </a>
+            )}
             {/* Add to Home Screen — full width */}
             <button
               onClick={handleAddToHomeScreen}

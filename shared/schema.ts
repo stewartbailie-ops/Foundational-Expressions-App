@@ -135,6 +135,7 @@ export const advisors = pgTable("advisors", {
   panelBackgroundStyle: integer("panel_background_style").default(1),
   notes: text("notes"),
   showEmergencyContacts: boolean("show_emergency_contacts").default(false),
+  bookingUrl: text("booking_url"),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
