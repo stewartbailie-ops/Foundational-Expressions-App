@@ -1298,20 +1298,23 @@ export default function AdvisorProfile() {
             >
               <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
             </button>
-            {/* Book a Meeting — full width, only when advisor has set a booking link */}
-            {(advisor as any).bookingUrl && (
-              <a
-                href={(advisor as any).bookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`${btnBase} col-span-2`}
-                style={{ backgroundColor: accentColor, color: tc.buttonText }}
-                data-testid="link-book-meeting"
-              >
-                <CalendarDays className="h-3.5 w-3.5 flex-shrink-0" />
-                Book a Meeting
-              </a>
-            )}
+            {/* Book a Meeting — full width, only when advisor has set a safe booking link */}
+            {(() => {
+              const safeBookingUrl = sanitizeUrl((advisor as any).bookingUrl);
+              return safeBookingUrl ? (
+                <a
+                  href={safeBookingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`${btnBase} col-span-2`}
+                  style={{ backgroundColor: accentColor, color: tc.buttonText }}
+                  data-testid="link-book-meeting"
+                >
+                  <CalendarDays className="h-3.5 w-3.5 flex-shrink-0" />
+                  Book a Meeting
+                </a>
+              ) : null;
+            })()}
             {/* Add to Home Screen — full width */}
             <button
               onClick={handleAddToHomeScreen}

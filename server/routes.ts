@@ -29,6 +29,7 @@ const URL_FIELD_OVERRIDES = {
   financialsNewsUrl: safeUrlField,
   financialsFunFactsUrl: safeUrlField,
   financialsVideosUrl: safeUrlField,
+  bookingUrl: safeUrlField,
 } as const;
 
 const safeInsertAdvisorSchema = insertAdvisorSchema.extend(URL_FIELD_OVERRIDES);
@@ -58,6 +59,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle",
   "showMoneywebFeed", "showEmergencyContacts",
   "patternOpacity", "profileSectionOrder", "active",
+  "bookingUrl",
 ] as const;
 
 type PublicAdvisor = Pick<import("@shared/schema").Advisor, (typeof PUBLIC_ADVISOR_FIELDS)[number]>;
