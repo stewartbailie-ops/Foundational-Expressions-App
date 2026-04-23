@@ -2011,47 +2011,83 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         </div>
       </div>
 
-      {/* Section Order */}
+      {/* Section Order — collapsed by default to keep the panel tidy */}
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Section Order</h3>
+        <div className="flex items-center justify-between gap-2">
           <button
+            type="button"
             onClick={() => setOrganizingProfile(v => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-            style={{ backgroundColor: organizingProfile ? tc.accentColor : tc.buttonSecondaryBg, color: organizingProfile ? tc.buttonText : tc.accentColor, border: `1px solid ${organizingProfile ? tc.accentColor : tc.borderColor}` }}
-            data-testid="button-organize-sections"
+            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            data-testid="toggle-section-order-open"
           >
-            <GripVertical className="h-3.5 w-3.5" />
-            {organizingProfile ? "Done" : "Organise"}
+            {organizingProfile ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+            <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Section Order</h3>
+            {(() => {
+              const isDefault = sectionOrder.length === DEFAULT_PROFILE_SECTION_ORDER.length && sectionOrder.every((k, i) => k === DEFAULT_PROFILE_SECTION_ORDER[i]);
+              return (
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>
+                  {isDefault ? "Default" : "Custom"}
+                </span>
+              );
+            })()}
           </button>
+          {!organizingProfile && (
+            <button
+              type="button"
+              onClick={() => setOrganizingProfile(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-organize-sections"
+            >
+              <GripVertical className="h-3.5 w-3.5" />
+              Reorder
+            </button>
+          )}
         </div>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Control the order sections appear on your public profile.</p>
-        {organizingProfile ? (
-          <div className="space-y-1.5">
-            {sectionOrder.map((key, idx) => (
-              <div key={key} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
-                <GripVertical className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.mutedText }} />
-                <span className="flex-1 text-xs font-medium" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
-                <div className="flex gap-1">
-                  <button onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }}>
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }}>
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+        {!organizingProfile ? (
+          <p className="text-xs" style={{ color: tc.mutedText }}>
+            Sections appear on your public profile in the recommended order. Tap <strong>Reorder</strong> to customise.
+          </p>
         ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {sectionOrder.map((key, idx) => (
-              <div key={key} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
-                <span className="font-bold" style={{ color: tc.accentColor }}>{idx + 1}.</span>
-                {PROFILE_SECTION_LABELS[key] || key}
-              </div>
-            ))}
-          </div>
+          <>
+            <p className="text-xs" style={{ color: tc.mutedText }}>Use the arrows to move sections up or down. Changes save when you hit <strong>Save Changes</strong> below.</p>
+            <div className="space-y-1.5">
+              {sectionOrder.map((key, idx) => (
+                <div key={key} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                  <span className="text-[10px] font-bold w-4 text-center" style={{ color: tc.accentColor }}>{idx + 1}</span>
+                  <span className="flex-1 text-xs font-medium" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
+                  <div className="flex gap-1">
+                    <button onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-move-up-${key}`}>
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </button>
+                    <button onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-move-down-${key}`}>
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setSectionOrder([...DEFAULT_PROFILE_SECTION_ORDER])}
+                className="flex-1 text-[11px] py-1.5 rounded-md font-medium"
+                style={{ color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+                data-testid="button-reset-section-order"
+              >
+                Reset to default
+              </button>
+              <button
+                type="button"
+                onClick={() => setOrganizingProfile(false)}
+                className="flex-1 text-[11px] py-1.5 rounded-md font-medium"
+                style={{ color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}
+                data-testid="button-collapse-section-order"
+              >
+                Done — collapse
+              </button>
+            </div>
+          </>
         )}
       </div>
 
