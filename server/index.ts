@@ -1,6 +1,5 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import { registerRoutes, registerOgImageRoute } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -36,17 +35,8 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));
 
-const PgSession = connectPgSimple(session);
-const pgStore = new PgSession({
-  conString: process.env.DATABASE_URL,
-  createTableIfMissing: true,
-  errorLog: (err: Error) => {
-    console.error("Session store error:", err.message);
-  },
-});
 app.use(
   session({
-    store: pgStore,
     secret: process.env.ADMIN_PASSWORD || "fallback-secret-key",
     resave: false,
     saveUninitialized: false,
