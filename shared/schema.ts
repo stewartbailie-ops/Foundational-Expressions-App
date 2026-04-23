@@ -130,6 +130,7 @@ export const advisors = pgTable("advisors", {
   advisorPasswordHash: text("advisor_password_hash"),
   advisorPasswordSet: boolean("advisor_password_set").default(false),
   advisorEmailVerified: boolean("advisor_email_verified").default(false),
+  isDemo: boolean("is_demo").default(false),
   advisorCode: text("advisor_code"),
   faisAgreementUrl: text("fais_agreement_url"),
   tosAcceptedAt: timestamp("tos_accepted_at"),

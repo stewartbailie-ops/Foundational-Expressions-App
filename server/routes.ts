@@ -780,8 +780,9 @@ export async function registerRoutes(
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     res.json({
-      passwordSet: advisor.advisorPasswordSet ?? false,
-      emailVerified: advisor.advisorEmailVerified ?? false,
+      passwordSet: advisor.isDemo ? true : (advisor.advisorPasswordSet ?? false),
+      emailVerified: advisor.isDemo ? true : (advisor.advisorEmailVerified ?? false),
+      isDemo: !!advisor.isDemo,
     });
   });
 
@@ -963,6 +964,11 @@ export async function registerRoutes(
   });
 
   app.get("/api/advisor-auth/:slug/session", async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (advisor?.isDemo) {
+      return res.json({ authenticated: true, isDemo: true });
+    }
     const authenticated = !!(req.session as any)?.[`advisor_${req.params.slug}`];
     res.json({ authenticated });
   });

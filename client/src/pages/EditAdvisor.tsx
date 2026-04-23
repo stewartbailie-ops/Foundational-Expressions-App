@@ -42,6 +42,7 @@ export default function EditAdvisor() {
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [isDemo, setIsDemo] = useState(false);
 
   useEffect(() => {
     if (advisor && !loaded) {
@@ -57,6 +58,7 @@ export default function EditAdvisor() {
       setSelectedIndividual(advisor.individualServices || []);
       setSelectedCorporate(advisor.corporateServices || []);
       setProfilePicUrl(advisor.profilePicUrl || null);
+      setIsDemo(!!(advisor as any).isDemo);
       setLoaded(true);
     }
   }, [advisor, loaded]);
@@ -102,6 +104,7 @@ export default function EditAdvisor() {
         profilePicUrl: profilePicUrl || null,
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
+        isDemo,
       });
       return res.json();
     },
@@ -170,6 +173,23 @@ export default function EditAdvisor() {
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8 mt-4">
         <div className="xl:col-span-2 space-y-6">
+
+          <Card className={isDemo ? "border-amber-500/60 bg-amber-50 dark:bg-amber-950/20" : "border-border"}>
+            <CardContent className="p-5">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <Checkbox checked={isDemo} onCheckedChange={(v) => setIsDemo(!!v)} data-testid="checkbox-is-demo" className="mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-semibold text-sm flex items-center gap-2">
+                    Demo / Test Profile
+                    {isDemo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white uppercase tracking-wide">Public Demo</span>}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    When enabled, anyone with the control panel link can view and play with this advisor's panel — <strong>no email/password required</strong>. Perfect for sharing demos via WhatsApp to prospective advisors. Leave OFF for real, paying advisors.
+                  </p>
+                </div>
+              </label>
+            </CardContent>
+          </Card>
 
           <Card className="border-border">
             <CardContent className="p-6 space-y-5">
