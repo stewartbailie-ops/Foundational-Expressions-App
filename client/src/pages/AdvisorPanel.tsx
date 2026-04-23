@@ -601,6 +601,21 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [search, setSearch] = useState("");
+  type SortKey = "date" | "name" | "grade" | "status";
+  const [sortBy, setSortBy] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const handleSortClick = (key: SortKey) => {
+    if (sortBy === key) {
+      setSortDir(d => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir(key === "date" ? "desc" : "asc");
+    }
+  };
+  const handleSortDoubleClick = (key: SortKey) => {
+    setSortBy(key);
+    setSortDir(d => (sortBy === key ? (d === "asc" ? "desc" : "asc") : "asc"));
+  };
 
   const { data: leads = [], isLoading } = useQuery<EmailRow[]>({
     queryKey: [`/api/advisors/${slug}/emails`],
@@ -643,18 +658,36 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     },
   });
 
-  const filtered = leads.filter(l => {
-    const matchType = typeFilter === "all" || l.type === typeFilter;
-    const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
-    const matchGrade = gradeFilter === "all" || (l.grade || "Silver") === gradeFilter;
-    const q = search.toLowerCase();
-    const matchSearch = q === "" ||
-      l.senderName.toLowerCase().includes(q) ||
-      l.senderEmail.toLowerCase().includes(q) ||
-      (l.clientPhone || "").includes(q) ||
-      (l.referrerName || "").toLowerCase().includes(q);
-    return matchType && matchStatus && matchGrade && matchSearch;
-  });
+  const GRADE_RANK: Record<string, number> = { "Gold": 0, "Silver": 1, "Bronze": 2, "Development": 3 };
+  const STATUS_RANK: Record<string, number> = { "Need to Contact": 0, "Contacted": 1, "Archive": 2 };
+
+  const filtered = leads
+    .filter(l => {
+      const matchType = typeFilter === "all" || l.type === typeFilter;
+      const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
+      const matchGrade = gradeFilter === "all" || (l.grade || "Silver") === gradeFilter;
+      const q = search.toLowerCase();
+      const matchSearch = q === "" ||
+        l.senderName.toLowerCase().includes(q) ||
+        l.senderEmail.toLowerCase().includes(q) ||
+        (l.clientPhone || "").includes(q) ||
+        (l.referrerName || "").toLowerCase().includes(q);
+      return matchType && matchStatus && matchGrade && matchSearch;
+    })
+    .sort((a, b) => {
+      const dir = sortDir === "asc" ? 1 : -1;
+      let cmp = 0;
+      if (sortBy === "date") {
+        cmp = new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime();
+      } else if (sortBy === "name") {
+        cmp = a.senderName.localeCompare(b.senderName);
+      } else if (sortBy === "grade") {
+        cmp = (GRADE_RANK[a.grade || "Silver"] ?? 99) - (GRADE_RANK[b.grade || "Silver"] ?? 99);
+      } else if (sortBy === "status") {
+        cmp = (STATUS_RANK[a.leadStatus || "Need to Contact"] ?? 99) - (STATUS_RANK[b.leadStatus || "Need to Contact"] ?? 99);
+      }
+      return cmp * dir;
+    });
 
   const statusColors: Record<string, string> = {
     "Need to Contact": "#d97706",
@@ -804,6 +837,37 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             Clear
           </button>
         )}
+      </div>
+
+      {/* Sort row — click to activate, click again (or double-click) to flip direction */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Sort by</span>
+        {([
+          { key: "date", label: "Date" },
+          { key: "name", label: "Name" },
+          { key: "grade", label: "Grade" },
+          { key: "status", label: "Status" },
+        ] as Array<{ key: SortKey; label: string }>).map(opt => {
+          const active = sortBy === opt.key;
+          return (
+            <button
+              key={opt.key}
+              onClick={() => handleSortClick(opt.key)}
+              onDoubleClick={() => handleSortDoubleClick(opt.key)}
+              className="px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1"
+              style={{
+                backgroundColor: active ? tc.accentColor + "20" : "transparent",
+                color: active ? tc.accentColor : tc.mutedText,
+                border: `1px solid ${active ? tc.accentColor : tc.borderColor}`,
+              }}
+              title={active ? "Click to flip direction" : `Sort by ${opt.label.toLowerCase()}`}
+              data-testid={`button-sort-${opt.key}`}
+            >
+              {opt.label}
+              {active && <span className="text-[10px] leading-none">{sortDir === "asc" ? "▲" : "▼"}</span>}
+            </button>
+          );
+        })}
       </div>
 
       {filtered.length === 0 ? (

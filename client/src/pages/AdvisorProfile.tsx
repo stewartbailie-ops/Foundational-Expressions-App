@@ -573,7 +573,7 @@ function NewsHero({ accentColor, borderColor, cardBg }: {
         setIdx(i => (i + 1) % articles.length);
         setVisible(true);
       }, 350);
-    }, 3000);
+    }, 6000);
     return () => clearInterval(timer);
   }, [articles.length]);
 
