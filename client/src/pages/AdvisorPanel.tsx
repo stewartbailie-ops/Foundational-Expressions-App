@@ -1370,6 +1370,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
+  const [indServicesOpen, setIndServicesOpen] = useState(false);
+  const [corpServicesOpen, setCorpServicesOpen] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
     const raw = (advisor as any).profileSectionOrder as string | null;
     if (raw) return raw.split(",").filter(Boolean);
@@ -1727,49 +1729,93 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Individual Services</h3>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setIndServicesOpen(v => !v)}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            data-testid="toggle-ind-services-open"
+          >
+            {indServicesOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+            <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Individual Services</h3>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>{selectedIndividual.length}/{INDIVIDUAL_SERVICES.length}</span>
+          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
             <div onClick={() => setShowIndividualServices(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showIndividualServices ? tc.checkActive : tc.checkInactive }}>
               <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showIndividualServices ? "17px" : "2px", backgroundColor: showIndividualServices ? tc.checkDotActive : tc.checkDotInactive }} />
             </div>
           </div>
         </div>
-        <div className="space-y-2">
-          {INDIVIDUAL_SERVICES.map(s => (
-            <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-              <input type="checkbox" checked={selectedIndividual.includes(s.key)} onChange={() => toggleService(selectedIndividual, setSelectedIndividual, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-panel-ind-${s.key}`} />
-              <div>
-                <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
-                <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
-              </div>
-            </label>
-          ))}
-        </div>
+        {!indServicesOpen && selectedIndividual.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {INDIVIDUAL_SERVICES.filter(s => selectedIndividual.includes(s.key)).map(s => (
+              <span key={s.key} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>{s.name}</span>
+            ))}
+          </div>
+        )}
+        {!indServicesOpen && selectedIndividual.length === 0 && (
+          <p className="text-xs italic" style={{ color: tc.mutedText }}>No services selected — tap to choose.</p>
+        )}
+        {indServicesOpen && (
+          <div className="space-y-2">
+            {INDIVIDUAL_SERVICES.map(s => (
+              <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                <input type="checkbox" checked={selectedIndividual.includes(s.key)} onChange={() => toggleService(selectedIndividual, setSelectedIndividual, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-panel-ind-${s.key}`} />
+                <div>
+                  <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
+                </div>
+              </label>
+            ))}
+            <button type="button" onClick={() => setIndServicesOpen(false)} className="w-full text-[11px] py-1.5 rounded-md font-medium" style={{ color: tc.accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-collapse-ind-services">Done — collapse</button>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Corporate Services</h3>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => setCorpServicesOpen(v => !v)}
+            className="flex items-center gap-2 flex-1 min-w-0 text-left"
+            data-testid="toggle-corp-services-open"
+          >
+            {corpServicesOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+            <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Corporate Services</h3>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>{selectedCorporate.length}/{CORPORATE_SERVICES.length}</span>
+          </button>
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
             <div onClick={() => setShowCorporateServices(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showCorporateServices ? tc.checkActive : tc.checkInactive }}>
               <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showCorporateServices ? "17px" : "2px", backgroundColor: showCorporateServices ? tc.checkDotActive : tc.checkDotInactive }} />
             </div>
           </div>
         </div>
-        <div className="space-y-2">
-          {CORPORATE_SERVICES.map(s => (
-            <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-              <input type="checkbox" checked={selectedCorporate.includes(s.key)} onChange={() => toggleService(selectedCorporate, setSelectedCorporate, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-panel-corp-${s.key}`} />
-              <div>
-                <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
-                <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
-              </div>
-            </label>
-          ))}
-        </div>
+        {!corpServicesOpen && selectedCorporate.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {CORPORATE_SERVICES.filter(s => selectedCorporate.includes(s.key)).map(s => (
+              <span key={s.key} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>{s.name}</span>
+            ))}
+          </div>
+        )}
+        {!corpServicesOpen && selectedCorporate.length === 0 && (
+          <p className="text-xs italic" style={{ color: tc.mutedText }}>No services selected — tap to choose.</p>
+        )}
+        {corpServicesOpen && (
+          <div className="space-y-2">
+            {CORPORATE_SERVICES.map(s => (
+              <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                <input type="checkbox" checked={selectedCorporate.includes(s.key)} onChange={() => toggleService(selectedCorporate, setSelectedCorporate, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-panel-corp-${s.key}`} />
+                <div>
+                  <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
+                </div>
+              </label>
+            ))}
+            <button type="button" onClick={() => setCorpServicesOpen(false)} className="w-full text-[11px] py-1.5 rounded-md font-medium" style={{ color: tc.accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-collapse-corp-services">Done — collapse</button>
+          </div>
+        )}
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
