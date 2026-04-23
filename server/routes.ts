@@ -349,6 +349,27 @@ export async function registerRoutes(
     res.json(emails);
   });
 
+  // Public demo-only lead seeder. Refuses any non-demo advisor.
+  app.post("/api/demo-emails", async (req, res) => {
+    const advisorId = Number(req.body?.advisorId);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor.isDemo) return res.status(403).json({ message: "Only demo advisors can be seeded" });
+    const parsed = insertEmailSchema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    const data: any = parsed.data;
+    if (!data.grade || data.grade === "Silver") {
+      data.grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
+    }
+    if (req.body?.receivedAt) {
+      const d = new Date(req.body.receivedAt);
+      if (!isNaN(d.getTime())) data.receivedAt = d;
+    }
+    const email = await storage.createEmail(data);
+    res.status(201).json(email);
+  });
+
   app.post("/api/emails", async (req, res) => {
     const parsed = insertEmailSchema.safeParse(req.body);
     if (!parsed.success) {

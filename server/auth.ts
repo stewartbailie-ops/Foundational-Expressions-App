@@ -5,6 +5,7 @@ const PUBLIC_API_ROUTES = [
   "/api/advisor-auth/",
   "/api/referral",
   "/api/callback",
+  "/api/demo-emails",
   "/api/will-request",
   "/api/webhook/",
   "/api/stats/access",
