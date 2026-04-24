@@ -4,7 +4,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -1018,7 +1018,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                             border: "1.5px dashed rgba(236,72,153,0.55)",
                           }}
                           data-testid={`button-status-${lead.id}-donate-deduct`}>
-                          <span aria-hidden>♥</span> Donate &amp; Deduct
+                          <Heart className="h-3 w-3" /> Donate &amp; Deduct
                           <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(236,72,153,0.18)", color: "#be185d" }}>Soon</span>
                         </button>
                       </div>
@@ -4891,7 +4891,7 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
       description: "Access your Liberty client portal — policies, statements, and account management.",
       url: "https://myliberty.liberty.co.za/logon",
       color: "#e31837",
-      emoji: "📈",
+      Icon: Building2,
     },
     {
       key: "stanlib",
@@ -4899,7 +4899,7 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
       description: "Log in to the Stanlib investment platform — fund performance and portfolio access.",
       url: "https://login.stanlib.com/Account/Login",
       color: "#003087",
-      emoji: "📈",
+      Icon: TrendingUp,
     },
     {
       key: "signinghub",
@@ -4907,7 +4907,7 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
       description: "Send, sign and track digital documents — secure e-signatures for client paperwork.",
       url: "https://web.signinghub.com/",
       color: "#1f7a4d",
-      emoji: "✍️",
+      Icon: FileCheck,
     },
   ];
 
@@ -4929,9 +4929,9 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
           data-testid={`link-platform-${p.key}`}
         >
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl flex-shrink-0"
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
               style={{ backgroundColor: p.color + "22", border: `2px solid ${p.color}44` }}>
-              {p.emoji}
+              <p.Icon className="h-6 w-6" style={{ color: p.color }} />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
