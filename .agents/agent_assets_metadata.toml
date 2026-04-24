@@ -1,5 +1,22 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "Tv8mAhJ9y1o3x3LhUiNlB"
+uri = "file://attached_assets/generated_images/ac_logo_concept_1.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "atL38faA2hxF_yOaKsFZP"
+uri = "file://attached_assets/generated_images/ac_logo_concept_2.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "BGNrcNnxCXNPCWhBm1toM"
+uri = "file://attached_assets/generated_images/ac_logo_concept_3.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "xR0AsPPHV8nSYTRczItlN"
@@ -12,3 +29,21 @@ id = "Iv67Gvzoj_7m7G_lRxMme"
 uri = "file://Advisory_Connect_NDA_System_Description.docx"
 type = "word_document"
 title = "Advisory Connect — NDA System Description (Word Document)"
+
+[[outputs]]
+id = "uUMZ5jUD9IoZZvDzFY8I6"
+uri = "file://attached_assets/generated_images/ac_logo_concept_1.png"
+type = "image"
+title = "Logo Concept 1 — AC Monogram in Rounded Shield (Navy + Emerald Green)"
+
+[[outputs]]
+id = "a7lMjUdTL6RC8WOKksmG-"
+uri = "file://attached_assets/generated_images/ac_logo_concept_2.png"
+type = "image"
+title = "Logo Concept 2 — Interlocked AC with Electric Gold Stroke"
+
+[[outputs]]
+id = "xwW2r5IKSyXEYiFZh3o9U"
+uri = "file://attached_assets/generated_images/ac_logo_concept_3.png"
+type = "image"
+title = "Logo Concept 3 — AC with Integrated Green Checkmark (Registry vibe)"

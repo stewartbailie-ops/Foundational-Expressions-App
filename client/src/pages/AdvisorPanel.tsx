@@ -4,7 +4,9 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy } from "lucide-react";
+import acLogo from "@assets/generated_images/ac_logo_concept_1.png";
+import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -494,8 +496,8 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
           <Rss className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
           <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Market News</div>
         </div>
-        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="markets" labelOverride="Markets · Live" />
-        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="personal-finance" labelOverride="Personal Finance · Live" />
+        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="markets" labelOverride="Markets · Live" testIdSuffix="markets" />
+        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="personal-finance" labelOverride="Personal Finance · Live" testIdSuffix="personal-finance" />
       </div>
 
       {/* ── My Stats ── */}
@@ -614,6 +616,65 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
           </div>
         )}
+      </div>
+
+      {/* ── Footer: Powered By + Verified Badge + Support ── */}
+      <div className="pt-6 pb-2 space-y-3">
+        <div
+          className="rounded-xl p-4 flex flex-col items-center text-center gap-3"
+          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+          data-testid="footer-powered-by"
+        >
+          <div className="flex items-center gap-3">
+            <img
+              src={acLogo}
+              alt="Advisory Connect"
+              className="h-12 w-12 rounded-lg object-contain"
+              style={{ backgroundColor: "#0b1220" }}
+              data-testid="img-ac-logo"
+            />
+            <div className="text-left">
+              <div className="text-xs font-bold uppercase tracking-wider" style={{ color: tc.textColor }}>
+                Powered by Advisory Connect
+              </div>
+              <div className="text-[11px]" style={{ color: tc.mutedText }}>
+                Elevate your professional presence
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 pt-1">
+            <img
+              src={verifiedBadge}
+              alt="Registered Company — Verified by Company Partners"
+              className="h-12 w-auto"
+              data-testid="img-verified-badge"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-1">
+            <a
+              href="https://www.advisoryconnect.pro"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+              style={{ backgroundColor: `${tc.accentColor}18`, color: tc.accentColor, border: `1px solid ${tc.accentColor}40` }}
+              data-testid="link-footer-website"
+            >
+              <Globe className="h-3 w-3" />
+              advisoryconnect.pro
+            </a>
+            <a
+              href="mailto:support@advisoryconnect.pro"
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="link-footer-support"
+            >
+              <LifeBuoy className="h-3 w-3" />
+              Contact Support
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { NewsHero } from "@/components/NewsHero";
+import { RealMoneySqueeze, TaxBite } from "@/components/MoneyShowpieces";
 
 function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -1295,6 +1296,22 @@ export default function AdvisorProfile() {
         {!!(advisor as any).showMoneywebFeed && (
           <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
         )}
+
+        {/* Money Showpieces — standalone interactive cards (slider-driven) */}
+        <RealMoneySqueeze
+          accentColor={accentColor}
+          borderColor={tc.borderColor}
+          cardBg={cardBg}
+          textColor={textColor}
+          mutedText={mutedText}
+        />
+        <TaxBite
+          accentColor={accentColor}
+          borderColor={tc.borderColor}
+          cardBg={cardBg}
+          textColor={textColor}
+          mutedText={mutedText}
+        />
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">

@@ -3,13 +3,14 @@ import { ExternalLink } from "lucide-react";
 
 export type NewsItem = { title: string; link: string; pubDate: string; image: string | null; source: string };
 
-export function NewsHero({ accentColor, borderColor, cardBg, height = 200, category = "all", labelOverride }: {
+export function NewsHero({ accentColor, borderColor, cardBg, height = 200, category = "all", labelOverride, testIdSuffix }: {
   accentColor: string;
   borderColor: string;
   cardBg: string;
   height?: number;
   category?: "all" | "news" | "markets" | "investing" | "personal-finance";
   labelOverride?: string;
+  testIdSuffix?: string;
 }) {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [idx, setIdx] = useState(0);
@@ -48,7 +49,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200, categ
         backgroundColor: cardBg,
         boxShadow: "0 6px 20px rgba(0,0,0,0.15)",
       }}
-      data-testid="section-news-hero"
+      data-testid={testIdSuffix ? `section-news-hero-${testIdSuffix}` : "section-news-hero"}
     >
       <div
         className="absolute inset-0 transition-opacity duration-500 ease-out"
