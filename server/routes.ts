@@ -365,6 +365,18 @@ export async function registerRoutes(
   });
 
   // Public demo-only lead seeder. Refuses any non-demo advisor.
+  // Admin-only: top up realistic synthetic leads across ALL demo profiles.
+  // Body: { perAdvisor?: number }  (default 5, capped at 50)
+  app.post("/api/demo-emails/topup", async (req, res) => {
+    if (!(req.session as any)?.authenticated) {
+      return res.status(401).json({ message: "Admin authentication required" });
+    }
+    const requested = Math.max(1, Math.min(50, parseInt(req.body?.perAdvisor ?? "5", 10) || 5));
+    const { autoTrickleDemoLeads } = await import("./demoSeeder");
+    const result = await autoTrickleDemoLeads(requested);
+    res.json({ ...result, perAdvisor: requested });
+  });
+
   app.post("/api/demo-emails", async (req, res) => {
     const advisorId = Number(req.body?.advisorId);
     if (!advisorId) return res.status(400).json({ message: "advisorId required" });

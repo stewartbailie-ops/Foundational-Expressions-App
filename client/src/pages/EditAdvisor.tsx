@@ -175,7 +175,7 @@ export default function EditAdvisor() {
         <div className="xl:col-span-2 space-y-6">
 
           <Card className={isDemo ? "border-amber-500/60 bg-amber-50 dark:bg-amber-950/20" : "border-border"}>
-            <CardContent className="p-5">
+            <CardContent className="p-5 space-y-4">
               <label className="flex items-start gap-3 cursor-pointer">
                 <Checkbox checked={isDemo} onCheckedChange={(v) => setIsDemo(!!v)} data-testid="checkbox-is-demo" className="mt-0.5" />
                 <div className="flex-1">
@@ -188,6 +188,7 @@ export default function EditAdvisor() {
                   </p>
                 </div>
               </label>
+              {isDemo && <DemoLeadTopUp />}
             </CardContent>
           </Card>
 
@@ -405,6 +406,66 @@ export default function EditAdvisor() {
             </Card>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function DemoLeadTopUp() {
+  const { toast } = useToast();
+  const [count, setCount] = useState(5);
+  const topUp = useMutation({
+    mutationFn: async (perAdvisor: number) => {
+      const res = await apiRequest("POST", "/api/demo-emails/topup", { perAdvisor });
+      return res.json() as Promise<{ advisors: number; leadsAdded: number; perAdvisor: number }>;
+    },
+    onSuccess: (r) => {
+      toast({
+        title: "Demo leads topped up",
+        description: r.advisors === 0
+          ? "No demo profiles found to top up."
+          : `Added ${r.leadsAdded} fresh leads across ${r.advisors} demo profile${r.advisors === 1 ? "" : "s"}.`,
+      });
+      queryClient.invalidateQueries({ predicate: (q) => {
+        const k = q.queryKey?.[0];
+        return typeof k === "string" && (k.includes("/emails") || k.includes("/stats"));
+      }});
+    },
+    onError: (e: any) => {
+      toast({ variant: "destructive", title: "Top-up failed", description: e?.message || "Please try again." });
+    },
+  });
+
+  return (
+    <div className="rounded-lg border border-amber-500/40 bg-amber-100/60 dark:bg-amber-900/20 p-3 space-y-2">
+      <div className="text-xs font-semibold text-amber-900 dark:text-amber-200">Top up demo leads</div>
+      <p className="text-[11px] text-amber-800/80 dark:text-amber-200/70 leading-relaxed">
+        Adds fresh synthetic referrals to <strong>every</strong> demo profile (not just this one). Leads are realistic SA names, ages, incomes and grades, spread across the last 30 days. Auto-trickle of 2 per profile already runs on every server restart — use this for an extra boost.
+      </p>
+      <div className="flex items-center gap-2">
+        <Label htmlFor="demo-topup-count" className="text-[11px] text-amber-900 dark:text-amber-200">Per profile</Label>
+        <Input
+          id="demo-topup-count"
+          type="number"
+          min={1}
+          max={50}
+          value={count}
+          onChange={(e) => setCount(Math.max(1, Math.min(50, parseInt(e.target.value) || 1)))}
+          className="h-8 w-20 text-xs"
+          data-testid="input-demo-topup-count"
+        />
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          className="h-8 text-xs border-amber-500 text-amber-900 hover:bg-amber-200 dark:text-amber-200 dark:hover:bg-amber-900/40"
+          disabled={topUp.isPending}
+          onClick={() => topUp.mutate(count)}
+          data-testid="button-demo-topup"
+        >
+          {topUp.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
+          Top up
+        </Button>
       </div>
     </div>
   );

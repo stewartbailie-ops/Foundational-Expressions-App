@@ -4901,6 +4901,14 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
       color: "#003087",
       emoji: "📈",
     },
+    {
+      key: "signinghub",
+      name: "SigningHub",
+      description: "Send, sign and track digital documents — secure e-signatures for client paperwork.",
+      url: "https://web.signinghub.com/",
+      color: "#1f7a4d",
+      emoji: "✍️",
+    },
   ];
 
   return (
