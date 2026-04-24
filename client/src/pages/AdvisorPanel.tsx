@@ -497,7 +497,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
           <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Market News</div>
         </div>
         <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="markets" labelOverride="Markets · Live" testIdSuffix="markets" />
-        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="personal-finance" labelOverride="Personal Finance · Live" testIdSuffix="personal-finance" />
+        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} category="investing" labelOverride="Investing · Live" testIdSuffix="investing" />
       </div>
 
       {/* ── My Stats ── */}

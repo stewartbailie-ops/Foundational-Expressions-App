@@ -1112,15 +1112,24 @@ export async function registerRoutes(
   // Aggregated multi-source SA finance news feed
   // Pulls from MoneyWeb, BizNews, Daily Investor, Fin24 in parallel.
   // One slow/failing source never blocks the others.
-  app.get("/api/news/feed", async (_req, res) => {
+  app.get("/api/news/feed", async (req, res) => {
     try {
-      // Curated mix of SA + global business/finance feeds that we know respond
-      // reliably without auth and (for the latter two) carry article thumbnails.
-      const sources: Array<{ name: string; url: string }> = [
-        { name: "MoneyWeb",     url: "https://www.moneyweb.co.za/feed/" },
-        { name: "BBC Business", url: "https://feeds.bbci.co.uk/news/business/rss.xml" },
-        { name: "Investing",    url: "https://www.investing.com/rss/news_25.rss" },
-      ];
+      const category = (req.query.category as string) || "all";
+      // Per-category sources. "all" stays as the curated multi-source mix; specific
+      // categories fall back to the relevant MoneyWeb subcategory feed so each
+      // NewsHero instance shows distinct content.
+      const SOURCES_BY_CAT: Record<string, Array<{ name: string; url: string }>> = {
+        all: [
+          { name: "MoneyWeb",     url: "https://www.moneyweb.co.za/feed/" },
+          { name: "BBC Business", url: "https://feeds.bbci.co.uk/news/business/rss.xml" },
+          { name: "Investing",    url: "https://www.investing.com/rss/news_25.rss" },
+        ],
+        news:               [{ name: "MoneyWeb News",     url: "https://www.moneyweb.co.za/category/news/feed/" }],
+        markets:            [{ name: "MoneyWeb Markets",  url: "https://www.moneyweb.co.za/category/markets/feed/" }],
+        investing:          [{ name: "MoneyWeb Investing", url: "https://www.moneyweb.co.za/category/investing/feed/" }],
+        "personal-finance": [{ name: "MoneyWeb Personal Finance", url: "https://www.moneyweb.co.za/category/personal-finance/feed/" }],
+      };
+      const sources = SOURCES_BY_CAT[category] || SOURCES_BY_CAT.all;
       const results = await Promise.all(
         sources.map(s => fetchFeedSafe(s.url, s.name))
       );
