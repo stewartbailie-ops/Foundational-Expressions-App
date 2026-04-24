@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy } from "lucide-react";
-import acLogo from "@assets/generated_images/ac_logo_concept_1.png";
+import acLogo from "@assets/generated_images/ac_logo_concept_3.png";
 import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
