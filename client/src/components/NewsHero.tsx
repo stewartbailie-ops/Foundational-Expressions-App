@@ -3,22 +3,24 @@ import { ExternalLink } from "lucide-react";
 
 export type NewsItem = { title: string; link: string; pubDate: string; image: string | null; source: string };
 
-export function NewsHero({ accentColor, borderColor, cardBg, height = 200 }: {
+export function NewsHero({ accentColor, borderColor, cardBg, height = 200, category = "all", labelOverride }: {
   accentColor: string;
   borderColor: string;
   cardBg: string;
   height?: number;
+  category?: "all" | "news" | "markets" | "investing" | "personal-finance";
+  labelOverride?: string;
 }) {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [idx, setIdx] = useState(0);
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
-    fetch("/api/news/feed")
+    fetch(`/api/news/feed?category=${encodeURIComponent(category)}`)
       .then(r => r.json())
       .then(d => setArticles(d.items || []))
       .catch(() => {});
-  }, []);
+  }, [category]);
 
   useEffect(() => {
     if (articles.length < 2) return;
@@ -71,7 +73,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200 }: {
             data-testid="badge-news-source"
           >
             <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: accentColor }} />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-white">{art.source} · Live</span>
+            <span className="text-[10px] font-bold uppercase tracking-widest text-white">{labelOverride ? labelOverride : `${art.source} · Live`}</span>
           </div>
           <div className="flex gap-1">
             {articles.slice(0, Math.min(articles.length, 5)).map((_, i) => (
