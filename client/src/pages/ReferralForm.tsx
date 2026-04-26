@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, AlertCircle, CheckCircle2, Plus, Trash2, ArrowLeft } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, Plus, Trash2, ArrowLeft, Check } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
@@ -423,7 +423,15 @@ export default function ReferralForm() {
           >
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold uppercase tracking-wider" style={{ color: sectionTitle }}>
-                {index === 0 ? "First" : index === 1 ? "Second" : index === 2 ? "Third" : "Fourth"} Referral
+                {(() => {
+                  const n = index + 1;
+                  const ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth", "Ninth", "Tenth"];
+                  if (n <= 10) return `${ordinals[index]} Referral`;
+                  const lastTwo = n % 100;
+                  const last = n % 10;
+                  const suffix = (lastTwo >= 11 && lastTwo <= 13) ? "th" : last === 1 ? "st" : last === 2 ? "nd" : last === 3 ? "rd" : "th";
+                  return `${n}${suffix} Referral`;
+                })()}
               </h3>
               {referrals.length > 1 && (
                 <button
@@ -623,7 +631,7 @@ export default function ReferralForm() {
                   border: `2px solid ${ref.confirmedOver18 ? accentColor : tc.borderColor}`,
                 }}
               >
-                {ref.confirmedOver18 && <span className="text-white text-xs font-bold">✓</span>}
+                {ref.confirmedOver18 && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
               </div>
               <p className="text-xs leading-relaxed" style={{ color: mutedText }}>
                 I confirm that they are over 18 years of age and that the information provided is accurate. I consent to {advisor.name} contacting them regarding their financial planning needs. <span style={{ color: "#ef4444" }}>*</span>

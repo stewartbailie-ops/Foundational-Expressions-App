@@ -4,7 +4,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, Users } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users } from "lucide-react";
 import acLogo from "@assets/Untitled_-_Edited_1777223447976.png";
 import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
 import { Button } from "@/components/ui/button";
@@ -172,9 +172,9 @@ function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVer
 
   const RuleRow = ({ met, label }: { met: boolean; label: string }) => (
     <div className="flex items-center gap-2">
-      <div className={`w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-all ${met ? "bg-emerald-500 text-white" : "border-2"}`}
+      <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${met ? "bg-emerald-500 text-white" : "border-2"}`}
         style={!met ? { borderColor: tc.mutedText } : {}}>
-        {met ? "✓" : ""}
+        {met && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
       </div>
       <span className="text-xs" style={{ color: met ? "#10b981" : tc.mutedText }}>{label}</span>
     </div>
@@ -274,8 +274,9 @@ function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVer
                 </button>
               </div>
               {confirm.length > 0 && (
-                <p className="text-xs" style={{ color: passwordsMatch ? "#10b981" : "#ef4444" }}>
-                  {passwordsMatch ? "✓ Passwords match" : "✗ Passwords do not match"}
+                <p className="text-xs flex items-center gap-1.5" style={{ color: passwordsMatch ? "#10b981" : "#ef4444" }}>
+                  {passwordsMatch ? <Check className="h-3 w-3" strokeWidth={3} /> : <X className="h-3 w-3" strokeWidth={3} />}
+                  {passwordsMatch ? "Passwords match" : "Passwords do not match"}
                 </p>
               )}
             </div>
@@ -393,8 +394,9 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
             </button>
           )}
           <div>
-            <button onClick={onBack} className="text-sm" style={{ color: tc.mutedText }} data-testid="button-verify-back">
-              ← Go back
+            <button onClick={onBack} className="text-sm inline-flex items-center gap-1.5" style={{ color: tc.mutedText }} data-testid="button-verify-back">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Go back
             </button>
           </div>
         </div>
@@ -983,7 +985,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
         />
         {search && (
-          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-xs" style={{ color: tc.mutedText }}>✕</button>
+          <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: tc.mutedText }} aria-label="Clear search"><X className="h-3.5 w-3.5" /></button>
         )}
       </div>
       {/* Type filter */}
@@ -3235,7 +3237,8 @@ function ForexCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
             ))}
             {exceedsRisk && (
               <div className="rounded-lg px-3 py-2 flex items-start gap-2 mt-1" style={{ backgroundColor: "#ef444422", border: "1px solid #ef4444" }}>
-                <span className="text-xs font-semibold" style={{ color: "#ef4444" }}>⚠ Risk Warning — This trade's loss exceeds your {riskPct}% risk limit ({fmt(riskAmount)}).</span>
+                <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0 mt-px" style={{ color: "#ef4444" }} />
+                <span className="text-xs font-semibold" style={{ color: "#ef4444" }}>Risk Warning — This trade's loss exceeds your {riskPct}% risk limit ({fmt(riskAmount)}).</span>
               </div>
             )}
           </div>
@@ -3396,7 +3399,7 @@ function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
             <input className={inpCls} style={is} placeholder="Override value" value={manualValue} onChange={e => setManualValue(e.target.value)} data-testid="vehicle-manual-value" />
           </div>
         </div>
-        {purchase > 0 && <p className="text-xs" style={ls}>Calculated value: <span className="font-semibold" style={{ color: manualValue ? tc.mutedText : tc.accentColor }}>{fmt(calcValue)}</span>{manualValue ? <span style={ac}> → Manual: {fmt(num(manualValue))}</span> : ""}</p>}
+        {purchase > 0 && <p className="text-xs" style={ls}>Calculated value: <span className="font-semibold" style={{ color: manualValue ? tc.mutedText : tc.accentColor }}>{fmt(calcValue)}</span>{manualValue ? <span style={ac} className="inline-flex items-center gap-1 ml-1"><ArrowRight className="h-3 w-3 inline" /> Manual: {fmt(num(manualValue))}</span> : ""}</p>}
       </div>
 
       {/* Financing */}
@@ -3820,7 +3823,7 @@ function PensionCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 <tr><td>Net Payout</td><td>${fmt(netPayout)}</td></tr>
 <tr><td>Effective Tax Rate</td><td>${effectiveRate.toFixed(1)}%</td></tr>
 </table>
-${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance. Remaining: ${fmt(taxFreeRemaining)}</div>` : ""}
+${taxFreePct > 0 ? `<div class="alert"><strong>Note:</strong> You have used ${taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance. Remaining: ${fmt(taxFreeRemaining)}</div>` : ""}
 <h2>Projected Retirement Value</h2><table>
 <tr><td>Projected Fund Value at Retirement</td><td>${fmt(projectedValue)}</td></tr>
 </table>
@@ -3896,8 +3899,9 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
       {/* Tax-free allowance alert */}
       {prevNum > 0 && (
         <div className="rounded-lg p-3" style={{ backgroundColor: taxFreePct >= 100 ? "rgba(239,68,68,0.12)" : taxFreePct >= 70 ? "rgba(245,158,11,0.12)" : "rgba(34,197,94,0.12)", border: `1px solid ${taxFreePct >= 100 ? "#ef4444" : taxFreePct >= 70 ? "#f59e0b" : "#22c55e"}` }}>
-          <p className="text-xs font-medium" style={{ color: taxFreePct >= 100 ? "#ef4444" : taxFreePct >= 70 ? "#f59e0b" : "#22c55e" }}>
-            ⚠ You have used {taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance.
+          <p className="text-xs font-medium flex items-center gap-1.5" style={{ color: taxFreePct >= 100 ? "#ef4444" : taxFreePct >= 70 ? "#f59e0b" : "#22c55e" }}>
+            <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+            You have used {taxFreePct.toFixed(1)}% of your R500,000 lifetime tax-free allowance.
           </p>
           <p className="text-xs mt-0.5" style={ls}>Remaining tax-free: {fmt(taxFreeRemaining)}</p>
         </div>
@@ -3910,7 +3914,10 @@ ${taxFreePct > 0 ? `<div class="alert">⚠ You have used ${taxFreePct.toFixed(1)
           <div className="flex justify-between text-xs"><span style={ls}>Max deductible (27.5% of income, cap R430k)</span><span className="font-semibold" style={ac}>{fmt(maxDeductible)}</span></div>
           <div className="flex justify-between text-xs"><span style={ls}>Your annual contribution</span><span className="font-semibold" style={{ color: tc.textColor }}>{fmt(annualContrib)}</span></div>
           {annualContrib > maxDeductible && (
-            <p className="text-xs" style={{ color: "#f59e0b" }}>⚠ Contribution exceeds deductible limit by {fmt(annualContrib - maxDeductible)}</p>
+            <p className="text-xs flex items-center gap-1.5" style={{ color: "#f59e0b" }}>
+              <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" />
+              Contribution exceeds deductible limit by {fmt(annualContrib - maxDeductible)}
+            </p>
           )}
           <div className="w-full rounded-full h-1.5 mt-1" style={{ backgroundColor: tc.borderColor }}>
             <div className="h-1.5 rounded-full transition-all" style={{ width: `${Math.min(100, maxDeductible > 0 ? (annualContrib / maxDeductible) * 100 : 0)}%`, backgroundColor: tc.accentColor }} />
@@ -4811,7 +4818,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       {/* SA Calendar */}
       <div className="rounded-xl overflow-hidden" style={sectionStyle("cal")}>
         <div className="p-4">
-          <SectionHeader sectionKey="cal" icon={<span className="text-sm" style={{ color: tc.accentColor }}>📅</span>} title="SA Calendar" subtitle="South African public holidays — navigate by month." />
+          <SectionHeader sectionKey="cal" icon={<CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Calendar" subtitle="South African public holidays — navigate by month." />
         </div>
         {openSections.cal && (
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
@@ -5085,9 +5092,10 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
               <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>{p.description}</p>
             </div>
           </div>
-          <div className="mt-4 py-2.5 rounded-lg text-center text-xs font-semibold"
+          <div className="mt-4 py-2.5 rounded-lg text-center text-xs font-semibold inline-flex items-center justify-center gap-1.5 w-full"
             style={{ backgroundColor: p.color, color: "#fff" }}>
-            Open {p.name} →
+            Open {p.name}
+            <ArrowRight className="h-3.5 w-3.5" />
           </div>
         </a>
       ))}
@@ -5440,14 +5448,24 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
             <div className="space-y-1.5">
               <div style={fieldLabel}>New Password</div>
               <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} style={inputStyle} data-testid="input-new-password" />
-              {newPassword.length > 0 && (
-                <div className="flex flex-wrap gap-2 text-[11px]" style={{ color: tc.mutedText }}>
-                  <span style={{ color: newPassword.length >= 10 ? "#10b981" : tc.mutedText }}>{newPassword.length >= 10 ? "✓" : "○"} 10+ chars</span>
-                  <span style={{ color: /[A-Z]/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/[A-Z]/.test(newPassword) ? "✓" : "○"} Uppercase</span>
-                  <span style={{ color: /[a-z]/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/[a-z]/.test(newPassword) ? "✓" : "○"} Lowercase</span>
-                  <span style={{ color: /\d/.test(newPassword) ? "#10b981" : tc.mutedText }}>{/\d/.test(newPassword) ? "✓" : "○"} Number</span>
-                </div>
-              )}
+              {newPassword.length > 0 && (() => {
+                const PwChip = ({ met, label }: { met: boolean; label: string }) => (
+                  <span className="inline-flex items-center gap-1" style={{ color: met ? "#10b981" : tc.mutedText }}>
+                    <span className="inline-flex items-center justify-center w-3 h-3 rounded-full" style={met ? { backgroundColor: "#10b981" } : { border: `1px solid ${tc.mutedText}` }}>
+                      {met && <Check className="h-2 w-2 text-white" strokeWidth={4} />}
+                    </span>
+                    {label}
+                  </span>
+                );
+                return (
+                  <div className="flex flex-wrap gap-2 text-[11px]">
+                    <PwChip met={newPassword.length >= 10} label="10+ chars" />
+                    <PwChip met={/[A-Z]/.test(newPassword)} label="Uppercase" />
+                    <PwChip met={/[a-z]/.test(newPassword)} label="Lowercase" />
+                    <PwChip met={/\d/.test(newPassword)} label="Number" />
+                  </div>
+                );
+              })()}
             </div>
             <div className="space-y-1.5">
               <div style={fieldLabel}>Confirm New Password</div>

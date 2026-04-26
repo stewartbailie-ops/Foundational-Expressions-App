@@ -558,9 +558,9 @@ export default function CreateAdvisor() {
                 <Row label="Contact Number" value={contactNumber || "—"} />
                 <Row label="Login Email" value={email || "—"} />
                 <Row label="Advisor Code" value={advisorCode || "—"} />
-                <Row label="FAIS Agreement" value={faisAgreementUrl ? "✓ Uploaded" : "—"} highlight={!!faisAgreementUrl} />
+                <Row label="FAIS Agreement" value={faisAgreementUrl ? "Uploaded" : "—"} highlight={!!faisAgreementUrl} />
                 <Row label="Subscription" value={SUBSCRIPTION_TIERS.find(t => t.value === subscriptionTier)?.label || "—"} />
-                <Row label="Terms of Service" value={tosAccepted ? "✓ Accepted" : "—"} highlight={tosAccepted} />
+                <Row label="Terms of Service" value={tosAccepted ? "Accepted" : "—"} highlight={tosAccepted} />
               </div>
             </CardContent>
           </Card>

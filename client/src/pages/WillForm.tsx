@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, CheckCircle2, ArrowLeft, FileText, AlertCircle } from "lucide-react";
+import { Loader2, CheckCircle2, ArrowLeft, FileText, AlertCircle, Check } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -176,10 +176,10 @@ export default function WillForm() {
             <h1 className="text-base font-bold" style={{ color: tc.textColor }}>Claim Your Free Will</h1>
           </div>
           <p className="text-sm leading-relaxed font-medium" style={{ color: tc.textColor }}>
-            Over 70% of South Africans die without a Will — should something happen to you yesterday, is your family protected?
+            More than 70% of South Africans pass away without a Will. If something were to happen to you tomorrow, would your family be protected?
           </p>
           <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-            Please fill in the information below and {advisor.name} will reach out to you to arrange your complimentary Will.
+            Please fill in your details below and {advisor.name} will be in touch to arrange your complimentary Will.
           </p>
         </div>
 
@@ -341,7 +341,7 @@ export default function WillForm() {
                 border: `2px solid ${confirmed ? tc.accentColor : tc.borderColor}`,
               }}
             >
-              {confirmed && <span className="text-white text-xs font-bold">✓</span>}
+              {confirmed && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
             </div>
             <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
               I confirm that I am over 18 years of age and that the information provided is accurate. I consent to being contacted by {advisor.name} regarding my complimentary Will. <span style={{ color: "#ef4444" }}>*</span>

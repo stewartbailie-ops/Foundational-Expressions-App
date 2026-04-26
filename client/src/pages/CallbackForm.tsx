@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Send } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle2, ArrowLeft, Send, Check } from "lucide-react";
 import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
@@ -440,7 +440,7 @@ export default function CallbackForm() {
                 border: `2px solid ${formData.confirmOver18 ? tc.accentColor : tc.borderColor}`,
               }}
             >
-              {formData.confirmOver18 && <span className="text-white text-xs font-bold">✓</span>}
+              {formData.confirmOver18 && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
             </div>
             <p className="text-xs leading-relaxed" style={{ color: mutedText }}>
               I confirm that I am over 18 years of age and that the information provided is accurate. I consent to being contacted by {advisor.name} regarding my financial planning needs. <span style={{ color: "#ef4444" }}>*</span>

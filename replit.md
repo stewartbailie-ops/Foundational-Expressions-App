@@ -98,3 +98,11 @@ Clients are auto-graded based on demographics:
 - `client/src/pages/` - HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, EditAdvisor, AdvisorProfile, CallbackForm, ReferralForm
 - `client/src/lib/themeUtils.ts` - Shared theme color utility (dark/blue/pink) used by all public pages
 - `client/src/components/layout/AppLayout.tsx` - Black sidebar with "Control Panel" text, no logo
+
+## UI Conventions
+- **No emojis anywhere in the UI.** All icons must be Lucide React icons (X, Check, AlertTriangle, CalendarDays, Coffee, etc.). The single exception is canvas-rendered images (e.g. downloadable business card) and printable HTML reports — those use plain text labels like "Tel", "Email", "Note:" instead of emoji glyphs.
+- Warning/alert messages use `AlertTriangle` icon paired with descriptive text.
+- Close buttons use `X` icon with `aria-label="Close"`.
+- Checkmarks (password rules, completion states) use `Check` icon, not Unicode "✓".
+- Lead form follow-up paragraphs (Will request, Callback, Referral) avoid "yesterday/today" phrasing — use future-conditional ("If something were to happen tomorrow…") to keep tone supportive without alarming.
+- Ordinal labels for repeating items (referrals 1–20) use word form for First–Tenth, then numeric with proper suffix logic (11th–13th, 21st, etc.).

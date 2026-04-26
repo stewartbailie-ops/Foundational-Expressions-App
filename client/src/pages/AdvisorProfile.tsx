@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, Coffee, Utensils, Tv, Dumbbell, Wine, Cigarette, ShoppingCart, X, ArrowRight } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
@@ -671,14 +671,14 @@ export default function AdvisorProfile() {
   const [rcYears, setRcYears] = useState("30");
   // Latte Millionaire — toggle-based "where your money goes" shock tool
   const LATTE_ITEMS = [
-    { key: "coffee",    emoji: "☕", label: "Daily coffee shop",        defaultMonthly: 1350 },
-    { key: "takeaways", emoji: "🍔", label: "Uber Eats / takeaways",    defaultMonthly: 1600 },
-    { key: "streaming", emoji: "🎬", label: "Streaming subscriptions",  defaultMonthly: 350 },
-    { key: "gym",       emoji: "💪", label: "Gym you don't really use", defaultMonthly: 500 },
-    { key: "drinks",    emoji: "🍷", label: "Friday night drinks",      defaultMonthly: 1200 },
-    { key: "vape",      emoji: "💨", label: "Vape / cigarettes",        defaultMonthly: 600 },
-    { key: "shopping",  emoji: "🛒", label: "Impulse online shopping",  defaultMonthly: 800 },
-    { key: "phone",     emoji: "📱", label: "Latest phone every 2 yrs", defaultMonthly: 700 },
+    { key: "coffee",    icon: Coffee,       label: "Daily coffee shop",        defaultMonthly: 1350 },
+    { key: "takeaways", icon: Utensils,     label: "Uber Eats / takeaways",    defaultMonthly: 1600 },
+    { key: "streaming", icon: Tv,           label: "Streaming subscriptions",  defaultMonthly: 350 },
+    { key: "gym",       icon: Dumbbell,     label: "Gym you don't really use", defaultMonthly: 500 },
+    { key: "drinks",    icon: Wine,         label: "Friday night drinks",      defaultMonthly: 1200 },
+    { key: "vape",      icon: Cigarette,    label: "Vape / cigarettes",        defaultMonthly: 600 },
+    { key: "shopping",  icon: ShoppingCart, label: "Impulse online shopping",  defaultMonthly: 800 },
+    { key: "phone",     icon: Smartphone,   label: "Latest phone every 2 yrs", defaultMonthly: 700 },
   ] as const;
   const [latteItems, setLatteItems] = useState<Record<string, { enabled: boolean; amount: number }>>(
     () => Object.fromEntries(LATTE_ITEMS.map(i => [i.key, { enabled: i.key === "coffee" || i.key === "takeaways", amount: i.defaultMonthly }]))
@@ -904,17 +904,22 @@ export default function AdvisorProfile() {
 
       // Contact details
       const contactItems: [string, string][] = [];
-      if (phone) contactItems.push(["📞", phone]);
-      if (advisor.email) contactItems.push(["✉", advisor.email]);
-      if (location) contactItems.push(["📍", location]);
-      if (workingHours) contactItems.push(["🕐", workingHours]);
-      if (showAstute) contactItems.push(["🔗", "Request Your Financial Info"]);
+      if (phone) contactItems.push(["Tel", phone]);
+      if (advisor.email) contactItems.push(["Email", advisor.email]);
+      if (location) contactItems.push(["Office", location]);
+      if (workingHours) contactItems.push(["Hours", workingHours]);
+      if (showAstute) contactItems.push(["Link", "Request Your Financial Info"]);
 
       ctx.textAlign = "left"; ctx.textBaseline = "middle"; ctx.fillStyle = "#333333";
       ctx.font = `13px Arial, sans-serif`;
       let rowY = PHOTO_H + 22;
-      for (const [icon, text] of contactItems) {
-        ctx.fillText(`${icon}  ${text}`, 24, rowY);
+      for (const [label, text] of contactItems) {
+        ctx.font = `bold 12px Arial, sans-serif`;
+        ctx.fillStyle = "#888888";
+        ctx.fillText(`${label}`, 24, rowY);
+        ctx.font = `13px Arial, sans-serif`;
+        ctx.fillStyle = "#333333";
+        ctx.fillText(text, 70, rowY);
         rowY += 28;
       }
       if (contactItems.length === 0) {
@@ -1249,7 +1254,7 @@ export default function AdvisorProfile() {
               >
                 <div className="flex items-center justify-between">
                   <div className="font-semibold text-sm" style={{ color: tc.textColor }}>Save to Home Screen</div>
-                  <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="text-lg leading-none">✕</button>
+                  <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="leading-none" aria-label="Close"><X className="h-4 w-4" /></button>
                 </div>
                 <div className="space-y-3">
                   {isIOS ? (
@@ -1439,11 +1444,16 @@ export default function AdvisorProfile() {
                                   <button
                                     type="button"
                                     onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
-                                    className="text-xl flex-shrink-0"
+                                    className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors"
+                                    style={{
+                                      backgroundColor: enabled ? `${accentColor}25` : "transparent",
+                                      color: enabled ? accentColor : mutedText,
+                                      border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
+                                    }}
                                     aria-label={`Toggle ${item.label}`}
                                     data-testid={`button-latte-toggle-${item.key}`}
                                   >
-                                    {item.emoji}
+                                    <item.icon className="h-4 w-4" />
                                   </button>
                                   <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
                                   <span className="text-xs font-bold whitespace-nowrap" style={{ color: enabled ? accentColor : mutedText }} data-testid={`text-latte-amount-${item.key}`}>R {amount.toLocaleString("en-ZA")}/mo</span>
@@ -1610,7 +1620,8 @@ export default function AdvisorProfile() {
                       className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg font-semibold text-sm transition-opacity hover:opacity-80"
                       style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
                       data-testid="button-claim-will-continue">
-                      Continue to Form →
+                      Continue to Form
+                      <ArrowRight className="h-4 w-4" />
                     </button>
                   </div>
                 )}
