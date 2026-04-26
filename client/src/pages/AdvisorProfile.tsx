@@ -1326,20 +1326,38 @@ export default function AdvisorProfile() {
               <p className="text-xs" style={{ color: mutedText }}>
                 A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
               </p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="space-y-1">
-                  <label className="text-[11px]" style={{ color: mutedText }}>Salary / month (R)</label>
-                  <input type="number" value={rcSalary} onChange={e => setRcSalary(e.target.value)} style={is} data-testid="input-tool-rc-salary" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px]" style={{ color: mutedText }}>You save (%)</label>
-                  <input type="number" value={rcSavePct} onChange={e => setRcSavePct(e.target.value)} style={is} data-testid="input-tool-rc-save" />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[11px]" style={{ color: mutedText }}>Years to go</label>
-                  <input type="number" value={rcYears} onChange={e => setRcYears(e.target.value)} style={is} data-testid="input-tool-rc-years" />
-                </div>
-              </div>
+              {(() => {
+                const sliderRow = (label: string, value: number, min: number, max: number, step: number, display: string, onChange: (v: number) => void, testId: string) => (
+                  <div className="space-y-1.5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>{label}</span>
+                      <span className="text-sm font-bold" style={{ color: accentColor }}>{display}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={min} max={max} step={step} value={value}
+                      onChange={e => onChange(Number(e.target.value))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                        accentColor,
+                      }}
+                      data-testid={testId}
+                      aria-label={`${label}: ${display}`}
+                    />
+                  </div>
+                );
+                const salaryNum = Math.max(5000, Math.min(200000, Math.round(salary / 1000) * 1000 || 45000));
+                const savePctNum = Math.max(0, Math.min(50, Math.round(savePct) || 10));
+                const yearsNum = Math.max(1, Math.min(50, Math.round(years) || 30));
+                return (
+                  <div className="space-y-3">
+                    {sliderRow("Salary / month", salaryNum, 5000, 200000, 1000, `R ${salaryNum.toLocaleString("en-ZA")}`, v => setRcSalary(String(v)), "input-tool-rc-salary")}
+                    {sliderRow("You save", savePctNum, 0, 50, 1, `${savePctNum}%`, v => setRcSavePct(String(v)), "input-tool-rc-save")}
+                    {sliderRow("Years to go", yearsNum, 1, 50, 1, `${yearsNum} yrs`, v => setRcYears(String(v)), "input-tool-rc-years")}
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-3 gap-2">
                 {[
                   { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
@@ -1404,13 +1422,16 @@ export default function AdvisorProfile() {
                 Tap the everyday spends that sound like you. Tweak the amounts to match your real life. Then prepare to clutch your wallet.
               </p>
               <div className="space-y-1.5">
-                {LATTE_ITEMS.map(item => {
+                {LATTE_ITEMS.map((item, idx) => {
                   const state = latteItems[item.key];
                   const enabled = state?.enabled;
+                  const isEditable = idx < 2;
+                  const amount = state?.amount || 0;
+                  const minAmt = 100, maxAmt = 5000;
                   return (
                     <div
                       key={item.key}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all"
+                      className="px-2.5 py-2 rounded-lg transition-all space-y-2"
                       style={{
                         backgroundColor: enabled ? `${accentColor}15` : tc.inputBg,
                         border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
@@ -1418,45 +1439,60 @@ export default function AdvisorProfile() {
                       }}
                       data-testid={`latte-item-${item.key}`}
                     >
-                      <button
-                        type="button"
-                        onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
-                        className="text-xl flex-shrink-0"
-                        aria-label={`Toggle ${item.label}`}
-                        data-testid={`button-latte-toggle-${item.key}`}
-                      >
-                        {item.emoji}
-                      </button>
-                      <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
-                      <div className="flex items-center gap-1">
-                        <span className="text-[10px]" style={{ color: mutedText }}>R</span>
-                        <input
-                          type="number"
-                          value={state?.amount || 0}
-                          onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: parseFloat(e.target.value) || 0 } }))}
-                          disabled={!enabled}
-                          className="w-16 px-1.5 py-1 rounded text-xs font-semibold text-right outline-none"
-                          style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
-                          data-testid={`input-latte-amount-${item.key}`}
-                        />
-                        <span className="text-[10px]" style={{ color: mutedText }}>/mo</span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
+                          className="text-xl flex-shrink-0"
+                          aria-label={`Toggle ${item.label}`}
+                          data-testid={`button-latte-toggle-${item.key}`}
+                        >
+                          {item.emoji}
+                        </button>
+                        <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
+                        <span className="text-xs font-bold whitespace-nowrap" style={{ color: enabled ? accentColor : mutedText }} data-testid={`text-latte-amount-${item.key}`}>R {amount.toLocaleString("en-ZA")}/mo</span>
                       </div>
+                      {isEditable && enabled && (
+                        <input
+                          type="range"
+                          min={minAmt} max={maxAmt} step={50} value={Math.max(minAmt, Math.min(maxAmt, amount))}
+                          onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: Number(e.target.value) } }))}
+                          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                          style={{
+                            background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                            accentColor,
+                          }}
+                          data-testid={`input-latte-amount-${item.key}`}
+                          aria-label={`${item.label}: R${amount}/month`}
+                        />
+                      )}
                     </div>
                   );
                 })}
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs flex-shrink-0" style={{ color: mutedText }}>If invested instead for</span>
-                <input
-                  type="number"
-                  value={latteYears}
-                  onChange={e => setLatteYears(e.target.value)}
-                  className="w-16 px-2 py-1 rounded text-xs font-semibold text-center outline-none"
-                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
-                  data-testid="input-latte-years"
-                />
-                <span className="text-xs" style={{ color: mutedText }}>years…</span>
-              </div>
+              {(() => {
+                const yearsNum = Math.max(5, Math.min(40, Math.round(parseFloat(latteYears) || 30)));
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>If invested instead for</span>
+                      <span className="text-sm font-bold" style={{ color: accentColor }}>{yearsNum} yrs</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={5} max={40} step={1} value={yearsNum}
+                      onChange={e => setLatteYears(String(e.target.value))}
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                        accentColor,
+                      }}
+                      data-testid="input-latte-years"
+                      aria-label={`Years invested: ${yearsNum}`}
+                    />
+                  </div>
+                );
+              })()}
               <div
                 className="rounded-xl p-4 text-center relative overflow-hidden"
                 style={{
