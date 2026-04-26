@@ -1472,6 +1472,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((advisor as any).showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((advisor as any).showToolLatte !== false);
+  const [showInteractive, setShowInteractive] = useState((advisor as any).showInteractive !== false);
+  const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((advisor as any).showShowpieceSqueeze !== false);
+  const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((advisor as any).showShowpieceTaxBite !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [indServicesOpen, setIndServicesOpen] = useState(false);
@@ -1548,6 +1551,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolVehicle,
         showToolReality,
         showToolLatte,
+        showInteractive,
+        showShowpieceSqueeze,
+        showShowpieceTaxBite,
         patternOpacity,
         showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
@@ -2015,10 +2021,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "QR Code", value: showQrCode, set: setShowQrCode },
           { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-          { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
-          { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
-          { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
+          { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
         ].map(item => (
@@ -2039,8 +2043,31 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "Pension Savings Calculator", value: showToolPension, set: setShowToolPension },
               { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
-              { label: "30-Year Reality Check ✨", value: showToolReality, set: setShowToolReality },
-              { label: "The Latte Millionaire ☕", value: showToolLatte, set: setShowToolLatte },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between py-1 pl-2">
+                <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                <div onClick={() => item.set(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: item.value ? "18px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="flex items-center justify-between py-1.5" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: "12px" }}>
+          <span className="text-sm" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
+          <div onClick={() => setShowInteractive(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }}>
+            <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: showInteractive ? "18px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
+          </div>
+        </div>
+        {showInteractive && (
+          <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
+            {[
+              { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
+              { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
+              { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
+              { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-1 pl-2">
                 <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -2407,6 +2434,9 @@ function AdditionalProfileForm({
   const [showToolVehicle, setShowToolVehicle] = useState((existingProfile as any)?.showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((existingProfile as any)?.showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((existingProfile as any)?.showToolLatte !== false);
+  const [showInteractive, setShowInteractive] = useState((existingProfile as any)?.showInteractive !== false);
+  const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((existingProfile as any)?.showShowpieceSqueeze !== false);
+  const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((existingProfile as any)?.showShowpieceTaxBite !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
@@ -2471,6 +2501,9 @@ function AdditionalProfileForm({
         showToolVehicle,
         showToolReality,
         showToolLatte,
+        showInteractive,
+        showShowpieceSqueeze,
+        showShowpieceTaxBite,
         showMoneywebFeed,
         patternOpacity,
         showEmergencyContacts,
@@ -2731,9 +2764,8 @@ function AdditionalProfileForm({
             { label: "QR Code", value: showQrCode, set: setShowQrCode },
             { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-            { label: "Request Your Financial Info", value: showAstute, set: setShowAstute },
-            { label: "Documents Upload", value: showDocuments, set: setShowDocuments },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+            { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
             { label: "Financial Tools Section", value: showTools, set: setShowTools },
             { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
           ].map(item => (
@@ -2754,9 +2786,31 @@ function AdditionalProfileForm({
                 { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
                 { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
-                { label: "30-Year Reality Check ✨", value: showToolReality, set: setShowToolReality },
-                { label: "The Latte Millionaire ☕", value: showToolLatte, set: setShowToolLatte },
-                { label: "Financial Media", value: showMoneywebFeed, set: setShowMoneywebFeed },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between pl-2">
+                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+            <span className="text-xs" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
+            <div onClick={() => setShowInteractive(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }}>
+              <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showInteractive ? "17px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
+            </div>
+          </div>
+          {showInteractive && (
+            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
+              {[
+                { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
+                { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
+                { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
+                { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">
                   <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>

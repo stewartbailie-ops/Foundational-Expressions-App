@@ -1280,21 +1280,232 @@ export default function AdvisorProfile() {
           <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
         )}
 
-        {/* Money Showpieces — standalone interactive cards (slider-driven) */}
-        <RealMoneySqueeze
-          accentColor={accentColor}
-          borderColor={tc.borderColor}
-          cardBg={cardBg}
-          textColor={textColor}
-          mutedText={mutedText}
-        />
-        <TaxBite
-          accentColor={accentColor}
-          borderColor={tc.borderColor}
-          cardBg={cardBg}
-          textColor={textColor}
-          mutedText={mutedText}
-        />
+        {/* Interactive Financial Tools — standalone cards (each independently toggleable) */}
+        {(advisor as any).showInteractive !== false && (advisor as any).showShowpieceSqueeze !== false && (
+          <RealMoneySqueeze
+            accentColor={accentColor}
+            borderColor={tc.borderColor}
+            cardBg={cardBg}
+            textColor={textColor}
+            mutedText={mutedText}
+          />
+        )}
+        {(advisor as any).showInteractive !== false && (advisor as any).showShowpieceTaxBite !== false && (
+          <TaxBite
+            accentColor={accentColor}
+            borderColor={tc.borderColor}
+            cardBg={cardBg}
+            textColor={textColor}
+            mutedText={mutedText}
+          />
+        )}
+        {(advisor as any).showInteractive !== false && (advisor as any).showToolReality !== false && (() => {
+          const is = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor, borderRadius: "8px", padding: "8px 12px", fontSize: "13px", outline: "none", width: "100%" };
+          const salary = Math.max(0, parseFloat(rcSalary) || 0);
+          const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
+          const years = Math.min(50, Math.max(1, parseFloat(rcYears) || 1));
+          const monthlySave = salary * (savePct / 100);
+          const r = 0.09 / 12;
+          const n = years * 12;
+          const futureValue = r > 0 ? monthlySave * ((Math.pow(1 + r, n) - 1) / r) : monthlySave * n;
+          const todaysMoney = futureValue / Math.pow(1.06, years);
+          const annualExpensesNow = salary * (1 - savePct / 100) * 12;
+          const futureAnnualExpenses = annualExpensesNow * Math.pow(1.06, years);
+          const needAtRetirement = futureAnnualExpenses * 25;
+          const gapPct = needAtRetirement > 0 ? (futureValue / needAtRetirement) * 100 : 0;
+          const onTrack = gapPct >= 100;
+          const gapColor = onTrack ? "#10B981" : gapPct >= 50 ? "#F59E0B" : "#EF4444";
+          const gapLabel = onTrack ? "On track" : gapPct >= 50 ? "Halfway there" : "Big gap";
+          const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+          return (
+            <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-reality-check">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
+                <h3 className="text-sm font-semibold" style={{ color: textColor }}>30-Year Reality Check</h3>
+              </div>
+              <p className="text-xs" style={{ color: mutedText }}>
+                A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-1">
+                  <label className="text-[11px]" style={{ color: mutedText }}>Salary / month (R)</label>
+                  <input type="number" value={rcSalary} onChange={e => setRcSalary(e.target.value)} style={is} data-testid="input-tool-rc-salary" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px]" style={{ color: mutedText }}>You save (%)</label>
+                  <input type="number" value={rcSavePct} onChange={e => setRcSavePct(e.target.value)} style={is} data-testid="input-tool-rc-save" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px]" style={{ color: mutedText }}>Years to go</label>
+                  <input type="number" value={rcYears} onChange={e => setRcYears(e.target.value)} style={is} data-testid="input-tool-rc-years" />
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
+                  { color: "#F59E0B", label: "In today's money", val: fmt(todaysMoney), sub: "after inflation", testId: "stat-rc-today" },
+                  { color: "#EF4444", label: "What you'll need", val: fmt(needAtRetirement), sub: "to retire comfortably", testId: "stat-rc-need" },
+                ].map(s => (
+                  <div key={s.label} className="rounded-xl p-3 text-center overflow-hidden" style={{ background: `linear-gradient(160deg, ${s.color}28, ${s.color}10)`, border: `1px solid ${s.color}55` }} data-testid={s.testId}>
+                    <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>{s.label}</div>
+                    <div className="text-sm font-extrabold mt-1 leading-tight" style={{ color: textColor }}>{s.val}</div>
+                    <div className="text-[9px] mt-0.5" style={{ color: mutedText }}>{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${gapColor}22, ${gapColor}08)`, border: `1px solid ${gapColor}66` }} data-testid="banner-rc-shock">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: gapColor }}>{gapLabel}</div>
+                    <div className="text-[11px]" style={{ color: mutedText }}>
+                      You're at <span className="font-bold" style={{ color: textColor }}>{gapPct.toFixed(0)}%</span> of your retirement target
+                    </div>
+                  </div>
+                </div>
+                <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${gapColor}22` }}>
+                  <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, gapPct)}%`, backgroundColor: gapColor }} />
+                </div>
+                {!onTrack && (
+                  <p className="text-[11px] mt-2 leading-snug" style={{ color: textColor }}>
+                    {gapPct >= 50
+                      ? <>You're halfway there. Bumping your savings to <strong>{Math.min(50, Math.ceil(savePct + 5))}%</strong> could close the gap. Worth a chat?</>
+                      : <>That's a meaningful shortfall. A small bump in monthly savings now compounds into a huge difference later. Let's chat.</>
+                    }
+                  </p>
+                )}
+              </div>
+              <p className="text-[10px]" style={{ color: mutedText }}>
+                Assumes 9% growth p.a. and 6% inflation (SA long-run averages). Retirement need uses the 25× rule (4% safe withdrawal). Estimate only — for fun, not advice.
+              </p>
+            </div>
+          );
+        })()}
+        {(advisor as any).showInteractive !== false && (advisor as any).showToolLatte !== false && (() => {
+          const totalMonthly = LATTE_ITEMS.reduce(
+            (sum, item) => sum + (latteItems[item.key]?.enabled ? (latteItems[item.key]?.amount || 0) : 0),
+            0
+          );
+          const years = Math.min(50, Math.max(1, parseFloat(latteYears) || 1));
+          const r = 0.09 / 12;
+          const n = years * 12;
+          const futureValue = r > 0 ? totalMonthly * ((Math.pow(1 + r, n) - 1) / r) : totalMonthly * n;
+          const totalSpent = totalMonthly * n;
+          const interestEarned = futureValue - totalSpent;
+          const isMillionaire = futureValue >= 1_000_000;
+          const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+          const enabledCount = LATTE_ITEMS.filter(i => latteItems[i.key]?.enabled).length;
+          return (
+            <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-latte-millionaire">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
+                <h3 className="text-sm font-semibold" style={{ color: textColor }}>The Latte Millionaire</h3>
+              </div>
+              <p className="text-xs" style={{ color: mutedText }}>
+                Tap the everyday spends that sound like you. Tweak the amounts to match your real life. Then prepare to clutch your wallet.
+              </p>
+              <div className="space-y-1.5">
+                {LATTE_ITEMS.map(item => {
+                  const state = latteItems[item.key];
+                  const enabled = state?.enabled;
+                  return (
+                    <div
+                      key={item.key}
+                      className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all"
+                      style={{
+                        backgroundColor: enabled ? `${accentColor}15` : tc.inputBg,
+                        border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
+                        opacity: enabled ? 1 : 0.6,
+                      }}
+                      data-testid={`latte-item-${item.key}`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
+                        className="text-xl flex-shrink-0"
+                        aria-label={`Toggle ${item.label}`}
+                        data-testid={`button-latte-toggle-${item.key}`}
+                      >
+                        {item.emoji}
+                      </button>
+                      <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px]" style={{ color: mutedText }}>R</span>
+                        <input
+                          type="number"
+                          value={state?.amount || 0}
+                          onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: parseFloat(e.target.value) || 0 } }))}
+                          disabled={!enabled}
+                          className="w-16 px-1.5 py-1 rounded text-xs font-semibold text-right outline-none"
+                          style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
+                          data-testid={`input-latte-amount-${item.key}`}
+                        />
+                        <span className="text-[10px]" style={{ color: mutedText }}>/mo</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs flex-shrink-0" style={{ color: mutedText }}>If invested instead for</span>
+                <input
+                  type="number"
+                  value={latteYears}
+                  onChange={e => setLatteYears(e.target.value)}
+                  className="w-16 px-2 py-1 rounded text-xs font-semibold text-center outline-none"
+                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
+                  data-testid="input-latte-years"
+                />
+                <span className="text-xs" style={{ color: mutedText }}>years…</span>
+              </div>
+              <div
+                className="rounded-xl p-4 text-center relative overflow-hidden"
+                style={{
+                  background: enabledCount === 0
+                    ? `linear-gradient(135deg, ${tc.inputBg}, ${tc.inputBg})`
+                    : isMillionaire
+                      ? `linear-gradient(135deg, #F59E0B33, #EF444422)`
+                      : `linear-gradient(135deg, ${accentColor}28, ${accentColor}12)`,
+                  border: `1px solid ${isMillionaire ? "#F59E0B66" : `${accentColor}55`}`,
+                }}
+                data-testid="banner-latte-result"
+              >
+                {enabledCount === 0 ? (
+                  <p className="text-xs py-2" style={{ color: mutedText }}>Tap an emoji above to start counting your spends</p>
+                ) : (
+                  <>
+                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: mutedText }}>
+                      That's <span style={{ color: textColor }}>{fmt(totalMonthly)}/month</span>. Invested instead, in {years} years…
+                    </div>
+                    <div
+                      className="text-3xl font-extrabold leading-tight my-1"
+                      style={{ color: isMillionaire ? "#F59E0B" : accentColor, textShadow: isMillionaire ? "0 2px 12px rgba(245,158,11,0.3)" : "none" }}
+                    >
+                      {fmt(futureValue)}
+                    </div>
+                    {isMillionaire && (
+                      <div className="text-xs font-bold" style={{ color: "#EF4444" }}>
+                        Yes — you're a millionaire by accident.
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-2 mt-3 text-left">
+                      <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
+                        <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>You'll spend</div>
+                        <div className="text-xs font-bold" style={{ color: textColor }}>{fmt(totalSpent)}</div>
+                      </div>
+                      <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
+                        <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>Interest earned</div>
+                        <div className="text-xs font-bold" style={{ color: "#10B981" }}>{fmt(interestEarned)}</div>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+              <p className="text-[10px]" style={{ color: mutedText }}>
+                Assumes 9% growth p.a. (SA long-run average). Estimate only — for fun, not advice.
+              </p>
+            </div>
+          );
+        })()}
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
@@ -1521,8 +1732,6 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolPension !== false && "pension",
                 (advisor as any).showToolCgt !== false && "cgt",
                 (advisor as any).showToolVehicle !== false && "vehicle",
-                (advisor as any).showToolReality !== false && "reality",
-                (advisor as any).showToolLatte !== false && "latte",
               ].filter(Boolean) as string[];
 
               // Pension calc
@@ -1571,8 +1780,6 @@ export default function AdvisorProfile() {
                           {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Savings</>}
                           {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
                           {toolKey === "vehicle" && <><Calculator className="h-3.5 w-3.5" /> Vehicle Finance</>}
-                          {toolKey === "reality" && <><TrendingUp className="h-3.5 w-3.5" /> 30-Year Reality Check</>}
-                          {toolKey === "latte" && <><TrendingUp className="h-3.5 w-3.5" /> The Latte Millionaire</>}
                         </span>
                         {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
                       </button>
@@ -1789,237 +1996,6 @@ export default function AdvisorProfile() {
                               </div>
                             </>
                           )}
-                          {toolKey === "reality" && (() => {
-                            const salary = Math.max(0, parseFloat(rcSalary) || 0);
-                            const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
-                            const years = Math.min(50, Math.max(1, parseFloat(rcYears) || 1));
-                            const monthlySave = salary * (savePct / 100);
-                            const r = 0.09 / 12;
-                            const n = years * 12;
-                            const futureValue = r > 0 ? monthlySave * ((Math.pow(1 + r, n) - 1) / r) : monthlySave * n;
-                            const todaysMoney = futureValue / Math.pow(1.06, years);
-                            const annualExpensesNow = salary * (1 - savePct / 100) * 12;
-                            const futureAnnualExpenses = annualExpensesNow * Math.pow(1.06, years);
-                            const needAtRetirement = futureAnnualExpenses * 25;
-                            const gapPct = needAtRetirement > 0 ? (futureValue / needAtRetirement) * 100 : 0;
-                            const onTrack = gapPct >= 100;
-                            const gapColor = onTrack ? "#10B981" : gapPct >= 50 ? "#F59E0B" : "#EF4444";
-                            const gapEmoji = onTrack ? "🎉" : gapPct >= 50 ? "😬" : "😱";
-                            const gapLabel = onTrack ? "On track!" : gapPct >= 50 ? "Halfway there" : "Big gap";
-                            const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
-
-                            return (
-                              <>
-                                <p className="text-xs" style={{ color: mutedText }}>
-                                  A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
-                                </p>
-                                <div className="grid grid-cols-3 gap-2">
-                                  <div className="space-y-1">
-                                    <label className="text-[11px]" style={{ color: mutedText }}>Salary / month (R)</label>
-                                    <input type="number" value={rcSalary} onChange={e => setRcSalary(e.target.value)} style={is} data-testid="input-tool-rc-salary" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label className="text-[11px]" style={{ color: mutedText }}>You save (%)</label>
-                                    <input type="number" value={rcSavePct} onChange={e => setRcSavePct(e.target.value)} style={is} data-testid="input-tool-rc-save" />
-                                  </div>
-                                  <div className="space-y-1">
-                                    <label className="text-[11px]" style={{ color: mutedText }}>Years to go</label>
-                                    <input type="number" value={rcYears} onChange={e => setRcYears(e.target.value)} style={is} data-testid="input-tool-rc-years" />
-                                  </div>
-                                </div>
-
-                                {/* Three big shock numbers */}
-                                <div className="grid grid-cols-3 gap-2">
-                                  {[
-                                    { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
-                                    { color: "#F59E0B", label: "In today's money", val: fmt(todaysMoney), sub: "after inflation", testId: "stat-rc-today" },
-                                    { color: "#EF4444", label: "What you'll need", val: fmt(needAtRetirement), sub: "to retire comfortably", testId: "stat-rc-need" },
-                                  ].map(s => (
-                                    <div
-                                      key={s.label}
-                                      className="rounded-xl p-3 text-center overflow-hidden"
-                                      style={{ background: `linear-gradient(160deg, ${s.color}28, ${s.color}10)`, border: `1px solid ${s.color}55` }}
-                                      data-testid={s.testId}
-                                    >
-                                      <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>{s.label}</div>
-                                      <div className="text-sm font-extrabold mt-1 leading-tight" style={{ color: textColor }}>{s.val}</div>
-                                      <div className="text-[9px] mt-0.5" style={{ color: mutedText }}>{s.sub}</div>
-                                    </div>
-                                  ))}
-                                </div>
-
-                                {/* Shock-o-meter banner */}
-                                <div
-                                  className="rounded-xl p-4 relative overflow-hidden"
-                                  style={{
-                                    background: `linear-gradient(135deg, ${gapColor}22, ${gapColor}08)`,
-                                    border: `1px solid ${gapColor}66`,
-                                  }}
-                                  data-testid="banner-rc-shock"
-                                >
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-2xl">{gapEmoji}</span>
-                                      <div>
-                                        <div className="text-xs font-bold uppercase tracking-wider" style={{ color: gapColor }}>{gapLabel}</div>
-                                        <div className="text-[11px]" style={{ color: mutedText }}>
-                                          You're at <span className="font-bold" style={{ color: textColor }}>{gapPct.toFixed(0)}%</span> of your retirement target
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  {/* Progress bar */}
-                                  <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${gapColor}22` }}>
-                                    <div
-                                      className="h-full transition-all duration-500"
-                                      style={{ width: `${Math.min(100, gapPct)}%`, backgroundColor: gapColor }}
-                                    />
-                                  </div>
-                                  {!onTrack && (
-                                    <p className="text-[11px] mt-2 leading-snug" style={{ color: textColor }}>
-                                      {gapPct >= 50
-                                        ? <>You're halfway there. Bumping your savings to <strong>{Math.min(50, Math.ceil(savePct + 5))}%</strong> could close the gap. Worth a chat?</>
-                                        : <>That's a meaningful shortfall. A small bump in monthly savings now compounds into a huge difference later. Let's chat.</>
-                                      }
-                                    </p>
-                                  )}
-                                </div>
-                                <p className="text-[10px]" style={{ color: mutedText }}>
-                                  Assumes 9% growth p.a. and 6% inflation (SA long-run averages). Retirement need uses the 25× rule (4% safe withdrawal). Estimate only — for fun, not advice.
-                                </p>
-                              </>
-                            );
-                          })()}
-                          {toolKey === "latte" && (() => {
-                            const totalMonthly = LATTE_ITEMS.reduce(
-                              (sum, item) => sum + (latteItems[item.key]?.enabled ? (latteItems[item.key]?.amount || 0) : 0),
-                              0
-                            );
-                            const years = Math.min(50, Math.max(1, parseFloat(latteYears) || 1));
-                            const r = 0.09 / 12;
-                            const n = years * 12;
-                            const futureValue = r > 0 ? totalMonthly * ((Math.pow(1 + r, n) - 1) / r) : totalMonthly * n;
-                            const totalSpent = totalMonthly * n;
-                            const interestEarned = futureValue - totalSpent;
-                            const isMillionaire = futureValue >= 1_000_000;
-                            const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
-                            const enabledCount = LATTE_ITEMS.filter(i => latteItems[i.key]?.enabled).length;
-
-                            return (
-                              <>
-                                <p className="text-xs" style={{ color: mutedText }}>
-                                  Tap the everyday spends that sound like you. Tweak the amounts to match your real life. Then prepare to clutch your wallet. 💸
-                                </p>
-
-                                {/* Toggle list */}
-                                <div className="space-y-1.5">
-                                  {LATTE_ITEMS.map(item => {
-                                    const state = latteItems[item.key];
-                                    const enabled = state?.enabled;
-                                    return (
-                                      <div
-                                        key={item.key}
-                                        className="flex items-center gap-2 px-2.5 py-2 rounded-lg transition-all"
-                                        style={{
-                                          backgroundColor: enabled ? `${accentColor}15` : tc.inputBg,
-                                          border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
-                                          opacity: enabled ? 1 : 0.6,
-                                        }}
-                                        data-testid={`latte-item-${item.key}`}
-                                      >
-                                        <button
-                                          type="button"
-                                          onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
-                                          className="text-xl flex-shrink-0"
-                                          aria-label={`Toggle ${item.label}`}
-                                          data-testid={`button-latte-toggle-${item.key}`}
-                                        >
-                                          {item.emoji}
-                                        </button>
-                                        <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
-                                        <div className="flex items-center gap-1">
-                                          <span className="text-[10px]" style={{ color: mutedText }}>R</span>
-                                          <input
-                                            type="number"
-                                            value={state?.amount || 0}
-                                            onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: parseFloat(e.target.value) || 0 } }))}
-                                            disabled={!enabled}
-                                            className="w-16 px-1.5 py-1 rounded text-xs font-semibold text-right outline-none"
-                                            style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
-                                            data-testid={`input-latte-amount-${item.key}`}
-                                          />
-                                          <span className="text-[10px]" style={{ color: mutedText }}>/mo</span>
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-
-                                {/* Years input */}
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs flex-shrink-0" style={{ color: mutedText }}>If invested instead for</span>
-                                  <input
-                                    type="number"
-                                    value={latteYears}
-                                    onChange={e => setLatteYears(e.target.value)}
-                                    className="w-16 px-2 py-1 rounded text-xs font-semibold text-center outline-none"
-                                    style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: textColor }}
-                                    data-testid="input-latte-years"
-                                  />
-                                  <span className="text-xs" style={{ color: mutedText }}>years…</span>
-                                </div>
-
-                                {/* The big shock card */}
-                                <div
-                                  className="rounded-xl p-4 text-center relative overflow-hidden"
-                                  style={{
-                                    background: enabledCount === 0
-                                      ? `linear-gradient(135deg, ${tc.inputBg}, ${tc.inputBg})`
-                                      : isMillionaire
-                                        ? `linear-gradient(135deg, #F59E0B33, #EF444422)`
-                                        : `linear-gradient(135deg, ${accentColor}28, ${accentColor}12)`,
-                                    border: `1px solid ${isMillionaire ? "#F59E0B66" : `${accentColor}55`}`,
-                                  }}
-                                  data-testid="banner-latte-result"
-                                >
-                                  {enabledCount === 0 ? (
-                                    <p className="text-xs py-2" style={{ color: mutedText }}>Tap an emoji above to start counting your spends ☝️</p>
-                                  ) : (
-                                    <>
-                                      <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: mutedText }}>
-                                        That's <span style={{ color: textColor }}>{fmt(totalMonthly)}/month</span>. Invested instead, in {years} years…
-                                      </div>
-                                      <div
-                                        className="text-3xl font-extrabold leading-tight my-1"
-                                        style={{ color: isMillionaire ? "#F59E0B" : accentColor, textShadow: isMillionaire ? "0 2px 12px rgba(245,158,11,0.3)" : "none" }}
-                                      >
-                                        {fmt(futureValue)}
-                                      </div>
-                                      {isMillionaire && (
-                                        <div className="text-xs font-bold" style={{ color: "#EF4444" }}>
-                                          🤯 Yes — you're a millionaire by accident.
-                                        </div>
-                                      )}
-                                      <div className="grid grid-cols-2 gap-2 mt-3 text-left">
-                                        <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
-                                          <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>You'll spend</div>
-                                          <div className="text-xs font-bold" style={{ color: textColor }}>{fmt(totalSpent)}</div>
-                                        </div>
-                                        <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
-                                          <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>Compound bonus</div>
-                                          <div className="text-xs font-bold" style={{ color: "#10B981" }}>+ {fmt(interestEarned)}</div>
-                                        </div>
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-
-                                <p className="text-[10px]" style={{ color: mutedText }}>
-                                  Assumes 9% growth p.a. (SA balanced equity long-run average). Not life advice — coffee is sacred. ☕❤️
-                                </p>
-                              </>
-                            );
-                          })()}
                         </div>
                       )}
                     </div>

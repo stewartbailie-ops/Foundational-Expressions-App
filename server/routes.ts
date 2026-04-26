@@ -57,6 +57,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showSocials", "showAstute", "showDocuments", "showComplimentaryWill",
   "showFinancialMedia", "showTools", "showToolTax", "showToolExchange",
   "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle", "showToolReality", "showToolLatte",
+  "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
   "showMoneywebFeed", "showEmergencyContacts",
   "patternOpacity", "profileSectionOrder", "active",
   "bookingUrl",
