@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy } from "lucide-react";
-import acLogo from "@assets/generated_images/ac_logo_concept_3.png";
+import acLogo from "@assets/Untitled_-_Edited_1777223447976.png";
 import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -620,38 +620,36 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
       {/* ── Footer: Powered By + Verified Badge + Support ── */}
       <div className="pt-6 pb-2 space-y-3">
         <div
-          className="rounded-xl p-4 flex flex-col items-center text-center gap-3"
+          className="rounded-xl p-4 space-y-3"
           style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
           data-testid="footer-powered-by"
         >
+          {/* Top row: logo • centered text • badge */}
           <div className="flex items-center gap-3">
             <img
               src={acLogo}
               alt="Advisory Connect"
-              className="h-12 w-12 rounded-lg object-contain"
-              style={{ backgroundColor: "#0b1220" }}
+              className="h-14 w-14 rounded-lg object-contain shrink-0"
               data-testid="img-ac-logo"
             />
-            <div className="text-left">
-              <div className="text-xs font-bold uppercase tracking-wider" style={{ color: tc.textColor }}>
+            <div className="flex-1 min-w-0 text-center">
+              <div className="text-xs font-bold uppercase tracking-wider leading-tight" style={{ color: tc.textColor }}>
                 Powered by Advisory Connect
               </div>
-              <div className="text-[11px]" style={{ color: tc.mutedText }}>
+              <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>
                 Elevate your professional presence
               </div>
             </div>
-          </div>
-
-          <div className="flex items-center gap-3 pt-1">
             <img
               src={verifiedBadge}
               alt="Registered Company — Verified by Company Partners"
-              className="h-12 w-auto"
+              className="h-12 w-auto shrink-0"
               data-testid="img-verified-badge"
             />
           </div>
 
-          <div className="flex items-center gap-2 pt-1">
+          {/* Bottom row: pill buttons centered */}
+          <div className="flex items-center justify-center gap-2">
             <a
               href="https://www.advisoryconnect.pro"
               target="_blank"
