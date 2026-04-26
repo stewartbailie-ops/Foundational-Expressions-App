@@ -34,8 +34,21 @@ const URL_FIELD_OVERRIDES = {
 
 const safeInsertAdvisorSchema = insertAdvisorSchema.extend(URL_FIELD_OVERRIDES);
 const safeInsertAdvisorProfileSchema = insertAdvisorProfileSchema.extend(URL_FIELD_OVERRIDES);
+// PATCH must never let the caller change ownership of a profile to another advisor.
+const safeUpdateAdvisorProfileSchema = safeInsertAdvisorProfileSchema.omit({ advisorId: true }).partial();
 
 const otpStore = new Map<string, { code: string; expires: number }>();
+
+// Returns true if the request session is allowed to manage the given advisor's data.
+// Allowed when: master admin, the advisor's own logged-in panel session, or a demo advisor.
+async function canAccessAdvisor(req: import("express").Request, advisorId: number): Promise<boolean> {
+  const session = req.session as any;
+  if (session?.authenticated) return true;
+  const advisor = await storage.getAdvisor(advisorId);
+  if (!advisor) return false;
+  if (advisor.isDemo) return true;
+  return !!session?.[`advisor_${advisor.profileSlug}`];
+}
 
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
@@ -298,16 +311,24 @@ export async function registerRoutes(
   });
 
   app.get("/api/advisors/:id/profiles", async (req, res) => {
-    const profiles = await storage.getAdvisorProfiles(Number(req.params.id));
+    const advisorId = Number(req.params.id);
+    if (!(await canAccessAdvisor(req, advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const profiles = await storage.getAdvisorProfiles(advisorId);
     res.json(profiles);
   });
 
   app.post("/api/advisors/:id/profiles", async (req, res) => {
-    const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId: Number(req.params.id) });
+    const advisorId = Number(req.params.id);
+    if (!(await canAccessAdvisor(req, advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId });
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
-    const existing = await storage.getAdvisorProfiles(Number(req.params.id));
+    const existing = await storage.getAdvisorProfiles(advisorId);
     if (existing.length >= 4) {
       return res.status(400).json({ message: "Maximum of 5 profiles (1 primary + 4 additional) per advisor." });
     }
@@ -323,12 +344,22 @@ export async function registerRoutes(
   });
 
   app.patch("/api/advisors/:id/profiles/:profileId", async (req, res) => {
-    const partial = safeInsertAdvisorProfileSchema.partial().safeParse(req.body);
+    const advisorId = Number(req.params.id);
+    const profileId = Number(req.params.profileId);
+    if (!(await canAccessAdvisor(req, advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    // Prevent IDOR: profileId must belong to this advisorId.
+    const owned = await storage.getAdvisorProfiles(advisorId);
+    if (!owned.some((p) => p.id === profileId)) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    const partial = safeUpdateAdvisorProfileSchema.safeParse(req.body);
     if (!partial.success) {
       return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
     }
     try {
-      const updated = await storage.updateAdvisorProfile(Number(req.params.profileId), partial.data);
+      const updated = await storage.updateAdvisorProfile(profileId, partial.data);
       if (!updated) return res.status(404).json({ message: "Profile not found" });
       res.json(updated);
     } catch (err: any) {
@@ -340,7 +371,17 @@ export async function registerRoutes(
   });
 
   app.delete("/api/advisors/:id/profiles/:profileId", async (req, res) => {
-    const deleted = await storage.deleteAdvisorProfile(Number(req.params.profileId));
+    const advisorId = Number(req.params.id);
+    const profileId = Number(req.params.profileId);
+    if (!(await canAccessAdvisor(req, advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    // Prevent IDOR: profileId must belong to this advisorId.
+    const owned = await storage.getAdvisorProfiles(advisorId);
+    if (!owned.some((p) => p.id === profileId)) {
+      return res.status(404).json({ message: "Profile not found" });
+    }
+    const deleted = await storage.deleteAdvisorProfile(profileId);
     if (!deleted) return res.status(404).json({ message: "Profile not found" });
     res.json({ success: true });
   });
