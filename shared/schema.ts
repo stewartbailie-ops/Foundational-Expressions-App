@@ -303,6 +303,7 @@ export const emails = pgTable("emails", {
   referrerPhone: text("referrer_phone"),
   referrerRelation: text("referrer_relation"),
   source: text("source"),
+  sourceProfileSlug: text("source_profile_slug"),
   receivedAt: timestamp("received_at").defaultNow().notNull(),
   lastOpenedAt: timestamp("last_opened_at"),
 });

@@ -197,6 +197,7 @@ export default function CallbackForm() {
       preferredContactTime: formData.preferredContactTime,
       servicesRequested: formData.selectedServices.join(", "),
       source: "callback-form",
+      sourceProfileSlug: slug || undefined,
       recaptchaToken: recaptchaToken ?? undefined,
     });
   };

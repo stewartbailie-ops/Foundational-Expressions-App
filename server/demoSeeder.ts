@@ -104,7 +104,7 @@ function fakeEmail(first: string, last: string): string {
   return `${first.toLowerCase()}${sep}${last.toLowerCase().replace(/[^a-z]/g, "")}${num}@${pick(domains)}`;
 }
 
-function buildLead(advisorId: number): InsertEmail {
+function buildLead(advisorId: number, slugs: string[] = []): InsertEmail {
   const first = pick(FIRST_NAMES);
   const last = pick(LAST_NAMES);
   const senderName = `${first} ${last}`;
@@ -153,6 +153,7 @@ function buildLead(advisorId: number): InsertEmail {
       type === "Call Back" ? "Callback form" :
       type === "Referral" ? "Referral form" :
       "will-form",
+    sourceProfileSlug: slugs.length > 0 ? pick(slugs) : null,
     lastOpenedAt: Math.random() < 0.25 ? new Date() : null,
     receivedAt,
   } as InsertEmail;
@@ -160,9 +161,19 @@ function buildLead(advisorId: number): InsertEmail {
 
 export async function seedDemoLeadsForAdvisor(advisorId: number, count: number): Promise<number> {
   let added = 0;
+  // Pull all profile slugs (primary + secondaries) so demo leads attribute realistically.
+  let slugs: string[] = [];
+  try {
+    const advisor = await storage.getAdvisor(advisorId);
+    const profiles = await storage.getAdvisorProfiles(advisorId);
+    if (advisor?.profileSlug) slugs.push(advisor.profileSlug);
+    for (const p of profiles) if (p.profileSlug) slugs.push(p.profileSlug);
+  } catch (err) {
+    console.error(`[demoSeeder] Failed to fetch slugs for advisor ${advisorId}:`, err);
+  }
   for (let i = 0; i < count; i++) {
     try {
-      await storage.createEmail(buildLead(advisorId));
+      await storage.createEmail(buildLead(advisorId, slugs));
       added++;
     } catch (err) {
       console.error(`[demoSeeder] Failed to seed lead for advisor ${advisorId}:`, err);

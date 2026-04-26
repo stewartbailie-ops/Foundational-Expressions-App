@@ -24,7 +24,16 @@ export interface IStorage {
   updateEmailStatus(id: number, leadStatus: string): Promise<Email | undefined>;
   updateEmailOpened(id: number): Promise<Email | undefined>;
   deleteEmail(id: number): Promise<boolean>;
-  getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }>;
+  getAdvisorStats(advisorId: number): Promise<{
+    totalLeads: number;
+    totalReferrals: number;
+    totalCallbacks: number;
+    totalWillRequests: number;
+    weeklyActivity: { name: string; leads: number }[];
+    gradeBreakdown: { grade: string; count: number }[];
+    profileBreakdown: { slug: string; count: number }[];
+    overdueCount: number;
+  }>;
 
   getDashboardStats(): Promise<{
     totalEmails: number;
@@ -221,10 +230,11 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(emails).where(eq(emails.advisorId, advisorId)).orderBy(desc(emails.receivedAt));
   }
 
-  async getAdvisorStats(advisorId: number): Promise<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }> {
+  async getAdvisorStats(advisorId: number) {
     const [totalLeads] = await db.select({ value: count() }).from(emails).where(eq(emails.advisorId, advisorId));
     const [totalReferrals] = await db.select({ value: count() }).from(emails).where(sql`${emails.advisorId} = ${advisorId} AND ${emails.type} = 'Referral'`);
     const [totalCallbacks] = await db.select({ value: count() }).from(emails).where(sql`${emails.advisorId} = ${advisorId} AND ${emails.type} = 'Call Back'`);
+    const [totalWillRequests] = await db.select({ value: count() }).from(emails).where(sql`${emails.advisorId} = ${advisorId} AND ${emails.type} = 'Will Request'`);
 
     const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const weeklyActivity: { name: string; leads: number }[] = [];
@@ -239,7 +249,40 @@ export class DatabaseStorage implements IStorage {
       weeklyActivity.push({ name: days[d.getDay()], leads: leadsDay.value });
     }
 
-    return { totalLeads: totalLeads.value, totalReferrals: totalReferrals.value, totalCallbacks: totalCallbacks.value, weeklyActivity };
+    // Grade distribution — group by grade, treat null as "Silver" (matches column default).
+    const gradeRows = await db
+      .select({ grade: emails.grade, value: count() })
+      .from(emails)
+      .where(eq(emails.advisorId, advisorId))
+      .groupBy(emails.grade);
+    const gradeBreakdown = gradeRows.map(r => ({ grade: r.grade || "Silver", count: r.value }));
+
+    // Profile attribution — group by sourceProfileSlug. Null slugs (legacy leads,
+    // pre-attribution) are returned as an empty string so the route layer can fold
+    // them into the primary slug bucket.
+    const profileRows = await db
+      .select({ slug: emails.sourceProfileSlug, value: count() })
+      .from(emails)
+      .where(eq(emails.advisorId, advisorId))
+      .groupBy(emails.sourceProfileSlug);
+    const profileBreakdown = profileRows.map(r => ({ slug: r.slug || "", count: r.value }));
+
+    // Inbox health — leads still flagged "Need to Contact" that arrived more than 7 days ago.
+    const sevenDaysAgo = new Date(Date.now() - 7 * 86400000);
+    const [overdue] = await db.select({ value: count() }).from(emails).where(
+      sql`${emails.advisorId} = ${advisorId} AND ${emails.leadStatus} = 'Need to Contact' AND ${emails.receivedAt} < ${sevenDaysAgo}`
+    );
+
+    return {
+      totalLeads: totalLeads.value,
+      totalReferrals: totalReferrals.value,
+      totalCallbacks: totalCallbacks.value,
+      totalWillRequests: totalWillRequests.value,
+      weeklyActivity,
+      gradeBreakdown,
+      profileBreakdown,
+      overdueCount: overdue.value,
+    };
   }
 
   async createEmail(email: InsertEmail & { receivedAt?: Date }): Promise<Email> {

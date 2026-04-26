@@ -63,6 +63,7 @@ export default function WillForm() {
         childrenDetails: hasChildren ? (childrenDetails || undefined) : undefined,
         incomeRange: incomeRange || undefined,
         source: `claim-will/${slug}`,
+        sourceProfileSlug: slug || undefined,
       });
     },
     onSuccess: () => setSubmitted(true),

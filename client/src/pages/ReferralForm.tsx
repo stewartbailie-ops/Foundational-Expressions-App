@@ -203,6 +203,7 @@ export default function ReferralForm() {
           referrerPhone: referrerPhone || undefined,
           referrerRelation: ref.relationship || undefined,
           source: `referral-form-${slug}`,
+          sourceProfileSlug: slug || undefined,
           recaptchaToken: recaptchaToken ?? undefined,
         });
       }

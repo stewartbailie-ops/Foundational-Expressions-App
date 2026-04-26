@@ -4,7 +4,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, Users } from "lucide-react";
 import acLogo from "@assets/Untitled_-_Edited_1777223447976.png";
 import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
 import { Button } from "@/components/ui/button";
@@ -420,8 +420,11 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
   const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
 
   const { data: advisorStats } = useQuery<{
-    totalLeads: number; totalReferrals: number; totalCallbacks: number;
+    totalLeads: number; totalReferrals: number; totalCallbacks: number; totalWillRequests: number;
     weeklyActivity: { name: string; leads: number }[];
+    gradeBreakdown: { grade: string; count: number }[];
+    profileBreakdown: { slug: string; label: string; count: number }[];
+    overdueCount: number;
   }>({ queryKey: [`/api/advisors/${advisor.profileSlug}/stats`] });
 
   const { data: allLeads = [] } = useQuery<Email[]>({
@@ -503,19 +506,40 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
       <div className="space-y-3 pt-1">
         <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>My Stats</div>
 
-        {/* Quick stat tiles */}
-        <div className="grid grid-cols-3 gap-2">
+        {/* Quick stat tiles — 2x2 on mobile, 4-across on tablet+ */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {[
-            { label: "Total Leads", value: advisorStats?.totalLeads    ?? 0, accent: "#3B82F6" },
-            { label: "Referrals",   value: advisorStats?.totalReferrals ?? 0, accent: "#7c3aed" },
-            { label: "Callbacks",   value: advisorStats?.totalCallbacks ?? 0, accent: "#0369a1" },
+            { label: "Total Leads",   value: advisorStats?.totalLeads        ?? 0, accent: "#3B82F6" },
+            { label: "Referrals",     value: advisorStats?.totalReferrals    ?? 0, accent: "#7c3aed" },
+            { label: "Callbacks",     value: advisorStats?.totalCallbacks    ?? 0, accent: "#0369a1" },
+            { label: "Will Requests", value: advisorStats?.totalWillRequests ?? 0, accent: "#0d9488" },
           ].map(({ label, value, accent }) => (
             <div key={label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-              <div className="text-xl font-bold" style={{ color: tc.textColor }}>{value}</div>
+              <div className="text-xl font-bold" style={{ color: accent }}>{value}</div>
               <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{label}</div>
             </div>
           ))}
         </div>
+
+        {/* Inbox Health — only surfaced when there are overdue follow-ups so it
+            stays an "action signal" rather than a vanity stat. */}
+        {(advisorStats?.overdueCount ?? 0) > 0 && (
+          <div
+            className="rounded-xl p-3 flex items-center gap-2.5"
+            style={{ backgroundColor: "#f59e0b14", border: "1px solid #f59e0b50" }}
+            data-testid="alert-overdue-followups"
+          >
+            <AlertCircle className="h-4 w-4 shrink-0" style={{ color: "#f59e0b" }} />
+            <div className="flex-1 min-w-0">
+              <div className="text-xs font-semibold" style={{ color: tc.textColor }}>
+                {advisorStats!.overdueCount} {advisorStats!.overdueCount === 1 ? "lead" : "leads"} waiting &gt; 7 days
+              </div>
+              <div className="text-[10px]" style={{ color: tc.mutedText }}>
+                Still flagged "Need to Contact" in your inbox.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Weekly activity area chart */}
         <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
@@ -558,6 +582,36 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Profile Attribution — only shown when there's at least one secondary profile,
+            otherwise the breakdown is meaningless (everything came from the primary).
+            Sorted by count desc on the server. */}
+        {(advisorStats?.profileBreakdown?.length ?? 0) > 1 && (
+          <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-profile-attribution">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
+              <div className="text-xs font-semibold" style={{ color: tc.textColor }}>Where Leads Came From</div>
+            </div>
+            <div className="space-y-2.5">
+              {advisorStats!.profileBreakdown.map((p, idx) => {
+                const max = Math.max(1, ...advisorStats!.profileBreakdown.map(x => x.count));
+                const pct = Math.round((p.count / max) * 100);
+                const color = idx === 0 ? tc.accentColor : "#8B5CF6";
+                return (
+                  <div key={p.slug} data-testid={`row-attribution-${p.slug}`}>
+                    <div className="flex justify-between text-[11px] mb-1">
+                      <span className="font-medium truncate" style={{ color: tc.textColor }}>{p.label}</span>
+                      <span className="font-bold shrink-0 ml-2" style={{ color }}>{p.count}</span>
+                    </div>
+                    <div className="h-1.5 rounded-full" style={{ backgroundColor: `${color}20` }}>
+                      <div className="h-1.5 rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: color }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Lead types + Grade breakdown side by side */}
         {totalLeads > 0 && (

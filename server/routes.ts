@@ -469,6 +469,7 @@ export async function registerRoutes(
         referrerRelation: z.string().optional(),
         message: z.string().optional(),
         source: z.string().optional(),
+        sourceProfileSlug: z.string().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -510,6 +511,7 @@ export async function registerRoutes(
         referrerPhone: data.referrerPhone,
         referrerRelation: data.referrerRelation,
         source: data.source,
+        sourceProfileSlug: data.sourceProfileSlug,
       });
 
       const advisor = await storage.getAdvisor(data.advisorId);
@@ -565,6 +567,7 @@ export async function registerRoutes(
         servicesRequested: z.string().optional(),
         message: z.string().optional(),
         source: z.string().optional(),
+        sourceProfileSlug: z.string().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -602,6 +605,7 @@ export async function registerRoutes(
         preferredContactTime: data.preferredContactTime,
         servicesRequested: data.servicesRequested,
         source: data.source,
+        sourceProfileSlug: data.sourceProfileSlug,
       });
 
       const advisor = await storage.getAdvisor(data.advisorId);
@@ -652,6 +656,7 @@ export async function registerRoutes(
         childrenDetails: z.string().optional(),
         address: z.string().optional(),
         source: z.string().optional(),
+        sourceProfileSlug: z.string().optional(),
       });
 
       const parsed = schema.safeParse(req.body);
@@ -680,6 +685,7 @@ export async function registerRoutes(
         body: details,
         clientPhone: data.phone,
         source: data.source || "will-form",
+        sourceProfileSlug: data.sourceProfileSlug,
       });
 
       const advisor = await storage.getAdvisor(data.advisorId);
@@ -1039,7 +1045,32 @@ export async function registerRoutes(
     const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated || !!advisor.isDemo;
     if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
     const advisorStats = await storage.getAdvisorStats(advisor.id);
-    res.json(advisorStats);
+
+    // Enrich profile attribution with friendly labels.
+    // Primary slug uses advisor.name; secondary slugs use the profile nickname (or the slug itself).
+    // Legacy leads with a NULL/empty source slug are folded into the primary bucket.
+    const profiles = await storage.getAdvisorProfiles(advisor.id);
+    const labelBySlug: Record<string, string> = {};
+    if (advisor.profileSlug) labelBySlug[advisor.profileSlug] = `${advisor.name} (Primary)`;
+    for (const p of profiles) {
+      if (p.profileSlug) labelBySlug[p.profileSlug] = p.nickname?.trim() || p.profileSlug;
+    }
+    const merged: Record<string, { slug: string; label: string; count: number }> = {};
+    for (const row of advisorStats.profileBreakdown) {
+      // Fold legacy nulls into the primary slug bucket.
+      const key = row.slug || advisor.profileSlug || "";
+      if (!merged[key]) {
+        merged[key] = { slug: key, label: labelBySlug[key] || key || "Unknown", count: 0 };
+      }
+      merged[key].count += row.count;
+    }
+    // Ensure primary always appears (even with 0 leads) so attribution is meaningful at-a-glance.
+    if (advisor.profileSlug && !merged[advisor.profileSlug]) {
+      merged[advisor.profileSlug] = { slug: advisor.profileSlug, label: labelBySlug[advisor.profileSlug], count: 0 };
+    }
+    const profileBreakdown = Object.values(merged).sort((a, b) => b.count - a.count);
+
+    res.json({ ...advisorStats, profileBreakdown });
   });
 
   // Parse a single RSS feed XML string into normalized items, including a thumbnail image if found
