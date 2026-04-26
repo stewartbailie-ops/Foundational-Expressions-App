@@ -1481,8 +1481,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [corpServicesOpen, setCorpServicesOpen] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
     const raw = (advisor as any).profileSectionOrder as string | null;
-    if (raw) return raw.split(",").filter(Boolean);
-    return [...DEFAULT_PROFILE_SECTION_ORDER];
+    const allowed = new Set<string>(DEFAULT_PROFILE_SECTION_ORDER as readonly string[]);
+    const stored = raw ? raw.split(",").filter(Boolean).filter(k => allowed.has(k)) : [];
+    const merged = [...stored];
+    for (const k of DEFAULT_PROFILE_SECTION_ORDER) if (!merged.includes(k)) merged.push(k);
+    return merged.length ? merged : [...DEFAULT_PROFILE_SECTION_ORDER];
   });
   const [organizingProfile, setOrganizingProfile] = useState(false);
 
@@ -2444,7 +2447,8 @@ function AdditionalProfileForm({
   const [organizingProfile, setOrganizingProfile] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
     const raw = (existingProfile as any)?.profileSectionOrder as string | null;
-    const stored = raw ? raw.split(",").map(s => s.trim()).filter(Boolean) : [];
+    const allowed = new Set<string>(DEFAULT_PROFILE_SECTION_ORDER as readonly string[]);
+    const stored = raw ? raw.split(",").map(s => s.trim()).filter(Boolean).filter(k => allowed.has(k)) : [];
     const merged = [...stored];
     for (const k of DEFAULT_PROFILE_SECTION_ORDER) if (!merged.includes(k)) merged.push(k);
     return merged.length ? merged : [...DEFAULT_PROFILE_SECTION_ORDER];

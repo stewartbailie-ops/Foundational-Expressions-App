@@ -719,10 +719,10 @@ export default function AdvisorProfile() {
 
   const profileSectionOrder = useMemo<string[]>(() => {
     const raw = (advisor as any)?.profileSectionOrder as string | null | undefined;
-    const saved = raw ? raw.split(",").filter(Boolean) : [...DEFAULT_PROFILE_SECTION_ORDER];
+    const allowed = new Set<string>(DEFAULT_PROFILE_SECTION_ORDER as readonly string[]);
+    const saved = raw ? raw.split(",").filter(Boolean).filter(k => allowed.has(k)) : [...DEFAULT_PROFILE_SECTION_ORDER];
     // Ensure any default keys missing from the saved order are appended,
-    // so newly-added sections (moneyweb, media, astute, etc.) still render
-    // for advisors whose stored order pre-dates them.
+    // so newly-added sections still render for advisors whose stored order pre-dates them.
     const missing = DEFAULT_PROFILE_SECTION_ORDER.filter(k => !saved.includes(k));
     return [...saved, ...missing];
   }, [(advisor as any)?.profileSectionOrder]);
@@ -1276,272 +1276,7 @@ export default function AdvisorProfile() {
         </motion.div>
 
         {/* News Hero — sits prominently right under the profile header */}
-        {!!(advisor as any).showMoneywebFeed && (
-          <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
-        )}
-
-        {/* Interactive Financial Tools — standalone cards (each independently toggleable) */}
-        {(advisor as any).showInteractive !== false && (advisor as any).showShowpieceSqueeze !== false && (
-          <RealMoneySqueeze
-            accentColor={accentColor}
-            borderColor={tc.borderColor}
-            cardBg={cardBg}
-            textColor={textColor}
-            mutedText={mutedText}
-          />
-        )}
-        {(advisor as any).showInteractive !== false && (advisor as any).showShowpieceTaxBite !== false && (
-          <TaxBite
-            accentColor={accentColor}
-            borderColor={tc.borderColor}
-            cardBg={cardBg}
-            textColor={textColor}
-            mutedText={mutedText}
-          />
-        )}
-        {(advisor as any).showInteractive !== false && (advisor as any).showToolReality !== false && (() => {
-          const is = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor, borderRadius: "8px", padding: "8px 12px", fontSize: "13px", outline: "none", width: "100%" };
-          const salary = Math.max(0, parseFloat(rcSalary) || 0);
-          const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
-          const years = Math.min(50, Math.max(1, parseFloat(rcYears) || 1));
-          const monthlySave = salary * (savePct / 100);
-          const r = 0.09 / 12;
-          const n = years * 12;
-          const futureValue = r > 0 ? monthlySave * ((Math.pow(1 + r, n) - 1) / r) : monthlySave * n;
-          const todaysMoney = futureValue / Math.pow(1.06, years);
-          const annualExpensesNow = salary * (1 - savePct / 100) * 12;
-          const futureAnnualExpenses = annualExpensesNow * Math.pow(1.06, years);
-          const needAtRetirement = futureAnnualExpenses * 25;
-          const gapPct = needAtRetirement > 0 ? (futureValue / needAtRetirement) * 100 : 0;
-          const onTrack = gapPct >= 100;
-          const gapColor = onTrack ? "#10B981" : gapPct >= 50 ? "#F59E0B" : "#EF4444";
-          const gapLabel = onTrack ? "On track" : gapPct >= 50 ? "Halfway there" : "Big gap";
-          const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
-          return (
-            <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-reality-check">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
-                <h3 className="text-sm font-semibold" style={{ color: textColor }}>30-Year Reality Check</h3>
-              </div>
-              <p className="text-xs" style={{ color: mutedText }}>
-                A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
-              </p>
-              {(() => {
-                const sliderRow = (label: string, value: number, min: number, max: number, step: number, display: string, onChange: (v: number) => void, testId: string) => (
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>{label}</span>
-                      <span className="text-sm font-bold" style={{ color: accentColor }}>{display}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={min} max={max} step={step} value={value}
-                      onChange={e => onChange(Number(e.target.value))}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) 100%)`,
-                        accentColor,
-                      }}
-                      data-testid={testId}
-                      aria-label={`${label}: ${display}`}
-                    />
-                  </div>
-                );
-                const salaryNum = Math.max(5000, Math.min(200000, Math.round(salary / 1000) * 1000 || 45000));
-                const savePctNum = Math.max(0, Math.min(50, Math.round(savePct) || 10));
-                const yearsNum = Math.max(1, Math.min(50, Math.round(years) || 30));
-                return (
-                  <div className="space-y-3">
-                    {sliderRow("Salary / month", salaryNum, 5000, 200000, 1000, `R ${salaryNum.toLocaleString("en-ZA")}`, v => setRcSalary(String(v)), "input-tool-rc-salary")}
-                    {sliderRow("You save", savePctNum, 0, 50, 1, `${savePctNum}%`, v => setRcSavePct(String(v)), "input-tool-rc-save")}
-                    {sliderRow("Years to go", yearsNum, 1, 50, 1, `${yearsNum} yrs`, v => setRcYears(String(v)), "input-tool-rc-years")}
-                  </div>
-                );
-              })()}
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
-                  { color: "#F59E0B", label: "In today's money", val: fmt(todaysMoney), sub: "after inflation", testId: "stat-rc-today" },
-                  { color: "#EF4444", label: "What you'll need", val: fmt(needAtRetirement), sub: "to retire comfortably", testId: "stat-rc-need" },
-                ].map(s => (
-                  <div key={s.label} className="rounded-xl p-3 text-center overflow-hidden" style={{ background: `linear-gradient(160deg, ${s.color}28, ${s.color}10)`, border: `1px solid ${s.color}55` }} data-testid={s.testId}>
-                    <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>{s.label}</div>
-                    <div className="text-sm font-extrabold mt-1 leading-tight" style={{ color: textColor }}>{s.val}</div>
-                    <div className="text-[9px] mt-0.5" style={{ color: mutedText }}>{s.sub}</div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${gapColor}22, ${gapColor}08)`, border: `1px solid ${gapColor}66` }} data-testid="banner-rc-shock">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-wider" style={{ color: gapColor }}>{gapLabel}</div>
-                    <div className="text-[11px]" style={{ color: mutedText }}>
-                      You're at <span className="font-bold" style={{ color: textColor }}>{gapPct.toFixed(0)}%</span> of your retirement target
-                    </div>
-                  </div>
-                </div>
-                <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${gapColor}22` }}>
-                  <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, gapPct)}%`, backgroundColor: gapColor }} />
-                </div>
-                {!onTrack && (
-                  <p className="text-[11px] mt-2 leading-snug" style={{ color: textColor }}>
-                    {gapPct >= 50
-                      ? <>You're halfway there. Bumping your savings to <strong>{Math.min(50, Math.ceil(savePct + 5))}%</strong> could close the gap. Worth a chat?</>
-                      : <>That's a meaningful shortfall. A small bump in monthly savings now compounds into a huge difference later. Let's chat.</>
-                    }
-                  </p>
-                )}
-              </div>
-              <p className="text-[10px]" style={{ color: mutedText }}>
-                Assumes 9% growth p.a. and 6% inflation (SA long-run averages). Retirement need uses the 25× rule (4% safe withdrawal). Estimate only — for fun, not advice.
-              </p>
-            </div>
-          );
-        })()}
-        {(advisor as any).showInteractive !== false && (advisor as any).showToolLatte !== false && (() => {
-          const totalMonthly = LATTE_ITEMS.reduce(
-            (sum, item) => sum + (latteItems[item.key]?.enabled ? (latteItems[item.key]?.amount || 0) : 0),
-            0
-          );
-          const years = Math.min(50, Math.max(1, parseFloat(latteYears) || 1));
-          const r = 0.09 / 12;
-          const n = years * 12;
-          const futureValue = r > 0 ? totalMonthly * ((Math.pow(1 + r, n) - 1) / r) : totalMonthly * n;
-          const totalSpent = totalMonthly * n;
-          const interestEarned = futureValue - totalSpent;
-          const isMillionaire = futureValue >= 1_000_000;
-          const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
-          const enabledCount = LATTE_ITEMS.filter(i => latteItems[i.key]?.enabled).length;
-          return (
-            <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-latte-millionaire">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
-                <h3 className="text-sm font-semibold" style={{ color: textColor }}>The Latte Millionaire</h3>
-              </div>
-              <p className="text-xs" style={{ color: mutedText }}>
-                Tap the everyday spends that sound like you. Tweak the amounts to match your real life. Then prepare to clutch your wallet.
-              </p>
-              <div className="space-y-1.5">
-                {LATTE_ITEMS.map((item, idx) => {
-                  const state = latteItems[item.key];
-                  const enabled = state?.enabled;
-                  const isEditable = idx < 2;
-                  const amount = state?.amount || 0;
-                  const minAmt = 100, maxAmt = 5000;
-                  return (
-                    <div
-                      key={item.key}
-                      className="px-2.5 py-2 rounded-lg transition-all space-y-2"
-                      style={{
-                        backgroundColor: enabled ? `${accentColor}15` : tc.inputBg,
-                        border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
-                        opacity: enabled ? 1 : 0.6,
-                      }}
-                      data-testid={`latte-item-${item.key}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
-                          className="text-xl flex-shrink-0"
-                          aria-label={`Toggle ${item.label}`}
-                          data-testid={`button-latte-toggle-${item.key}`}
-                        >
-                          {item.emoji}
-                        </button>
-                        <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
-                        <span className="text-xs font-bold whitespace-nowrap" style={{ color: enabled ? accentColor : mutedText }} data-testid={`text-latte-amount-${item.key}`}>R {amount.toLocaleString("en-ZA")}/mo</span>
-                      </div>
-                      {isEditable && enabled && (
-                        <input
-                          type="range"
-                          min={minAmt} max={maxAmt} step={50} value={Math.max(minAmt, Math.min(maxAmt, amount))}
-                          onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: Number(e.target.value) } }))}
-                          className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                          style={{
-                            background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) 100%)`,
-                            accentColor,
-                          }}
-                          data-testid={`input-latte-amount-${item.key}`}
-                          aria-label={`${item.label}: R${amount}/month`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-              {(() => {
-                const yearsNum = Math.max(5, Math.min(40, Math.round(parseFloat(latteYears) || 30)));
-                return (
-                  <div className="space-y-1.5">
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>If invested instead for</span>
-                      <span className="text-sm font-bold" style={{ color: accentColor }}>{yearsNum} yrs</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={5} max={40} step={1} value={yearsNum}
-                      onChange={e => setLatteYears(String(e.target.value))}
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) 100%)`,
-                        accentColor,
-                      }}
-                      data-testid="input-latte-years"
-                      aria-label={`Years invested: ${yearsNum}`}
-                    />
-                  </div>
-                );
-              })()}
-              <div
-                className="rounded-xl p-4 text-center relative overflow-hidden"
-                style={{
-                  background: enabledCount === 0
-                    ? `linear-gradient(135deg, ${tc.inputBg}, ${tc.inputBg})`
-                    : isMillionaire
-                      ? `linear-gradient(135deg, #F59E0B33, #EF444422)`
-                      : `linear-gradient(135deg, ${accentColor}28, ${accentColor}12)`,
-                  border: `1px solid ${isMillionaire ? "#F59E0B66" : `${accentColor}55`}`,
-                }}
-                data-testid="banner-latte-result"
-              >
-                {enabledCount === 0 ? (
-                  <p className="text-xs py-2" style={{ color: mutedText }}>Tap an emoji above to start counting your spends</p>
-                ) : (
-                  <>
-                    <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: mutedText }}>
-                      That's <span style={{ color: textColor }}>{fmt(totalMonthly)}/month</span>. Invested instead, in {years} years…
-                    </div>
-                    <div
-                      className="text-3xl font-extrabold leading-tight my-1"
-                      style={{ color: isMillionaire ? "#F59E0B" : accentColor, textShadow: isMillionaire ? "0 2px 12px rgba(245,158,11,0.3)" : "none" }}
-                    >
-                      {fmt(futureValue)}
-                    </div>
-                    {isMillionaire && (
-                      <div className="text-xs font-bold" style={{ color: "#EF4444" }}>
-                        Yes — you're a millionaire by accident.
-                      </div>
-                    )}
-                    <div className="grid grid-cols-2 gap-2 mt-3 text-left">
-                      <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
-                        <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>You'll spend</div>
-                        <div className="text-xs font-bold" style={{ color: textColor }}>{fmt(totalSpent)}</div>
-                      </div>
-                      <div className="rounded-lg p-2" style={{ backgroundColor: `${tc.cardBg}80` }}>
-                        <div className="text-[9px] uppercase tracking-wider" style={{ color: mutedText }}>Interest earned</div>
-                        <div className="text-xs font-bold" style={{ color: "#10B981" }}>{fmt(interestEarned)}</div>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-              <p className="text-[10px]" style={{ color: mutedText }}>
-                Assumes 9% growth p.a. (SA long-run average). Estimate only — for fun, not advice.
-              </p>
-            </div>
-          );
-        })()}
+        {/* Interactive Financial Tools + News Hero now render via section order — see sectionMap below */}
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
@@ -1551,8 +1286,242 @@ export default function AdvisorProfile() {
         {/* Ordered Sections */}
         {(() => {
           const sectionMap: Record<string, React.ReactNode> = {
-            // moneyweb section removed — now renders as NewsHero above
-            moneyweb: null,
+            moneyweb: !!(advisor as any).showMoneywebFeed ? (
+              <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
+            ) : null,
+
+            interactive: ((advisor as any).showInteractive !== false) ? (() => {
+              const showSqueeze = (advisor as any).showShowpieceSqueeze !== false;
+              const showTaxBite = (advisor as any).showShowpieceTaxBite !== false;
+              const showReality = (advisor as any).showToolReality !== false;
+              const showLatte = (advisor as any).showToolLatte !== false;
+              if (!showSqueeze && !showTaxBite && !showReality && !showLatte) return null;
+              return (
+                <div className="space-y-3" data-testid="section-interactive">
+                  {showSqueeze && <RealMoneySqueeze accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
+                  {showTaxBite && <TaxBite accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
+                  {showReality && (() => {
+                    const salary = Math.max(0, parseFloat(rcSalary) || 0);
+                    const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
+                    const years = Math.min(50, Math.max(1, parseFloat(rcYears) || 1));
+                    const monthlySave = salary * (savePct / 100);
+                    const r = 0.09 / 12;
+                    const n = years * 12;
+                    const futureValue = r > 0 ? monthlySave * ((Math.pow(1 + r, n) - 1) / r) : monthlySave * n;
+                    const todaysMoney = futureValue / Math.pow(1.06, years);
+                    const annualExpensesNow = salary * (1 - savePct / 100) * 12;
+                    const futureAnnualExpenses = annualExpensesNow * Math.pow(1.06, years);
+                    const needAtRetirement = futureAnnualExpenses * 25;
+                    const gapPct = needAtRetirement > 0 ? (futureValue / needAtRetirement) * 100 : 0;
+                    const onTrack = gapPct >= 100;
+                    const gapColor = onTrack ? "#10B981" : gapPct >= 50 ? "#F59E0B" : "#EF4444";
+                    const gapLabel = onTrack ? "On track" : gapPct >= 50 ? "Halfway there" : "Big gap";
+                    const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+                    const sliderRow = (label: string, value: number, min: number, max: number, step: number, display: string, onChange: (v: number) => void, testId: string) => (
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline justify-between">
+                          <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>{label}</span>
+                          <span className="text-sm font-bold" style={{ color: accentColor }}>{display}</span>
+                        </div>
+                        <input
+                          type="range" min={min} max={max} step={step} value={value}
+                          onChange={e => onChange(Number(e.target.value))}
+                          className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                          style={{
+                            background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) ${((value - min) / (max - min)) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                            accentColor,
+                          }}
+                          data-testid={testId}
+                          aria-label={`${label}: ${display}`}
+                        />
+                      </div>
+                    );
+                    const salaryNum = Math.max(5000, Math.min(200000, Math.round(salary / 1000) * 1000 || 45000));
+                    const savePctNum = Math.max(0, Math.min(50, Math.round(savePct) || 10));
+                    const yearsNum = Math.max(1, Math.min(50, Math.round(years) || 30));
+                    return (
+                      <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-reality-check">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
+                          <h3 className="text-sm font-semibold" style={{ color: textColor }}>30-Year Reality Check</h3>
+                        </div>
+                        <p className="text-xs" style={{ color: mutedText }}>
+                          A quick reality check on your retirement nest egg. Defaults are SA averages — tweak to match your own life.
+                        </p>
+                        <div className="space-y-3">
+                          {sliderRow("Salary / month", salaryNum, 5000, 200000, 1000, `R ${salaryNum.toLocaleString("en-ZA")}`, v => setRcSalary(String(v)), "input-tool-rc-salary")}
+                          {sliderRow("You save", savePctNum, 0, 50, 1, `${savePctNum}%`, v => setRcSavePct(String(v)), "input-tool-rc-save")}
+                          {sliderRow("Years to go", yearsNum, 1, 50, 1, `${yearsNum} yrs`, v => setRcYears(String(v)), "input-tool-rc-years")}
+                        </div>
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { color: "#10B981", label: "What you'll have", val: fmt(futureValue), sub: "in future rands", testId: "stat-rc-have" },
+                            { color: "#F59E0B", label: "In today's money", val: fmt(todaysMoney), sub: "after inflation", testId: "stat-rc-today" },
+                            { color: "#EF4444", label: "What you'll need", val: fmt(needAtRetirement), sub: "to retire comfortably", testId: "stat-rc-need" },
+                          ].map(s => (
+                            <div key={s.label} className="rounded-xl p-3 text-center overflow-hidden" style={{ background: `linear-gradient(160deg, ${s.color}28, ${s.color}10)`, border: `1px solid ${s.color}55` }} data-testid={s.testId}>
+                              <div className="text-[9px] font-semibold uppercase tracking-wider" style={{ color: s.color }}>{s.label}</div>
+                              <div className="text-sm font-extrabold mt-1 leading-tight" style={{ color: textColor }}>{s.val}</div>
+                              <div className="text-[9px] mt-0.5" style={{ color: mutedText }}>{s.sub}</div>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="rounded-xl p-4 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${gapColor}22, ${gapColor}08)`, border: `1px solid ${gapColor}66` }} data-testid="banner-rc-shock">
+                          <div className="flex items-center justify-between mb-2">
+                            <div>
+                              <div className="text-xs font-bold uppercase tracking-wider" style={{ color: gapColor }}>{gapLabel}</div>
+                              <div className="text-[11px]" style={{ color: mutedText }}>
+                                You're at <span className="font-bold" style={{ color: textColor }}>{gapPct.toFixed(0)}%</span> of your retirement target
+                              </div>
+                            </div>
+                          </div>
+                          <div className="w-full h-2 rounded-full overflow-hidden" style={{ backgroundColor: `${gapColor}22` }}>
+                            <div className="h-full transition-all duration-500" style={{ width: `${Math.min(100, gapPct)}%`, backgroundColor: gapColor }} />
+                          </div>
+                          {!onTrack && (
+                            <p className="text-[11px] mt-2 leading-snug" style={{ color: textColor }}>
+                              {gapPct >= 50
+                                ? <>You're halfway there. Bumping your savings to <strong>{Math.min(50, Math.ceil(savePct + 5))}%</strong> could close the gap. Worth a chat?</>
+                                : <>That's a meaningful shortfall. A small bump in monthly savings now compounds into a huge difference later. Let's chat.</>
+                              }
+                            </p>
+                          )}
+                        </div>
+                        <p className="text-[10px]" style={{ color: mutedText }}>
+                          Assumes 9% growth p.a. and 6% inflation (SA long-run averages). Retirement need uses the 25× rule (4% safe withdrawal). Estimate only — for fun, not advice.
+                        </p>
+                      </div>
+                    );
+                  })()}
+                  {showLatte && (() => {
+                    const totalMonthly = LATTE_ITEMS.reduce(
+                      (sum, item) => sum + (latteItems[item.key]?.enabled ? (latteItems[item.key]?.amount || 0) : 0),
+                      0
+                    );
+                    const years = Math.min(50, Math.max(1, parseFloat(latteYears) || 1));
+                    const r = 0.09 / 12;
+                    const n = years * 12;
+                    const futureValue = r > 0 ? totalMonthly * ((Math.pow(1 + r, n) - 1) / r) : totalMonthly * n;
+                    const totalSpent = totalMonthly * n;
+                    const interestEarned = futureValue - totalSpent;
+                    const isMillionaire = futureValue >= 1_000_000;
+                    const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+                    const enabledCount = LATTE_ITEMS.filter(i => latteItems[i.key]?.enabled).length;
+                    const yearsNum = Math.max(5, Math.min(40, Math.round(parseFloat(latteYears) || 30)));
+                    return (
+                      <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-latte-millionaire">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="h-4 w-4" style={{ color: accentColor }} />
+                          <h3 className="text-sm font-semibold" style={{ color: textColor }}>The Latte Millionaire</h3>
+                        </div>
+                        <p className="text-xs" style={{ color: mutedText }}>
+                          Tap the everyday spends that sound like you. Tweak the amounts to match your real life. Then prepare to clutch your wallet.
+                        </p>
+                        <div className="space-y-1.5">
+                          {LATTE_ITEMS.map((item, idx) => {
+                            const state = latteItems[item.key];
+                            const enabled = state?.enabled;
+                            const isEditable = idx < 2;
+                            const amount = state?.amount || 0;
+                            const minAmt = 100, maxAmt = 5000;
+                            return (
+                              <div
+                                key={item.key}
+                                className="px-2.5 py-2 rounded-lg transition-all space-y-2"
+                                style={{
+                                  backgroundColor: enabled ? `${accentColor}15` : tc.inputBg,
+                                  border: `1px solid ${enabled ? `${accentColor}55` : tc.borderColor}`,
+                                  opacity: enabled ? 1 : 0.6,
+                                }}
+                                data-testid={`latte-item-${item.key}`}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], enabled: !prev[item.key]?.enabled } }))}
+                                    className="text-xl flex-shrink-0"
+                                    aria-label={`Toggle ${item.label}`}
+                                    data-testid={`button-latte-toggle-${item.key}`}
+                                  >
+                                    {item.emoji}
+                                  </button>
+                                  <span className="flex-1 text-xs font-medium truncate" style={{ color: textColor }}>{item.label}</span>
+                                  <span className="text-xs font-bold whitespace-nowrap" style={{ color: enabled ? accentColor : mutedText }} data-testid={`text-latte-amount-${item.key}`}>R {amount.toLocaleString("en-ZA")}/mo</span>
+                                </div>
+                                {isEditable && enabled && (
+                                  <input
+                                    type="range"
+                                    min={minAmt} max={maxAmt} step={50} value={Math.max(minAmt, Math.min(maxAmt, amount))}
+                                    onChange={e => setLatteItems(prev => ({ ...prev, [item.key]: { ...prev[item.key], amount: Number(e.target.value) } }))}
+                                    className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                                    style={{
+                                      background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) ${((Math.max(minAmt, Math.min(maxAmt, amount)) - minAmt) / (maxAmt - minAmt)) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                                      accentColor,
+                                    }}
+                                    data-testid={`input-latte-amount-${item.key}`}
+                                    aria-label={`${item.label}: R${amount}/month`}
+                                  />
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="flex items-baseline justify-between">
+                            <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>If invested instead for</span>
+                            <span className="text-sm font-bold" style={{ color: accentColor }}>{yearsNum} yrs</span>
+                          </div>
+                          <input
+                            type="range"
+                            min={5} max={40} step={1} value={yearsNum}
+                            onChange={e => setLatteYears(String(e.target.value))}
+                            className="w-full h-2 rounded-full appearance-none cursor-pointer"
+                            style={{
+                              background: `linear-gradient(to right, ${accentColor} 0%, ${accentColor} ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) ${((yearsNum - 5) / 35) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                              accentColor,
+                            }}
+                            data-testid="input-latte-years"
+                            aria-label={`Years invested: ${yearsNum}`}
+                          />
+                        </div>
+                        <div
+                          className="rounded-xl p-4 text-center relative overflow-hidden"
+                          style={{
+                            background: enabledCount === 0
+                              ? `linear-gradient(135deg, ${tc.inputBg}, ${tc.inputBg})`
+                              : isMillionaire
+                                ? `linear-gradient(135deg, #F59E0B33, #EF444422)`
+                                : `linear-gradient(135deg, ${accentColor}22, ${accentColor}08)`,
+                            border: `1px solid ${enabledCount === 0 ? tc.borderColor : isMillionaire ? "#F59E0B66" : `${accentColor}55`}`,
+                          }}
+                          data-testid="banner-latte-result"
+                        >
+                          {enabledCount === 0 ? (
+                            <p className="text-xs" style={{ color: mutedText }}>Toggle on a few habits above to see the damage.</p>
+                          ) : (
+                            <>
+                              <div className="text-[10px] font-semibold uppercase tracking-wider mb-1" style={{ color: isMillionaire ? "#F59E0B" : accentColor }}>If you invested it instead</div>
+                              <div className="text-2xl font-extrabold" style={{ color: textColor }}>{fmt(futureValue)}</div>
+                              <div className="text-[11px] mt-1" style={{ color: mutedText }}>
+                                R {Math.round(totalMonthly).toLocaleString("en-ZA")}/mo × {years} yrs · interest earned: <strong style={{ color: textColor }}>{fmt(interestEarned)}</strong>
+                              </div>
+                              {isMillionaire && (
+                                <p className="text-[11px] mt-2 font-semibold" style={{ color: "#F59E0B" }}>
+                                  That's a millionaire's worth of small change. Worth a chat?
+                                </p>
+                              )}
+                            </>
+                          )}
+                        </div>
+                        <p className="text-[10px]" style={{ color: mutedText }}>
+                          Assumes 9% growth p.a. (SA long-run average). Estimate only — for fun, not advice.
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })() : null,
 
             bio: bioText ? (
               <div className="rounded-xl p-5" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-bio">
