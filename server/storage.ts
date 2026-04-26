@@ -102,6 +102,12 @@ export class DatabaseStorage implements IStorage {
       showToolPension: profile.profile.showToolPension ?? profile.advisor.showToolPension,
       showToolCgt: profile.profile.showToolCgt ?? profile.advisor.showToolCgt,
       showToolVehicle: profile.profile.showToolVehicle ?? profile.advisor.showToolVehicle,
+      showToolReality: (profile.profile as any).showToolReality ?? (profile.advisor as any).showToolReality,
+      showToolLatte: (profile.profile as any).showToolLatte ?? (profile.advisor as any).showToolLatte,
+      showInteractive: (profile.profile as any).showInteractive ?? (profile.advisor as any).showInteractive,
+      showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze ?? (profile.advisor as any).showShowpieceSqueeze,
+      showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite ?? (profile.advisor as any).showShowpieceTaxBite,
+      showEmergencyContacts: (profile.profile as any).showEmergencyContacts ?? (profile.advisor as any).showEmergencyContacts,
       patternOpacity: profile.profile.patternOpacity ?? profile.advisor.patternOpacity,
       nickname: (profile.profile as any).nickname ?? profile.advisor.nickname,
       profileDescription: (profile.profile as any).profileDescription ?? profile.advisor.profileDescription,
@@ -141,8 +147,11 @@ export class DatabaseStorage implements IStorage {
       "showFinancialMedia", "showMoneywebFeed", "showTools",
       "showToolTax", "showToolExchange", "showToolCompound",
       "showToolPension", "showToolCgt", "showToolVehicle",
+      "showToolReality", "showToolLatte",
+      "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
+      "showEmergencyContacts",
       "profileSectionOrder",
-    ];
+    ] as (keyof InsertAdvisorProfile)[];
     for (const key of sharedKeys) {
       if (key in data) (profileSync as any)[key] = (data as any)[key];
     }
