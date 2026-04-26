@@ -1446,7 +1446,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
   const [location, setLocation] = useState((advisor as any).location || "");
   const [workingHours, setWorkingHours] = useState((advisor as any).workingHours || "");
-  const [bookingUrl, setBookingUrl] = useState((advisor as any).bookingUrl || "");
   const [showContactDetails, setShowContactDetails] = useState((advisor as any).showContactDetails !== false);
   const [showHeader, setShowHeader] = useState((advisor as any).showHeader !== false);
   const [showProfilePic, setShowProfilePic] = useState((advisor as any).showProfilePic !== false);
@@ -1525,7 +1524,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         contactNumber: contactNumber || null,
         location: location || null,
         workingHours: workingHours || null,
-        bookingUrl: bookingUrl.trim() || null,
         showContactDetails,
         showHeader,
         showProfilePic,
@@ -1998,22 +1996,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
             <input value={workingHours} onChange={e => setWorkingHours(e.target.value)} placeholder="Working Hours (e.g. Mon–Fri 8:00–17:00)" className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-panel-working-hours" />
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <CalendarDays className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
-              <input
-                value={bookingUrl}
-                onChange={e => setBookingUrl(e.target.value)}
-                placeholder="Booking link (Calendly, Google, Bookings…)"
-                className="flex-1 px-3 py-2 rounded-lg text-sm outline-none"
-                style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}
-                data-testid="input-panel-booking-url"
-              />
-            </div>
-            <p className="text-[10px] leading-snug pl-6" style={{ color: tc.mutedText }}>
-              Paste a link from any scheduler you already use. A "Book a Meeting" tile will appear on your contact card. Leave blank to hide.
-            </p>
           </div>
         </div>
       </div>
