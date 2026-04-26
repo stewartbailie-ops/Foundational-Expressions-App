@@ -433,6 +433,12 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
     queryKey: [`/api/advisors/${advisor.profileSlug}/emails`],
   });
 
+  // Profile count for header badge — uses same queryKey as ProfilesTab so React Query dedupes
+  const { data: additionalProfiles = [] } = useQuery<AdvisorProfile[]>({
+    queryKey: [`/api/advisors/${advisor.id}/profiles`],
+  });
+  const profileCount = 1 + additionalProfiles.length;
+
   const firstName = advisor.name.split(" ")[0];
   const totalLeads = allLeads.length;
 
@@ -475,7 +481,18 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                   <Icon className="h-5 w-5" style={{ color: s.accent }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
+                  <div className="flex items-center gap-2">
+                    <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
+                    {s.key === "profiles" && (
+                      <span
+                        className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap"
+                        style={{ backgroundColor: `${s.accent}22`, color: s.accent, border: `1px solid ${s.accent}55` }}
+                        data-testid="badge-profile-count"
+                      >
+                        {profileCount} / 2
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs truncate" style={{ color: tc.mutedText }}>{s.desc}</div>
                 </div>
                 <ChevronDown
