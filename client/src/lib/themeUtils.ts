@@ -1,18 +1,14 @@
 import type React from "react";
 
 export const THEME_OPTIONS = [
-  { value: "blue",             label: "Blue Abyss" },
-  { value: "dark",             label: "Obsidian Black" },
+  { value: "dark",             label: "Black" },
+  { value: "silver",           label: "Silver" },
   { value: "pink",             label: "Pink" },
-  { value: "light-blue",       label: "Nimbus Blue" },
-  { value: "dark-royal-purple",label: "Velour Purple" },
-  { value: "dark-green",       label: "Verdant Green" },
-  { value: "gold",             label: "Aurum Yellow" },
-  { value: "teal",             label: "Lagoon Teal" },
-  { value: "red",              label: "Inferno Red" },
-  { value: "navy",             label: "Admiral Navy" },
-  { value: "coral",            label: "Orange Ember" },
-  { value: "silver",           label: "Silver Mercury" },
+  { value: "dark-royal-purple",label: "Purple" },
+  { value: "dark-green",       label: "Green" },
+  { value: "teal",             label: "Teal" },
+  { value: "light-blue",       label: "Light Blue" },
+  { value: "navy",             label: "Dark Blue" },
 ] as const;
 
 export const BACKGROUND_STYLE_OPTIONS = [
