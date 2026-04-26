@@ -57,61 +57,66 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(advisors, eq(advisorProfiles.advisorId, advisors.id))
       .where(eq(advisorProfiles.profileSlug, slug));
     if (!profile) return undefined;
+    // Secondary profiles are FULLY INDEPENDENT from the primary advisor.
+    // Only true advisor-level fields (identity, contact, account, auth) come from the
+    // advisor row via the spread. All per-profile content is read directly from the
+    // advisor_profiles row — no nullish fallback to the primary's values.
     return {
       ...profile.advisor,
       profileSlug: profile.profile.profileSlug,
-      title: profile.profile.title ?? profile.advisor.title,
-      bio: profile.profile.bio ?? profile.advisor.bio,
-      bioOption: profile.profile.bioOption ?? profile.advisor.bioOption,
-      customBio: profile.profile.customBio ?? profile.advisor.customBio,
-      individualServices: profile.profile.individualServices ?? profile.advisor.individualServices,
-      corporateServices: profile.profile.corporateServices ?? profile.advisor.corporateServices,
-      theme: profile.profile.theme ?? profile.advisor.theme,
-      themeColor: profile.profile.themeColor ?? profile.advisor.themeColor,
-      profilePicUrl: profile.profile.profilePicUrl ?? profile.advisor.profilePicUrl,
-      linkedinUrl: profile.profile.linkedinUrl ?? profile.advisor.linkedinUrl,
-      websiteUrl: profile.profile.websiteUrl ?? profile.advisor.websiteUrl,
-      showCallbackLink: profile.profile.showCallbackLink ?? profile.advisor.showCallbackLink,
-      showReferralsLink: profile.profile.showReferralsLink ?? profile.advisor.showReferralsLink,
-      showQrCode: profile.profile.showQrCode ?? profile.advisor.showQrCode,
-      showHeader: profile.profile.showHeader ?? profile.advisor.showHeader,
-      showProfilePic: profile.profile.showProfilePic ?? profile.advisor.showProfilePic,
-      showIntro: profile.profile.showIntro ?? profile.advisor.showIntro,
-      showIndividualServices: profile.profile.showIndividualServices ?? profile.advisor.showIndividualServices,
-      showCorporateServices: profile.profile.showCorporateServices ?? profile.advisor.showCorporateServices,
-      showSocials: profile.profile.showSocials ?? profile.advisor.showSocials,
-      facebookUrl: profile.profile.facebookUrl ?? profile.advisor.facebookUrl,
-      instagramUrl: profile.profile.instagramUrl ?? profile.advisor.instagramUrl,
-      youtubeUrl: profile.profile.youtubeUrl ?? profile.advisor.youtubeUrl,
-      astuteUrl: profile.profile.astuteUrl ?? profile.advisor.astuteUrl,
-      documentsUrl: profile.profile.documentsUrl ?? profile.advisor.documentsUrl,
-      qaUrl: profile.profile.qaUrl ?? profile.advisor.qaUrl,
-      financialsNewsUrl: profile.profile.financialsNewsUrl ?? profile.advisor.financialsNewsUrl,
-      financialsFunFactsUrl: profile.profile.financialsFunFactsUrl ?? profile.advisor.financialsFunFactsUrl,
-      financialsVideosUrl: profile.profile.financialsVideosUrl ?? profile.advisor.financialsVideosUrl,
-      showAstute: profile.profile.showAstute ?? profile.advisor.showAstute,
-      showDocuments: profile.profile.showDocuments ?? profile.advisor.showDocuments,
-      showComplimentaryWill: profile.profile.showComplimentaryWill ?? profile.advisor.showComplimentaryWill,
-      showFinancialMedia: profile.profile.showFinancialMedia ?? profile.advisor.showFinancialMedia,
-      showMoneywebFeed: (profile.profile as any).showMoneywebFeed ?? (profile.advisor as any).showMoneywebFeed,
-      showTools: profile.profile.showTools ?? profile.advisor.showTools,
-      profileSectionOrder: (profile.profile as any).profileSectionOrder ?? (profile.advisor as any).profileSectionOrder,
-      showToolTax: profile.profile.showToolTax ?? profile.advisor.showToolTax,
-      showToolExchange: profile.profile.showToolExchange ?? profile.advisor.showToolExchange,
-      showToolCompound: profile.profile.showToolCompound ?? profile.advisor.showToolCompound,
-      showToolPension: profile.profile.showToolPension ?? profile.advisor.showToolPension,
-      showToolCgt: profile.profile.showToolCgt ?? profile.advisor.showToolCgt,
-      showToolVehicle: profile.profile.showToolVehicle ?? profile.advisor.showToolVehicle,
-      showToolReality: (profile.profile as any).showToolReality ?? (profile.advisor as any).showToolReality,
-      showToolLatte: (profile.profile as any).showToolLatte ?? (profile.advisor as any).showToolLatte,
-      showInteractive: (profile.profile as any).showInteractive ?? (profile.advisor as any).showInteractive,
-      showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze ?? (profile.advisor as any).showShowpieceSqueeze,
-      showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite ?? (profile.advisor as any).showShowpieceTaxBite,
-      showEmergencyContacts: (profile.profile as any).showEmergencyContacts ?? (profile.advisor as any).showEmergencyContacts,
-      patternOpacity: profile.profile.patternOpacity ?? profile.advisor.patternOpacity,
-      nickname: (profile.profile as any).nickname ?? profile.advisor.nickname,
-      profileDescription: (profile.profile as any).profileDescription ?? profile.advisor.profileDescription,
-      backgroundStyle: profile.profile.backgroundStyle ?? profile.advisor.backgroundStyle,
+      title: profile.profile.title,
+      bio: profile.profile.bio,
+      bioOption: profile.profile.bioOption,
+      customBio: profile.profile.customBio,
+      individualServices: profile.profile.individualServices,
+      corporateServices: profile.profile.corporateServices,
+      theme: profile.profile.theme,
+      themeColor: profile.profile.themeColor,
+      profilePicUrl: profile.profile.profilePicUrl,
+      linkedinUrl: profile.profile.linkedinUrl,
+      websiteUrl: profile.profile.websiteUrl,
+      showCallbackLink: profile.profile.showCallbackLink,
+      showReferralsLink: profile.profile.showReferralsLink,
+      showQrCode: profile.profile.showQrCode,
+      showHeader: profile.profile.showHeader,
+      showProfilePic: profile.profile.showProfilePic,
+      showIntro: profile.profile.showIntro,
+      showIndividualServices: profile.profile.showIndividualServices,
+      showCorporateServices: profile.profile.showCorporateServices,
+      showSocials: profile.profile.showSocials,
+      facebookUrl: profile.profile.facebookUrl,
+      instagramUrl: profile.profile.instagramUrl,
+      youtubeUrl: profile.profile.youtubeUrl,
+      astuteUrl: profile.profile.astuteUrl,
+      documentsUrl: profile.profile.documentsUrl,
+      qaUrl: profile.profile.qaUrl,
+      financialsNewsUrl: profile.profile.financialsNewsUrl,
+      financialsFunFactsUrl: profile.profile.financialsFunFactsUrl,
+      financialsVideosUrl: profile.profile.financialsVideosUrl,
+      showAstute: profile.profile.showAstute,
+      showDocuments: profile.profile.showDocuments,
+      showComplimentaryWill: profile.profile.showComplimentaryWill,
+      showFinancialMedia: profile.profile.showFinancialMedia,
+      showMoneywebFeed: (profile.profile as any).showMoneywebFeed,
+      showTools: profile.profile.showTools,
+      profileSectionOrder: (profile.profile as any).profileSectionOrder,
+      showToolTax: profile.profile.showToolTax,
+      showToolExchange: profile.profile.showToolExchange,
+      showToolCompound: profile.profile.showToolCompound,
+      showToolPension: profile.profile.showToolPension,
+      showToolCgt: profile.profile.showToolCgt,
+      showToolVehicle: profile.profile.showToolVehicle,
+      showToolReality: (profile.profile as any).showToolReality,
+      showToolLatte: (profile.profile as any).showToolLatte,
+      showInteractive: (profile.profile as any).showInteractive,
+      showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze,
+      showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite,
+      showEmergencyContacts: (profile.profile as any).showEmergencyContacts,
+      patternOpacity: profile.profile.patternOpacity,
+      nickname: (profile.profile as any).nickname,
+      profileDescription: (profile.profile as any).profileDescription,
+      backgroundStyle: profile.profile.backgroundStyle,
+      // Truly advisor-level (no per-profile column on advisor_profiles):
       contactNumber: profile.advisor.contactNumber,
       location: profile.advisor.location,
       workingHours: profile.advisor.workingHours,
@@ -126,39 +131,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAdvisor(id: number, data: Partial<InsertAdvisor>): Promise<Advisor | undefined> {
+    // Updates touch ONLY the advisors row (the primary profile's content).
+    // Secondary profiles (rows in advisor_profiles) are fully independent and are
+    // NOT synced — editing the primary must never leak into a secondary.
     const [updated] = await db.update(advisors).set(data).where(eq(advisors.id, id)).returning();
-    if (!updated) return undefined;
-
-    // Sync shared profile fields to advisor_profiles so the merge in getAdvisorBySlug
-    // reads the correct values (boolean defaults of false would otherwise win over true).
-    const profileSync: Partial<InsertAdvisorProfile> = {};
-    const sharedKeys: (keyof InsertAdvisorProfile)[] = [
-      "title", "bio", "bioOption", "customBio", "theme", "themeColor",
-      "backgroundStyle", "patternOpacity", "profilePicUrl",
-      "linkedinUrl", "websiteUrl", "facebookUrl", "instagramUrl", "youtubeUrl",
-      "astuteUrl", "documentsUrl", "qaUrl",
-      "financialsNewsUrl", "financialsFunFactsUrl", "financialsVideosUrl",
-      "nickname", "profileDescription",
-      "individualServices", "corporateServices",
-      "showCallbackLink", "showReferralsLink", "showQrCode",
-      "showHeader", "showProfilePic", "showIntro",
-      "showIndividualServices", "showCorporateServices", "showSocials",
-      "showAstute", "showDocuments", "showComplimentaryWill",
-      "showFinancialMedia", "showMoneywebFeed", "showTools",
-      "showToolTax", "showToolExchange", "showToolCompound",
-      "showToolPension", "showToolCgt", "showToolVehicle",
-      "showToolReality", "showToolLatte",
-      "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
-      "showEmergencyContacts",
-      "profileSectionOrder",
-    ] as (keyof InsertAdvisorProfile)[];
-    for (const key of sharedKeys) {
-      if (key in data) (profileSync as any)[key] = (data as any)[key];
-    }
-    if (Object.keys(profileSync).length > 0) {
-      await db.update(advisorProfiles).set(profileSync).where(eq(advisorProfiles.advisorId, id));
-    }
-
     return updated;
   }
 
