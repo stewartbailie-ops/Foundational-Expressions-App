@@ -1,7 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes, registerOgImageRoute } from "./routes";
-import { autoTrickleDemoLeads } from "./demoSeeder";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
@@ -176,18 +175,8 @@ ${imageTag}
     },
     () => {
       log(`serving on port ${port}`);
-      // Auto-trickle: add a couple of fresh demo leads on each server start so the
-      // public demo profiles always look alive. Safe no-op if no demo advisors exist.
-      const perAdvisor = parseInt(process.env.DEMO_LEADS_PER_RESTART || "2", 10);
-      if (perAdvisor > 0) {
-        autoTrickleDemoLeads(perAdvisor)
-          .then(r => {
-            if (r.advisors > 0) {
-              log(`[demoSeeder] auto-trickle added ${r.leadsAdded} leads across ${r.advisors} demo advisor(s)`);
-            }
-          })
-          .catch(err => console.error("[demoSeeder] startup trickle error:", err));
-      }
+      // Demo leads are now top-up only (admin-triggered via the Top Up button).
+      // No auto-seed on startup/restart/republish.
     },
   );
 })();

@@ -330,12 +330,16 @@ export function autoGradeClient(age?: number | null, income?: string | null, _in
 
 function parseIncomeToNumber(income?: string | null): number {
   if (!income) return 0;
-  const normalized = income.toLowerCase().trim();
-  const kMatch = normalized.match(/(\d+(?:\.\d+)?)\s*k/);
-  if (kMatch) return parseFloat(kMatch[1]) * 1000;
-  const plain = normalized.match(/(\d+(?:\.\d+)?)/);
-  if (plain) return parseFloat(plain[1]);
-  return 0;
+  // Strip commas so "R10,000-R20,000" parses cleanly. Lowercase for "k" suffix matching.
+  const normalized = income.toLowerCase().replace(/,/g, "").trim();
+  // Match every "<number>[k]" token. For ranges like "R15k - R30k" or "R10000-R20000"
+  // we use the LAST token (upper bound) so grading reflects what the client can earn,
+  // not the floor of their bracket.
+  const matches = [...normalized.matchAll(/(\d+(?:\.\d+)?)\s*(k)?/g)];
+  if (matches.length === 0) return 0;
+  const last = matches[matches.length - 1];
+  const value = parseFloat(last[1]);
+  return last[2] ? value * 1000 : value;
 }
 
 export const stats = pgTable("stats", {

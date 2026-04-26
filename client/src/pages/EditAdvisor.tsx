@@ -440,7 +440,7 @@ function DemoLeadTopUp() {
     <div className="rounded-lg border border-amber-500/40 bg-amber-100/60 dark:bg-amber-900/20 p-3 space-y-2">
       <div className="text-xs font-semibold text-amber-900 dark:text-amber-200">Top up demo leads</div>
       <p className="text-[11px] text-amber-800/80 dark:text-amber-200/70 leading-relaxed">
-        Adds fresh synthetic referrals to <strong>every</strong> demo profile (not just this one). Leads are realistic SA names, ages, incomes and grades, spread across the last 30 days. Auto-trickle of 2 per profile already runs on every server restart — use this for an extra boost.
+        Adds fresh synthetic leads to <strong>every</strong> demo profile (not just this one). Leads are realistic SA names, ages, incomes and grades — spread across Call Backs, Referrals and Will Requests over the last 30 days. Manual top-up only; nothing seeds automatically on restart or republish.
       </p>
       <div className="flex items-center gap-2">
         <Label htmlFor="demo-topup-count" className="text-[11px] text-amber-900 dark:text-amber-200">Per profile</Label>

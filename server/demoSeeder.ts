@@ -23,15 +23,22 @@ const INDUSTRIES = [
   "Legal", "Marketing", "Government", "Self-employed",
 ];
 
+// Match the income ranges used by the public-facing forms (CallbackForm, WillForm,
+// ReferralForm) so demo leads grade and display the same way real submissions do.
 const INCOMES = [
-  "R10,000-R20,000",
-  "R20,000-R40,000",
-  "R40,000-R70,000",
-  "R70,000-R120,000",
-  "R120,000+",
+  "R0k - R15k",
+  "R15k - R30k",
+  "R30k - R45k",
+  "R45k - R60k",
+  "R60k - R75k",
+  "R75k - R100k",
+  "R100k+",
 ];
 
-const TYPES = ["Direct", "Callback", "Referral"] as const;
+// Canonical lead types that the rest of the app reads (CIV filters/buckets,
+// production write paths in /api/callback, /api/referral, /api/will-request).
+// "Call Back" (with the space) matches what /api/callback writes.
+const TYPES = ["Call Back", "Referral", "Will Request"] as const;
 
 const REFERRER_RELATIONS = [
   "Family member", "Close friend", "Work colleague", "Neighbour", "Client",
@@ -142,7 +149,10 @@ function buildLead(advisorId: number): InsertEmail {
     referrerEmail: referrerFirst && referrerLast ? fakeEmail(referrerFirst, referrerLast) : null,
     referrerPhone: isReferral ? fakePhone() : null,
     referrerRelation: isReferral ? pick(REFERRER_RELATIONS) : null,
-    source: type === "Direct" ? "Contact card" : (type === "Callback" ? "Callback form" : "Referral form"),
+    source:
+      type === "Call Back" ? "Callback form" :
+      type === "Referral" ? "Referral form" :
+      "will-form",
     lastOpenedAt: Math.random() < 0.25 ? new Date() : null,
     receivedAt,
   } as InsertEmail;
