@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { NewsHero } from "@/components/NewsHero";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
-import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS } from "@shared/schema";
+import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -418,6 +418,55 @@ const HOME_GRADE_COLORS: Record<string, string> = {
 };
 const HOME_GRADE_ORDER = ["Gold", "Silver", "Bronze", "Development"];
 
+function EmergencyContactsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div data-testid="card-emergency-contacts">
+      <button
+        onClick={() => setOpen(o => !o)}
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl font-semibold text-sm transition-opacity hover:opacity-90"
+        style={{ backgroundColor: "#dc2626", color: "#fff" }}
+        aria-expanded={open}
+        data-testid="button-emergency-contacts-toggle"
+      >
+        <AlertCircle className="h-4 w-4" /> Emergency Contacts
+        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+      {open && (
+        <div
+          className="mt-2 rounded-xl p-2 space-y-1.5"
+          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+        >
+          <p className="text-[11px] px-1 pt-1 pb-0.5" style={{ color: tc.mutedText }}>
+            Tap a service to dial directly from your phone.
+          </p>
+          {EMERGENCY_CONTACTS.map(c => (
+            <a
+              key={c.key}
+              href={`tel:${c.number}`}
+              className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg transition-opacity hover:opacity-90 active:opacity-75"
+              style={{ backgroundColor: "rgba(220,38,38,0.10)", border: "1px solid rgba(220,38,38,0.35)" }}
+              data-testid={`button-panel-call-${c.key}`}
+            >
+              <div
+                className="h-9 w-9 rounded-full flex items-center justify-center flex-shrink-0"
+                style={{ backgroundColor: "#dc2626" }}
+              >
+                <Phone className="h-4 w-4" style={{ color: "#fff" }} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-semibold leading-tight truncate" style={{ color: tc.textColor }}>{c.label}</div>
+                <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>{c.number}</div>
+              </div>
+              <span className="text-[11px] font-semibold px-2 py-1 rounded-md flex-shrink-0" style={{ backgroundColor: "#dc2626", color: "#fff" }}>Call</span>
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
 
@@ -688,6 +737,11 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
           </div>
         )}
+      </div>
+
+      {/* ── Emergency Contacts (always available to advisors) ── */}
+      <div className="pt-4">
+        <EmergencyContactsCard tc={tc} />
       </div>
 
       {/* ── Footer: Powered By + Verified Badge + Support ── */}
