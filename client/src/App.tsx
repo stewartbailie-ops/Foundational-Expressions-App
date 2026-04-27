@@ -18,6 +18,7 @@ import ReferralForm from "@/pages/ReferralForm";
 import AdvisorPanel from "@/pages/AdvisorPanel";
 import WillForm from "@/pages/WillForm";
 import Login from "@/pages/Login";
+import LegalPage from "@/pages/LegalPage";
 import { Loader2 } from "lucide-react";
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -55,11 +56,13 @@ function SlugWill() {
   return <WillForm />;
 }
 
-const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor"];
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor", "privacy-policy", "terms"];
 
 function Router() {
   return (
     <Switch>
+      <Route path="/privacy-policy">{() => <LegalPage section="privacy" />}</Route>
+      <Route path="/terms">{() => <LegalPage section="terms" />}</Route>
       <Route path="/advisor/:slug" component={AdvisorPanel} />
       <Route path="/profile/:slug/request-callback" component={CallbackForm} />
       <Route path="/profile/:slug/referrals" component={ReferralForm} />
