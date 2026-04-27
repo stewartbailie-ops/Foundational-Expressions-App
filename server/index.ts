@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import { registerRoutes, registerOgImageRoute } from "./routes";
@@ -171,7 +172,7 @@ ${imageTag}
     {
       port,
       host: "0.0.0.0",
-      reusePort: true,
+      ...(process.platform !== "win32" && { reusePort: true }),
     },
     () => {
       log(`serving on port ${port}`);
