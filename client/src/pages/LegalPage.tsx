@@ -66,7 +66,7 @@ function PrivacyPolicy() {
           financial advisors with prospective clients in South Africa.
         </p>
         <p>
-          <strong className="text-white">POPIA Information Officer:</strong> Stewart Bailie —{" "}
+          <strong className="text-white">POPIA Information Officer:</strong> The Director, Advisory Connect (Pty) Ltd —{" "}
           <a href="mailto:support@advisoryconnect.pro" className="text-white underline">
             support@advisoryconnect.pro
           </a>
