@@ -669,6 +669,21 @@ export default function ReferralForm() {
           </div>
         )}
 
+        <p className="text-center text-xs leading-relaxed px-2" style={{ color: mutedText }} data-testid="text-privacy-notice-referral">
+          By submitting, you agree to our{" "}
+          <a
+            href="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+            style={{ color: tc.accentColor }}
+            data-testid="link-privacy-policy-referral"
+          >
+            Privacy Policy
+          </a>
+          . Referral details will only be used so {advisor.name.split(" ")[0]} can make contact.
+        </p>
+
         <button
           onClick={handleSubmit}
           disabled={!canSubmit || submitting}

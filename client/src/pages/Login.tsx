@@ -93,6 +93,28 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Sign In"}
           </button>
         </form>
+
+        <p className="text-center text-xs text-white/40 mt-6">
+          <a
+            href="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/70 transition-colors"
+            data-testid="link-privacy-policy-admin-login"
+          >
+            Privacy Policy
+          </a>
+          <span className="mx-1.5">·</span>
+          <a
+            href="/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-white/70 transition-colors"
+            data-testid="link-terms-admin-login"
+          >
+            Terms of Service
+          </a>
+        </p>
       </div>
     </div>
   );

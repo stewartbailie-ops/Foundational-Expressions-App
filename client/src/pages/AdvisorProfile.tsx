@@ -935,12 +935,14 @@ export default function AdvisorProfile() {
 
       const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
       const afterQr = () => {
-        // Footer bar
+        // Footer bar (taller to fit privacy line)
         ctx.fillStyle = "#f7f7f7";
-        ctx.fillRect(0, H - 28, W, 28);
-        ctx.fillStyle = "#aaa"; ctx.font = `9px Arial, sans-serif`;
+        ctx.fillRect(0, H - 36, W, 36);
+        ctx.fillStyle = "#444"; ctx.font = `bold 9px Arial, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText("Powered by Advisory Connect", W / 2, H - 14);
+        ctx.fillText("Powered by Advisory Connect", W / 2, H - 24);
+        ctx.fillStyle = "#555"; ctx.font = `8.5px Arial, sans-serif`;
+        ctx.fillText("advisoryconnect.pro/privacy-policy", W / 2, H - 11);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
@@ -2105,6 +2107,29 @@ export default function AdvisorProfile() {
         <div className="text-center pt-4 pb-2 space-y-1">
           <p className="text-xs" style={{ color: mutedText }}>
             {t.poweredBy}
+          </p>
+          <p className="text-xs" style={{ color: mutedText }}>
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: mutedText }}
+              data-testid="link-privacy-policy-profile"
+            >
+              Privacy Policy
+            </a>
+            <span className="mx-1.5">·</span>
+            <a
+              href="/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: mutedText }}
+              data-testid="link-terms-profile"
+            >
+              Terms of Service
+            </a>
           </p>
           <p className="text-xs" style={{ color: mutedText }}>
             Elevate your professional presence —{" "}

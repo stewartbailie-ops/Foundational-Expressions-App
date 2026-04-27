@@ -466,6 +466,21 @@ export default function CallbackForm() {
             </div>
           )}
 
+          <p className="text-center text-xs leading-relaxed px-2" style={{ color: mutedText }} data-testid="text-privacy-notice-callback">
+            By submitting, you agree to our{" "}
+            <a
+              href="/privacy-policy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+              style={{ color: tc.accentColor }}
+              data-testid="link-privacy-policy-callback"
+            >
+              Privacy Policy
+            </a>
+            . We'll only use your details to respond to your request.
+          </p>
+
           <button
             type="submit"
             disabled={!canSubmit || mutation.isPending}

@@ -766,6 +766,29 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
               <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>
                 Elevate your professional presence
               </div>
+              <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>
+                <a
+                  href="/privacy-policy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                  style={{ color: tc.mutedText }}
+                  data-testid="link-privacy-policy-panel"
+                >
+                  Privacy Policy
+                </a>
+                <span className="mx-1">·</span>
+                <a
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline"
+                  style={{ color: tc.mutedText }}
+                  data-testid="link-terms-panel"
+                >
+                  Terms
+                </a>
+              </div>
             </div>
             <img
               src={verifiedBadge}

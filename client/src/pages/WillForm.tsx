@@ -356,6 +356,21 @@ export default function WillForm() {
           </div>
         )}
 
+        <p className="text-center text-xs leading-relaxed px-2" style={{ color: tc.mutedText }} data-testid="text-privacy-notice-will">
+          By submitting, you agree to our{" "}
+          <a
+            href="/privacy-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+            style={{ color: tc.accentColor }}
+            data-testid="link-privacy-policy-will"
+          >
+            Privacy Policy
+          </a>
+          . Your details will only be used to arrange your complimentary Will.
+        </p>
+
         <button
           onClick={() => submitMutation.mutate()}
           disabled={!canSubmit}
