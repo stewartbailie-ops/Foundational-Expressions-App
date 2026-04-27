@@ -12,7 +12,6 @@ const PUBLIC_API_ROUTES = [
   "/api/auth/login",
   "/api/auth/session",
   "/api/auth/logout",
-  "/api/upload/profile-pic",
   "/api/og-image/",
   "/api/moneyweb/",
   "/api/news/",
