@@ -298,6 +298,31 @@ function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVer
             Sign in
           </button>
         </p>
+        <p className="text-center text-xs pt-2" style={{ color: tc.mutedText, opacity: 0.85 }}>
+          By creating an account, you agree to our{" "}
+          <a
+            href="/legal/privacy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:opacity-80"
+            style={{ color: tc.accentColor }}
+            data-testid="link-setup-privacy"
+          >
+            Privacy Policy
+          </a>
+          {" "}and{" "}
+          <a
+            href="/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:opacity-80"
+            style={{ color: tc.accentColor }}
+            data-testid="link-setup-terms"
+          >
+            Terms of Service
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

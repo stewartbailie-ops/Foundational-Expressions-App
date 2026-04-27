@@ -1,5 +1,5 @@
 import { storage } from "./storage";
-import { autoGradeClient, type InsertEmail } from "@shared/schema";
+import { calculateLeadGrade, type InsertEmail } from "@shared/schema";
 
 const FIRST_NAMES = [
   "Thabo", "Sipho", "Lerato", "Nomvula", "Bongani", "Zanele", "Kagiso", "Naledi",
@@ -124,14 +124,32 @@ function buildLead(advisorId: number, slugs: string[] = []): InsertEmail {
   const hoursAgo = pickInt(0, 23);
   const receivedAt = new Date(Date.now() - daysAgo * 86400000 - hoursAgo * 3600000);
 
-  const grade = autoGradeClient(age, income, industry);
+  const married = Math.random() < 0.55;
+  const children = Math.random() < 0.5;
+  const vehicle = Math.random() < 0.75;
+  const property = Math.random() < 0.45;
+  const services = pick(SERVICES);
+
+  const result = calculateLeadGrade({
+    age,
+    income,
+    married,
+    children,
+    vehicle,
+    property,
+    servicesRequested: services,
+    type,
+  });
 
   return {
     advisorId,
     senderName,
     senderEmail,
     type,
-    grade,
+    grade: result.grade,
+    leadScore: result.score,
+    leadTemperature: result.temperature,
+    gradeBreakdown: JSON.stringify(result.breakdown),
     leadStatus: Math.random() < 0.7 ? "Need to Contact" : (Math.random() < 0.6 ? "Contacted" : "Archive"),
     subject: pick(SUBJECTS_DIRECT),
     body: pick(BODIES),

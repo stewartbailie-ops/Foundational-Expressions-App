@@ -36,10 +36,30 @@ type EmailRow = {
   referrerPhone: string | null;
   referrerRelation: string | null;
   source: string | null;
+  leadScore: number | null;
+  leadTemperature: string | null;
+  gradeBreakdown: string | null;
   receivedAt: string;
   lastOpenedAt: string | null;
   advisorName: string;
 };
+
+const tempStyles: Record<string, string> = {
+  Hot: "bg-red-500/15 text-red-700 border-red-500/30",
+  Warm: "bg-amber-500/15 text-amber-700 border-amber-500/30",
+  Cold: "bg-sky-500/15 text-sky-700 border-sky-500/30",
+};
+
+function parseBreakdown(json: string | null): { income: number; age: number; lifestyle: number; services: number; source: number } | null {
+  if (!json) return null;
+  try {
+    const parsed = JSON.parse(json);
+    if (typeof parsed?.income === "number") return parsed;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 const gradeStyles: Record<string, string> = {
   Gold: "bg-yellow-500/15 text-yellow-700 border-yellow-500/30",
@@ -350,27 +370,47 @@ export default function CIV() {
                       <TableCell className="text-sm">{email.clientAge ?? "—"}</TableCell>
                       <TableCell className="text-sm">{email.clientIncome || "—"}</TableCell>
                       <TableCell>
-                        <Select
-                          value={email.grade || "Silver"}
-                          onValueChange={(grade) => gradeMutation.mutate({ id: email.id, grade })}
-                        >
-                          <SelectTrigger
-                            className={`w-[110px] h-8 text-xs border ${gradeStyles[email.grade || "Silver"] || ""}`}
-                            data-testid={`select-grade-${email.id}`}
-                            onClick={(e) => e.stopPropagation()}
+                        <div className="flex flex-col gap-1">
+                          <Select
+                            value={email.grade || "Silver"}
+                            onValueChange={(grade) => gradeMutation.mutate({ id: email.id, grade })}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-2 h-2 rounded-full ${gradeDot[email.grade || "Silver"] || "bg-gray-400"}`} />
-                              <SelectValue />
-                            </div>
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Gold">Gold</SelectItem>
-                            <SelectItem value="Silver">Silver</SelectItem>
-                            <SelectItem value="Bronze">Bronze</SelectItem>
-                            <SelectItem value="Development">Development</SelectItem>
-                          </SelectContent>
-                        </Select>
+                            <SelectTrigger
+                              className={`w-[110px] h-8 text-xs border ${gradeStyles[email.grade || "Silver"] || ""}`}
+                              data-testid={`select-grade-${email.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <div className="flex items-center gap-1.5">
+                                <div className={`w-2 h-2 rounded-full ${gradeDot[email.grade || "Silver"] || "bg-gray-400"}`} />
+                                <SelectValue />
+                              </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Gold">Gold</SelectItem>
+                              <SelectItem value="Silver">Silver</SelectItem>
+                              <SelectItem value="Bronze">Bronze</SelectItem>
+                              <SelectItem value="Development">Development</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <div className="flex items-center gap-1.5 px-1">
+                            {email.leadTemperature && (
+                              <span
+                                className={`text-[10px] leading-none px-1.5 py-0.5 rounded border ${tempStyles[email.leadTemperature] || tempStyles.Cold}`}
+                                data-testid={`badge-temperature-${email.id}`}
+                              >
+                                {email.leadTemperature}
+                              </span>
+                            )}
+                            {typeof email.leadScore === "number" && email.leadScore > 0 && (
+                              <span
+                                className="text-[10px] text-muted-foreground font-mono"
+                                data-testid={`text-score-${email.id}`}
+                              >
+                                {email.leadScore}/100
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Select
@@ -469,6 +509,53 @@ export default function CIV() {
                                 <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-message-${email.id}`}>{email.body}</p>
                               </div>
                             )}
+
+                            {(typeof email.leadScore === "number" && email.leadScore > 0) && (() => {
+                              const bd = parseBreakdown(email.gradeBreakdown);
+                              return (
+                                <div className="bg-background rounded-lg p-3 border" data-testid={`breakdown-${email.id}`}>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs text-muted-foreground">Lead Score Breakdown</span>
+                                    <div className="flex items-center gap-2">
+                                      {email.leadTemperature && (
+                                        <span className={`text-[11px] px-2 py-0.5 rounded border ${tempStyles[email.leadTemperature] || tempStyles.Cold}`}>
+                                          {email.leadTemperature}
+                                        </span>
+                                      )}
+                                      <span className="text-sm font-semibold font-mono">
+                                        {email.grade} — {email.leadScore}/100
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {bd ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                                      <div className="bg-muted/40 rounded px-2 py-1.5">
+                                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">Income</div>
+                                        <div className="font-mono font-semibold">+{bd.income} <span className="text-muted-foreground font-normal">/35</span></div>
+                                      </div>
+                                      <div className="bg-muted/40 rounded px-2 py-1.5">
+                                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">Age</div>
+                                        <div className="font-mono font-semibold">+{bd.age} <span className="text-muted-foreground font-normal">/20</span></div>
+                                      </div>
+                                      <div className="bg-muted/40 rounded px-2 py-1.5">
+                                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">Lifestyle</div>
+                                        <div className="font-mono font-semibold">+{bd.lifestyle} <span className="text-muted-foreground font-normal">/20</span></div>
+                                      </div>
+                                      <div className="bg-muted/40 rounded px-2 py-1.5">
+                                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">Services</div>
+                                        <div className="font-mono font-semibold">+{bd.services} <span className="text-muted-foreground font-normal">/15</span></div>
+                                      </div>
+                                      <div className="bg-muted/40 rounded px-2 py-1.5">
+                                        <div className="text-muted-foreground text-[10px] uppercase tracking-wide">Source</div>
+                                        <div className="font-mono font-semibold">+{bd.source} <span className="text-muted-foreground font-normal">/10</span></div>
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground italic">Detailed breakdown unavailable for this lead.</p>
+                                  )}
+                                </div>
+                              );
+                            })()}
 
                             <div className="flex items-center justify-between">
                               <div className="space-y-0.5">

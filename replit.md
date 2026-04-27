@@ -37,12 +37,22 @@ A master control panel / dashboard for managing Advisory Connect profiles, track
 - **Profile Picture**: Uploaded via multer to `/uploads/` directory, URL stored as `profilePicUrl`
 - Services stored as key arrays, displayed by name via constants in schema.ts
 
-## CIV Grading System
-Clients are auto-graded based on demographics:
-- **Gold**: Age 35-55+, R100k+ income, IT industry
-- **Silver**: Age 27-35, R65k+ income
-- **Bronze**: Age 18-27, R25k & below
-- **Development/Other**: Age 60+, call-back requests
+## CIV Grading System (Grader 2.0)
+Implemented in `shared/schema.ts` via `calculateLeadGrade(input)`. Returns `{ score, grade, temperature, breakdown }`. Score is out of 100, weighted across 5 categories:
+- **Income** (0-35): R100k+→35, R75k+→30, R50k+→25, R35k+→20, R20k+→12, R10k+→6
+- **Age** (0-20): 35-55→20, 28-65→14, 22+→8, <22→3
+- **Lifestyle** (0-20): married/children/vehicle/property = +5 each
+- **Services** (0-15): 4pts per service listed (capped at 15) + 3pt bonus for estate/will/retirement keywords
+- **Source** (0-10): Call Back→10, Will Request→7, Referral→5
+
+Grade thresholds: Gold ≥75, Silver ≥55, Bronze ≥35, Development <35.
+
+**Temperature** (independent axis, urgency/intent):
+- **Hot**: Call Back submissions
+- **Warm**: Will Request, OR Referral with rich client data (income or age)
+- **Cold**: Referral with minimal data, or unmatched
+
+CIV.tsx shows score/temperature pill under the grade selector and a full breakdown panel in the expanded detail row. New email rows store `leadScore`, `leadTemperature`, `gradeBreakdown` (JSON). Migration script: `scripts/recalculateLeads.ts` (idempotent, re-run anytime weights change).
 
 ## Key Features
 1. **Home** - Welcome message, quick stats summary, navigation cards

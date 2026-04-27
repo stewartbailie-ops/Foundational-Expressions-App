@@ -304,6 +304,10 @@ export const emails = pgTable("emails", {
   referrerRelation: text("referrer_relation"),
   source: text("source"),
   sourceProfileSlug: text("source_profile_slug"),
+  // Grader 2.0 fields — weighted scoring system
+  leadScore: integer("lead_score").default(0),
+  leadTemperature: text("lead_temperature").default("Cold"),
+  gradeBreakdown: text("grade_breakdown"), // JSON string of per-category points
   receivedAt: timestamp("received_at").defaultNow().notNull(),
   lastOpenedAt: timestamp("last_opened_at"),
 });
@@ -318,15 +322,129 @@ export type Email = typeof emails.$inferSelect;
 export const GRADE_OPTIONS = ["Gold", "Silver", "Bronze", "Development"] as const;
 export type GradeType = typeof GRADE_OPTIONS[number];
 
-export function autoGradeClient(age?: number | null, income?: string | null, _industry?: string | null): GradeType {
-  const incomeNum = parseIncomeToNumber(income);
+export const TEMPERATURE_OPTIONS = ["Hot", "Warm", "Cold"] as const;
+export type TemperatureType = typeof TEMPERATURE_OPTIONS[number];
 
-  if (age && age >= 60) return "Development";
-  if (incomeNum >= 75000) return "Gold";
-  if (incomeNum >= 45000) return "Silver";
-  if (incomeNum >= 15000) return "Bronze";
-  if (incomeNum > 0) return "Development";
-  return "Silver";
+// ============================================================================
+// Grader 2.0 — Weighted scoring system
+// ----------------------------------------------------------------------------
+// Score is out of 100, split across 5 categories:
+//   Income (0-35) + Age (0-20) + Lifestyle (0-20) + Services (0-15) + Source (0-10)
+// Grade thresholds: Gold ≥75, Silver ≥55, Bronze ≥35, Development <35.
+// Temperature is independent and reflects urgency/intent, not value.
+// ============================================================================
+
+export interface GraderInput {
+  age?: number | null;
+  income?: string | null;
+  married?: boolean | null;
+  children?: boolean | null;
+  vehicle?: boolean | null;
+  property?: boolean | null;
+  servicesRequested?: string | null;
+  type?: string | null; // "Call Back" | "Referral" | "Will Request"
+}
+
+export interface GradeBreakdown {
+  income: number;
+  age: number;
+  lifestyle: number;
+  services: number;
+  source: number;
+}
+
+export interface GraderResult {
+  score: number;
+  grade: GradeType;
+  temperature: TemperatureType;
+  breakdown: GradeBreakdown;
+}
+
+export function calculateLeadGrade(input: GraderInput): GraderResult {
+  // ── Income: 0-35 pts ──
+  const incomeNum = parseIncomeToNumber(input.income);
+  let incomePts = 0;
+  if (incomeNum >= 100000) incomePts = 35;
+  else if (incomeNum >= 75000) incomePts = 30;
+  else if (incomeNum >= 50000) incomePts = 25;
+  else if (incomeNum >= 35000) incomePts = 20;
+  else if (incomeNum >= 20000) incomePts = 12;
+  else if (incomeNum >= 10000) incomePts = 6;
+
+  // ── Age: 0-20 pts (FA sweet-spot: 35-55, working life: 28-65) ──
+  // Guard against null, 0, and bogus negative ages — only score real positive ages.
+  let agePts = 0;
+  if (typeof input.age === "number" && input.age > 0) {
+    if (input.age >= 35 && input.age <= 55) agePts = 20;
+    else if (input.age >= 28 && input.age <= 65) agePts = 14;
+    else if (input.age >= 22) agePts = 8;
+    else agePts = 3;
+  }
+
+  // ── Lifestyle complexity: 0-20 pts (life events drive financial planning needs) ──
+  let lifestylePts = 0;
+  if (input.married) lifestylePts += 5;
+  if (input.children) lifestylePts += 5;
+  if (input.vehicle) lifestylePts += 5;
+  if (input.property) lifestylePts += 5;
+
+  // ── Services complexity: 0-15 pts ──
+  let servicesPts = 0;
+  if (input.servicesRequested) {
+    const services = input.servicesRequested.toLowerCase();
+    const count = services.split(",").map(s => s.trim()).filter(Boolean).length;
+    servicesPts = Math.min(15, count * 4);
+    // Bonus for high-value service signals
+    if (services.includes("estate") || services.includes("will") || services.includes("retirement")) {
+      servicesPts = Math.min(15, servicesPts + 3);
+    }
+  }
+
+  // ── Source quality: 0-10 pts (intent signal embedded in submission type) ──
+  let sourcePts = 5;
+  const type = (input.type || "").toLowerCase();
+  if (type.includes("callback") || type.includes("call back")) sourcePts = 10;
+  else if (type.includes("will")) sourcePts = 7;
+  else if (type.includes("referral")) sourcePts = 5;
+
+  const score = incomePts + agePts + lifestylePts + servicesPts + sourcePts;
+
+  // ── Grade ──
+  let grade: GradeType;
+  if (score >= 75) grade = "Gold";
+  else if (score >= 55) grade = "Silver";
+  else if (score >= 35) grade = "Bronze";
+  else grade = "Development";
+
+  // ── Temperature: separate axis, primarily about urgency/intent ──
+  let temperature: TemperatureType = "Cold";
+  if (type.includes("callback") || type.includes("call back")) {
+    temperature = "Hot";
+  } else if (type.includes("will")) {
+    temperature = "Warm";
+  } else if (type.includes("referral")) {
+    // Referrals are warm if they came in with rich client data, cold if minimal
+    if (incomeNum > 0 || input.age) temperature = "Warm";
+  }
+
+  return {
+    score,
+    grade,
+    temperature,
+    breakdown: {
+      income: incomePts,
+      age: agePts,
+      lifestyle: lifestylePts,
+      services: servicesPts,
+      source: sourcePts,
+    },
+  };
+}
+
+// Backwards-compatible wrapper — kept so any legacy caller without the full
+// lead object still works. Prefer calculateLeadGrade() in new code.
+export function autoGradeClient(age?: number | null, income?: string | null, _industry?: string | null): GradeType {
+  return calculateLeadGrade({ age, income }).grade;
 }
 
 function parseIncomeToNumber(income?: string | null): number {

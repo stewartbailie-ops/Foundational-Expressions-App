@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
 import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
 import multer from "multer";
@@ -428,9 +428,21 @@ export async function registerRoutes(
     const parsed = insertEmailSchema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     const data: any = parsed.data;
-    if (!data.grade || data.grade === "Silver") {
-      data.grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
-    }
+    // Always recalculate via Grader 2.0 — uses full lead context (age, income, lifestyle, services, type)
+    const result = calculateLeadGrade({
+      age: data.clientAge,
+      income: data.clientIncome,
+      married: data.clientMarried,
+      children: data.clientChildren,
+      vehicle: data.clientVehicle,
+      property: data.clientProperty,
+      servicesRequested: data.servicesRequested,
+      type: data.type,
+    });
+    data.grade = result.grade;
+    data.leadScore = result.score;
+    data.leadTemperature = result.temperature;
+    data.gradeBreakdown = JSON.stringify(result.breakdown);
     if (req.body?.receivedAt) {
       const d = new Date(req.body.receivedAt);
       if (!isNaN(d.getTime())) data.receivedAt = d;
@@ -445,9 +457,20 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
     const data: any = parsed.data;
-    if (!data.grade || data.grade === "Silver") {
-      data.grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
-    }
+    const result = calculateLeadGrade({
+      age: data.clientAge,
+      income: data.clientIncome,
+      married: data.clientMarried,
+      children: data.clientChildren,
+      vehicle: data.clientVehicle,
+      property: data.clientProperty,
+      servicesRequested: data.servicesRequested,
+      type: data.type,
+    });
+    data.grade = result.grade;
+    data.leadScore = result.score;
+    data.leadTemperature = result.temperature;
+    data.gradeBreakdown = JSON.stringify(result.breakdown);
     if (req.body?.receivedAt) {
       const d = new Date(req.body.receivedAt);
       if (!isNaN(d.getTime())) data.receivedAt = d;
@@ -527,14 +550,26 @@ export async function registerRoutes(
           return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
         }
       }
-      const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry);
+      const result = calculateLeadGrade({
+        age: data.clientAge,
+        income: data.clientIncome,
+        married: data.clientMarried,
+        children: data.clientChildren,
+        vehicle: data.clientVehicle,
+        property: data.clientProperty,
+        servicesRequested: data.servicesRequested,
+        type: "Referral",
+      });
 
       const email = await storage.createEmail({
         advisorId: data.advisorId,
         senderName: data.clientName,
         senderEmail: data.clientEmail || "",
         type: "Referral",
-        grade,
+        grade: result.grade,
+        leadScore: result.score,
+        leadTemperature: result.temperature,
+        gradeBreakdown: JSON.stringify(result.breakdown),
         subject: `Referral from ${data.source || "advisor app"}`,
         body: data.message || "",
         clientAge: data.clientAge,
@@ -571,7 +606,7 @@ export async function registerRoutes(
             <p><strong>Age:</strong> ${data.clientAge || "Not provided"}</p>
             <p><strong>Income:</strong> ${data.clientIncome || "Not provided"}</p>
             <p><strong>Industry:</strong> ${data.clientIndustry || "Not provided"}</p>
-            <p><strong>Grade:</strong> ${grade}</p>
+            <p><strong>Grade:</strong> ${result.grade} (${result.score}/100, ${result.temperature})</p>
             ${servicesText}
             ${referrerText}
             <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
@@ -583,7 +618,7 @@ export async function registerRoutes(
         }
       }
 
-      res.status(201).json({ message: "Referral received", grade, email });
+      res.status(201).json({ message: "Referral received", grade: result.grade, score: result.score, temperature: result.temperature, email });
     } catch (error) {
       console.error("Referral error:", error);
       res.status(500).json({ message: "Failed to process referral" });
@@ -625,14 +660,26 @@ export async function registerRoutes(
           return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
         }
       }
-      const grade = autoGradeClient(data.clientAge, data.clientIncome, data.clientIndustry || null);
+      const result = calculateLeadGrade({
+        age: data.clientAge,
+        income: data.clientIncome,
+        married: data.clientMarried,
+        children: data.clientChildren,
+        vehicle: data.clientVehicle,
+        property: data.clientProperty,
+        servicesRequested: data.servicesRequested,
+        type: "Call Back",
+      });
 
       const email = await storage.createEmail({
         advisorId: data.advisorId,
         senderName: data.clientName,
         senderEmail: data.clientEmail || "",
         type: "Call Back",
-        grade,
+        grade: result.grade,
+        leadScore: result.score,
+        leadTemperature: result.temperature,
+        gradeBreakdown: JSON.stringify(result.breakdown),
         subject: `Call back request from ${data.source || "advisor app"}`,
         body: data.message || "",
         clientAge: data.clientAge,
@@ -664,7 +711,7 @@ export async function registerRoutes(
             <p><strong>Age:</strong> ${data.clientAge || "Not provided"}</p>
             <p><strong>Income:</strong> ${data.clientIncome || "Not provided"}</p>
             <p><strong>Industry:</strong> ${data.clientIndustry || "Not provided"}</p>
-            <p><strong>Grade:</strong> ${grade}</p>
+            <p><strong>Grade:</strong> ${result.grade} (${result.score}/100, ${result.temperature})</p>
             ${servicesText}
             <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
             <hr/>
@@ -675,7 +722,7 @@ export async function registerRoutes(
         }
       }
 
-      res.status(201).json({ message: "Callback request received", grade, email });
+      res.status(201).json({ message: "Callback request received", grade: result.grade, score: result.score, temperature: result.temperature, email });
     } catch (error) {
       console.error("Callback error:", error);
       res.status(500).json({ message: "Failed to process callback" });
@@ -716,15 +763,35 @@ export async function registerRoutes(
         data.address && `Address: ${data.address}`,
       ].filter(Boolean).join(" | ");
 
+      // Will requests rarely include income/age — let the grader handle missing fields.
+      // Marital status and children inform the lifestyle component.
+      const married = data.maritalStatus
+        ? /married|spouse/i.test(data.maritalStatus)
+        : null;
+      const children = data.numberOfChildren
+        ? !/^0$|^none$|^no$/i.test(data.numberOfChildren.trim())
+        : null;
+      const result = calculateLeadGrade({
+        married,
+        children,
+        servicesRequested: "Estate Planning, Will",
+        type: "Will Request",
+      });
+
       const email = await storage.createEmail({
         advisorId: data.advisorId,
         senderName: data.fullName,
         senderEmail: data.email || "",
         type: "Will Request",
-        grade: "Silver",
+        grade: result.grade,
+        leadScore: result.score,
+        leadTemperature: result.temperature,
+        gradeBreakdown: JSON.stringify(result.breakdown),
         subject: `Complimentary Will Request from ${data.fullName}`,
         body: details,
         clientPhone: data.phone,
+        clientMarried: married,
+        clientChildren: children,
         source: data.source || "will-form",
         sourceProfileSlug: data.sourceProfileSlug,
       });
@@ -792,14 +859,18 @@ export async function registerRoutes(
                           emailBody.toLowerCase().includes("request a call");
       const type = isCallBack ? "Call Back" : "Referral";
 
-      const grade = autoGradeClient(null, null, null);
+      // Inbound email — no client data, so grade reflects only the type signal
+      const result = calculateLeadGrade({ type });
 
       await storage.createEmail({
         advisorId: targetAdvisor.id,
         senderName,
         senderEmail,
         type,
-        grade,
+        grade: result.grade,
+        leadScore: result.score,
+        leadTemperature: result.temperature,
+        gradeBreakdown: JSON.stringify(result.breakdown),
         subject,
         body: emailBody,
         source: "zoho",
@@ -838,14 +909,17 @@ export async function registerRoutes(
                           (subject || "").toLowerCase().includes("callback");
       const type = isCallBack ? "Call Back" : "Referral";
 
-      const grade = autoGradeClient(null, null, null);
+      const result = calculateLeadGrade({ type });
 
       await storage.createEmail({
         advisorId: targetAdvisor.id,
         senderName,
         senderEmail,
         type,
-        grade,
+        grade: result.grade,
+        leadScore: result.score,
+        leadTemperature: result.temperature,
+        gradeBreakdown: JSON.stringify(result.breakdown),
         subject: subject || "",
         body: body || "",
         source: "sendgrid",

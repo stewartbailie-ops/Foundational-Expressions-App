@@ -212,6 +212,10 @@ export class DatabaseStorage implements IStorage {
         referrerPhone: emails.referrerPhone,
         referrerRelation: emails.referrerRelation,
         source: emails.source,
+        sourceProfileSlug: emails.sourceProfileSlug,
+        leadScore: emails.leadScore,
+        leadTemperature: emails.leadTemperature,
+        gradeBreakdown: emails.gradeBreakdown,
         receivedAt: emails.receivedAt,
         lastOpenedAt: emails.lastOpenedAt,
         advisorName: advisors.name,
@@ -298,6 +302,14 @@ export class DatabaseStorage implements IStorage {
 
   async updateEmailGrade(id: number, grade: string): Promise<Email | undefined> {
     const [updated] = await db.update(emails).set({ grade }).where(eq(emails.id, id)).returning();
+    return updated;
+  }
+
+  async updateEmailGrading(
+    id: number,
+    fields: { grade: string; leadScore: number; leadTemperature: string; gradeBreakdown: string }
+  ): Promise<Email | undefined> {
+    const [updated] = await db.update(emails).set(fields).where(eq(emails.id, id)).returning();
     return updated;
   }
 
