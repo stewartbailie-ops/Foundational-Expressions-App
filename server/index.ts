@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
+import helmet from "helmet";
 import session from "express-session";
 import { registerRoutes, registerOgImageRoute } from "./routes";
 import { serveStatic } from "./static";
@@ -14,6 +15,23 @@ const httpServer = createServer(app);
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
+
+app.use(
+  helmet({
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://www.google.com", "https://www.gstatic.com"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
+        imgSrc: ["'self'", "data:", "https:"],
+        frameSrc: ["https://www.google.com"],
+        connectSrc: ["'self'", "https:"],
+      },
+    },
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 if (!fs.existsSync("uploads")) {
   fs.mkdirSync("uploads", { recursive: true });

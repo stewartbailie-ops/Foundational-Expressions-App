@@ -7,6 +7,11 @@ import { z } from "zod";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import rateLimit from "express-rate-limit";
+
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
+const advisorLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
+const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many OTP attempts. Please try again in 15 minutes." } });
 
 const safeUrlField = z
   .string()
@@ -175,7 +180,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
-  app.post("/api/auth/login", async (req, res) => {
+  app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
@@ -993,7 +998,7 @@ export async function registerRoutes(
   });
 
   // Verify email OTP (one-time) — marks account as verified and starts session
-  app.post("/api/advisor-auth/:slug/verify-otp", async (req, res) => {
+  app.post("/api/advisor-auth/:slug/verify-otp", otpLimiter, async (req, res) => {
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: "Code required" });
     const entry = otpStore.get(req.params.slug);
@@ -1108,7 +1113,7 @@ export async function registerRoutes(
   });
 
   // Standard login: email + password
-  app.post("/api/advisor-auth/:slug/login", async (req, res) => {
+  app.post("/api/advisor-auth/:slug/login", advisorLoginLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
