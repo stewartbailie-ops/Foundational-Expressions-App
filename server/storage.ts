@@ -18,6 +18,7 @@ export interface IStorage {
   deleteAdvisorProfile(id: number): Promise<boolean>;
 
   getEmails(): Promise<(Email & { advisorName: string })[]>;
+  getEmailById(id: number): Promise<Email | undefined>;
   getEmailsByAdvisor(advisorId: number): Promise<Email[]>;
   createEmail(email: InsertEmail): Promise<Email>;
   updateEmailGrade(id: number, grade: string): Promise<Email | undefined>;
@@ -228,6 +229,11 @@ export class DatabaseStorage implements IStorage {
       ...r,
       advisorName: r.advisorName ?? "Unknown",
     }));
+  }
+
+  async getEmailById(id: number): Promise<Email | undefined> {
+    const [email] = await db.select().from(emails).where(eq(emails.id, id));
+    return email;
   }
 
   async getEmailsByAdvisor(advisorId: number): Promise<Email[]> {

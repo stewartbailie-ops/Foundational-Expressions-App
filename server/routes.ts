@@ -55,6 +55,13 @@ async function canAccessAdvisor(req: import("express").Request, advisorId: numbe
   return !!session?.[`advisor_${advisor.profileSlug}`];
 }
 
+// Returns true if the session can read/mutate a specific lead (admin or the lead's own advisor).
+async function canAccessLead(req: import("express").Request, leadId: number): Promise<boolean> {
+  const email = await storage.getEmailById(leadId);
+  if (!email) return false;
+  return canAccessAdvisor(req, email.advisorId);
+}
+
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
 }
@@ -391,7 +398,10 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
-  app.get("/api/emails", async (_req, res) => {
+  app.get("/api/emails", async (req, res) => {
+    if (!(req.session as any)?.authenticated) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const emails = await storage.getEmails();
     res.json(emails);
   });
@@ -564,6 +574,9 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/grade", async (req, res) => {
+    if (!await canAccessLead(req, Number(req.params.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const { grade } = req.body;
     if (!grade || !GRADE_OPTIONS.includes(grade)) {
       return res.status(400).json({ message: `grade must be one of: ${GRADE_OPTIONS.join(", ")}` });
@@ -574,6 +587,9 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/status", async (req, res) => {
+    if (!await canAccessLead(req, Number(req.params.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const { leadStatus } = req.body;
     if (!leadStatus || !LEAD_STATUS_OPTIONS.includes(leadStatus)) {
       return res.status(400).json({ message: `leadStatus must be one of: ${LEAD_STATUS_OPTIONS.join(", ")}` });
@@ -584,12 +600,18 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/open", async (req, res) => {
+    if (!await canAccessLead(req, Number(req.params.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const updated = await storage.updateEmailOpened(Number(req.params.id));
     if (!updated) return res.status(404).json({ message: "Email not found" });
     res.json(updated);
   });
 
   app.delete("/api/emails/:id", async (req, res) => {
+    if (!await canAccessLead(req, Number(req.params.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const deleted = await storage.deleteEmail(Number(req.params.id));
     if (!deleted) return res.status(404).json({ message: "Email not found" });
     res.json({ message: "Deleted" });
