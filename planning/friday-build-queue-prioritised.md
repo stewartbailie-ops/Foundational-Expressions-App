@@ -40,8 +40,11 @@
 8. **W3.1** — Profile button area cleanup / grouping
    - Do before contact card work so layout is settled
 
-9. **W3.2** — Contact card platform toggles
-   - Builds on clean button area from W3.1
+9. **W3.2** — Platforms section on public contact card
+   - The Platforms section (My Liberty, Stanlib, SigningHub etc.) currently only appears in the advisor panel
+   - It needs to be displayed on the advisor's public-facing contact card as well
+   - Each platform must be individually toggleable (show/hide per platform) from the advisor panel edit settings
+   - Advisors control which platforms their clients see on the public card
 
 10. **W2.8** — "Add to Home Screen" prompt / link in advisor panel
     - Short task, fits naturally after contact card polish
