@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Loader2, CheckCircle2, ArrowLeft, FileText, AlertCircle, Check } from "lucide-react";
+import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { apiRequest } from "@/lib/queryClient";
@@ -44,6 +45,9 @@ export default function WillForm() {
   const [incomeRange, setIncomeRange] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaFailed, setRecaptchaFailed] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
@@ -64,12 +68,15 @@ export default function WillForm() {
         incomeRange: incomeRange || undefined,
         source: `claim-will/${slug}`,
         sourceProfileSlug: slug || undefined,
+        recaptchaToken: recaptchaToken ?? undefined,
       });
     },
     onSuccess: () => setSubmitted(true),
+    onError: () => { recaptchaRef.current?.reset(); setRecaptchaToken(null); },
   });
 
-  const canSubmit = firstName.trim().length > 0 && surname.trim().length > 0 && confirmed && !submitMutation.isPending;
+  const needsCaptcha = !recaptchaFailed && !!import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  const canSubmit = firstName.trim().length > 0 && surname.trim().length > 0 && confirmed && !submitMutation.isPending && (!needsCaptcha || !!recaptchaToken);
 
   const inputStyle: React.CSSProperties = {
     backgroundColor: tc.inputBg,
@@ -348,6 +355,19 @@ export default function WillForm() {
             </p>
           </div>
         </div>
+
+        {!recaptchaFailed && import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+          <div className="flex justify-center" data-testid="recaptcha-will">
+            <ReCAPTCHA
+              ref={recaptchaRef}
+              sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+              theme="dark"
+              onChange={(token) => setRecaptchaToken(token)}
+              onExpired={() => setRecaptchaToken(null)}
+              onErrored={() => setRecaptchaFailed(true)}
+            />
+          </div>
+        )}
 
         {submitMutation.isError && (
           <div className="rounded-xl p-3 text-xs text-red-400 flex items-center gap-2" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>

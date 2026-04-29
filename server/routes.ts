@@ -851,6 +851,7 @@ export async function registerRoutes(
         address: z.string().optional(),
         source: z.string().optional(),
         sourceProfileSlug: z.string().optional(),
+        recaptchaToken: z.string().optional(),
       });
 
       const parsed = schema.safeParse(req.body);
@@ -859,6 +860,13 @@ export async function registerRoutes(
       }
 
       const data = parsed.data;
+
+      if (data.recaptchaToken) {
+        const valid = await verifyRecaptcha(data.recaptchaToken);
+        if (!valid) {
+          return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
+        }
+      }
       const details = [
         data.idNumber && `ID: ${data.idNumber}`,
         data.dateOfBirth && `DOB: ${data.dateOfBirth}`,
