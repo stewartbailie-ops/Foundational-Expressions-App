@@ -309,7 +309,13 @@ export const emails = pgTable("emails", {
   leadTemperature: text("lead_temperature").default("Cold"),
   gradeBreakdown: text("grade_breakdown"), // JSON string of per-category points
   receivedAt: timestamp("received_at").defaultNow().notNull(),
+  // Admin tracking — updated when admin opens the lead in CIV
   lastOpenedAt: timestamp("last_opened_at"),
+  // Advisor tracking — updated when the advisor themselves opens the lead in their panel
+  firstViewedAt: timestamp("first_viewed_at"),
+  lastViewedAt: timestamp("last_viewed_at"),
+  // Set when leadStatus transitions to "Archive", cleared when transitioning out
+  archivedAt: timestamp("archived_at"),
 });
 
 export const insertEmailSchema = createInsertSchema(emails).omit({

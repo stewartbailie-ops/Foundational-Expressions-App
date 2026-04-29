@@ -854,6 +854,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
 function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [viewMode, setViewMode] = useState<"active" | "archived">("active");
   const toggleExpanded = (id: number) => {
     setExpandedIds(prev => {
       const next = new Set(prev);
@@ -925,10 +926,17 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const GRADE_RANK: Record<string, number> = { "Gold": 0, "Silver": 1, "Bronze": 2, "Development": 3 };
   const STATUS_RANK: Record<string, number> = { "Need to Contact": 0, "Contacted": 1, "Archive": 2 };
 
-  const filtered = leads
+  // Split into active vs archived once so the top tabs can show counts and we
+  // never mix archived leads into the active list.
+  const activeLeads = leads.filter(l => l.leadStatus !== "Archive");
+  const archivedLeads = leads.filter(l => l.leadStatus === "Archive");
+  const sourceLeads = viewMode === "archived" ? archivedLeads : activeLeads;
+
+  const filtered = sourceLeads
     .filter(l => {
       const matchType = typeFilter === "all" || l.type === typeFilter;
-      const matchStatus = statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
+      // Status filter only applies in active view (archived view is, by definition, all "Archive")
+      const matchStatus = viewMode === "archived" || statusFilter === "all" || (l.leadStatus || "Need to Contact") === statusFilter;
       const matchGrade = gradeFilter === "all" || (l.grade || "Silver") === gradeFilter;
       const q = search.toLowerCase();
       const matchSearch = q === "" ||
@@ -1016,8 +1024,14 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const statusCards = [
     { label: "Need to Contact", short: "To Contact", text: "#d97706", bg: "rgba(217,119,6,0.12)", border: "rgba(217,119,6,0.35)" },
     { label: "Contacted", short: "Contacted", text: "#059669", bg: "rgba(5,150,105,0.12)", border: "rgba(5,150,105,0.35)" },
-    { label: "Archive", short: "Archive", text: "#9ca3af", bg: "rgba(156,163,175,0.12)", border: "rgba(156,163,175,0.3)" },
   ];
+
+  // Hot/Warm/Cold colour palette — mirrors the CIV row glow language for consistency.
+  const tempBadge: Record<string, { text: string; bg: string; border: string }> = {
+    Hot:  { text: "#dc2626", bg: "rgba(220,38,38,0.10)",  border: "rgba(220,38,38,0.35)" },
+    Warm: { text: "#d97706", bg: "rgba(217,119,6,0.10)",  border: "rgba(217,119,6,0.35)" },
+    Cold: { text: "#0284c7", bg: "rgba(2,132,199,0.10)",  border: "rgba(2,132,199,0.35)" },
+  };
 
   return (
     <div className="space-y-4">
@@ -1062,6 +1076,37 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           </button>
         </div>
       )}
+      {/* Active / Archived top tab — Archive becomes a destination, not a status */}
+      <div className="flex items-center gap-1 border-b" style={{ borderColor: tc.borderColor }}>
+        {(["active", "archived"] as const).map(mode => {
+          const isOn = viewMode === mode;
+          const count = mode === "active" ? activeLeads.length : archivedLeads.length;
+          const label = mode === "active" ? "Active" : "Archived";
+          return (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                setExpandedIds(new Set());
+                if (mode === "archived") setStatusFilter("all");
+              }}
+              className="px-3 py-2 text-xs font-semibold transition-colors border-b-2 -mb-px flex items-center gap-1.5"
+              style={{
+                borderColor: isOn ? tc.accentColor : "transparent",
+                color: isOn ? tc.accentColor : tc.mutedText,
+              }}
+              data-testid={`tab-leads-${mode}`}
+            >
+              {label}
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full" style={{
+                backgroundColor: isOn ? tc.accentColor + "20" : tc.inputBg,
+                color: isOn ? tc.accentColor : tc.mutedText,
+              }}>{count}</span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="grid grid-cols-4 gap-2">
         {gradeCards.map(g => (
           <button key={g.label} onClick={() => setGradeFilter(gradeFilter === g.label ? "all" : g.label)}
@@ -1141,7 +1186,12 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             const tb = typeBadge[lead.type] || { text: tc.mutedText, bg: tc.inputBg };
             const currentStatus = lead.leadStatus || "Need to Contact";
             const gc = gradeColors[lead.grade || "Silver"] || gradeColors["Silver"];
-            const isUnread = !lead.lastOpenedAt;
+            // Unread now keyed off the advisor-only lastViewedAt — admin views in CIV
+            // no longer mark a lead as read on the advisor side.
+            const isUnread = !lead.lastViewedAt;
+            const temp = lead.leadTemperature || "Cold";
+            const tBadge = tempBadge[temp];
+            const score = typeof lead.leadScore === "number" ? lead.leadScore : null;
             const isExpanded = expandedIds.has(lead.id);
             const phone = lead.clientPhone?.replace(/[^0-9+]/g, "");
             const whatsappHref = phone ? `https://wa.me/${phone.startsWith("+") ? phone.slice(1) : phone}` : null;
@@ -1157,7 +1207,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                   className="w-full flex items-center justify-between px-4 py-3.5 text-left transition-opacity active:opacity-70"
                   onClick={() => {
                     toggleExpanded(lead.id);
-                    if (!isExpanded && isUnread) openMutation.mutate(lead.id);
+                    if (!isExpanded) openMutation.mutate(lead.id);
                   }}
                   data-testid={`button-civ-row-${lead.id}`}
                 >
@@ -1178,15 +1228,41 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                         <span className="text-xs" style={{ color: tc.mutedText }}>
                           Received {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
                         </span>
-                        {lead.lastOpenedAt && (
+                        {lead.lastViewedAt && (
                           <span className="text-xs" style={{ color: tc.mutedText }}>
-                            · Last viewed {format(new Date(lead.lastOpenedAt), "dd MMM, HH:mm")}
+                            · Last viewed {format(new Date(lead.lastViewedAt), "dd MMM, HH:mm")}
+                          </span>
+                        )}
+                        {viewMode === "archived" && lead.archivedAt && (
+                          <span className="text-xs" style={{ color: tc.mutedText }}>
+                            · Archived {format(new Date(lead.archivedAt), "dd MMM yyyy")}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                    {/* Grader 2.0 — temperature pill + score; same colour language as CIV row glow */}
+                    {tBadge && (
+                      <span
+                        className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full uppercase tracking-wide"
+                        style={{ color: tBadge.text, backgroundColor: tBadge.bg, border: `1px solid ${tBadge.border}` }}
+                        data-testid={`badge-temp-${lead.id}`}
+                        title={`Lead temperature: ${temp}`}
+                      >
+                        {temp}
+                      </span>
+                    )}
+                    {score !== null && (
+                      <span
+                        className="text-[10px] font-semibold tabular-nums"
+                        style={{ color: tc.mutedText }}
+                        data-testid={`text-score-${lead.id}`}
+                        title="Lead score (out of 100)"
+                      >
+                        {score}
+                      </span>
+                    )}
                     <span className="text-xs font-semibold px-2 py-0.5 rounded-full" style={{ color: gc.text, backgroundColor: gc.bg }}>{lead.grade || "Silver"}</span>
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: statusColors[currentStatus] }} />
                     <ChevronRight
@@ -1318,8 +1394,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                     {/* Footer — viewed timestamp + delete */}
                     <div className="flex items-center justify-between pt-1">
                       <div className="text-xs" style={{ color: tc.mutedText }}>
-                        {lead.lastOpenedAt
-                          ? <>Last viewed {format(new Date(lead.lastOpenedAt), "dd MMM yyyy, HH:mm")}</>
+                        {lead.lastViewedAt
+                          ? <>Last viewed {format(new Date(lead.lastViewedAt), "dd MMM yyyy, HH:mm")}</>
                           : <>Opened just now</>}
                       </div>
                       <button
@@ -5797,7 +5873,9 @@ export default function AdvisorPanel() {
     queryKey: [`/api/advisors/${slug}/emails`],
     enabled: !!slug && authState === "authenticated",
   });
-  const unreadCount = panelLeads.filter(l => !l.lastOpenedAt).length;
+  // Use the advisor-only lastViewedAt for the unread badge — admin views in CIV
+  // no longer mark a lead as read on the advisor side.
+  const unreadCount = panelLeads.filter(l => !l.lastViewedAt).length;
 
   useEffect(() => {
     if (!slug) return;
