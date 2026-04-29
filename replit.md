@@ -37,6 +37,19 @@ A master control panel / dashboard for managing Advisory Connect profiles, track
 - **Profile Picture**: Uploaded via multer to `/uploads/` directory, URL stored as `profilePicUrl`
 - Services stored as key arrays, displayed by name via constants in schema.ts
 
+## Phase 2 Build Queue (April 2026, completed)
+- **W2.6 — Enhanced timestamps**: Added `firstViewedAt`, `lastViewedAt`, `archivedAt` to `emails` table.
+  - `PATCH /api/emails/:id/open` branches on `req.session.authenticated`: admin sessions still bump `lastOpenedAt` only; advisor sessions bump `firstViewedAt` (if null) + `lastViewedAt`. Admin views in CIV no longer pollute the advisor's view tracking.
+  - Storage: new `updateEmailViewedByAdvisor(id)` method. `updateEmailStatus` now sets `archivedAt = now()` on transition INTO Archive and clears it on transition OUT.
+  - AdvisorPanel: `isUnread` and panel-root `unreadCount` now key off `lastViewedAt`. "Last viewed" labels swapped accordingly.
+  - CIV `lastOpenedAt` semantics unchanged (admin tracking).
+- **W2.5 — Lead Registry archiving tab**: Both CIV and AdvisorPanel now have a top-level Active / Archived tab pair.
+  - Archived leads (`leadStatus === "Archive"`) are hidden from the active view by default.
+  - "Archive" card removed from the 3-card status filter row in active mode (now 2 cards: Need to Contact, Contacted). Status row hidden entirely in archived view.
+  - Archived rows show the `archivedAt` date alongside `receivedAt`.
+  - Switching to Archived view resets statusFilter and clears expanded rows.
+- **W3.6 — Grader 2.0 indicators on sub-profiles**: AdvisorPanel lead card headers now show a Hot/Warm/Cold temperature pill (red/amber/sky — same colour language as CIV W2.9 row glow) plus the numeric `leadScore` next to the existing Grade badge. Both fields read directly from the data already populated by Grader 2.0; no scoring changes.
+
 ## Phase 1 Build Queue (April 2026, completed)
 - **W2.9 — Lead temperature glow**: CIV row tint + 4px coloured left bar from `tempRowGlow`/`tempCellAccent` (Hot=red, Warm=amber, Cold=sky), driven by `email.leadTemperature`. Falls back to default hover when null.
 - **W2.7 — CSV export**: `GET /api/emails/export.csv` (admin-session protected). Returns UTF-8 BOM + comma CSV with all 30 lead fields. Cells starting with `=`, `+`, `-`, `@` are prefixed with `'` to neutralise CSV-formula injection in Excel/Sheets. Frontend "Export CSV" button in CIV header.

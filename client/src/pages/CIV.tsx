@@ -41,6 +41,9 @@ type EmailRow = {
   gradeBreakdown: string | null;
   receivedAt: string;
   lastOpenedAt: string | null;
+  firstViewedAt: string | null;
+  lastViewedAt: string | null;
+  archivedAt: string | null;
   advisorName: string;
 };
 
@@ -119,6 +122,7 @@ export default function CIV() {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [viewMode, setViewMode] = useState<"active" | "archived">("active");
 
   const toggleSort = (key: string) => {
     if (sortKey === key) {
@@ -176,7 +180,13 @@ export default function CIV() {
     }
   };
 
-  const filteredBase = emails.filter((e) => {
+  // Split active vs archived once so we can show counts on the top tabs and
+  // hide archived leads from every other view.
+  const activeEmails = emails.filter(e => e.leadStatus !== "Archive");
+  const archivedEmails = emails.filter(e => e.leadStatus === "Archive");
+  const sourceEmails = viewMode === "archived" ? archivedEmails : activeEmails;
+
+  const filteredBase = sourceEmails.filter((e) => {
     const matchSearch = search === "" ||
       e.senderName.toLowerCase().includes(search.toLowerCase()) ||
       e.senderEmail.toLowerCase().includes(search.toLowerCase()) ||
@@ -185,7 +195,8 @@ export default function CIV() {
       (e.referrerName || "").toLowerCase().includes(search.toLowerCase());
     const matchGrade = gradeFilter === "all" || (e.grade || "").toLowerCase() === gradeFilter.toLowerCase();
     const matchType = typeFilter === "all" || e.type === typeFilter;
-    const matchStatus = statusFilter === "all" || (e.leadStatus || "Need to Contact") === statusFilter;
+    // Status filter only applies in active view (archived view is, by definition, all "Archive")
+    const matchStatus = viewMode === "archived" || statusFilter === "all" || (e.leadStatus || "Need to Contact") === statusFilter;
     const received = new Date(e.receivedAt).getTime();
     const matchDateFrom = !dateFrom || received >= new Date(dateFrom + "T00:00:00").getTime();
     const matchDateTo = !dateTo || received <= new Date(dateTo + "T23:59:59").getTime();
@@ -226,14 +237,15 @@ export default function CIV() {
     "Will Request": emails.filter(e => e.type === "Will Request").length,
   };
 
+  // Status counts are scoped to active leads — Archive becomes a top-level tab, not a status card.
   const statusCounts = {
-    "Need to Contact": emails.filter(e => !e.leadStatus || e.leadStatus === "Need to Contact").length,
-    "Contacted": emails.filter(e => e.leadStatus === "Contacted").length,
-    "Archive": emails.filter(e => e.leadStatus === "Archive").length,
+    "Need to Contact": activeEmails.filter(e => !e.leadStatus || e.leadStatus === "Need to Contact").length,
+    "Contacted": activeEmails.filter(e => e.leadStatus === "Contacted").length,
   };
 
   const hasActiveFilter = gradeFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || dateFrom !== "" || dateTo !== "";
-  const unreadCount = emails.filter(e => !e.lastOpenedAt).length;
+  // Unread badge is scoped to whatever view the admin is currently looking at.
+  const unreadCount = sourceEmails.filter(e => !e.lastOpenedAt).length;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -255,6 +267,40 @@ export default function CIV() {
           <Download className="h-4 w-4 mr-2" />
           Export CSV
         </Button>
+      </div>
+
+      {/* Active / Archived top-level view tabs */}
+      <div className="flex items-center gap-2 border-b border-border">
+        {(["active", "archived"] as const).map((mode) => {
+          const isActive = viewMode === mode;
+          const count = mode === "active" ? activeEmails.length : archivedEmails.length;
+          const label = mode === "active" ? "Active" : "Archived";
+          return (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                setExpandedId(null);
+                if (mode === "archived") setStatusFilter("all");
+              }}
+              className={`px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px ${
+                isActive
+                  ? "border-white text-white"
+                  : "border-transparent text-muted-foreground hover:text-white/80"
+              }`}
+              data-testid={`tab-view-${mode}`}
+            >
+              {label}
+              <span
+                className={`ml-2 inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs ${
+                  isActive ? "bg-white/15 text-white" : "bg-white/5 text-muted-foreground"
+                }`}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -282,24 +328,26 @@ export default function CIV() {
         ))}
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
-        {(["Need to Contact", "Contacted", "Archive"] as const).map((s) => (
-          <button
-            key={s}
-            onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
-            className={`rounded-xl p-3 text-left border transition-all ${
-              statusFilter === s ? "ring-2 ring-white shadow-md" : "hover:shadow-sm"
-            }`}
-            data-testid={`filter-status-${s.toLowerCase().replace(/ /g, "-")}`}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              <div className={`w-2 h-2 rounded-full ${statusDot[s]}`} />
-              <span className="text-xs font-semibold">{s}</span>
-            </div>
-            <div className="text-xl font-bold">{statusCounts[s]}</div>
-          </button>
-        ))}
-      </div>
+      {viewMode === "active" && (
+        <div className="grid grid-cols-2 gap-3">
+          {(["Need to Contact", "Contacted"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(statusFilter === s ? "all" : s)}
+              className={`rounded-xl p-3 text-left border transition-all ${
+                statusFilter === s ? "ring-2 ring-white shadow-md" : "hover:shadow-sm"
+              }`}
+              data-testid={`filter-status-${s.toLowerCase().replace(/ /g, "-")}`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-2 h-2 rounded-full ${statusDot[s]}`} />
+                <span className="text-xs font-semibold">{s}</span>
+              </div>
+              <div className="text-xl font-bold">{statusCounts[s]}</div>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative flex-1 md:max-w-sm">
@@ -477,6 +525,11 @@ export default function CIV() {
                           {format(new Date(email.receivedAt), "MMM d, yyyy")}
                           {email.lastOpenedAt && <Eye className="h-3 w-3 text-muted-foreground/50" />}
                         </div>
+                        {viewMode === "archived" && email.archivedAt && (
+                          <div className="text-xs text-muted-foreground/80 mt-0.5" data-testid={`text-archived-${email.id}`}>
+                            Archived {format(new Date(email.archivedAt), "MMM d, yyyy")}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="font-medium text-sm">{email.senderName}</div>

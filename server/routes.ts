@@ -600,10 +600,18 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/open", async (req, res) => {
-    if (!await canAccessLead(req, Number(req.params.id))) {
+    const id = Number(req.params.id);
+    if (!await canAccessLead(req, id)) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const updated = await storage.updateEmailOpened(Number(req.params.id));
+    // Branch on session type:
+    // - Master admin in CIV → only bumps lastOpenedAt (admin tracking)
+    // - Advisor in their own panel → bumps firstViewedAt (if null) + lastViewedAt
+    // This prevents admin views from polluting advisor-facing "Last viewed" timestamps.
+    const isAdmin = !!(req.session as any)?.authenticated;
+    const updated = isAdmin
+      ? await storage.updateEmailOpened(id)
+      : await storage.updateEmailViewedByAdvisor(id);
     if (!updated) return res.status(404).json({ message: "Email not found" });
     res.json(updated);
   });
