@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, Check, X, Trash2, Eye } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Check, X, Trash2, Eye, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -48,6 +48,18 @@ const tempStyles: Record<string, string> = {
   Hot: "bg-red-500/15 text-red-700 border-red-500/30",
   Warm: "bg-amber-500/15 text-amber-700 border-amber-500/30",
   Cold: "bg-sky-500/15 text-sky-700 border-sky-500/30",
+};
+
+const tempRowGlow: Record<string, string> = {
+  Hot: "bg-red-500/[0.04] hover:bg-red-500/[0.09]",
+  Warm: "bg-amber-500/[0.04] hover:bg-amber-500/[0.09]",
+  Cold: "bg-sky-500/[0.04] hover:bg-sky-500/[0.09]",
+};
+
+const tempCellAccent: Record<string, string> = {
+  Hot: "border-l-[4px] border-l-red-500 shadow-[inset_10px_0_10px_-8px_rgba(239,68,68,0.55)]",
+  Warm: "border-l-[4px] border-l-amber-500 shadow-[inset_10px_0_10px_-8px_rgba(245,158,11,0.55)]",
+  Cold: "border-l-[4px] border-l-sky-500 shadow-[inset_10px_0_10px_-8px_rgba(14,165,233,0.5)]",
 };
 
 function parseBreakdown(json: string | null): { income: number; age: number; lifestyle: number; services: number; source: number } | null {
@@ -102,7 +114,20 @@ export default function CIV() {
   const [gradeFilter, setGradeFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+
+  const toggleSort = (key: string) => {
+    if (sortKey === key) {
+      setSortDir(d => d === "asc" ? "desc" : "asc");
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  };
 
   const { data: emails = [], isLoading } = useQuery<EmailRow[]>({
     queryKey: ["/api/emails"],
@@ -151,7 +176,7 @@ export default function CIV() {
     }
   };
 
-  const filtered = emails.filter((e) => {
+  const filteredBase = emails.filter((e) => {
     const matchSearch = search === "" ||
       e.senderName.toLowerCase().includes(search.toLowerCase()) ||
       e.senderEmail.toLowerCase().includes(search.toLowerCase()) ||
@@ -161,8 +186,32 @@ export default function CIV() {
     const matchGrade = gradeFilter === "all" || (e.grade || "").toLowerCase() === gradeFilter.toLowerCase();
     const matchType = typeFilter === "all" || e.type === typeFilter;
     const matchStatus = statusFilter === "all" || (e.leadStatus || "Need to Contact") === statusFilter;
-    return matchSearch && matchGrade && matchType && matchStatus;
+    const received = new Date(e.receivedAt).getTime();
+    const matchDateFrom = !dateFrom || received >= new Date(dateFrom + "T00:00:00").getTime();
+    const matchDateTo = !dateTo || received <= new Date(dateTo + "T23:59:59").getTime();
+    return matchSearch && matchGrade && matchType && matchStatus && matchDateFrom && matchDateTo;
   });
+
+  const sortGetters: Record<string, (e: EmailRow) => string | number> = {
+    id: (e) => e.id,
+    date: (e) => new Date(e.receivedAt).getTime(),
+    client: (e) => (e.senderName || "").toLowerCase(),
+    advisor: (e) => (e.advisorName || "").toLowerCase(),
+    type: (e) => e.type || "",
+    age: (e) => e.clientAge ?? -Infinity,
+    income: (e) => (e.clientIncome || "").toLowerCase(),
+    grade: (e) => e.grade || "",
+    status: (e) => e.leadStatus || "",
+  };
+
+  const filtered = sortKey && sortGetters[sortKey]
+    ? [...filteredBase].sort((a, b) => {
+        const ga = sortGetters[sortKey](a);
+        const gb = sortGetters[sortKey](b);
+        const cmp = ga < gb ? -1 : ga > gb ? 1 : 0;
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : filteredBase;
 
   const gradeCounts = {
     Gold: emails.filter(e => e.grade === "Gold").length,
@@ -183,7 +232,8 @@ export default function CIV() {
     "Archive": emails.filter(e => e.leadStatus === "Archive").length,
   };
 
-  const hasActiveFilter = gradeFilter !== "all" || typeFilter !== "all" || statusFilter !== "all";
+  const hasActiveFilter = gradeFilter !== "all" || typeFilter !== "all" || statusFilter !== "all" || dateFrom !== "" || dateTo !== "";
+  const unreadCount = emails.filter(e => !e.lastOpenedAt).length;
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -194,6 +244,17 @@ export default function CIV() {
             Sort and grade all incoming client referrals, callbacks, and will requests.
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            window.location.href = "/api/emails/export.csv";
+          }}
+          data-testid="button-export-csv"
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -252,6 +313,35 @@ export default function CIV() {
             data-testid="input-search-civ"
           />
         </div>
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-muted-foreground">Received</span>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="h-9 w-[140px] border-0 text-white"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+            data-testid="input-date-from"
+          />
+          <span className="text-muted-foreground">to</span>
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="h-9 w-[140px] border-0 text-white"
+            style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
+            data-testid="input-date-to"
+          />
+        </div>
+        {unreadCount > 0 && (
+          <span
+            className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-300 border border-blue-500/30"
+            data-testid="text-unread-count"
+          >
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />
+            {unreadCount} unread
+          </span>
+        )}
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setTypeFilter(typeFilter === "Referral" ? "all" : "Referral")}
@@ -294,7 +384,7 @@ export default function CIV() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => { setGradeFilter("all"); setTypeFilter("all"); setStatusFilter("all"); }}
+            onClick={() => { setGradeFilter("all"); setTypeFilter("all"); setStatusFilter("all"); setDateFrom(""); setDateTo(""); }}
             data-testid="button-clear-filter"
           >
             Clear all filters
@@ -307,15 +397,34 @@ export default function CIV() {
           <Table>
             <TableHeader className="bg-muted/50">
               <TableRow className="border-border hover:bg-transparent">
-                <TableHead className="w-[60px]">ID</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Advisor</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Age</TableHead>
-                <TableHead>Income</TableHead>
-                <TableHead>Grade</TableHead>
-                <TableHead>Status</TableHead>
+                {([
+                  { key: "id", label: "ID", className: "w-[60px]" },
+                  { key: "date", label: "Date", className: "" },
+                  { key: "client", label: "Client", className: "" },
+                  { key: "advisor", label: "Advisor", className: "" },
+                  { key: "type", label: "Type", className: "" },
+                  { key: "age", label: "Age", className: "" },
+                  { key: "income", label: "Income", className: "" },
+                  { key: "grade", label: "Grade", className: "" },
+                  { key: "status", label: "Status", className: "" },
+                ]).map((h) => (
+                  <TableHead
+                    key={h.key}
+                    className={`cursor-pointer select-none ${h.className || ""}`}
+                    onDoubleClick={() => toggleSort(h.key)}
+                    title="Double-click to sort"
+                    data-testid={`header-sort-${h.key}`}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {h.label}
+                      {sortKey === h.key && (
+                        sortDir === "asc"
+                          ? <ChevronUp className="h-3 w-3" />
+                          : <ChevronDown className="h-3 w-3" />
+                      )}
+                    </span>
+                  </TableHead>
+                ))}
                 <TableHead className="w-[40px]"></TableHead>
               </TableRow>
             </TableHeader>
@@ -334,7 +443,11 @@ export default function CIV() {
                 filtered.map((email) => (
                   <Fragment key={email.id}>
                     <TableRow
-                      className="border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      className={`border-border transition-colors cursor-pointer ${
+                        email.leadTemperature && tempRowGlow[email.leadTemperature]
+                          ? tempRowGlow[email.leadTemperature]
+                          : "hover:bg-muted/50"
+                      }`}
                       data-testid={`row-email-${email.id}`}
                       onClick={() => {
                         const opening = expandedId !== email.id;
@@ -342,9 +455,25 @@ export default function CIV() {
                         if (opening) openMutation.mutate(email.id);
                       }}
                     >
-                      <TableCell className="font-mono text-xs text-muted-foreground">#{email.id}</TableCell>
-                      <TableCell className="text-sm whitespace-nowrap">
+                      <TableCell
+                        className={`font-mono text-xs text-muted-foreground ${
+                          email.leadTemperature && tempCellAccent[email.leadTemperature]
+                            ? tempCellAccent[email.leadTemperature]
+                            : ""
+                        }`}
+                        data-testid={`cell-temp-trim-${email.id}`}
+                      >
+                        #{email.id}
+                      </TableCell>
+                      <TableCell className={`text-sm whitespace-nowrap ${!email.lastOpenedAt ? "font-semibold" : ""}`}>
                         <div className="flex items-center gap-1.5">
+                          {!email.lastOpenedAt && (
+                            <span
+                              className="inline-block w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)] flex-shrink-0"
+                              title="Unread"
+                              data-testid={`dot-unread-${email.id}`}
+                            />
+                          )}
                           {format(new Date(email.receivedAt), "MMM d, yyyy")}
                           {email.lastOpenedAt && <Eye className="h-3 w-3 text-muted-foreground/50" />}
                         </div>

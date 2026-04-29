@@ -396,6 +396,85 @@ export async function registerRoutes(
     res.json(emails);
   });
 
+  // Admin-only CSV export of all leads
+  app.get("/api/emails/export.csv", async (req, res) => {
+    if (!(req.session as any)?.authenticated) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const emails = await storage.getEmails();
+
+    const escape = (val: unknown): string => {
+      if (val === null || val === undefined) return "";
+      let s = String(val);
+      // Defuse CSV formula injection: prefix a leading =, +, -, @, tab or CR
+      // with an apostrophe so spreadsheets treat the cell as text, not a formula.
+      if (/^[=+\-@\t\r]/.test(s)) {
+        s = "'" + s;
+      }
+      if (/[",\r\n]/.test(s)) {
+        return `"${s.replace(/"/g, '""')}"`;
+      }
+      return s;
+    };
+
+    const yesNo = (v: boolean | null | undefined): string =>
+      v === true ? "Yes" : v === false ? "No" : "";
+
+    const headers = [
+      "ID", "Received", "Type", "Sender Name", "Sender Email", "Phone",
+      "Advisor", "Age", "Income", "Industry",
+      "Married", "Children", "Vehicle", "Property",
+      "Services Requested", "Preferred Contact Time",
+      "Source", "Source Profile",
+      "Score", "Grade", "Temperature",
+      "Status", "Last Opened",
+      "Subject", "Message",
+      "Referrer Name", "Referrer Email", "Referrer Phone", "Referrer Relation",
+    ];
+
+    const rows = emails.map((e: any) => [
+      e.id,
+      e.receivedAt ? new Date(e.receivedAt).toISOString() : "",
+      e.type,
+      e.senderName,
+      e.senderEmail,
+      e.clientPhone,
+      e.advisorName,
+      e.clientAge,
+      e.clientIncome,
+      e.clientIndustry,
+      yesNo(e.clientMarried),
+      yesNo(e.clientChildren),
+      yesNo(e.clientVehicle),
+      yesNo(e.clientProperty),
+      e.servicesRequested,
+      e.preferredContactTime,
+      e.source,
+      e.sourceProfileSlug,
+      e.leadScore,
+      e.grade,
+      e.leadTemperature,
+      e.leadStatus,
+      e.lastOpenedAt ? new Date(e.lastOpenedAt).toISOString() : "",
+      e.subject,
+      e.body,
+      e.referrerName,
+      e.referrerEmail,
+      e.referrerPhone,
+      e.referrerRelation,
+    ].map(escape).join(","));
+
+    const csv = [headers.join(","), ...rows].join("\r\n");
+    const bom = "\uFEFF"; // UTF-8 BOM so Excel reads accents correctly
+    const filename = `advisory-connect-leads-${new Date().toISOString().split("T")[0]}.csv`;
+
+    res.set("Content-Type", "text/csv; charset=utf-8");
+    res.set("Content-Disposition", `attachment; filename="${filename}"`);
+    res.set("Cache-Control", "no-store");
+    res.send(bom + csv);
+  });
+
   // Public demo-only lead wiper. Removes ALL leads for a single demo advisor.
   app.delete("/api/demo-emails/by-advisor/:id", async (req, res) => {
     const advisorId = Number(req.params.id);

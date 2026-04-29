@@ -37,6 +37,15 @@ A master control panel / dashboard for managing Advisory Connect profiles, track
 - **Profile Picture**: Uploaded via multer to `/uploads/` directory, URL stored as `profilePicUrl`
 - Services stored as key arrays, displayed by name via constants in schema.ts
 
+## Phase 1 Build Queue (April 2026, completed)
+- **W2.9 — Lead temperature glow**: CIV row tint + 4px coloured left bar from `tempRowGlow`/`tempCellAccent` (Hot=red, Warm=amber, Cold=sky), driven by `email.leadTemperature`. Falls back to default hover when null.
+- **W2.7 — CSV export**: `GET /api/emails/export.csv` (admin-session protected). Returns UTF-8 BOM + comma CSV with all 30 lead fields. Cells starting with `=`, `+`, `-`, `@` are prefixed with `'` to neutralise CSV-formula injection in Excel/Sheets. Frontend "Export CSV" button in CIV header.
+- **W3.7 — Registry enhancements**: Double-click column headers to sort (toggles asc/desc, ChevronUp/Down indicator). Date range filter (from/to local-time inputs). Unread blue glowing dot + bold row text + total unread count badge. State held in CIV.tsx; date filter is local-time which matches the local-time row display.
+- **W1.3 — Bundle splitting**: `vite.config.ts` `build.rollupOptions.output.manualChunks` splits radix/lucide/forms/query/react-dom/react+wouter/date-fns/recharts into separate vendor chunks. `App.tsx` lazy-loads admin pages (HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, EditAdvisor) + low-traffic public pages (AdvisorPanel, LegalPage) inside a `<Suspense>` boundary. Hot-path public pages (AdvisorProfile, CallbackForm, ReferralForm, WillForm, Login) stay eager. Result: main chunk 1,567 → 371 kB (433 → 108 kB gzip). `chunkSizeWarningLimit` raised to 600.
+
+## Known Auth Gap (raised by code review, not yet fixed)
+`/api/emails` GET, `/api/emails/:id/grade`, `/api/emails/:id/status`, `/api/emails/:id/open`, `DELETE /api/emails/:id` are currently unprotected. CIV is admin-session-gated at the page level but the data endpoints aren't, so leads are technically world-readable via direct API. AdvisorPanel.tsx (`/advisor/:slug`) also calls the PATCH/DELETE endpoints, so locking them down requires building advisor-session auth (separate task). New CSV export endpoint IS admin-protected.
+
 ## CIV Grading System (Grader 2.0)
 Implemented in `shared/schema.ts` via `calculateLeadGrade(input)`. Returns `{ score, grade, temperature, breakdown }`. Score is out of 100, weighted across 5 categories:
 - **Income** (0-35): R100k+→35, R75k+→30, R50k+→25, R35k+→20, R20k+→12, R10k+→6

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -6,20 +6,31 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import { AppLayout } from "@/components/layout/AppLayout";
-import HomePage from "@/pages/HomePage";
-import Dashboard from "@/pages/Dashboard";
-import CIV from "@/pages/CIV";
-import ManageAdvisors from "@/pages/ManageAdvisors";
-import CreateAdvisor from "@/pages/CreateAdvisor";
-import EditAdvisor from "@/pages/EditAdvisor";
 import AdvisorProfile from "@/pages/AdvisorProfile";
 import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
-import AdvisorPanel from "@/pages/AdvisorPanel";
 import WillForm from "@/pages/WillForm";
 import Login from "@/pages/Login";
-import LegalPage from "@/pages/LegalPage";
 import { Loader2 } from "lucide-react";
+
+// Admin / authenticated pages — lazy-loaded so public visitors don't pay for them
+const HomePage = lazy(() => import("@/pages/HomePage"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const CIV = lazy(() => import("@/pages/CIV"));
+const ManageAdvisors = lazy(() => import("@/pages/ManageAdvisors"));
+const CreateAdvisor = lazy(() => import("@/pages/CreateAdvisor"));
+const EditAdvisor = lazy(() => import("@/pages/EditAdvisor"));
+// Less-trafficked public pages
+const AdvisorPanel = lazy(() => import("@/pages/AdvisorPanel"));
+const LegalPage = lazy(() => import("@/pages/LegalPage"));
+
+function PageFallback() {
+  return (
+    <div className="min-h-screen bg-black flex items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-white/30" />
+    </div>
+  );
+}
 
 function AuthGate({ children }: { children: React.ReactNode }) {
   const { data, isLoading, refetch } = useQuery<{ authenticated: boolean }>({
@@ -60,6 +71,7 @@ const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "
 
 function Router() {
   return (
+    <Suspense fallback={<PageFallback />}>
     <Switch>
       <Route path="/privacy-policy">{() => <LegalPage section="privacy" />}</Route>
       <Route path="/terms">{() => <LegalPage section="terms" />}</Route>
@@ -114,6 +126,7 @@ function Router() {
         </AuthGate>
       </Route>
     </Switch>
+    </Suspense>
   );
 }
 
