@@ -18,7 +18,7 @@ import { format } from "date-fns";
 import { NewsHero } from "@/components/NewsHero";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
-import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS } from "@shared/schema";
+import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
@@ -1715,6 +1715,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showFinancialMedia, setShowFinancialMedia] = useState(!!(advisor as any).showFinancialMedia);
   const [showTools, setShowTools] = useState(!!(advisor as any).showTools);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(advisor as any).showMoneywebFeed);
+  const [showLiberty, setShowLiberty] = useState(!!(advisor as any).showLiberty);
+  const [showStanlib, setShowStanlib] = useState(!!(advisor as any).showStanlib);
+  const [showSigninghub, setShowSigninghub] = useState(!!(advisor as any).showSigninghub);
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
@@ -1796,6 +1799,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showComplimentaryWill,
         showFinancialMedia,
         showMoneywebFeed,
+        showLiberty,
+        showStanlib,
+        showSigninghub,
         showTools,
         showToolTax,
         showToolExchange,
@@ -2279,6 +2285,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
+          { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
+          { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
+          { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -5229,33 +5238,21 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   );
 }
 
+const PLATFORM_ICON_MAP: Record<string, any> = {
+  liberty: Building2,
+  stanlib: TrendingUp,
+  signinghub: FileCheck,
+};
+
 function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
-  const platforms = [
-    {
-      key: "liberty",
-      name: "My Liberty",
-      description: "Access your Liberty client portal — policies, statements, and account management.",
-      url: "https://myliberty.liberty.co.za/logon",
-      color: "#e31837",
-      Icon: Building2,
-    },
-    {
-      key: "stanlib",
-      name: "Stanlib",
-      description: "Log in to the Stanlib investment platform — fund performance and portfolio access.",
-      url: "https://login.stanlib.com/Account/Login",
-      color: "#003087",
-      Icon: TrendingUp,
-    },
-    {
-      key: "signinghub",
-      name: "SigningHub",
-      description: "Send, sign and track digital documents — secure e-signatures for client paperwork.",
-      url: "https://web.signinghub.com/",
-      color: "#1f7a4d",
-      Icon: FileCheck,
-    },
-  ];
+  const platforms = PLATFORMS_META.map(p => ({
+    key: p.key,
+    name: p.name,
+    description: p.description,
+    url: p.url,
+    color: p.colorHex,
+    Icon: PLATFORM_ICON_MAP[p.key],
+  }));
 
   return (
     <div className="space-y-4">
@@ -5421,6 +5418,40 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
 
   return (
     <div className="space-y-4">
+      {/* Add to Home Screen tip */}
+      <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-add-to-homescreen-panel">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: tc.accentColor + "22", border: `1px solid ${tc.accentColor}55` }}>
+            <Home className="h-5 w-5" style={{ color: tc.accentColor }} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Add to your home screen</div>
+            <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>
+              One tap from your phone — no app store, no install. Open this panel like any other app.
+            </p>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div className="rounded-lg p-3" style={{ backgroundColor: tc.bgColor, border: `1px solid ${tc.borderColor}` }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: tc.accentColor }}>iPhone (Safari)</div>
+            <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: tc.textColor }}>
+              <li>Tap the <span className="font-semibold">Share</span> icon at the bottom</li>
+              <li>Scroll down, tap <span className="font-semibold">Add to Home Screen</span></li>
+              <li>Tap <span className="font-semibold">Add</span> in the top right</li>
+            </ol>
+          </div>
+          <div className="rounded-lg p-3" style={{ backgroundColor: tc.bgColor, border: `1px solid ${tc.borderColor}` }}>
+            <div className="text-[11px] font-semibold uppercase tracking-wider mb-1.5" style={{ color: tc.accentColor }}>Android (Chrome)</div>
+            <ol className="text-xs space-y-1 list-decimal list-inside" style={{ color: tc.textColor }}>
+              <li>Tap the <span className="font-semibold">three-dot</span> menu</li>
+              <li>Tap <span className="font-semibold">Add to Home screen</span></li>
+              <li>Tap <span className="font-semibold">Add</span> to confirm</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
       {/* Personal Details */}
       <Section icon={User} title="Personal Details">
         <div className="flex items-center gap-3">

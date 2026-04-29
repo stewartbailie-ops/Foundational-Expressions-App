@@ -131,6 +131,9 @@ export const advisors = pgTable("advisors", {
   showShowpieceSqueeze: boolean("show_showpiece_squeeze").default(true),
   showShowpieceTaxBite: boolean("show_showpiece_taxbite").default(true),
   showMoneywebFeed: boolean("show_moneyweb_feed").default(false),
+  showLiberty: boolean("show_liberty").default(false),
+  showStanlib: boolean("show_stanlib").default(false),
+  showSigninghub: boolean("show_signinghub").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   advisorPasswordHash: text("advisor_password_hash"),
@@ -168,7 +171,7 @@ export type Advisor = typeof advisors.$inferSelect;
 
 export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "interactive", "individual", "corporate", "socials",
-  "callback", "referral", "will", "tools",
+  "callback", "referral", "will", "tools", "platforms",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
@@ -182,7 +185,35 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   referral: "Refer Friends Button",
   will: "Complimentary Will",
   tools: "Financial Tools",
+  platforms: "Financial Platforms",
 };
+
+export const PLATFORMS_META = [
+  {
+    key: "liberty",
+    name: "My Liberty",
+    description: "Access your Liberty client portal — policies, statements, and account management.",
+    url: "https://myliberty.liberty.co.za/logon",
+    colorHex: "#e31837",
+    showField: "showLiberty" as const,
+  },
+  {
+    key: "stanlib",
+    name: "Stanlib",
+    description: "Log in to the Stanlib investment platform — fund performance and portfolio access.",
+    url: "https://login.stanlib.com/Account/Login",
+    colorHex: "#003087",
+    showField: "showStanlib" as const,
+  },
+  {
+    key: "signinghub",
+    name: "SigningHub",
+    description: "Send, sign and track digital documents — secure e-signatures for client paperwork.",
+    url: "https://web.signinghub.com/",
+    colorHex: "#1f7a4d",
+    showField: "showSigninghub" as const,
+  },
+] as const;
 
 export const TITLE_OPTIONS = [
   "Junior Financial Advisor",

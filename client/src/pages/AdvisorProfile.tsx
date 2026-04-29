@@ -3,9 +3,9 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, Coffee, Utensils, Tv, Dumbbell, Wine, Cigarette, ShoppingCart, X, ArrowRight } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, Coffee, Utensils, Tv, Dumbbell, Wine, Cigarette, ShoppingCart, X, ArrowRight, Building2, FileCheck } from "lucide-react";
 import type { Advisor } from "@shared/schema";
-import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS } from "@shared/schema";
+import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite } from "@/components/MoneyShowpieces";
@@ -1196,40 +1196,46 @@ export default function AdvisorProfile() {
             </div>
           )}
 
-          {/* Bottom utility row */}
-          <div className="grid grid-cols-2 gap-2 p-3" style={{ backgroundColor: cardBg }} data-testid="section-utility-buttons">
-            <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-business-card">
-              <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />{t.saveCard}
-            </button>
-            {hasWhatsApp ? (
-              <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
-                {whatsappSvg}{t.whatsappMe}
-              </a>
-            ) : (
-              <button disabled className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, opacity: 0.38, cursor: "default" }}>
-                {whatsappSvg}{t.whatsappMe}
+          {/* Bottom utility row — grouped: Get-in-touch / Share-and-save / Install */}
+          <div className="p-3 space-y-2.5" style={{ backgroundColor: cardBg }} data-testid="section-utility-buttons">
+            {/* Group 1: Get in touch */}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }} data-testid="button-save-contact">
+                <Download className="h-3.5 w-3.5 flex-shrink-0" />{t.saveContact}
               </button>
-            )}
-            <button onClick={handleSaveContact} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-contact">
-              <Download className="h-3.5 w-3.5 flex-shrink-0" />{t.saveContact}
-            </button>
-            <button
-              onClick={handleShare}
-              className={btnBase}
-              style={{
-                backgroundColor: shareCopied ? accentColor : tc.buttonSecondaryBg,
-                color: shareCopied ? tc.buttonText : accentColor,
-                border: `1px solid ${shareCopied ? accentColor : tc.borderColor}`,
-                transition: "all 0.3s ease",
-              }}
-              data-testid="button-share-profile"
-            >
-              <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
-            </button>
-            {/* Add to Home Screen — full width */}
+              {hasWhatsApp ? (
+                <a href={`https://wa.me/${String((advisor as any).contactNumber).replace(/[^0-9]/g, "")}`} target="_blank" rel="noopener noreferrer" className={btnBase} style={{ backgroundColor: "#25D366", color: "#ffffff" }} data-testid="link-whatsapp">
+                  {whatsappSvg}{t.whatsappMe}
+                </a>
+              ) : (
+                <button disabled className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, opacity: 0.38, cursor: "default" }}>
+                  {whatsappSvg}{t.whatsappMe}
+                </button>
+              )}
+            </div>
+            {/* Group 2: Share & save */}
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={handleShare}
+                className={btnBase}
+                style={{
+                  backgroundColor: shareCopied ? accentColor : tc.buttonSecondaryBg,
+                  color: shareCopied ? tc.buttonText : accentColor,
+                  border: `1px solid ${shareCopied ? accentColor : tc.borderColor}`,
+                  transition: "all 0.3s ease",
+                }}
+                data-testid="button-share-profile"
+              >
+                <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
+              </button>
+              <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-business-card">
+                <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />{t.saveCard}
+              </button>
+            </div>
+            {/* Group 3: Install */}
             <button
               onClick={handleAddToHomeScreen}
-              className={`${btnBase} col-span-2`}
+              className={`${btnBase} w-full`}
               style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }}
               data-testid="button-add-to-homescreen"
             >
@@ -1296,6 +1302,51 @@ export default function AdvisorProfile() {
             moneyweb: !!(advisor as any).showMoneywebFeed ? (
               <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
             ) : null,
+
+            platforms: (() => {
+              const platformIcons: Record<string, any> = { liberty: Building2, stanlib: TrendingUp, signinghub: FileCheck };
+              const visible = PLATFORMS_META.filter(p => !!(advisor as any)[p.showField]);
+              if (visible.length === 0) return null;
+              return (
+                <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-platforms">
+                  <div className="flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" style={{ color: accentColor }} />
+                    <h3 className="text-sm font-semibold" style={{ color: textColor }}>Financial Platforms</h3>
+                  </div>
+                  <p className="text-xs" style={{ color: mutedText }}>
+                    Quick-access portals for your investments and paperwork.
+                  </p>
+                  <div className="space-y-2">
+                    {visible.map(p => {
+                      const Icon = platformIcons[p.key];
+                      return (
+                        <a
+                          key={p.key}
+                          href={p.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block rounded-xl p-3 transition-opacity hover:opacity-90"
+                          style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}
+                          data-testid={`link-public-platform-${p.key}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: p.colorHex + "22", border: `1px solid ${p.colorHex}55` }}>
+                              {Icon && <Icon className="h-5 w-5" style={{ color: p.colorHex }} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-semibold" style={{ color: textColor }}>{p.name}</div>
+                              <div className="text-[11px] truncate" style={{ color: mutedText }}>{p.description}</div>
+                            </div>
+                            <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: mutedText }} />
+                          </div>
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })(),
 
             interactive: ((advisor as any).showInteractive !== false) ? (() => {
               const showSqueeze = (advisor as any).showShowpieceSqueeze !== false;

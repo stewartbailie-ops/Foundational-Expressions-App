@@ -84,6 +84,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle", "showToolReality", "showToolLatte",
   "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
   "showMoneywebFeed", "showEmergencyContacts",
+  "showLiberty", "showStanlib", "showSigninghub",
   "patternOpacity", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;

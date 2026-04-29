@@ -1,0 +1,19 @@
+Hey Friday! Pull from GitHub first (git pull) — C pushed the fun facts data file and the reCAPTCHA wills fix while you were on Phase 2.
+
+Phase 3 — contact card and profile polish, do in order:
+
+1. W3.1 — Profile button area cleanup / grouping
+The area below the profile picture has accumulated buttons over time and is getting cluttered. Clean it up — group related actions logically, reduce visual noise, and make sure spacing feels intentional. The goal is a tidier, more professional look without removing any functionality. Also make sure any new groupings carry through to the PNG/share card generator if one exists.
+
+2. W3.2 — Platforms section on public contact card
+The Platforms section (My Liberty, Stanlib, SigningHub etc.) currently only lives inside the advisor panel. It needs to be surfaced on the advisor's public-facing contact card as well — so clients visiting the card can see and open their advisor's platform links directly.
+
+Each platform must be individually toggleable from the advisor panel edit settings — so an advisor can choose which platforms (if any) appear on their public card. One on/off toggle per platform, not all-or-nothing. The public card should respect those settings when rendering.
+
+3. W2.8 — "Add to Home Screen" prompt
+Add a link or prompt inside the advisor panel that guides the advisor to add Advisory Connect to their phone's home screen. A simple instruction card with the steps for both iOS (Safari → Share → Add to Home Screen) and Android (Chrome → menu → Add to Home Screen) is fine. A friendly instructional nudge is enough — no full PWA install prompt needed.
+
+Also ready for you when Phase 3 is done:
+The fun facts data is fully built and waiting in client/src/data/funFacts.ts — 300 facts across 8 categories, with a getDailyFacts() function that already handles the daily rotation of 6 facts. Phase 4 (W2.3) will be a pure UI build — no data work needed on your end.
+
+Full context in planning/friday-build-queue-prioritised.md as always.
