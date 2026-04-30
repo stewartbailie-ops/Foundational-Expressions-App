@@ -85,6 +85,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
   "showMoneywebFeed", "showEmergencyContacts",
   "showLiberty", "showStanlib", "showSigninghub",
+  "showFunFacts", "showForex", "showSecondNews",
   "patternOpacity", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;
@@ -1360,6 +1361,38 @@ export async function registerRoutes(
     }
   };
 
+  // Live FX rates (W2.1). Proxies api.frankfurter.app — no key, free, reliable.
+  // Returns ZAR per 1 USD/EUR/GBP. 60s in-memory cache so the upstream isn't hammered.
+  let forexCache: { ts: number; payload: any } | null = null;
+  const FOREX_TTL_MS = 60_000;
+  app.get("/api/forex/rates", async (_req, res) => {
+    try {
+      const now = Date.now();
+      if (forexCache && (now - forexCache.ts) < FOREX_TTL_MS) {
+        return res.json(forexCache.payload);
+      }
+      const r = await fetch("https://api.frankfurter.app/latest?base=ZAR&symbols=USD,EUR,GBP");
+      if (!r.ok) throw new Error(`upstream ${r.status}`);
+      const data = await r.json() as { date?: string; rates?: { USD?: number; EUR?: number; GBP?: number } };
+      const inv = (v?: number) => (v && v > 0 ? +(1 / v).toFixed(2) : null);
+      const payload = {
+        date: data.date ?? null,
+        base: "ZAR",
+        rates: {
+          USD: inv(data.rates?.USD),
+          EUR: inv(data.rates?.EUR),
+          GBP: inv(data.rates?.GBP),
+        },
+      };
+      forexCache = { ts: now, payload };
+      res.json(payload);
+    } catch {
+      // If upstream fails but cache exists, serve stale rather than nothing.
+      if (forexCache) return res.json({ ...forexCache.payload, stale: true });
+      res.status(502).json({ message: "forex unavailable", rates: { USD: null, EUR: null, GBP: null } });
+    }
+  });
+
   // Backward-compatible single-source MoneyWeb endpoint
   app.get("/api/moneyweb/feed", async (req, res) => {
     try {
@@ -1398,6 +1431,15 @@ export async function registerRoutes(
         markets:            [{ name: "MoneyWeb Markets",  url: "https://www.moneyweb.co.za/category/markets/feed/" }],
         investing:          [{ name: "MoneyWeb Investing", url: "https://www.moneyweb.co.za/category/investing/feed/" }],
         "personal-finance": [{ name: "MoneyWeb Personal Finance", url: "https://www.moneyweb.co.za/category/personal-finance/feed/" }],
+        // Secondary feed mix (W2.2). Distinct from "all" so the second news card
+        // on a profile shows different content. Most SA-domestic feeds (BusinessTech,
+        // Daily Investor, Fin24) are bot-blocked by Cloudflare/Akamai so we lean on
+        // Africa-focused + global finance sources that reliably serve their RSS.
+        secondary: [
+          { name: "BBC Africa",   url: "https://feeds.bbci.co.uk/news/world/africa/rss.xml" },
+          { name: "MarketWatch",  url: "https://feeds.content.dowjones.io/public/rss/mw_topstories" },
+          { name: "Investing FX", url: "https://www.investing.com/rss/news_1.rss" },
+        ],
       };
       const sources = SOURCES_BY_CAT[category] || SOURCES_BY_CAT.all;
       const results = await Promise.all(

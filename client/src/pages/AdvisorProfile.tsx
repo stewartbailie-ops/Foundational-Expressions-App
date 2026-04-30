@@ -9,6 +9,8 @@ import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_S
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite } from "@/components/MoneyShowpieces";
+import { ForexWidget } from "@/components/ForexWidget";
+import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 
 function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -1301,6 +1303,38 @@ export default function AdvisorProfile() {
           const sectionMap: Record<string, React.ReactNode> = {
             moneyweb: !!(advisor as any).showMoneywebFeed ? (
               <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
+            ) : null,
+
+            secondnews: !!(advisor as any).showSecondNews ? (
+              <NewsHero
+                accentColor={accentColor}
+                borderColor={tc.borderColor}
+                cardBg={cardBg}
+                category={"secondary" as any}
+                labelOverride="More Finance News · Live"
+                testIdSuffix="secondary"
+              />
+            ) : null,
+
+            forex: !!(advisor as any).showForex ? (
+              <ForexWidget
+                accentColor={accentColor}
+                borderColor={tc.borderColor}
+                cardBg={cardBg}
+                textColor={textColor}
+                mutedText={mutedText}
+              />
+            ) : null,
+
+            funfacts: !!(advisor as any).showFunFacts ? (
+              <FunFactsCarousel
+                accentColor={accentColor}
+                borderColor={tc.borderColor}
+                cardBg={cardBg}
+                textColor={textColor}
+                mutedText={mutedText}
+                advisorName={(advisor as any).name || ""}
+              />
             ) : null,
 
             platforms: (() => {

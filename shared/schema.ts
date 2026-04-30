@@ -134,6 +134,9 @@ export const advisors = pgTable("advisors", {
   showLiberty: boolean("show_liberty").default(false),
   showStanlib: boolean("show_stanlib").default(false),
   showSigninghub: boolean("show_signinghub").default(false),
+  showFunFacts: boolean("show_fun_facts").default(false),
+  showForex: boolean("show_forex").default(false),
+  showSecondNews: boolean("show_second_news").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   advisorPasswordHash: text("advisor_password_hash"),
@@ -170,14 +173,18 @@ export type InsertAdvisor = z.infer<typeof insertAdvisorSchema>;
 export type Advisor = typeof advisors.$inferSelect;
 
 export const DEFAULT_PROFILE_SECTION_ORDER = [
-  "bio", "moneyweb", "interactive", "individual", "corporate", "socials",
+  "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
+  "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
   bio: "Introduction & Bio",
   moneyweb: "Live News Feed",
+  secondnews: "More Finance News",
+  forex: "Live Exchange Rates",
   interactive: "Interactive Financial Tools",
+  funfacts: "Financial Facts of the Day",
   individual: "Individual Services",
   corporate: "Corporate Services",
   socials: "Social Links",
@@ -186,6 +193,18 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   will: "Complimentary Will",
   tools: "Financial Tools",
   platforms: "Financial Platforms",
+};
+
+// Category-tinted backgrounds for fun-fact cards (dark, professional, white text on top)
+export const FUN_FACT_CATEGORY_COLORS: Record<string, { bg: string; accent: string }> = {
+  "Tax":                  { bg: "#0d4f4a", accent: "#4fd9c8" },
+  "Retirement":           { bg: "#5b3473", accent: "#c9a3e8" },
+  "Wills & Estate":       { bg: "#2a3a4d", accent: "#8aaecf" },
+  "Investment":           { bg: "#1d3a6e", accent: "#7ea7f0" },
+  "Budgeting & Saving":   { bg: "#2d5239", accent: "#7fd99e" },
+  "Insurance":            { bg: "#6b2a35", accent: "#e89aa5" },
+  "Property":             { bg: "#5b4129", accent: "#dba577" },
+  "Medical Aid":          { bg: "#7a3d4f", accent: "#e8a3b6" },
 };
 
 export const PLATFORMS_META = [

@@ -15,6 +15,7 @@ const PUBLIC_API_ROUTES = [
   "/api/og-image/",
   "/api/moneyweb/",
   "/api/news/",
+  "/api/forex/",
   "/uploads/",
 ];
 

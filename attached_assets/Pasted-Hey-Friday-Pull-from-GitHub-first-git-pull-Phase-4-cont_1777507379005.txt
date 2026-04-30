@@ -1,0 +1,24 @@
+Hey Friday! Pull from GitHub first (git pull).
+
+Phase 4 — content features, do in order:
+
+1. W2.3 — Daily financial fun facts
+The data is fully built and waiting — don't touch client/src/data/funFacts.ts, just import from it.
+
+getDailyFacts() returns 6 facts for today, automatically. Same 6 all day, rotates at midnight. No backend call needed — pure client-side.
+Each fact has: id, category (Tax / Retirement / Wills & Estate / Investment / Budgeting & Saving / Insurance / Property / Medical Aid), and fact (the text string)
+What to build:
+
+A "Financial Fact of the Day" section on the advisor's public contact card (behind the existing showFinancialMedia toggle or a new dedicated toggle — your call on the cleanest fit)
+Each of the 6 facts displays as a card styled like the social media cards Stewart shared — dark teal or category-appropriate background, the fact text prominent, category label at the top
+Each card needs a Share / Copy button so advisors (and visitors) can copy the fact to clipboard or share to WhatsApp / socials
+The section should be collapsible or toggled — advisors can turn it on or off from their panel settings
+2. W2.1 — Forex / exchange rate widget
+Add a live exchange rate indicator to the advisor contact card, similar in style to the existing Moneyweb news feed. Show key pairs relevant to SA clients: USD/ZAR, EUR/ZAR, GBP/ZAR, and optionally the gold price. Use a free public API (exchangerate-api.com, frankfurter.app, or similar — pick whichever is most reliable). Refresh every 60 seconds or on card load. Should be toggleable per advisor from panel settings.
+
+3. W2.2 — Secondary news feed option
+The Moneyweb feed already works. Add the option for a second news source — something like BusinessTech, Daily Maverick Money, or another SA finance-relevant RSS/feed. The advisor should be able to choose: Moneyweb only, second feed only, or both. Keep it consistent with the existing news feed UI.
+
+Fun facts styling reference is in planning/fun-facts-preview.html if you want to see all 300 grouped by category with their colours.
+
+Full backlog in planning/friday-build-queue-prioritised.md as always.

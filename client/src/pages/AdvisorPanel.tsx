@@ -1718,6 +1718,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showLiberty, setShowLiberty] = useState(!!(advisor as any).showLiberty);
   const [showStanlib, setShowStanlib] = useState(!!(advisor as any).showStanlib);
   const [showSigninghub, setShowSigninghub] = useState(!!(advisor as any).showSigninghub);
+  const [showFunFacts, setShowFunFacts] = useState(!!(advisor as any).showFunFacts);
+  const [showForex, setShowForex] = useState(!!(advisor as any).showForex);
+  const [showSecondNews, setShowSecondNews] = useState(!!(advisor as any).showSecondNews);
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
@@ -1802,6 +1805,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showLiberty,
         showStanlib,
         showSigninghub,
+        showFunFacts,
+        showForex,
+        showSecondNews,
         showTools,
         showToolTax,
         showToolExchange,
@@ -2283,6 +2289,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
           { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
+          { label: "More Finance News (second feed)", value: showSecondNews, set: setShowSecondNews },
+          { label: "Live Exchange Rates", value: showForex, set: setShowForex },
+          { label: "Financial Facts of the Day", value: showFunFacts, set: setShowFunFacts },
           { label: "Financial Tools Section", value: showTools, set: setShowTools },
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
           { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
