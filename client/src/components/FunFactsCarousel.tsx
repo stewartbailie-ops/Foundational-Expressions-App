@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from "react";
-import { Images, X } from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
+import { Images, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { FACT_IMAGES } from "@/data/factImages";
 
 function getHourlyImages(hourKey: number): string[] {
@@ -29,7 +29,9 @@ export function FunFactsCarousel({
   advisorName?: string;
 }) {
   const [hourKey, setHourKey] = useState(() => Math.floor(Date.now() / 3_600_000));
+  const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -39,7 +41,24 @@ export function FunFactsCarousel({
     return () => clearInterval(interval);
   }, []);
 
-  const images = useMemo(() => getHourlyImages(hourKey), [hourKey]);
+  const images = useMemo(() => {
+    setIndex(0);
+    return getHourlyImages(hourKey);
+  }, [hourKey]);
+
+  const prev = () => setIndex((i) => (i > 0 ? i - 1 : images.length - 1));
+  const next = () => setIndex((i) => (i < images.length - 1 ? i + 1 : 0));
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
+    touchStartX.current = null;
+  };
 
   return (
     <>
@@ -55,40 +74,64 @@ export function FunFactsCarousel({
               Financial Facts of the Day
             </h3>
           </div>
-          <span
-            className="text-[10px] uppercase tracking-wider"
-            style={{ color: mutedText }}
-          >
-            10 hourly picks
+          <span className="text-[10px] uppercase tracking-wider" style={{ color: mutedText }}>
+            {index + 1} / {images.length}
           </span>
         </div>
 
-        <div
-          className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory"
-          data-testid="scroll-funfacts"
-        >
-          {images.map((src, i) => (
+        <div className="relative select-none">
+          <button
+            onClick={() => setLightbox(images[index])}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            className="w-full rounded-xl overflow-hidden block focus:outline-none active:scale-[0.99] transition-transform"
+            style={{ boxShadow: "0 6px 24px rgba(0,0,0,0.22)" }}
+            aria-label="Tap to enlarge"
+            data-testid={`funfact-card-${index}`}
+          >
+            <img
+              src={images[index]}
+              alt={`Financial fact ${index + 1}`}
+              className="w-full h-auto block"
+              draggable={false}
+            />
+          </button>
+
+          <button
+            onClick={prev}
+            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white hover:bg-black/60 transition-colors"
+            aria-label="Previous"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+
+          <button
+            onClick={next}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-1.5 text-white hover:bg-black/60 transition-colors"
+            aria-label="Next"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5">
+          {images.map((_, i) => (
             <button
-              key={src}
-              onClick={() => setLightbox(src)}
-              className="flex-shrink-0 w-[72%] sm:w-[230px] rounded-2xl overflow-hidden snap-start focus:outline-none active:scale-[0.98] transition-transform"
-              style={{ boxShadow: "0 6px 20px rgba(0,0,0,0.20)" }}
-              data-testid={`funfact-card-${i}`}
-              aria-label="Tap to enlarge"
-            >
-              <img
-                src={src}
-                alt={`Financial fact ${i + 1}`}
-                className="w-full h-auto block"
-                loading="lazy"
-                draggable={false}
-              />
-            </button>
+              key={i}
+              onClick={() => setIndex(i)}
+              className="rounded-full transition-all duration-200"
+              style={{
+                width: i === index ? 16 : 6,
+                height: 6,
+                backgroundColor: i === index ? accentColor : mutedText + "60",
+              }}
+              aria-label={`Go to image ${i + 1}`}
+            />
           ))}
         </div>
 
         <p className="text-[10px] text-center" style={{ color: mutedText }}>
-          Tap any card to enlarge &middot; New picks every hour
+          Tap image to enlarge · New picks every hour
         </p>
       </div>
 
