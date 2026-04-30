@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { Images, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Images, X, ChevronLeft, ChevronRight, Share2, Check } from "lucide-react";
 import { FACT_IMAGES } from "@/data/factImages";
 
 function getHourlyImages(hourKey: number): string[] {
@@ -13,13 +13,52 @@ function getHourlyImages(hourKey: number): string[] {
   return shuffled.slice(0, 10);
 }
 
+async function shareImage(src: string, advisorName: string) {
+  const title = "Financial Fact";
+  const text = `Check out this financial fact — shared by ${advisorName}`;
+
+  // Try sharing the actual image file (works for WhatsApp, Instagram, etc.)
+  if (typeof navigator !== "undefined" && (navigator as any).canShare) {
+    try {
+      const res = await fetch(src);
+      const blob = await res.blob();
+      const filename = src.split("/").pop() ?? "fact.png";
+      const file = new File([blob], filename, { type: blob.type });
+      if ((navigator as any).canShare({ files: [file] })) {
+        await (navigator as any).share({ files: [file], title, text });
+        return "shared";
+      }
+    } catch {
+      // fall through
+    }
+  }
+
+  // Fallback: share the URL
+  if (typeof navigator !== "undefined" && (navigator as any).share) {
+    try {
+      await (navigator as any).share({ title, text, url: window.location.href });
+      return "shared";
+    } catch {
+      // user cancelled or not supported
+    }
+  }
+
+  // Last resort: copy URL to clipboard
+  try {
+    await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
+    return "copied";
+  } catch {
+    return "failed";
+  }
+}
+
 export function FunFactsCarousel({
   accentColor,
   borderColor,
   cardBg,
   textColor,
   mutedText,
-  advisorName: _advisorName,
+  advisorName,
 }: {
   accentColor: string;
   borderColor: string;
@@ -31,6 +70,7 @@ export function FunFactsCarousel({
   const [hourKey, setHourKey] = useState(() => Math.floor(Date.now() / 3_600_000));
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
+  const [shareState, setShareState] = useState<"idle" | "shared" | "copied">("idle");
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
@@ -59,6 +99,19 @@ export function FunFactsCarousel({
     if (Math.abs(diff) > 40) diff > 0 ? next() : prev();
     touchStartX.current = null;
   };
+
+  const handleShare = async () => {
+    const result = await shareImage(images[index], advisorName || "your advisor");
+    if (result === "shared" || result === "copied") {
+      setShareState(result);
+      setTimeout(() => setShareState("idle"), 2000);
+    }
+  };
+
+  const shareLabel =
+    shareState === "shared" ? "Shared!" :
+    shareState === "copied" ? "Link copied!" :
+    "Share";
 
   return (
     <>
@@ -114,6 +167,26 @@ export function FunFactsCarousel({
           </button>
         </div>
 
+        {/* Share button */}
+        <button
+          onClick={handleShare}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all active:scale-[0.98]"
+          style={{
+            backgroundColor: shareState !== "idle" ? accentColor + "22" : "rgba(255,255,255,0.08)",
+            color: shareState !== "idle" ? accentColor : textColor,
+            border: `1px solid ${shareState !== "idle" ? accentColor + "55" : borderColor}`,
+          }}
+          data-testid="button-funfact-share"
+        >
+          {shareState !== "idle" ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+          {shareLabel}
+        </button>
+
+        {/* Dot indicators */}
         <div className="flex items-center justify-center gap-1.5">
           {images.map((_, i) => (
             <button
