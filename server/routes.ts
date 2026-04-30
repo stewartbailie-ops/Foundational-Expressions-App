@@ -12,6 +12,7 @@ import rateLimit from "express-rate-limit";
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
 const advisorLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many OTP attempts. Please try again in 15 minutes." } });
+const otpSendLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification emails sent. Please try again in an hour." } });
 
 const safeUrlField = z
   .string()
@@ -229,6 +230,9 @@ export async function registerRoutes(
   app.use("/uploads", (await import("express")).default.static("uploads"));
 
   app.post("/api/upload/profile-pic", upload.single("file"), async (req, res) => {
+    const session = req.session as any;
+    const hasSession = session?.authenticated || Object.keys(session || {}).some(k => k.startsWith("advisor_") && session[k] === true);
+    if (!hasSession) return res.status(401).json({ message: "Unauthorized" });
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded or invalid file type" });
     }
@@ -238,6 +242,9 @@ export async function registerRoutes(
   });
 
   app.post("/api/upload/fais", pdfUpload.single("file"), async (req, res) => {
+    const session = req.session as any;
+    const hasSession = session?.authenticated || Object.keys(session || {}).some(k => k.startsWith("advisor_") && session[k] === true);
+    if (!hasSession) return res.status(401).json({ message: "Unauthorized" });
     if (!req.file) {
       return res.status(400).json({ message: "PDF required (max 10MB)" });
     }
@@ -1081,7 +1088,7 @@ export async function registerRoutes(
   });
 
   // Setup account (first time): store password hash + send verification OTP
-  app.post("/api/advisor-auth/:slug/setup", async (req, res) => {
+  app.post("/api/advisor-auth/:slug/setup", otpSendLimiter, async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     if (password.length < 10) return res.status(400).json({ message: "Password must be at least 10 characters" });
@@ -1146,7 +1153,7 @@ export async function registerRoutes(
   });
 
   // Resend verification OTP (only for unverified accounts)
-  app.post("/api/advisor-auth/:slug/resend-otp", async (req, res) => {
+  app.post("/api/advisor-auth/:slug/resend-otp", otpSendLimiter, async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (advisor.advisorEmailVerified) return res.status(400).json({ message: "Account already verified." });
