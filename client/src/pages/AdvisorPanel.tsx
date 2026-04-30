@@ -924,7 +924,10 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [search, setSearch] = useState("");
-  type SortKey = "date" | "name" | "grade" | "status";
+  type SortKey = "date" | "name" | "grade" | "status" | "temperature";
+  // Temperature sort rank — Hot first, then Warm, then Cold, then leads with
+  // no temperature set yet at the bottom (S3).
+  const TEMP_RANK: Record<string, number> = { Hot: 0, Warm: 1, Cold: 2 };
   const [sortBy, setSortBy] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const handleSortClick = (key: SortKey) => {
@@ -1016,6 +1019,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
         cmp = (GRADE_RANK[a.grade || "Silver"] ?? 99) - (GRADE_RANK[b.grade || "Silver"] ?? 99);
       } else if (sortBy === "status") {
         cmp = (STATUS_RANK[a.leadStatus || "Need to Contact"] ?? 99) - (STATUS_RANK[b.leadStatus || "Need to Contact"] ?? 99);
+      } else if (sortBy === "temperature") {
+        cmp = (TEMP_RANK[a.leadTemperature || ""] ?? 99) - (TEMP_RANK[b.leadTemperature || ""] ?? 99);
       }
       return cmp * dir;
     });
@@ -1103,6 +1108,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             { key: "name", label: "Name" },
             { key: "grade", label: "Grade" },
             { key: "status", label: "Status" },
+            { key: "temperature", label: "Temperature" },
           ] as Array<{ key: SortKey; label: string }>).map(opt => {
             const active = sortBy === opt.key;
             return (
@@ -1526,13 +1532,25 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
   const { data, isLoading } = useQuery<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; totalViews: number; weeklyActivity: { name: string; leads: number }[] }>({
     queryKey: [`/api/advisors/${slug}/stats`],
   });
+  // S7: split-views totals (Primary vs Secondary).
+  const { data: viewSplit } = useQuery<{ totalViews: number; primaryViews: number; secondaryViews: number }>({
+    queryKey: [`/api/advisors/${slug}/profile-stats`],
+  });
+  // S7: 7-day time series of views split P vs S, for the new area chart.
+  const { data: viewSeriesData } = useQuery<{ series: { name: string; primary: number; secondary: number }[] }>({
+    queryKey: [`/api/advisors/${slug}/views-series`],
+  });
+  const viewSeries = viewSeriesData?.series ?? [];
+  // Theme-friendly fixed colours per Stewart: green for Primary, blue for Secondary.
+  const PRIMARY_COLOR = "#22c55e";
+  const SECONDARY_COLOR = "#3b82f6";
 
   if (isLoading) return (
     <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" style={{ color: tc.mutedText }} /></div>
   );
 
   const stats = [
-    { label: "Profile Views", value: data?.totalViews ?? 0 },
+    { label: "Profile Views", value: viewSplit?.totalViews ?? data?.totalViews ?? 0 },
     { label: "Total Leads", value: data?.totalLeads ?? 0 },
     { label: "Referrals", value: data?.totalReferrals ?? 0 },
     { label: "Call Backs", value: data?.totalCallbacks ?? 0 },
@@ -1542,14 +1560,67 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3">
         {stats.map(s => (
-          <div key={s.label} className="rounded-xl p-4 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div key={s.label} className="rounded-xl p-4 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid={`stat-card-${s.label.toLowerCase().replace(/\s+/g, "-")}`}>
             <div className="text-2xl font-bold" style={{ color: tc.textColor }}>{s.value}</div>
             <div className="text-xs mt-1" style={{ color: tc.mutedText }}>{s.label}</div>
+            {/* S7: under the Profile Views card, show the Primary / Secondary split. */}
+            {s.label === "Profile Views" && viewSplit && (
+              <div className="flex items-center justify-center gap-3 mt-2 text-[11px]">
+                <span className="flex items-center gap-1" data-testid="text-views-primary">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: PRIMARY_COLOR }} />
+                  <span style={{ color: tc.mutedText }}>P</span>
+                  <span className="font-semibold" style={{ color: tc.textColor }}>{viewSplit.primaryViews}</span>
+                </span>
+                <span className="flex items-center gap-1" data-testid="text-views-secondary">
+                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: SECONDARY_COLOR }} />
+                  <span style={{ color: tc.mutedText }}>S</span>
+                  <span className="font-semibold" style={{ color: tc.textColor }}>{viewSplit.secondaryViews}</span>
+                </span>
+              </div>
+            )}
           </div>
         ))}
       </div>
+
+      {/* S7: views-over-time chart, split Primary (green) vs Secondary (blue). */}
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h4 className="text-sm font-semibold mb-4" style={{ color: tc.textColor }}>Last 7 Days</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-sm font-semibold" style={{ color: tc.textColor }}>Profile Views – Last 7 Days</h4>
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: PRIMARY_COLOR }} />
+              <span style={{ color: tc.mutedText }}>Primary</span>
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ backgroundColor: SECONDARY_COLOR }} />
+              <span style={{ color: tc.mutedText }}>Secondary</span>
+            </span>
+          </div>
+        </div>
+        <ResponsiveContainer width="100%" height={180}>
+          <AreaChart data={viewSeries} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
+            <defs>
+              <linearGradient id="viewsPrimaryGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"  stopColor={PRIMARY_COLOR} stopOpacity={0.45} />
+                <stop offset="100%" stopColor={PRIMARY_COLOR} stopOpacity={0} />
+              </linearGradient>
+              <linearGradient id="viewsSecondaryGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"  stopColor={SECONDARY_COLOR} stopOpacity={0.45} />
+                <stop offset="100%" stopColor={SECONDARY_COLOR} stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={tc.borderColor} />
+            <XAxis dataKey="name" tick={{ fill: tc.mutedText, fontSize: 11 }} tickLine={false} axisLine={false} dy={4} />
+            <YAxis tick={{ fill: tc.mutedText, fontSize: 11 }} tickLine={false} axisLine={false} allowDecimals={false} width={28} />
+            <Tooltip contentStyle={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor, borderRadius: 8, fontSize: 12 }} />
+            <Area type="monotone" dataKey="primary"   name="Primary"   stroke={PRIMARY_COLOR}   strokeWidth={2.5} fill="url(#viewsPrimaryGrad)"   dot={{ r: 2.5, fill: tc.cardBg, stroke: PRIMARY_COLOR,   strokeWidth: 2 }} activeDot={{ r: 4 }} />
+            <Area type="monotone" dataKey="secondary" name="Secondary" stroke={SECONDARY_COLOR} strokeWidth={2.5} fill="url(#viewsSecondaryGrad)" dot={{ r: 2.5, fill: tc.cardBg, stroke: SECONDARY_COLOR, strokeWidth: 2 }} activeDot={{ r: 4 }} />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+
+      <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <h4 className="text-sm font-semibold mb-4" style={{ color: tc.textColor }}>Leads – Last 7 Days</h4>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={data?.weeklyActivity || []}>
             <CartesianGrid strokeDasharray="3 3" stroke={tc.borderColor} />
@@ -2750,10 +2821,11 @@ function ProfileCard({
 }
 
 function AdditionalProfileForm({
-  advisorId, baseSlug, tc, existingProfile, label, onDone,
+  advisorId, baseSlug, tc, existingProfile, label, onDone, advisor,
 }: {
   advisorId: number; baseSlug: string; tc: ReturnType<typeof getThemeColors>;
   existingProfile?: AdvisorProfile; label: string; onDone: () => void;
+  advisor: Advisor;
 }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -3145,6 +3217,30 @@ function AdditionalProfileForm({
               </div>
             </div>
           ))}
+          {/* S6: feature parity. The 6 toggles below are stored on the advisor (primary) row only,
+              not on advisor_profiles. Showing them here read-only with the primary's current value
+              so the secondary editor surface matches the primary editor and the advisor knows where
+              to manage them. (Per-secondary independence would require new advisor_profiles columns.) */}
+          <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px dashed ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+            <p className="text-xs font-medium leading-snug" style={{ color: tc.mutedText }}>
+              Inherited from Primary profile (manage these in the Primary tab — they apply to all your profiles):
+            </p>
+            {[
+              { label: "More Finance News (second feed)", value: !!(advisor as any).showSecondNews },
+              { label: "Live Exchange Rates", value: !!(advisor as any).showForex },
+              { label: "Financial Facts of the Day", value: !!(advisor as any).showFunFacts },
+              { label: "My Liberty (Platforms)", value: !!(advisor as any).showLiberty },
+              { label: "Stanlib (Platforms)", value: !!(advisor as any).showStanlib },
+              { label: "SigningHub (Platforms)", value: !!(advisor as any).showSigninghub },
+            ].map(item => (
+              <div key={item.label} className="flex items-center justify-between pl-2 opacity-70">
+                <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                <div className="w-8 h-4 rounded-full relative" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive, cursor: "not-allowed" }} title="Set on Primary tab">
+                  <div className="absolute top-0.5 w-3 h-3 rounded-full" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                </div>
+              </div>
+            ))}
+          </div>
           {showTools && (
             <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
               <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
@@ -5874,6 +5970,11 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   const { data: additionalProfiles = [] } = useQuery<AdvisorProfile[]>({
     queryKey: [`/api/advisors/${advisor.id}/profiles`],
   });
+  // S7(b): pull split totals so the panel preview can show "Primary: N · Secondary: M"
+  // right next to the "My Profiles" heading. Re-uses the same endpoint StatsTab uses.
+  const { data: viewSplit } = useQuery<{ totalViews: number; primaryViews: number; secondaryViews: number }>({
+    queryKey: [`/api/advisors/${advisor.profileSlug}/profile-stats`],
+  });
 
   const deleteProfileMutation = useMutation({
     mutationFn: async (profileId: number) => {
@@ -5899,6 +6000,23 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 2</span>
         </div>
         <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 2 profiles per advisor.</p>
+        {/* S7(b): inline split-views badge near the heading. Green dot = Primary, blue = Secondary. */}
+        {viewSplit && (
+          <div className="flex items-center gap-3 mt-2 text-[11px]" data-testid="badge-views-split">
+            <span style={{ color: tc.mutedText }}>Views:</span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#22c55e" }} />
+              <span style={{ color: tc.mutedText }}>Primary</span>
+              <span className="font-semibold" style={{ color: tc.textColor }}>{viewSplit.primaryViews}</span>
+            </span>
+            <span style={{ color: tc.mutedText }}>·</span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "#3b82f6" }} />
+              <span style={{ color: tc.mutedText }}>Secondary</span>
+              <span className="font-semibold" style={{ color: tc.textColor }}>{viewSplit.secondaryViews}</span>
+            </span>
+          </div>
+        )}
       </div>
 
       <ProfileCard
@@ -5936,6 +6054,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             tc={tc}
             existingProfile={profile}
             label="Secondary"
+            advisor={advisor}
             onDone={() => setEditingProfileId(null)}
           />
         ) : (
@@ -5967,6 +6086,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
           baseSlug={advisor.profileSlug}
           tc={tc}
           label="Secondary"
+          advisor={advisor}
           onDone={() => setShowNewForm(false)}
         />
       )}
@@ -6036,6 +6156,33 @@ export default function AdvisorPanel() {
     await fetch(`/api/advisor-auth/${slug}/logout`, { method: "POST" });
     setAuthState("login");
   };
+
+  // Per-advisor PWA manifest (S4). When an advisor uses Add to Home Screen
+  // from inside their panel, the saved icon should reopen THEIR panel — not
+  // the master landing page that the static /manifest.json's start_url="/"
+  // points to. We swap the <link rel="manifest"> href and the iOS title meta
+  // tag while the panel is mounted, then restore on unmount.
+  useEffect(() => {
+    if (!slug) return;
+    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    const titleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
+    const origLinkHref = link?.getAttribute("href") ?? null;
+    const origTitle = titleMeta?.getAttribute("content") ?? null;
+    const displayName = advisor?.name ? `${advisor.name} Panel` : "Advisor Panel";
+    if (link) {
+      const params = new URLSearchParams({
+        start: `/advisor/${slug}`,
+        name: displayName,
+        short: "Panel",
+      });
+      link.href = `/api/manifest?${params.toString()}`;
+    }
+    if (titleMeta) titleMeta.setAttribute("content", displayName);
+    return () => {
+      if (link && origLinkHref) link.href = origLinkHref;
+      if (titleMeta && origTitle) titleMeta.setAttribute("content", origTitle);
+    };
+  }, [slug, advisor?.name]);
 
   if (!slug || advisorLoading || authState === "loading") {
     return (

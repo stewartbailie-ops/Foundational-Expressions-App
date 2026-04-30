@@ -68,7 +68,14 @@ function generateOtp(): string {
 }
 
 const PUBLIC_ADVISOR_FIELDS = [
-  "id", "name", "contactNumber", "location", "workingHours", "showContactDetails",
+  "id", "name", "email", "contactNumber", "location", "workingHours", "showContactDetails",
+  // S5 fix: email/advisorCode/faisAgreementUrl were silently stripped by this
+  // allowlist, so when the advisor refreshed their panel the form re-initialised
+  // from the public payload with empty values — looking like the save was lost.
+  // email is already rendered publicly (mailto link), advisorCode is the FAIS
+  // licence number (compliance-public), faisAgreementUrl is the Section 5
+  // disclosure PDF whose file is already publicly served from /uploads/.
+  "advisorCode", "faisAgreementUrl",
   "title", "bio", "bioOption", "customBio", "entityType",
   "themeColor", "theme", "backgroundStyle", "font",
   "panelTheme", "panelThemeColor", "panelBackgroundStyle",
@@ -1064,16 +1071,42 @@ export async function registerRoutes(
   });
 
   app.post("/api/stats/access", async (req, res) => {
-    const { advisorId } = req.body;
-    await storage.recordStat({ advisorId: advisorId || null, eventType: "app_access" });
+    const { advisorId, slug } = req.body;
+    // S7: encode the viewed slug into eventType so the server can later split
+    // Primary vs Secondary view counts WITHOUT a schema change. Sanitise the
+    // slug to the same pattern profile slugs use; on anything weird we fall
+    // back to the legacy untagged event.
+    const safeSlug = typeof slug === "string" && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/.test(slug) ? slug : null;
+    const eventType = safeSlug ? `app_access:${safeSlug}` : "app_access";
+    await storage.recordStat({ advisorId: advisorId || null, eventType });
     res.json({ success: true });
   });
 
   app.get("/api/advisors/:slug/profile-stats", async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Not found" });
-    const totalViews = await storage.getAdvisorViewCount(advisor.id);
-    res.json({ totalViews });
+    // S7: return both the legacy `totalViews` AND the new `primary`/`secondary`
+    // split so existing callers keep working while new UI can show the breakdown.
+    const profiles = await storage.getAdvisorProfiles(advisor.id);
+    const secondarySlugs = profiles.map(p => p.profileSlug).filter(Boolean) as string[];
+    const split = await storage.getAdvisorViewCountsSplit(advisor.id, advisor.profileSlug, secondarySlugs);
+    res.json({ totalViews: split.total, primaryViews: split.primary, secondaryViews: split.secondary });
+  });
+
+  // S7: 7-day time-series of views split Primary vs Secondary, for the
+  // Stats tab line chart. Owner-level auth: admin, the advisor's own panel
+  // session (looked up via the advisor's PRIMARY slug, not the URL slug, so
+  // requesting the chart from a secondary URL still works), or demo advisor.
+  app.get("/api/advisors/:slug/views-series", async (req, res) => {
+    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    if (!advisor) return res.status(404).json({ message: "Not found" });
+    if (!(await canAccessAdvisor(req, advisor.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    const profiles = await storage.getAdvisorProfiles(advisor.id);
+    const secondarySlugs = profiles.map(p => p.profileSlug).filter(Boolean) as string[];
+    const series = await storage.getAdvisorViewSeries(advisor.id, advisor.profileSlug, secondarySlugs, 7);
+    res.json({ series });
   });
 
   // Check if account has been set up (used on page load to auto-route first-timers)
@@ -1369,8 +1402,47 @@ export async function registerRoutes(
     }
   };
 
+  // Dynamic PWA manifest (S4). The static /manifest.json has start_url="/" and
+  // scope="/", so on Android any "Add to Home Screen" — whether from the advisor
+  // panel or a client viewing a public card — pins an icon that opens the master
+  // landing page instead of the page they were on. iOS uses the current page URL
+  // as start_url so it usually works there, but the title still defaults to
+  // "Advisory Connect" for everyone. This endpoint returns a per-context manifest
+  // so the icon and title both reflect what the user actually pinned.
+  app.get("/api/manifest", (req, res) => {
+    const startQ = String(req.query.start || "/");
+    const nameQ = String(req.query.name || "Advisory Connect").slice(0, 100);
+    const shortQ = String(req.query.short || nameQ).slice(0, 24);
+    // Only accept same-origin pathnames so we can't be turned into a PWA pointer
+    // at an arbitrary external URL.
+    const start = /^\/[a-zA-Z0-9/_\-?=&]*$/.test(startQ) ? startQ : "/";
+    res.setHeader("Content-Type", "application/manifest+json");
+    res.setHeader("Cache-Control", "public, max-age=300");
+    res.json({
+      name: nameQ,
+      short_name: shortQ,
+      description: "Advisory Connect",
+      start_url: start,
+      scope: "/",
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#0a0e1a",
+      theme_color: "#0a0e1a",
+      lang: "en-ZA",
+      dir: "ltr",
+      icons: [
+        { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "/icon-maskable-1024.png", sizes: "1024x1024", type: "image/png", purpose: "maskable" },
+      ],
+    });
+  });
+
   // Live FX rates (W2.1). Proxies api.frankfurter.app — no key, free, reliable.
-  // Returns ZAR per 1 USD/EUR/GBP. 60s in-memory cache so the upstream isn't hammered.
+  // Returns ZAR per 1 USD/EUR/GBP plus a 24hr change % per currency so the widget
+  // can colour-code the Rand's daily move (S1 — Red = Rand weakened, Green = Rand
+  // strengthened). 60s in-memory cache so the upstream isn't hammered.
   let forexCache: { ts: number; payload: any } | null = null;
   const FOREX_TTL_MS = 60_000;
   app.get("/api/forex/rates", async (_req, res) => {
@@ -1382,14 +1454,57 @@ export async function registerRoutes(
       const r = await fetch("https://api.frankfurter.app/latest?base=ZAR&symbols=USD,EUR,GBP");
       if (!r.ok) throw new Error(`upstream ${r.status}`);
       const data = await r.json() as { date?: string; rates?: { USD?: number; EUR?: number; GBP?: number } };
-      const inv = (v?: number) => (v && v > 0 ? +(1 / v).toFixed(2) : null);
+
+      // Pull yesterday's rates so we can compute a 24hr Rand-move %. Frankfurter
+      // returns the most-recent-business-day rate when the requested date falls
+      // on a weekend/holiday, so this handles Mondays gracefully too. If the
+      // call fails for any reason we still ship today's rates with change=null.
+      let prevData: { date?: string; rates?: { USD?: number; EUR?: number; GBP?: number } } | null = null;
+      try {
+        const todayIso = data.date || new Date().toISOString().slice(0, 10);
+        const d = new Date(todayIso + "T00:00:00Z");
+        d.setUTCDate(d.getUTCDate() - 1);
+        const yesterdayIso = d.toISOString().slice(0, 10);
+        const r2 = await fetch(`https://api.frankfurter.app/${yesterdayIso}?base=ZAR&symbols=USD,EUR,GBP`);
+        if (r2.ok) prevData = await r2.json();
+      } catch {
+        // Non-fatal — change comparison just becomes null below.
+      }
+
+      // We display ZAR per 1 unit foreign — invert Frankfurter's base=ZAR figure.
+      const inv = (v?: number) => (v && v > 0 ? 1 / v : null);
+      const round2 = (v: number | null) => (v == null ? null : +v.toFixed(2));
+      const todayInv = {
+        USD: inv(data.rates?.USD),
+        EUR: inv(data.rates?.EUR),
+        GBP: inv(data.rates?.GBP),
+      };
+      const prevInv = prevData ? {
+        USD: inv(prevData.rates?.USD),
+        EUR: inv(prevData.rates?.EUR),
+        GBP: inv(prevData.rates?.GBP),
+      } : { USD: null, EUR: null, GBP: null };
+
+      // % change of "ZAR per unit foreign". Positive = more Rand needed today =
+      // Rand weakened (red on the client). Negative = Rand strengthened (green).
+      const pct = (today: number | null, prev: number | null) =>
+        today != null && prev != null && prev !== 0
+          ? +(((today - prev) / prev) * 100).toFixed(2)
+          : null;
+
       const payload = {
         date: data.date ?? null,
+        previousDate: prevData?.date ?? null,
         base: "ZAR",
         rates: {
-          USD: inv(data.rates?.USD),
-          EUR: inv(data.rates?.EUR),
-          GBP: inv(data.rates?.GBP),
+          USD: round2(todayInv.USD),
+          EUR: round2(todayInv.EUR),
+          GBP: round2(todayInv.GBP),
+        },
+        change: {
+          USD: pct(todayInv.USD, prevInv.USD),
+          EUR: pct(todayInv.EUR, prevInv.EUR),
+          GBP: pct(todayInv.GBP, prevInv.GBP),
         },
       };
       forexCache = { ts: now, payload };
@@ -1397,7 +1512,11 @@ export async function registerRoutes(
     } catch {
       // If upstream fails but cache exists, serve stale rather than nothing.
       if (forexCache) return res.json({ ...forexCache.payload, stale: true });
-      res.status(502).json({ message: "forex unavailable", rates: { USD: null, EUR: null, GBP: null } });
+      res.status(502).json({
+        message: "forex unavailable",
+        rates: { USD: null, EUR: null, GBP: null },
+        change: { USD: null, EUR: null, GBP: null },
+      });
     }
   });
 

@@ -629,10 +629,8 @@ export default function AdvisorProfile() {
     enabled: !!slug,
   });
 
-  const { data: profileStats } = useQuery<{ totalViews: number }>({
-    queryKey: [`/api/advisors/${slug}/profile-stats`],
-    enabled: !!slug,
-  });
+  // S7: profileStats query removed — views counter no longer rendered on the
+  // public profile. Stats now live in the advisor's panel (Stats tab + heading).
 
   const [lang, setLang] = useState<Lang>("en");
   const [inDevClicked, setInDevClicked] = useState<string | null>(null);
@@ -705,14 +703,41 @@ export default function AdvisorProfile() {
     return () => { document.title = "Advisory Connect"; };
   }, [advisor]);
 
+  // Per-advisor PWA manifest (S4). When a client uses Add to Home Screen on a
+  // public profile, the saved icon should reopen THIS advisor's card — not the
+  // master landing page that the static /manifest.json's start_url="/" points to.
   useEffect(() => {
-    if (!advisor?.id) return;
+    if (!advisor?.profileSlug) return;
+    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    const titleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
+    const origLinkHref = link?.getAttribute("href") ?? null;
+    const origTitle = titleMeta?.getAttribute("content") ?? null;
+    const displayName = advisor.name || "Advisory Connect";
+    if (link) {
+      const params = new URLSearchParams({
+        start: `/${advisor.profileSlug}`,
+        name: displayName,
+        short: displayName.split(" ")[0]?.slice(0, 12) || displayName.slice(0, 12),
+      });
+      link.href = `/api/manifest?${params.toString()}`;
+    }
+    if (titleMeta) titleMeta.setAttribute("content", displayName);
+    return () => {
+      if (link && origLinkHref) link.href = origLinkHref;
+      if (titleMeta && origTitle) titleMeta.setAttribute("content", origTitle);
+    };
+  }, [advisor?.profileSlug, advisor?.name]);
+
+  useEffect(() => {
+    if (!advisor?.id || !slug) return;
+    // S7: send the slug so the server can attribute the view to Primary or
+    // Secondary (eventType is encoded as `app_access:<slug>`).
     fetch("/api/stats/access", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ advisorId: advisor.id }),
+      body: JSON.stringify({ advisorId: advisor.id, slug }),
     }).catch(() => {});
-  }, [advisor?.id]);
+  }, [advisor?.id, slug]);
 
   useEffect(() => {
     if (!toolsOpen) return;
@@ -1117,21 +1142,15 @@ export default function AdvisorProfile() {
     <div className="min-h-screen" style={{ ...themeBg, color: textColor }} data-testid="profile-container">
       <div className="max-w-md mx-auto px-4 pt-6 pb-12 space-y-4">
 
-        {/* Language toggle + view count */}
+        {/* Language toggle (S7: views counter removed from public profile;
+            it now lives in the advisor's panel only) */}
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex items-center justify-between"
+          className="flex items-center justify-end"
           data-testid="lang-toggle"
         >
-          {profileStats && profileStats.totalViews > 0 && (
-            <div className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: mutedText, border: `1px solid ${tc.borderColor}` }}>
-              <Eye className="h-3 w-3" />
-              {profileStats.totalViews.toLocaleString()} views
-            </div>
-          )}
-          {!(profileStats && profileStats.totalViews > 0) && <div />}
           <div className="flex gap-1">
             {(["en", "af", "zu"] as Lang[]).map((l) => (
               <button key={l} onClick={() => setLang(l)}
@@ -2188,13 +2207,20 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* o. QR Code / barcode */}
+        {/* o. QR Code / barcode (S2 — sized to fill the card column so it
+              reads/scans easily and feels intentional, not tucked-away). */}
         {advisor.showQrCode !== false && (
-          <div className="flex flex-col items-center pt-4 space-y-3" data-testid="section-qr">
-            <div className="p-4 rounded-xl" style={{ backgroundColor: "#ffffff" }}>
-              <QRCodeSVG value={`https://${profileUrl}`} size={200} level="M" data-testid="qr-code" />
+          <div className="flex flex-col items-stretch pt-4 space-y-3" data-testid="section-qr">
+            <div className="p-5 rounded-2xl w-full" style={{ backgroundColor: "#ffffff" }}>
+              <QRCodeSVG
+                value={`https://${profileUrl}`}
+                size={400}
+                level="M"
+                data-testid="qr-code"
+                style={{ width: "100%", height: "auto", display: "block" }}
+              />
             </div>
-            <p className="text-xs" style={{ color: mutedText }} data-testid="text-profile-url">{profileUrl}</p>
+            <p className="text-xs text-center" style={{ color: mutedText }} data-testid="text-profile-url">{profileUrl}</p>
           </div>
         )}
 

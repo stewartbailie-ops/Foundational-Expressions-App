@@ -163,3 +163,17 @@ CIV.tsx shows score/temperature pill under the grade selector and a full breakdo
 - Privacy notice line above submit on all three lead forms (`CallbackForm`, `ReferralForm`, `WillForm`) — required for POPIA-compliant data collection.
 - Privacy + Terms footer links on `AdvisorProfile` (public profile), `AdvisorPanel` (advisor sub-control panel), and master admin `Login`.
 - Downloadable contact card image (canvas-rendered in `AdvisorProfile.tsx`) carries footer text `advisoryconnect.pro/privacy-policy` baked into the PNG.
+## Saturday Batch (S1–S7)
+- **S1 Forex 24hr deltas**: server stamps daily snapshot in `forex_daily`, `/api/forex/rates` returns prev rates; ForexWidget shows ±%, green = Rand strengthened, red = Rand weakened.
+- **S2 QR enlargement**: QR block on public profile resized to fill the contact-card column.
+- **S3 Registry temperature sort**: Added "Temperature" SortKey in CIVTab — Hot → Warm → Cold → null (asc reverses).
+- **S4 Add to Home Screen**: dynamic `/api/manifest` keyed by current advisor slug; `<link rel="manifest">` swapped per profile so iOS pins THAT page.
+- **S5 FAIS / advisor code / email persistence**: Root cause was `PUBLIC_ADVISOR_FIELDS` allowlist in `server/routes.ts` stripping `email`, `advisorCode`, `faisAgreementUrl` from the public lookup. All three added.
+- **S6 Secondary card parity**: `AdditionalProfileForm` now takes the parent `Advisor` and renders a read-only "Inherited from Primary" sub-section after its own toggles, exposing the 6 advisor-row toggles (showSecondNews/Forex/FunFacts/Liberty/Stanlib/Signinghub) so secondaries clearly show what they inherit.
+- **S7 Views relocation + P/S split (NO schema change)**:
+  - Public-facing views badge removed from `AdvisorProfile.tsx`.
+  - Slug attribution encoded in `stats.eventType` as `app_access:<slug>` (sanitised). Legacy untagged `app_access` rows fold into Primary; unknown tagged slugs also fold into Primary.
+  - New endpoints: `GET /api/advisors/:slug/profile-stats` returns `{totalViews, primaryViews, secondaryViews}`; `GET /api/advisors/:slug/views-series` returns 7-day series `[{name, primary, secondary}]`. Both whitelisted in `ADVISOR_SLUG_ROUTE_PATTERN`. `views-series` is owner-gated via `canAccessAdvisor(req, advisor.id)` so requests from either Primary or Secondary slug URLs work for the logged-in owner.
+  - New storage methods: `getAdvisorViewCountsSplit`, `getAdvisorViewSeries`. `getAdvisorViewCount` now matches both legacy and new eventTypes.
+  - Panel UI: ProfilesTab "My Profiles" header shows `Views: Primary N · Secondary M` badge; StatsTab adds an AreaChart (green = Primary `#22c55e`, blue = Secondary `#3b82f6`) above the existing Leads bar chart.
+- **DEFERRED (next session)**: Forex graph (8th item from partner meeting).

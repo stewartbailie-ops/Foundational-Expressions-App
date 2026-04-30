@@ -17,10 +17,11 @@ const PUBLIC_API_ROUTES = [
   "/api/news/",
   "/api/forex/",
   "/api/csp-report",
+  "/api/manifest",
   "/uploads/",
 ];
 
-const ADVISOR_SLUG_ROUTE_PATTERN = /^\/api\/advisors\/[^/]+\/(emails|stats|profile-stats)$/;
+const ADVISOR_SLUG_ROUTE_PATTERN = /^\/api\/advisors\/[^/]+\/(emails|stats|profile-stats|views-series)$/;
 // Per-handler ownership check is enforced for these paths. The middleware only lets the request reach the handler.
 const ADVISOR_OWNED_ROUTE_PATTERN = /^\/api\/advisors\/\d+\/profiles(\/.*)?$/;
 

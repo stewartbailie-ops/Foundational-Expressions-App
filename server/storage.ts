@@ -46,6 +46,13 @@ export interface IStorage {
   getWeeklyActivity(days?: number): Promise<{ name: string; emails: number; accesses: number }[]>;
   getLeadBreakdown(): Promise<{ typeBreakdown: { type: string; count: number }[]; gradeBreakdown: { grade: string; count: number }[] }>;
   getAdvisorViewCount(advisorId: number): Promise<number>;
+  // S7: split view counts by Primary vs Secondary. Slug attribution is encoded
+  // in the eventType column as `app_access:<slug>` (no schema change). Legacy
+  // rows that are just `app_access` (pre-attribution) fold into Primary.
+  getAdvisorViewCountsSplit(advisorId: number, primarySlug: string, secondarySlugs: string[]): Promise<{ primary: number; secondary: number; total: number }>;
+  // S7: time series of views over the last `days` days, split P vs S, in
+  // chronological order so the chart can render directly.
+  getAdvisorViewSeries(advisorId: number, primarySlug: string, secondarySlugs: string[], days: number): Promise<{ name: string; primary: number; secondary: number }[]>;
   recordStat(stat: InsertStat): Promise<Stat>;
 }
 
@@ -461,11 +468,66 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdvisorViewCount(advisorId: number): Promise<number> {
+    // S7: count ANY app_access event (legacy untagged + new `app_access:<slug>`).
     const result = await db
       .select({ cnt: count() })
       .from(stats)
-      .where(sql`${stats.advisorId} = ${advisorId} AND ${stats.eventType} = 'app_access'`);
+      .where(sql`${stats.advisorId} = ${advisorId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%')`);
     return result[0]?.cnt ?? 0;
+  }
+
+  async getAdvisorViewCountsSplit(advisorId: number, primarySlug: string, secondarySlugs: string[]): Promise<{ primary: number; secondary: number; total: number }> {
+    // Group all app_access* events for this advisor by their full eventType,
+    // then bucket into primary vs secondary. Legacy rows ("app_access" with no
+    // suffix) and rows tagged with the primary slug count as primary; rows
+    // tagged with any of the advisor's secondary slugs count as secondary.
+    const rows = await db
+      .select({ eventType: stats.eventType, cnt: count() })
+      .from(stats)
+      .where(sql`${stats.advisorId} = ${advisorId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%')`)
+      .groupBy(stats.eventType);
+    const secondarySet = new Set(secondarySlugs);
+    let primary = 0;
+    let secondary = 0;
+    for (const r of rows) {
+      const c = Number(r.cnt) || 0;
+      if (r.eventType === "app_access") { primary += c; continue; }
+      const slug = r.eventType.slice("app_access:".length);
+      if (secondarySet.has(slug)) secondary += c;
+      else primary += c; // primary slug match OR unknown slug (treat as primary)
+    }
+    return { primary, secondary, total: primary + secondary };
+  }
+
+  async getAdvisorViewSeries(advisorId: number, primarySlug: string, secondarySlugs: string[], days: number): Promise<{ name: string; primary: number; secondary: number }[]> {
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - (days - 1));
+    const rows = await db
+      .select({ eventType: stats.eventType, day: sql<string>`to_char(${stats.eventDate}, 'YYYY-MM-DD')` })
+      .from(stats)
+      .where(sql`${stats.advisorId} = ${advisorId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%') AND ${stats.eventDate} >= ${startDate}`);
+    const secondarySet = new Set(secondarySlugs);
+    const byDay: Record<string, { primary: number; secondary: number }> = {};
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().slice(0, 10);
+      byDay[key] = { primary: 0, secondary: 0 };
+    }
+    for (const r of rows) {
+      const bucket = byDay[r.day];
+      if (!bucket) continue;
+      if (r.eventType === "app_access") { bucket.primary += 1; continue; }
+      const slug = r.eventType.slice("app_access:".length);
+      if (secondarySet.has(slug)) bucket.secondary += 1;
+      else bucket.primary += 1;
+    }
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    return Object.entries(byDay).map(([key, v]) => {
+      const d = new Date(key + "T00:00:00");
+      return { name: dayNames[d.getDay()], primary: v.primary, secondary: v.secondary };
+    });
   }
 
   async recordStat(stat: InsertStat): Promise<Stat> {
