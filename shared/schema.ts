@@ -250,13 +250,13 @@ export const BIO_OPTIONS: Record<string, string> = {
 export const INDIVIDUAL_SERVICES = [
   {
     key: "tax-efficiency",
-    name: "Optimize Tax Efficiency",
-    description: "Strategic tax planning to minimize your tax burden while maintaining full compliance. We analyze your financial situation to identify legitimate tax-saving opportunities and implement structures that optimize your after-tax returns.",
+    name: "Optimise Tax Efficiency",
+    description: "Strategic tax planning to minimise your tax burden while maintaining full compliance. We analyse your financial situation to identify legitimate tax-saving opportunities and implement structures that optimise your after-tax returns.",
   },
   {
     key: "tax-investment",
     name: "Tax-free Savings Accounts",
-    description: "Investment strategies designed to maximize returns while minimizing tax impact. We structure portfolios using tax-advantaged vehicles and timing strategies to help grow your wealth more efficiently.",
+    description: "Investment strategies designed to maximise returns while minimising tax impact. We structure portfolios using tax-advantaged vehicles and timing strategies to help grow your wealth more efficiently.",
   },
   {
     key: "personal-risk",

@@ -1,0 +1,31 @@
+Hey Friday! Pull from GitHub first (git pull) — C pushed security fixes since your last pull.
+
+Quick check of where things stand before you start: planning/friday-build-queue-prioritised.md has the full picture. Today's batch is all polish and panel work — no schema changes, no new DB columns.
+
+1. W2.9 — Temperature glow enhancement (quick CSS)
+The current trim is left-edge only (border-l-[4px] with an inset shadow). Stewart wants a full surround glow on the lead row — the colour wrapping the entire row, not just the left side. Same colours (red = Hot, amber = Warm, sky = Cold), just more visually present. Think a soft box-shadow glow around the whole row card, same colour family. Keep it tasteful — glowing, not garish.
+
+2. W3.7 — "New Leads" filter button
+Add a "New" filter button to the registry toolbar that, when clicked, filters the list to unread leads only — the ones already marked with the glowing blue dot. One-click toggle, sits naturally next to the existing search box and date filter. Clicking it again clears the filter and shows all leads.
+
+3. W2.1 + W2.2 + W2.3 — Content widgets in the advisor control panel
+The forex widget, secondary news feed, and fun facts carousel are live on the public contact card — but advisors can't see them from inside their own panel. Add a live preview of all three inside the advisor panel, so advisors can see exactly what their clients are seeing. Order in the panel should match the order on the public card:
+
+Secondary news feed — just below the primary Moneyweb feed
+Forex widget — just below the secondary news feed
+Fun facts carousel — just below the forex widget
+These should only appear in the panel when the advisor has the relevant toggle switched ON (same toggle that controls the public card). No toggle on = not shown in panel either.
+
+4. W1.4 — CSP production monitoring
+Add a report-uri or report-to directive to the Helmet CSP config in server/index.ts. The simplest approach: add a /api/csp-report endpoint that logs the violation to the server console (or a short in-memory buffer), and wire report-uri /api/csp-report into the CSP directives. This gives us visibility into any legitimate content being silently blocked in production. The endpoint should be unauthenticated (browsers send CSP reports without credentials) and should accept Content-Type: application/csp-report.
+
+5. W4.5 — Localisation / wording audit
+Do a sweep of all user-facing text across the app — form labels, button text, dropdown options, error messages, placeholder text, empty states — and fix anything that isn't South African English. Key things to look for:
+
+"Colour" not "Color", "licence" not "license", "organisation" not "organization"
+Rand (R) not Dollar ($) in any example amounts
+SA-appropriate terminology (e.g. "ID Number" not "SSN", "Mobile" not "Cell" if inconsistent)
+Any leftover placeholder text or generic copy that should be localised
+Flag anything you're unsure about rather than guessing — some terms are intentional.
+
+Full backlog in planning/friday-build-queue-prioritised.md. Good luck!

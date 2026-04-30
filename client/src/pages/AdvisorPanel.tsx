@@ -16,6 +16,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { NewsHero } from "@/components/NewsHero";
+import { ForexWidget } from "@/components/ForexWidget";
+import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
@@ -595,6 +597,59 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} />
       </div>
 
+      {/* ── Optional content widgets — only render in the panel when the advisor has
+            the matching public-card toggle ON, so what they see here is exactly what
+            the client sees. Order mirrors the public contact card:
+            secondary news → forex → fun facts (W2.1 / W2.2 / W2.3). ── */}
+      {(advisor as any).showSecondNews && (
+        <div className="space-y-2 pt-1" data-testid="panel-preview-secondnews">
+          <div className="flex items-center gap-2">
+            <Rss className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>More Finance News</div>
+          </div>
+          <NewsHero
+            accentColor={tc.accentColor}
+            borderColor={tc.borderColor}
+            cardBg={tc.cardBg}
+            height={170}
+            category={"secondary" as any}
+            labelOverride="More Finance News · Live"
+            testIdSuffix="secondary"
+          />
+        </div>
+      )}
+      {(advisor as any).showForex && (
+        <div className="space-y-2 pt-1" data-testid="panel-preview-forex">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Exchange Rates</div>
+          </div>
+          <ForexWidget
+            accentColor={tc.accentColor}
+            borderColor={tc.borderColor}
+            cardBg={tc.cardBg}
+            textColor={tc.textColor}
+            mutedText={tc.mutedText}
+          />
+        </div>
+      )}
+      {(advisor as any).showFunFacts && (
+        <div className="space-y-2 pt-1" data-testid="panel-preview-funfacts">
+          <div className="flex items-center gap-2">
+            <Heart className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Financial Facts of the Day</div>
+          </div>
+          <FunFactsCarousel
+            accentColor={tc.accentColor}
+            borderColor={tc.borderColor}
+            cardBg={tc.cardBg}
+            textColor={tc.textColor}
+            mutedText={tc.mutedText}
+            advisorName={advisor.name}
+          />
+        </div>
+      )}
+
       {/* ── My Stats ── */}
       <div className="space-y-3 pt-1">
         <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>My Stats</div>
@@ -863,6 +918,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     });
   };
   const [typeFilter, setTypeFilter] = useState("all");
+  // Unread-only quick filter (W3.7) — one-click toggle to surface just the leads
+  // that still have the new-lead glow on them (no lastViewedAt yet).
+  const [unreadOnly, setUnreadOnly] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [search, setSearch] = useState("");
@@ -944,7 +1002,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
         l.senderEmail.toLowerCase().includes(q) ||
         (l.clientPhone || "").includes(q) ||
         (l.referrerName || "").toLowerCase().includes(q);
-      return matchType && matchStatus && matchGrade && matchSearch;
+      const matchUnread = !unreadOnly || !l.lastViewedAt;
+      return matchType && matchStatus && matchGrade && matchSearch && matchUnread;
     })
     .sort((a, b) => {
       const dir = sortDir === "asc" ? 1 : -1;
@@ -1152,8 +1211,32 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2" style={{ color: tc.mutedText }} aria-label="Clear search"><X className="h-3.5 w-3.5" /></button>
         )}
       </div>
-      {/* Type filter */}
+      {/* Type filter + New (unread-only) quick toggle (W3.7) */}
       <div className="flex gap-2 flex-wrap">
+        {/* "New" pill — filters to leads that still have the unread glow.
+             Sits at the start so it's the first thing the eye lands on. */}
+        {(() => {
+          const newCount = sourceLeads.filter(l => !l.lastViewedAt).length;
+          return (
+            <button
+              onClick={() => setUnreadOnly(v => !v)}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5"
+              style={{
+                backgroundColor: unreadOnly ? tc.accentColor : tc.inputBg,
+                color: unreadOnly ? tc.buttonText : tc.mutedText,
+                border: `1px solid ${unreadOnly ? tc.accentColor : tc.borderColor}`,
+              }}
+              title={unreadOnly ? "Showing new leads only — click to clear" : "Show only new (unread) leads"}
+              data-testid="button-filter-new"
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: unreadOnly ? tc.buttonText : "#ef4444" }}
+              />
+              New{newCount > 0 ? ` (${newCount})` : ""}
+            </button>
+          );
+        })()}
         {["all", "Referral", "Call Back", "Will Request"].map(t => (
           <button key={t} onClick={() => setTypeFilter(t)}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
@@ -1166,8 +1249,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             {t === "all" ? "All Types" : t}
           </button>
         ))}
-        {(gradeFilter !== "all" || search) && (
-          <button onClick={() => { setGradeFilter("all"); setSearch(""); }}
+        {(gradeFilter !== "all" || search || unreadOnly) && (
+          <button onClick={() => { setGradeFilter("all"); setSearch(""); setUnreadOnly(false); }}
             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ml-auto"
             style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
           >
@@ -1191,6 +1274,10 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             const isUnread = !lead.lastViewedAt;
             const temp = lead.leadTemperature || "Cold";
             const tBadge = tempBadge[temp];
+            // For the row glow (W2.9) we only want a temperature halo when the lead has
+            // an ACTUAL temperature set — not the "Cold" fallback that just makes the
+            // badge render. Otherwise the row falls back to the unread/default border.
+            const tempGlow = lead.leadTemperature ? tempBadge[lead.leadTemperature] : null;
             const score = typeof lead.leadScore === "number" ? lead.leadScore : null;
             const isExpanded = expandedIds.has(lead.id);
             const phone = lead.clientPhone?.replace(/[^0-9+]/g, "");
@@ -1198,8 +1285,16 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
             return (
               <div
                 key={lead.id}
-                className="rounded-xl overflow-hidden"
-                style={{ backgroundColor: tc.cardBg, border: `1px solid ${isUnread ? tc.accentColor + "60" : tc.borderColor}` }}
+                className="rounded-xl overflow-hidden transition-shadow"
+                style={{
+                  backgroundColor: tc.cardBg,
+                  // Temperature-keyed full-surround glow (W2.9). When a lead has an ACTUAL
+                  // Hot/Warm/Cold temperature it gets a soft outer glow in that colour family
+                  // wrapping the whole card. Otherwise (no temperature set yet) it falls back
+                  // to the unread-accent border. Single ring + ambient halo, no doubled stroke.
+                  border: `1px solid ${tempGlow ? tempGlow.border : (isUnread ? tc.accentColor + "60" : tc.borderColor)}`,
+                  boxShadow: tempGlow ? `0 0 14px 2px ${tempGlow.text}33` : "none",
+                }}
               >
                 {/* Header row — click to expand/collapse */}
                 <button

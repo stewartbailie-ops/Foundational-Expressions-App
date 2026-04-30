@@ -27,6 +27,9 @@ app.use(
         imgSrc: ["'self'", "data:", "https:"],
         frameSrc: ["https://www.google.com"],
         connectSrc: ["'self'", "https:"],
+        // CSP violation reporting (W1.4) — gives us visibility into anything legitimate
+        // being silently blocked in production. Endpoint logs to the server console.
+        reportUri: ["/api/csp-report"],
       },
     },
     crossOriginEmbedderPolicy: false,
@@ -46,6 +49,10 @@ declare module "http" {
 app.use(
   express.json({
     limit: "10mb",
+    // Browsers POST CSP violations as application/csp-report (legacy) or
+    // application/reports+json (Reporting API). Parse both so /api/csp-report
+    // sees a normal req.body.
+    type: ["application/json", "application/csp-report", "application/reports+json"],
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
@@ -53,6 +60,27 @@ app.use(
 );
 
 app.use(express.urlencoded({ extended: false, limit: "10mb" }));
+
+// CSP violation reporting endpoint (W1.4). Registered BEFORE requireAuth because
+// browsers send these reports without credentials. We log to the server console
+// (and keep a small in-memory ring buffer of the last 50 for quick triage).
+const cspReportBuffer: Array<{ ts: number; report: any }> = [];
+app.post("/api/csp-report", (req, res) => {
+  try {
+    const body: any = req.body || {};
+    // Legacy: { "csp-report": { ... } }
+    // Reporting API: [{ type: "csp-violation", body: { ... } }, ...]
+    const report = body["csp-report"] ?? (Array.isArray(body) ? body[0]?.body : body);
+    cspReportBuffer.push({ ts: Date.now(), report });
+    if (cspReportBuffer.length > 50) cspReportBuffer.shift();
+    const blocked = report?.["blocked-uri"] || report?.blockedURL || "(unknown)";
+    const directive = report?.["violated-directive"] || report?.effectiveDirective || "(unknown)";
+    console.warn(`[CSP] Violation: directive="${directive}" blocked="${blocked}"`);
+  } catch (err) {
+    console.warn("[CSP] Failed to parse violation report:", err);
+  }
+  res.status(204).end();
+});
 
 app.use(
   session({
