@@ -706,6 +706,15 @@ export default function AdvisorProfile() {
   }, [advisor]);
 
   useEffect(() => {
+    if (!advisor?.id) return;
+    fetch("/api/stats/access", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ advisorId: advisor.id }),
+    }).catch(() => {});
+  }, [advisor?.id]);
+
+  useEffect(() => {
     if (!toolsOpen) return;
     const fetchRates = async () => {
       setErLoading(true);

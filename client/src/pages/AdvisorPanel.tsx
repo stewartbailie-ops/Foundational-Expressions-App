@@ -1428,7 +1428,7 @@ function Row({ label, value, tc, full }: { label: string; value: string; tc: Ret
 }
 
 function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeColors> }) {
-  const { data, isLoading } = useQuery<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; weeklyActivity: { name: string; leads: number }[] }>({
+  const { data, isLoading } = useQuery<{ totalLeads: number; totalReferrals: number; totalCallbacks: number; totalViews: number; weeklyActivity: { name: string; leads: number }[] }>({
     queryKey: [`/api/advisors/${slug}/stats`],
   });
 
@@ -1437,6 +1437,7 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
   );
 
   const stats = [
+    { label: "Profile Views", value: data?.totalViews ?? 0 },
     { label: "Total Leads", value: data?.totalLeads ?? 0 },
     { label: "Referrals", value: data?.totalReferrals ?? 0 },
     { label: "Call Backs", value: data?.totalCallbacks ?? 0 },
@@ -1444,7 +1445,7 @@ function StatsTab({ slug, tc }: { slug: string; tc: ReturnType<typeof getThemeCo
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {stats.map(s => (
           <div key={s.label} className="rounded-xl p-4 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
             <div className="text-2xl font-bold" style={{ color: tc.textColor }}>{s.value}</div>

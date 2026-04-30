@@ -1316,7 +1316,8 @@ export async function registerRoutes(
     }
     const profileBreakdown = Object.values(merged).sort((a, b) => b.count - a.count);
 
-    res.json({ ...advisorStats, profileBreakdown });
+    const totalViews = await storage.getAdvisorViewCount(advisor.id);
+    res.json({ ...advisorStats, profileBreakdown, totalViews });
   });
 
   // Parse a single RSS feed XML string into normalized items, including a thumbnail image if found
