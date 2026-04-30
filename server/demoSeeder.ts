@@ -130,9 +130,14 @@ function buildLead(advisorId: number, slugs: string[] = []): InsertEmail {
   const property = Math.random() < 0.45;
   const services = pick(SERVICES);
 
+  // ~25% of referrals get sparse data so Cold leads appear in the demo mix
+  const isSparseReferral = type === "Referral" && Math.random() < 0.25;
+  const gradingAge = isSparseReferral ? null : age;
+  const gradingIncome = isSparseReferral ? null : income;
+
   const result = calculateLeadGrade({
-    age,
-    income,
+    age: gradingAge,
+    income: gradingIncome,
     married,
     children,
     vehicle,
@@ -153,14 +158,14 @@ function buildLead(advisorId: number, slugs: string[] = []): InsertEmail {
     leadStatus: Math.random() < 0.7 ? "Need to Contact" : (Math.random() < 0.6 ? "Contacted" : "Archive"),
     subject: pick(SUBJECTS_DIRECT),
     body: pick(BODIES),
-    clientAge: age,
-    clientIncome: income,
+    clientAge: gradingAge,
+    clientIncome: gradingIncome,
     clientIndustry: industry,
     clientPhone: phone,
-    clientMarried: Math.random() < 0.55,
-    clientChildren: Math.random() < 0.5,
-    clientVehicle: Math.random() < 0.75,
-    clientProperty: Math.random() < 0.45,
+    clientMarried: married,
+    clientChildren: children,
+    clientVehicle: vehicle,
+    clientProperty: property,
     preferredContactTime: pick(CONTACT_TIMES),
     servicesRequested: pick(SERVICES),
     referrerName,
