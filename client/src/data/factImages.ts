@@ -68,6 +68,7 @@ export const FACT_IMAGES: string[] = [
   "/facts/fact-67.png",
   "/facts/fact-68.png",
   "/facts/fact-69.png",
+  "/facts/fact-70.png",
   "/facts/fact-71.png",
   "/facts/fact-72.png",
   "/facts/fact-73.png",
