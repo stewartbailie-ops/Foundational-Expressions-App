@@ -99,15 +99,21 @@ export function FunFactsCarousel({
     if (transitioning.current) return;
     if (next === index) return;
     transitioning.current = true;
+    // Single 300ms cross-fade cycle: fade out (300ms) → swap image → fade in (300ms).
+    // CSS transition on the <img> is also 300ms so the image fully reaches opacity 0
+    // before we change src, then fully returns to opacity 1 before we release the lock.
     setFading(true);
     const t1 = window.setTimeout(() => {
       setIndex(next);
-      const t2 = window.setTimeout(() => {
+      // rAF lets the new src commit while opacity is still 0, then we fade back in.
+      requestAnimationFrame(() => {
         setFading(false);
-        transitioning.current = false;
-      }, 30);
-      timersRef.current.push(t2);
-    }, 220);
+        const t2 = window.setTimeout(() => {
+          transitioning.current = false;
+        }, 300);
+        timersRef.current.push(t2);
+      });
+    }, 300);
     timersRef.current.push(t1);
   };
 
@@ -129,7 +135,10 @@ export function FunFactsCarousel({
     const result = await shareImage(images[index], advisorName || "your advisor");
     if (result === "shared" || result === "copied") {
       setShareState(result);
-      setTimeout(() => setShareState("idle"), 2000);
+      // Track this timeout in timersRef so unmount cleanup cancels it and we never
+      // call setShareState on an unmounted component.
+      const t = window.setTimeout(() => setShareState("idle"), 2000);
+      timersRef.current.push(t);
     }
   };
 

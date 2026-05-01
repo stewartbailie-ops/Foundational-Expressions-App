@@ -3023,8 +3023,18 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          {/* F8 — section visibility toggles removed; inherited from Primary. */}
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Title</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Header &amp; Title <span className="font-normal">(Show header)</span></label>
+            <div className="flex items-center gap-2">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Pic</span>
+              <div onClick={() => setShowProfilePic(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showProfilePic ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-profile-pic">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showProfilePic ? "14px" : "1px", backgroundColor: showProfilePic ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+              <div onClick={() => setShowHeader(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showHeader ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-header">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showHeader ? "14px" : "1px", backgroundColor: showHeader ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          </div>
           <select value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
             {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ backgroundColor: "#fff", color: "#1a2942" }}>{t}</option>)}
           </select>
@@ -3050,7 +3060,15 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction & Bio</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction &amp; Bio</label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
+              <div onClick={() => setShowIntro(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showIntro ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-intro">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showIntro ? "14px" : "1px", backgroundColor: showIntro ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          </div>
           <select value={bioOption} onChange={e => setBioOption(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
             <option value="a">Option A – Core focus overview</option>
             <option value="b">Option B – Integrated strategic approach</option>
@@ -3065,7 +3083,15 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
+              <div onClick={() => setShowIndividualServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showIndividualServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-individual">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showIndividualServices ? "14px" : "1px", backgroundColor: showIndividualServices ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          </div>
           <div className="space-y-1.5">
             {INDIVIDUAL_SERVICES.map(s => (
               <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -3077,7 +3103,15 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
+              <div onClick={() => setShowCorporateServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showCorporateServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-corporate">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showCorporateServices ? "14px" : "1px", backgroundColor: showCorporateServices ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          </div>
           <div className="space-y-1.5">
             {CORPORATE_SERVICES.map(s => (
               <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -3089,7 +3123,15 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Social Links (optional)</label>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Social Links (optional)</label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
+              <div onClick={() => setShowSocials(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showSocials ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-socials">
+                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showSocials ? "14px" : "1px", backgroundColor: showSocials ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          </div>
           {[
             { val: linkedinUrl, set: setLinkedinUrl, placeholder: "LinkedIn URL" },
             { val: facebookUrl, set: setFacebookUrl, placeholder: "Facebook URL" },
@@ -3157,34 +3199,69 @@ function AdditionalProfileForm({
           )}
         </div>
 
-        {/* F8 — visibility toggles removed from secondary editor. The list of
-            sections shown on a secondary profile (QR code, Call Back button,
-            Refer Friends, Will, News feed, Tools, Emergency Contacts, the
-            Interactive showpieces, and every per-tool sub-toggle) is now
-            inherited live from the Primary profile via storage. State values
-            remain loaded above so existing saved data isn't blown away on save,
-            but the editing surface here is intentionally gone — this matches
-            Stewart's spec "secondary inherits all toggles from primary".
-
-            Content fields (profile picture, intro, services list, theme,
-            section order, links) remain editable independently below. */}
         <div className="space-y-2">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Page Elements</label>
-          <div className="rounded-lg px-3 py-3 text-xs leading-relaxed" style={{ border: `1px dashed ${tc.borderColor}`, backgroundColor: tc.inputBg + "55", color: tc.mutedText }}>
-            All section visibility toggles (QR code, buttons, news feed, tools, emergency contacts and every sub-tool) are now controlled from your <span className="font-semibold" style={{ color: tc.accentColor }}>Primary profile</span> and apply automatically to every secondary profile.
-            <div className="mt-1.5" style={{ color: tc.mutedText }}>
-              You can still customise the content of this profile below — picture, intro, services list, links, theme and section order are independent per profile.
+          {[
+            { label: "QR Code", value: showQrCode, set: setShowQrCode },
+            { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
+            { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
+            { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+            { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
+            { label: "Financial Tools Section", value: showTools, set: setShowTools },
+            { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
+          ].map(item => (
+            <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+              <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+              <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-secondary-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          ))}
+          {showTools && (
+            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
+              {[
+                { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
+                { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
+                { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
+                { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
+                { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
+                { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between pl-2">
+                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-secondary-tool-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+            <span className="text-xs" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
+            <div onClick={() => setShowInteractive(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-interactive">
+              <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showInteractive ? "17px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
             </div>
           </div>
-          {/* F8 — read-only inherited toggle strip removed too, so the secondary
-              editor truly has zero toggle UI. The current values of those
-              primary settings are still managed (and displayed editable) on
-              the Primary tab. */}
-          {/* F8 — per-tool sub-toggles and Interactive Financial Tools toggle
-              removed: these were always gated by their parent toggles which are
-              now inherited from Primary. Local state (showTools, showInteractive,
-              showToolTax, showShowpieceSqueeze etc.) is preserved at the top of
-              this component so existing saved values survive a re-save. */}
+          {showInteractive && (
+            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
+              {[
+                { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
+                { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
+                { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
+                { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
+              ].map(item => (
+                <div key={item.label} className="flex items-center justify-between pl-2">
+                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-secondary-showpiece-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2 pt-1">
