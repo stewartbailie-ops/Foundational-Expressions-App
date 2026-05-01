@@ -68,11 +68,9 @@ export function FunFactsCarousel({
   const [hourKey, setHourKey] = useState(() => Math.floor(Date.now() / 3_600_000));
   const [images, setImages] = useState<string[]>(() => pickRandomImages(10));
   const [index, setIndex] = useState(0);
-  const [fading, setFading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied">("idle");
   const touchStartX = useRef<number | null>(null);
-  const transitioning = useRef(false);
   const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
@@ -95,30 +93,9 @@ export function FunFactsCarousel({
     };
   }, []);
 
-  const goTo = (next: number) => {
-    if (transitioning.current) return;
-    if (next === index) return;
-    transitioning.current = true;
-    // Single 300ms cross-fade cycle: fade out (300ms) → swap image → fade in (300ms).
-    // CSS transition on the <img> is also 300ms so the image fully reaches opacity 0
-    // before we change src, then fully returns to opacity 1 before we release the lock.
-    setFading(true);
-    const t1 = window.setTimeout(() => {
-      setIndex(next);
-      // rAF lets the new src commit while opacity is still 0, then we fade back in.
-      requestAnimationFrame(() => {
-        setFading(false);
-        const t2 = window.setTimeout(() => {
-          transitioning.current = false;
-        }, 300);
-        timersRef.current.push(t2);
-      });
-    }, 300);
-    timersRef.current.push(t1);
-  };
-
-  const prev = () => goTo(index > 0 ? index - 1 : images.length - 1);
-  const next = () => goTo(index < images.length - 1 ? index + 1 : 0);
+  const goTo = (next: number) => setIndex(next);
+  const prev = () => setIndex((i) => (i > 0 ? i - 1 : images.length - 1));
+  const next = () => setIndex((i) => (i < images.length - 1 ? i + 1 : 0));
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -179,8 +156,7 @@ export function FunFactsCarousel({
             <img
               src={images[index]}
               alt={`Financial fact ${index + 1}`}
-              className="w-full h-auto block transition-opacity duration-300 ease-in-out"
-              style={{ opacity: fading ? 0 : 1 }}
+              className="w-full h-auto block"
               draggable={false}
             />
           </button>
