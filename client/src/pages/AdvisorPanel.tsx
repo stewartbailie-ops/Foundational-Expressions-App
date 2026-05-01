@@ -5,8 +5,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users } from "lucide-react";
-import acLogo from "@assets/Untitled_-_Edited_1777223447976.png";
-import verifiedBadge from "@assets/Verification_badge_1776991586993.png";
+// Brand-mark and badge now live inside <BrandFooter />; importing here is no
+// longer needed because the footer pulls assets from /public directly.
+import { BrandFooter } from "@/components/BrandFooter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -515,6 +516,25 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
   });
   const profileCount = 1 + additionalProfiles.length;
 
+  // F7: pull 7-day Primary/Secondary view series so the headline Lead Activity
+  // chart can overlay it as two extra lines (green = Primary, blue = Secondary).
+  const { data: viewSeriesData } = useQuery<{ series: { name: string; primary: number; secondary: number }[] }>({
+    queryKey: [`/api/advisors/${advisor.profileSlug}/views-series`],
+  });
+  // Merge views into the leads weekly activity by day-of-week label so a single
+  // dataset feeds the chart. Falls back to 0 if either side is missing a day.
+  const mergedWeekly = (() => {
+    const leads = advisorStats?.weeklyActivity ?? [];
+    const views = viewSeriesData?.series ?? [];
+    if (leads.length === 0 && views.length === 0) return [];
+    const base = leads.length >= views.length ? leads : views.map(v => ({ name: v.name, leads: 0 }));
+    return base.map(row => {
+      const v = views.find(x => x.name === row.name);
+      return { name: row.name, leads: (row as any).leads ?? 0, primary: v?.primary ?? 0, secondary: v?.secondary ?? 0 };
+    });
+  })();
+  const totalViewsWeek = mergedWeekly.reduce((s, d) => s + (d.primary || 0) + (d.secondary || 0), 0);
+
   const firstName = advisor.name.split(" ")[0];
   const totalLeads = allLeads.length;
 
@@ -689,17 +709,28 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
           </div>
         )}
 
-        {/* Weekly activity area chart */}
+        {/* Weekly activity area chart — F7: now overlays Primary (green) and
+            Secondary (blue) profile-view lines on top of the original Leads area
+            so the headline chart shows lead momentum + view momentum side-by-side. */}
         <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <div className="text-xs font-semibold" style={{ color: tc.textColor }}>Lead Activity – Last 7 Days</div>
             <div className="text-[10px] font-medium px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tc.accentColor}20`, color: tc.accentColor }}>
               {(advisorStats?.weeklyActivity ?? []).reduce((sum, d) => sum + (d.leads || 0), 0)} this week
             </div>
           </div>
+          {/* Mini legend dots so users can read which line is which without hovering. */}
+          <div className="flex items-center gap-3 mb-2 text-[10px]" style={{ color: tc.mutedText }}>
+            <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: tc.accentColor }} />Leads</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#22c55e" }} />Primary views</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#3b82f6" }} />Secondary views</span>
+            {totalViewsWeek > 0 && (
+              <span className="ml-auto" data-testid="text-views-week-total">{totalViewsWeek} views this week</span>
+            )}
+          </div>
           <div className="h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={advisorStats?.weeklyActivity ?? []} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
+              <AreaChart data={mergedWeekly} margin={{ top: 8, right: 8, left: -28, bottom: 0 }}>
                 <defs>
                   <linearGradient id="homeLeadGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%"  stopColor={tc.accentColor} stopOpacity={0.55} />
@@ -723,6 +754,32 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                   fill="url(#homeLeadGrad)"
                   dot={{ r: 3, fill: tc.cardBg, stroke: tc.accentColor, strokeWidth: 2 }}
                   activeDot={{ r: 5, fill: tc.accentColor, stroke: tc.cardBg, strokeWidth: 2 }}
+                  isAnimationActive
+                  animationDuration={800}
+                />
+                {/* Primary views — green line, no fill so it sits cleanly over the leads area. */}
+                <Area
+                  type="natural"
+                  dataKey="primary"
+                  name="Primary views"
+                  stroke="#22c55e"
+                  strokeWidth={2}
+                  fill="none"
+                  dot={{ r: 2.5, fill: tc.cardBg, stroke: "#22c55e", strokeWidth: 2 }}
+                  activeDot={{ r: 4 }}
+                  isAnimationActive
+                  animationDuration={800}
+                />
+                {/* Secondary views — blue line, same treatment. */}
+                <Area
+                  type="natural"
+                  dataKey="secondary"
+                  name="Secondary views"
+                  stroke="#3b82f6"
+                  strokeWidth={2}
+                  fill="none"
+                  dot={{ r: 2.5, fill: tc.cardBg, stroke: "#3b82f6", strokeWidth: 2 }}
+                  activeDot={{ r: 4 }}
                   isAnimationActive
                   animationDuration={800}
                 />
@@ -824,84 +881,18 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         <EmergencyContactsCard tc={tc} />
       </div>
 
-      {/* ── Footer: Powered By + Verified Badge + Support ── */}
-      <div className="pt-6 pb-2 space-y-3">
-        <div
-          className="rounded-xl p-4 space-y-3"
-          style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
-          data-testid="footer-powered-by"
-        >
-          {/* Top row: logo • centered text • badge */}
-          <div className="flex items-center gap-3">
-            <img
-              src={acLogo}
-              alt="Advisory Connect"
-              className="h-14 w-14 rounded-lg object-contain shrink-0"
-              data-testid="img-ac-logo"
-            />
-            <div className="flex-1 min-w-0 text-center">
-              <div className="text-xs font-bold uppercase tracking-wider leading-tight" style={{ color: tc.textColor }}>
-                Powered by Advisory Connect
-              </div>
-              <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>
-                Elevate your professional presence
-              </div>
-              <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>
-                <a
-                  href="/privacy-policy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                  style={{ color: tc.mutedText }}
-                  data-testid="link-privacy-policy-panel"
-                >
-                  Privacy Policy
-                </a>
-                <span className="mx-1">·</span>
-                <a
-                  href="/terms"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline"
-                  style={{ color: tc.mutedText }}
-                  data-testid="link-terms-panel"
-                >
-                  Terms
-                </a>
-              </div>
-            </div>
-            <img
-              src={verifiedBadge}
-              alt="Registered Company — Verified by Company Partners"
-              className="h-12 w-auto shrink-0"
-              data-testid="img-verified-badge"
-            />
-          </div>
-
-          {/* Bottom row: pill buttons centered */}
-          <div className="flex items-center justify-center gap-2">
-            <a
-              href="https://www.advisoryconnect.pro"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-              style={{ backgroundColor: `${tc.accentColor}18`, color: tc.accentColor, border: `1px solid ${tc.accentColor}40` }}
-              data-testid="link-footer-website"
-            >
-              <Globe className="h-3 w-3" />
-              advisoryconnect.pro
-            </a>
-            <a
-              href="mailto:support@advisoryconnect.pro"
-              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
-              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
-              data-testid="link-footer-support"
-            >
-              <LifeBuoy className="h-3 w-3" />
-              Contact Support
-            </a>
-          </div>
-        </div>
+      {/* F4 — unified BrandFooter (single balanced row matches public profile + master). */}
+      <div className="pt-6 pb-2">
+        <BrandFooter
+          theme={{
+            cardBg: tc.cardBg,
+            borderColor: tc.borderColor,
+            textColor: tc.textColor,
+            mutedText: tc.mutedText,
+            accentColor: tc.accentColor,
+            buttonSecondaryBg: tc.buttonSecondaryBg,
+          }}
+        />
       </div>
     </div>
   );
@@ -1302,47 +1293,54 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                   boxShadow: tempGlow ? `0 0 14px 2px ${tempGlow.text}33` : "none",
                 }}
               >
-                {/* Header row — click to expand/collapse */}
+                {/* Header row — click to expand/collapse.
+                    F6: fixed-grid layout — avatar | name+meta (truncates 2 lines) |
+                    right-aligned badge column with stable min-width so every row is the
+                    same shape. Uniform min-h-[88px] + px-4 py-4 padding across the list. */}
                 <button
                   type="button"
-                  className="w-full flex items-center justify-between px-4 py-3.5 text-left transition-opacity active:opacity-70"
+                  className="w-full grid items-center px-4 py-4 text-left transition-opacity active:opacity-70 min-h-[88px]"
+                  style={{ gridTemplateColumns: "auto minmax(0,1fr) auto" }}
                   onClick={() => {
                     toggleExpanded(lead.id);
                     if (!isExpanded) openMutation.mutate(lead.id);
                   }}
                   data-testid={`button-civ-row-${lead.id}`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="relative">
-                      <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                        style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
-                        {getInitials(lead.senderName)}
-                      </div>
-                      {isUnread && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2" style={{ borderColor: tc.bgColor }} />}
+                  {/* Avatar column — fixed width keeps the gutter aligned across all rows. */}
+                  <div className="relative pr-3">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                      style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+                      {getInitials(lead.senderName)}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium" style={{ color: tc.textColor }}>{lead.senderName}</span>
-                        <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full" style={{ color: tb.text, backgroundColor: tb.bg }}>{lead.type}</span>
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                    {isUnread && <span className="absolute -top-0.5 right-2.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2" style={{ borderColor: tc.bgColor }} />}
+                  </div>
+                  {/* Name + meta column — name clamps to 2 lines so very long names stop
+                      shoving the right column around. */}
+                  <div className="min-w-0">
+                    <div className="flex items-start gap-2 flex-wrap">
+                      <span className="text-sm font-medium line-clamp-2 break-words" style={{ color: tc.textColor }}>{lead.senderName}</span>
+                      <span className="text-xs font-semibold px-1.5 py-0.5 rounded-full whitespace-nowrap" style={{ color: tb.text, backgroundColor: tb.bg }}>{lead.type}</span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="text-xs" style={{ color: tc.mutedText }}>
+                        Received {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
+                      </span>
+                      {lead.lastViewedAt && (
                         <span className="text-xs" style={{ color: tc.mutedText }}>
-                          Received {format(new Date(lead.receivedAt), "dd MMM yyyy, HH:mm")}
+                          · Last viewed {format(new Date(lead.lastViewedAt), "dd MMM, HH:mm")}
                         </span>
-                        {lead.lastViewedAt && (
-                          <span className="text-xs" style={{ color: tc.mutedText }}>
-                            · Last viewed {format(new Date(lead.lastViewedAt), "dd MMM, HH:mm")}
-                          </span>
-                        )}
-                        {viewMode === "archived" && lead.archivedAt && (
-                          <span className="text-xs" style={{ color: tc.mutedText }}>
-                            · Archived {format(new Date(lead.archivedAt), "dd MMM yyyy")}
-                          </span>
-                        )}
-                      </div>
+                      )}
+                      {viewMode === "archived" && lead.archivedAt && (
+                        <span className="text-xs" style={{ color: tc.mutedText }}>
+                          · Archived {format(new Date(lead.archivedAt), "dd MMM yyyy")}
+                        </span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                  {/* Badge column — fixed min-width + right alignment so Grade/Status pills
+                      always sit in the same vertical strip on the card. */}
+                  <div className="flex items-center justify-end gap-2 flex-shrink-0 pl-3 min-w-[140px]">
                     {/* Grader 2.0 — temperature pill + score; same colour language as CIV row glow */}
                     {tBadge && (
                       <span
@@ -3012,6 +3010,28 @@ function AdditionalProfileForm({
         <button onClick={onDone} className="text-xs px-2 py-1 rounded" style={{ color: tc.mutedText, backgroundColor: tc.inputBg }}>Cancel</button>
       </div>
       <div className="p-4 space-y-4" style={{ backgroundColor: tc.bgColor }}>
+        {/* F8 — Inheritance notice. Visibility toggles in this form (Show header,
+            Tools, Showpieces, etc.) no longer affect the secondary's public render
+            — those settings are inherited live from your Primary profile. The
+            inputs are kept in place for now so existing data doesn't get blown
+            away, but they have no public effect. */}
+        <div
+          className="rounded-lg p-3 text-xs flex items-start gap-2"
+          style={{ backgroundColor: `${tc.accentColor}10`, border: `1px solid ${tc.accentColor}40`, color: tc.textColor }}
+          data-testid="banner-inherits-from-primary"
+        >
+          <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: tc.accentColor }} />
+          <div>
+            <div className="font-semibold" style={{ color: tc.accentColor }}>Visibility settings are inherited from your Primary profile</div>
+            <div className="mt-0.5" style={{ color: tc.mutedText }}>
+              Toggles for header, services, tools, showpieces and the QR code are now controlled
+              from your Primary profile and apply to every secondary profile automatically.
+              Content fields (title, bio, services list, theme, links and your profile picture)
+              still live on each secondary profile independently.
+            </div>
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile URL</label>
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${profileSlug && !slugValid ? "#ef4444" : tc.inputBorder}`, backgroundColor: tc.inputBg }}>
@@ -3023,18 +3043,8 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Header & Title <span className="font-normal">(Show header)</span></label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Pic</span>
-              <div onClick={() => setShowProfilePic(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showProfilePic ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showProfilePic ? "14px" : "1px", backgroundColor: showProfilePic ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-              <div onClick={() => setShowHeader(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showHeader ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showHeader ? "14px" : "1px", backgroundColor: showHeader ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          </div>
+          {/* F8 — section visibility toggles removed; inherited from Primary. */}
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Title</label>
           <select value={title} onChange={e => setTitle(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
             {TITLE_OPTIONS.map(t => <option key={t} value={t} style={{ backgroundColor: "#fff", color: "#1a2942" }}>{t}</option>)}
           </select>
@@ -3060,15 +3070,7 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction & Bio</label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowIntro(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showIntro ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showIntro ? "14px" : "1px", backgroundColor: showIntro ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          </div>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction & Bio</label>
           <select value={bioOption} onChange={e => setBioOption(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }}>
             <option value="a">Option A – Core focus overview</option>
             <option value="b">Option B – Integrated strategic approach</option>
@@ -3083,15 +3085,7 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowIndividualServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showIndividualServices ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showIndividualServices ? "14px" : "1px", backgroundColor: showIndividualServices ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          </div>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
           <div className="space-y-1.5">
             {INDIVIDUAL_SERVICES.map(s => (
               <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -3103,15 +3097,7 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowCorporateServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showCorporateServices ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showCorporateServices ? "14px" : "1px", backgroundColor: showCorporateServices ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          </div>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
           <div className="space-y-1.5">
             {CORPORATE_SERVICES.map(s => (
               <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -3123,15 +3109,7 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Social Links (optional)</label>
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowSocials(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showSocials ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showSocials ? "14px" : "1px", backgroundColor: showSocials ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          </div>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Social Links (optional)</label>
           {[
             { val: linkedinUrl, set: setLinkedinUrl, placeholder: "LinkedIn URL" },
             { val: facebookUrl, set: setFacebookUrl, placeholder: "Facebook URL" },
@@ -3199,93 +3177,34 @@ function AdditionalProfileForm({
           )}
         </div>
 
+        {/* F8 — visibility toggles removed from secondary editor. The list of
+            sections shown on a secondary profile (QR code, Call Back button,
+            Refer Friends, Will, News feed, Tools, Emergency Contacts, the
+            Interactive showpieces, and every per-tool sub-toggle) is now
+            inherited live from the Primary profile via storage. State values
+            remain loaded above so existing saved data isn't blown away on save,
+            but the editing surface here is intentionally gone — this matches
+            Stewart's spec "secondary inherits all toggles from primary".
+
+            Content fields (profile picture, intro, services list, theme,
+            section order, links) remain editable independently below. */}
         <div className="space-y-2">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Page Elements</label>
-          {[
-            { label: "QR Code", value: showQrCode, set: setShowQrCode },
-            { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
-            { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
-            { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
-            { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
-            { label: "Financial Tools Section", value: showTools, set: setShowTools },
-            { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
-          ].map(item => (
-            <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-              <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
-              <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
-                <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
-              </div>
-            </div>
-          ))}
-          {/* S6: feature parity. The 6 toggles below are stored on the advisor (primary) row only,
-              not on advisor_profiles. Showing them here read-only with the primary's current value
-              so the secondary editor surface matches the primary editor and the advisor knows where
-              to manage them. (Per-secondary independence would require new advisor_profiles columns.) */}
-          <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px dashed ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
-            <p className="text-xs font-medium leading-snug" style={{ color: tc.mutedText }}>
-              Inherited from Primary profile (manage these in the Primary tab — they apply to all your profiles):
-            </p>
-            {[
-              { label: "More Finance News (second feed)", value: !!(advisor as any).showSecondNews },
-              { label: "Live Exchange Rates", value: !!(advisor as any).showForex },
-              { label: "Financial Facts of the Day", value: !!(advisor as any).showFunFacts },
-              { label: "My Liberty (Platforms)", value: !!(advisor as any).showLiberty },
-              { label: "Stanlib (Platforms)", value: !!(advisor as any).showStanlib },
-              { label: "SigningHub (Platforms)", value: !!(advisor as any).showSigninghub },
-            ].map(item => (
-              <div key={item.label} className="flex items-center justify-between pl-2 opacity-70">
-                <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
-                <div className="w-8 h-4 rounded-full relative" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive, cursor: "not-allowed" }} title="Set on Primary tab">
-                  <div className="absolute top-0.5 w-3 h-3 rounded-full" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
-                </div>
-              </div>
-            ))}
-          </div>
-          {showTools && (
-            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
-              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
-              {[
-                { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
-                { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
-                { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
-                { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
-                { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
-                { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between pl-2">
-                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
-                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
-                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-            <span className="text-xs" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
-            <div onClick={() => setShowInteractive(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }}>
-              <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showInteractive ? "17px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
+          <div className="rounded-lg px-3 py-3 text-xs leading-relaxed" style={{ border: `1px dashed ${tc.borderColor}`, backgroundColor: tc.inputBg + "55", color: tc.mutedText }}>
+            All section visibility toggles (QR code, buttons, news feed, tools, emergency contacts and every sub-tool) are now controlled from your <span className="font-semibold" style={{ color: tc.accentColor }}>Primary profile</span> and apply automatically to every secondary profile.
+            <div className="mt-1.5" style={{ color: tc.mutedText }}>
+              You can still customise the content of this profile below — picture, intro, services list, links, theme and section order are independent per profile.
             </div>
           </div>
-          {showInteractive && (
-            <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
-              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
-              {[
-                { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
-                { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
-                { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
-                { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
-              ].map(item => (
-                <div key={item.label} className="flex items-center justify-between pl-2">
-                  <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
-                  <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
-                    <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* F8 — read-only inherited toggle strip removed too, so the secondary
+              editor truly has zero toggle UI. The current values of those
+              primary settings are still managed (and displayed editable) on
+              the Primary tab. */}
+          {/* F8 — per-tool sub-toggles and Interactive Financial Tools toggle
+              removed: these were always gated by their parent toggles which are
+              now inherited from Primary. Local state (showTools, showInteractive,
+              showToolTax, showShowpieceSqueeze etc.) is preserved at the top of
+              this component so existing saved values survive a re-save. */}
         </div>
 
         <div className="space-y-2 pt-1">

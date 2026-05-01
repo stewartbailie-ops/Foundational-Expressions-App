@@ -40,11 +40,10 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: "#0a0a0a" }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 border border-white/20 mb-5">
-            <Lock className="h-7 w-7 text-white/70" />
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Control Panel</h1>
-          <p className="text-white/50 text-sm mt-2">Sign in to continue</p>
+          {/* Brand logo replaces the generic lock chip — straight visual identity hit on the login. */}
+          <img src="/logo/icon-64.png" alt="Advisory Connect" className="mx-auto h-16 w-16 mb-5" data-testid="img-login-logo" />
+          <h1 className="text-2xl font-bold text-white tracking-tight">Advisory Connect</h1>
+          <p className="text-white/50 text-sm mt-2">Control Panel — sign in to continue</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">

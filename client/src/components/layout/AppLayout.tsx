@@ -1,6 +1,7 @@
 import { Link, useLocation } from "wouter";
 import { Home, LayoutDashboard, Users, Inbox, LogOut } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
+import { BrandFooter, MASTER_FOOTER_THEME } from "@/components/BrandFooter";
 
 const SIDEBAR_BG = "#0a0a0a";
 const CONTENT_BG = "#171717";
@@ -25,8 +26,14 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex text-white" style={{ backgroundColor: CONTENT_BG }}>
       <aside className="w-72 flex flex-col hidden md:flex" style={{ backgroundColor: SIDEBAR_BG, borderRight: `1px solid ${BORDER}` }}>
-        <div className="flex flex-col items-start px-5 pt-6 pb-4">
-          <p className="text-base text-white tracking-wide uppercase font-semibold">Control Panel</p>
+        {/* Sidebar header — neon icon + wordmark sit on the dark sidebar so the
+            transparent PNGs do all the heavy lifting (no plate behind them). */}
+        <div className="flex items-center gap-3 px-5 pt-6 pb-4">
+          <img src="/logo/icon-64.png" alt="" className="h-9 w-9 shrink-0" data-testid="img-sidebar-logo" />
+          <div className="flex flex-col leading-tight">
+            <span className="text-sm font-bold text-white tracking-tight">Advisory Connect</span>
+            <span className="text-[10px] text-white/50 uppercase tracking-wider">Control Panel</span>
+          </div>
         </div>
 
         <nav className="flex-1 py-4 px-3 space-y-1.5 flex flex-col items-start">
@@ -81,8 +88,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="flex-1 overflow-auto p-8" style={{ backgroundColor: CONTENT_BG }}>
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto space-y-8">
             {children}
+            {/* F4 — same brand footer as the sub-control panel and public profile. */}
+            <BrandFooter theme={MASTER_FOOTER_THEME} />
           </div>
         </div>
       </main>

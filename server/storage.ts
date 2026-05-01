@@ -75,10 +75,11 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(advisors, eq(advisorProfiles.advisorId, advisors.id))
       .where(eq(advisorProfiles.profileSlug, slug));
     if (!profile) return undefined;
-    // Secondary profiles are FULLY INDEPENDENT from the primary advisor.
-    // Only true advisor-level fields (identity, contact, account, auth) come from the
-    // advisor row via the spread. All per-profile content is read directly from the
-    // advisor_profiles row — no nullish fallback to the primary's values.
+    // F8 — Secondary profiles now INHERIT every visibility toggle from the
+    // primary advisor row. Per-profile toggle columns on advisor_profiles are
+    // ignored on read (they continue to exist for backward compat / migration
+    // — no schema change today). Per-profile content fields (title, bio,
+    // services, theme, links, profile pic) remain independent.
     return {
       ...profile.advisor,
       profileSlug: profile.profile.profileSlug,
@@ -93,15 +94,35 @@ export class DatabaseStorage implements IStorage {
       profilePicUrl: profile.profile.profilePicUrl,
       linkedinUrl: profile.profile.linkedinUrl,
       websiteUrl: profile.profile.websiteUrl,
-      showCallbackLink: profile.profile.showCallbackLink,
-      showReferralsLink: profile.profile.showReferralsLink,
-      showQrCode: profile.profile.showQrCode,
-      showHeader: profile.profile.showHeader,
-      showProfilePic: profile.profile.showProfilePic,
-      showIntro: profile.profile.showIntro,
-      showIndividualServices: profile.profile.showIndividualServices,
-      showCorporateServices: profile.profile.showCorporateServices,
-      showSocials: profile.profile.showSocials,
+      // ── F8: visibility toggles inherited from the primary advisor row ──
+      showCallbackLink: profile.advisor.showCallbackLink,
+      showReferralsLink: profile.advisor.showReferralsLink,
+      showQrCode: profile.advisor.showQrCode,
+      showHeader: profile.advisor.showHeader,
+      showProfilePic: profile.advisor.showProfilePic,
+      showIntro: profile.advisor.showIntro,
+      showIndividualServices: profile.advisor.showIndividualServices,
+      showCorporateServices: profile.advisor.showCorporateServices,
+      showSocials: profile.advisor.showSocials,
+      showAstute: profile.advisor.showAstute,
+      showDocuments: profile.advisor.showDocuments,
+      showComplimentaryWill: profile.advisor.showComplimentaryWill,
+      showFinancialMedia: profile.advisor.showFinancialMedia,
+      showMoneywebFeed: (profile.advisor as any).showMoneywebFeed,
+      showTools: profile.advisor.showTools,
+      showToolTax: profile.advisor.showToolTax,
+      showToolExchange: profile.advisor.showToolExchange,
+      showToolCompound: profile.advisor.showToolCompound,
+      showToolPension: profile.advisor.showToolPension,
+      showToolCgt: profile.advisor.showToolCgt,
+      showToolVehicle: profile.advisor.showToolVehicle,
+      showToolReality: (profile.advisor as any).showToolReality,
+      showToolLatte: (profile.advisor as any).showToolLatte,
+      showInteractive: (profile.advisor as any).showInteractive,
+      showShowpieceSqueeze: (profile.advisor as any).showShowpieceSqueeze,
+      showShowpieceTaxBite: (profile.advisor as any).showShowpieceTaxBite,
+      showEmergencyContacts: (profile.advisor as any).showEmergencyContacts,
+      // ── End inherited toggles ──
       facebookUrl: profile.profile.facebookUrl,
       instagramUrl: profile.profile.instagramUrl,
       youtubeUrl: profile.profile.youtubeUrl,
@@ -111,25 +132,7 @@ export class DatabaseStorage implements IStorage {
       financialsNewsUrl: profile.profile.financialsNewsUrl,
       financialsFunFactsUrl: profile.profile.financialsFunFactsUrl,
       financialsVideosUrl: profile.profile.financialsVideosUrl,
-      showAstute: profile.profile.showAstute,
-      showDocuments: profile.profile.showDocuments,
-      showComplimentaryWill: profile.profile.showComplimentaryWill,
-      showFinancialMedia: profile.profile.showFinancialMedia,
-      showMoneywebFeed: (profile.profile as any).showMoneywebFeed,
-      showTools: profile.profile.showTools,
       profileSectionOrder: (profile.profile as any).profileSectionOrder,
-      showToolTax: profile.profile.showToolTax,
-      showToolExchange: profile.profile.showToolExchange,
-      showToolCompound: profile.profile.showToolCompound,
-      showToolPension: profile.profile.showToolPension,
-      showToolCgt: profile.profile.showToolCgt,
-      showToolVehicle: profile.profile.showToolVehicle,
-      showToolReality: (profile.profile as any).showToolReality,
-      showToolLatte: (profile.profile as any).showToolLatte,
-      showInteractive: (profile.profile as any).showInteractive,
-      showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze,
-      showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite,
-      showEmergencyContacts: (profile.profile as any).showEmergencyContacts,
       patternOpacity: profile.profile.patternOpacity,
       nickname: (profile.profile as any).nickname,
       profileDescription: (profile.profile as any).profileDescription,

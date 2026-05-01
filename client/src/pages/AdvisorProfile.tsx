@@ -6,6 +6,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, Coffee, Utensils, Tv, Dumbbell, Wine, Cigarette, ShoppingCart, X, ArrowRight, Building2, FileCheck } from "lucide-react";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
+import { BrandFooter } from "@/components/BrandFooter";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite } from "@/components/MoneyShowpieces";
@@ -970,19 +971,43 @@ export default function AdvisorProfile() {
       const qrX = (W - QR_SIZE) / 2;
 
       const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
-      const afterQr = () => {
-        // Footer bar (taller to fit privacy line)
+
+      // F3 — branded footer watermark. Draws the AC icon on the left of the
+      // "Powered by Advisory Connect" text. Logo is preloaded first; if it
+      // can't load (offline / 404) we just fall through to the text-only
+      // footer so the download never breaks.
+      const drawFooterWithLogo = (logoImg?: HTMLImageElement) => {
         ctx.fillStyle = "#f7f7f7";
         ctx.fillRect(0, H - 36, W, 36);
         ctx.fillStyle = "#444"; ctx.font = `bold 9px Arial, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        ctx.fillText("Powered by Advisory Connect", W / 2, H - 24);
+        const label = "Powered by Advisory Connect";
+        const labelMetrics = ctx.measureText(label);
+        const ICON = 14;
+        const GAP = 5;
+        const totalW = (logoImg ? ICON + GAP : 0) + labelMetrics.width;
+        const startX = (W - totalW) / 2;
+        if (logoImg) {
+          ctx.drawImage(logoImg, startX, H - 24 - ICON / 2, ICON, ICON);
+          ctx.textAlign = "left";
+          ctx.fillText(label, startX + ICON + GAP, H - 24);
+        } else {
+          ctx.fillText(label, W / 2, H - 24);
+        }
         ctx.fillStyle = "#555"; ctx.font = `8.5px Arial, sans-serif`;
+        ctx.textAlign = "center";
         ctx.fillText("advisoryconnect.pro/privacy-policy", W / 2, H - 11);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
         link.click();
+      };
+
+      const afterQr = () => {
+        const logoImg = new Image();
+        logoImg.onload = () => drawFooterWithLogo(logoImg);
+        logoImg.onerror = () => drawFooterWithLogo();
+        logoImg.src = "/logo/icon-64.png";
       };
 
       if (qrEl) {
@@ -2224,46 +2249,21 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        <div className="text-center pt-4 pb-2 space-y-1">
-          <p className="text-xs" style={{ color: mutedText }}>
-            {t.poweredBy}
-          </p>
-          <p className="text-xs" style={{ color: mutedText }}>
-            <a
-              href="/privacy-policy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-              style={{ color: mutedText }}
-              data-testid="link-privacy-policy-profile"
-            >
-              Privacy Policy
-            </a>
-            <span className="mx-1.5">·</span>
-            <a
-              href="/terms"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline"
-              style={{ color: mutedText }}
-              data-testid="link-terms-profile"
-            >
-              Terms of Service
-            </a>
-          </p>
-          <p className="text-xs" style={{ color: mutedText }}>
-            Elevate your professional presence —{" "}
-            <a
-              href="https://www.advisoryconnect.pro"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-medium"
-              style={{ color: tc.accentColor }}
-              data-testid="link-advisoryconnect"
-            >
-              www.advisoryconnect.pro
-            </a>
-          </p>
+        {/* F4 — unified BrandFooter; uses the same row layout as the master &
+            sub-control panels so the brand reads consistently everywhere. */}
+        <div className="pt-4 pb-2">
+          <BrandFooter
+            compact
+            poweredByLabel={t.poweredBy}
+            theme={{
+              cardBg: tc.cardBg,
+              borderColor: tc.borderColor,
+              textColor,
+              mutedText,
+              accentColor: tc.accentColor,
+              buttonSecondaryBg: tc.buttonSecondaryBg,
+            }}
+          />
         </div>
       </div>
     </div>

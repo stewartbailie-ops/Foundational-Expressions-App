@@ -14,7 +14,12 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200, categ
 }) {
   const [articles, setArticles] = useState<NewsItem[]>([]);
   const [idx, setIdx] = useState(0);
+  // Smoother transition: longer fade (~750ms) + tiny scale ease so the swap
+  // breathes instead of just blinking. `visible` controls opacity AND scale,
+  // so we get a unified cross-fade with subtle motion.
   const [visible, setVisible] = useState(true);
+  const FADE_MS = 750;
+  const TICK_MS = 8000;
 
   useEffect(() => {
     fetch(`/api/news/feed?category=${encodeURIComponent(category)}`)
@@ -30,8 +35,8 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200, categ
       setTimeout(() => {
         setIdx(i => (i + 1) % articles.length);
         setVisible(true);
-      }, 500);
-    }, 6000);
+      }, FADE_MS);
+    }, TICK_MS);
     return () => clearInterval(timer);
   }, [articles.length]);
 
@@ -52,9 +57,13 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200, categ
       data-testid={testIdSuffix ? `section-news-hero-${testIdSuffix}` : "section-news-hero"}
     >
       <div
-        className="absolute inset-0 transition-opacity duration-500 ease-out"
+        className="absolute inset-0 transition-all ease-out"
         style={{
+          transitionDuration: `${FADE_MS}ms`,
           opacity: visible ? 1 : 0,
+          // Subtle 4% scale ease — image gently zooms in as it appears, so the
+          // transition has motion instead of a hard cut.
+          transform: visible ? "scale(1.04)" : "scale(1)",
           backgroundImage: hasImage ? `url(${art.image})` : `linear-gradient(135deg, ${accentColor}, ${accentColor}aa)`,
           backgroundSize: "cover",
           backgroundPosition: "center",
@@ -66,7 +75,7 @@ export function NewsHero({ accentColor, borderColor, cardBg, height = 200, categ
           background: "linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.85) 100%)",
         }}
       />
-      <div className="relative z-10 h-full flex flex-col justify-between p-4 transition-opacity duration-500 ease-out" style={{ opacity: visible ? 1 : 0 }}>
+      <div className="relative z-10 h-full flex flex-col justify-between p-4 transition-opacity ease-out" style={{ transitionDuration: `${FADE_MS}ms`, opacity: visible ? 1 : 0 }}>
         <div className="flex items-center justify-between">
           <div
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full"
