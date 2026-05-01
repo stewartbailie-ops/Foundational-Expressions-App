@@ -203,7 +203,7 @@ export async function registerRoutes(
     if (!adminPassword) {
       return res.status(500).json({ message: "Admin password not configured" });
     }
-    const adminEmail = (process.env.ADMIN_EMAIL || "info@corefinancials.org").toLowerCase().trim();
+    const adminEmail = (process.env.ADMIN_EMAIL || "info@advisoryconnect.pro").toLowerCase().trim();
     if (!email || email.toLowerCase().trim() !== adminEmail) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
