@@ -1,0 +1,39 @@
+1. News feed — smoother fade + 8s tick - Easy win. Current fade is 500ms duration, easing-out, with a 5s interval. Suggested change: fade duration up to ~700–800ms with a longer cross-fade (current article fades out as next fades in, slight overlap), and tick interval to 8000ms. Also propose a subtle 4–5% scale ease so it doesn't feel static. Confirm: 8s exact, or want me to try 7/8/10 and let you pick? - Confirm, let's do 8sec and see how it feels
+2. Footer + new "Advisory Connect" wordmark in panel headers - Layout from your sketch is clear (logo + Registered Company badge + wordmark + tagline + Privacy/Terms + advisoryconnect.pro + Contact Support, all in one balanced row). I'll mirror it on the public profile footer, master panel footer, and sub-panel footer. - Perfect, thanks Friday <3
+Strong recommendation: I take the neon logo, strip the background to fully transparent (the glow + stroke survive the cut), and we use that single asset on every theme. - Love the idea, please proceed (Shout if you need anything from our end)
+3. Logo locations — full inventory I'd hit - Anything I'm missing? Want me to do all of these in one batch or roll out in waves? - Ive put Clauds list below to cross reference, let's try hit them all in one go? 
+• Favicon (16/32/48) — needs solid fill version
+• Apple touch icon (180×180) — solid fill
+• PWA manifest icons (192, 512) — solid fill, served via /api/manifest
+• OG/Twitter share image (1200×630) — wordmark version
+• Master Login screen
+• Master sidebar header (top-left, currently "Control Panel" text)
+• Sub-control-panel sidebar header (top-left)
+• Footer (everywhere — public profile, master, sub-panel)
+• Downloadable contact card PNG watermark (canvas-rendered)
+• Master "Welcome" / Dashboard hero
+• Email templates (verification + magic-link emails go out with a logo header)
+Location	Which asset	Notes
+Favicon (16×16, 32×32)	CA neon icon (transparent bg)	Replace existing icon-*.png
+PWA manifest icons (192, 512)	CA neon icon (transparent bg)	Update manifest.json
+Maskable icons (512, 1024)	CA icon with safe-zone padding	Maskable needs 20% bleed
+Login screen	Wordmark (white/blue on dark)	Dark bg context
+Footer on public profile	Wordmark or CA icon	Depends on drawn sample
+Control panel header (top left)	Wordmark (blue text on dark)	Matches existing dark theme
+OG image (social share)	Wordmark on dark bg	1200×630 layout
+4. Daily facts 50–93 + randomised + fade - I republished & pulled from GitHub (You should see them all now - Just quickly asking C to re-name them correctly as there is a miss-match) - I can switch to true random per tick if you'd prefer no repeats inside one cycle. Fade settings will mirror the news ticker. Yes please, perfect and thank you 
+5. Registry alignment; Looked at the screenshot — the issue is mixed badge widths + long names wrapping + variable timestamp wrap. Proposed fix: fixed two-line max for the name (truncate with ellipsis after that), fixed-width badge column on the right, consistent row height (~88px), uniform card padding. Rows will look like a proper table without losing the card feel. - Yes perfect, please proceed
+6a. Profile views onto the Lead Activity 7-day graph - Quick clarification: yesterday I shipped views as a separate AreaChart sitting above the Leads bar chart in the Stats tab. Sounds like you'd rather have it all on one combined graph — Leads bar + Primary line + Secondary line, three series stacked. Yes? If so, I'll merge them and ditch the separate chart. - Yes please, ive attached a screenshot of which graph I'm referring to, this is for the advisors sub-profiles, I saw you added the view's counter under the profiles option, those can please stay there
+6b. Make Secondary truly inherit from Primary (not just display) - Big improvement, fully agree. Today the secondary form still has its own copies of 7 toggles that override the primary ones. Cleanest path: delete those toggles from the Secondary editor entirely, and at render-time the secondary card just reads the primary's settings. That means edit-once, reflect-everywhere. Only the Secondary-specific stuff stays editable per profile (slug, theme, bio, pic, services, social links, nickname, description). Confirm that's the scope you want. - I'm not 100% sure im following what you saying here, can we not make the secondary profile completely separate from the primary, independent settings, like a secondary primary profile if you following? Hahaha <3 We can delete all the current profiles if they going to get in the way? (Just shout)
+7. Website audit (advisoryconnect.pro) - Don’t worry about this for now, you focus on the big changes to the App and C will look into the website and we'll pull once done <3
+8a. Registered emails on master control panel
+Master admin is a single env-var login (one email/password — yours). So the answer depends on what you meant: - You answered the question, lets keep it at one for now then, its perfect 
+8b. Security scan - Ive noted for me to run a security scan after all changes have been implemented, don’t worry about this for now then
+8c. Scaling — how to stress-test and where the cliffs are - Yes perfect answer, thank you, slated for another session, you just focus on items 1-6 for tonight
+Honest answer: the app has zero proper indexes today, no caching layer, no async job queue. That's fine for 1–50 advisors but will hurt around 200+. My proposal:
+• Step 1: Add DB indexes on the hot paths — advisors(profile_slug), advisor_profiles(profile_slug), stats(advisor_id, event_type, event_date), emails(advisor_id, created_at). Cheap, big win, no behaviour change.
+• Step 2: Cache the public profile lookup — /api/advisors/slug/:slug is hit on every page load and fires 3+ queries. A 30-second in-memory cache would slash DB load 95%.
+• Step 3: Batch the stats writes — every page view fires a synchronous insert into stats. Move to a fire-and-forget queue that flushes every 5s.
+• Step 4: Load test — I can wire up a k6 script that simulates 100/500/1000 concurrent users hitting profile pages + lead form submits + master dashboard loads, and graph latency vs concurrency. We'll know exactly where things break.
+This is the biggest single area on tonight's list — can absolutely happen, but realistically it's a session of its own. Want me to slot it for next week and focus tonight on items 1–6 + the website audit?
+Please just standby for the green-light, checking a few items this side <3 
