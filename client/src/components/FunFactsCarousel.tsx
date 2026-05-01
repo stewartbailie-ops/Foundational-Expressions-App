@@ -1,16 +1,14 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Images, X, ChevronLeft, ChevronRight, Share2, Check } from "lucide-react";
 import { FACT_IMAGES } from "@/data/factImages";
 
-function getHourlyImages(hourKey: number): string[] {
-  const shuffled = [...FACT_IMAGES];
-  let seed = hourKey;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    const j = seed % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+function pickRandomImages(count: number): string[] {
+  const pool = [...FACT_IMAGES];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
   }
-  return shuffled.slice(0, 10);
+  return pool.slice(0, Math.min(count, pool.length));
 }
 
 async function shareImage(src: string, advisorName: string) {
@@ -68,10 +66,14 @@ export function FunFactsCarousel({
   advisorName?: string;
 }) {
   const [hourKey, setHourKey] = useState(() => Math.floor(Date.now() / 3_600_000));
+  const [images, setImages] = useState<string[]>(() => pickRandomImages(10));
   const [index, setIndex] = useState(0);
+  const [fading, setFading] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied">("idle");
   const touchStartX = useRef<number | null>(null);
+  const transitioning = useRef(false);
+  const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -81,13 +83,36 @@ export function FunFactsCarousel({
     return () => clearInterval(interval);
   }, []);
 
-  const images = useMemo(() => {
+  useEffect(() => {
+    setImages(pickRandomImages(10));
     setIndex(0);
-    return getHourlyImages(hourKey);
   }, [hourKey]);
 
-  const prev = () => setIndex((i) => (i > 0 ? i - 1 : images.length - 1));
-  const next = () => setIndex((i) => (i < images.length - 1 ? i + 1 : 0));
+  useEffect(() => {
+    return () => {
+      timersRef.current.forEach((t) => window.clearTimeout(t));
+      timersRef.current = [];
+    };
+  }, []);
+
+  const goTo = (next: number) => {
+    if (transitioning.current) return;
+    if (next === index) return;
+    transitioning.current = true;
+    setFading(true);
+    const t1 = window.setTimeout(() => {
+      setIndex(next);
+      const t2 = window.setTimeout(() => {
+        setFading(false);
+        transitioning.current = false;
+      }, 30);
+      timersRef.current.push(t2);
+    }, 220);
+    timersRef.current.push(t1);
+  };
+
+  const prev = () => goTo(index > 0 ? index - 1 : images.length - 1);
+  const next = () => goTo(index < images.length - 1 ? index + 1 : 0);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -145,7 +170,8 @@ export function FunFactsCarousel({
             <img
               src={images[index]}
               alt={`Financial fact ${index + 1}`}
-              className="w-full h-auto block"
+              className="w-full h-auto block transition-opacity duration-300 ease-in-out"
+              style={{ opacity: fading ? 0 : 1 }}
               draggable={false}
             />
           </button>
@@ -191,7 +217,7 @@ export function FunFactsCarousel({
           {images.map((_, i) => (
             <button
               key={i}
-              onClick={() => setIndex(i)}
+              onClick={() => goTo(i)}
               className="rounded-full transition-all duration-200"
               style={{
                 width: i === index ? 16 : 6,
