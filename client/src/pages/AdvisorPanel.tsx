@@ -2918,10 +2918,35 @@ function AdditionalProfileForm({
         theme,
         backgroundStyle,
         themeColor: ({ dark:"#1a1a1a", blue:"#4a8db5", pink:"#d4738a", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" } as Record<string,string>)[theme] ?? "#4a8db5",
-        // ── F8: visibility toggles inherited from Primary advisor row.
-        // We deliberately do NOT send any show* fields from secondary forms so
-        // that re-saving a secondary profile cannot mutate inherited values
-        // (existing stored values are preserved on the row for backward compat).
+        // Secondary profile owns its OWN copy of every visibility toggle
+        // — no inheritance from primary.
+        showHeader,
+        showProfilePic,
+        showIntro,
+        showIndividualServices,
+        showCorporateServices,
+        showSocials,
+        showQrCode,
+        showCallbackLink,
+        showReferralsLink,
+        showAstute,
+        showDocuments,
+        showComplimentaryWill,
+        showFinancialMedia,
+        showTools,
+        showToolTax,
+        showToolExchange,
+        showToolCompound,
+        showToolPension,
+        showToolCgt,
+        showToolVehicle,
+        showToolReality,
+        showToolLatte,
+        showInteractive,
+        showShowpieceSqueeze,
+        showShowpieceTaxBite,
+        showMoneywebFeed,
+        showEmergencyContacts,
         patternOpacity,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
@@ -2987,28 +3012,6 @@ function AdditionalProfileForm({
         <button onClick={onDone} className="text-xs px-2 py-1 rounded" style={{ color: tc.mutedText, backgroundColor: tc.inputBg }}>Cancel</button>
       </div>
       <div className="p-4 space-y-4" style={{ backgroundColor: tc.bgColor }}>
-        {/* F8 — Inheritance notice. Visibility toggles in this form (Show header,
-            Tools, Showpieces, etc.) no longer affect the secondary's public render
-            — those settings are inherited live from your Primary profile. The
-            inputs are kept in place for now so existing data doesn't get blown
-            away, but they have no public effect. */}
-        <div
-          className="rounded-lg p-3 text-xs flex items-start gap-2"
-          style={{ backgroundColor: `${tc.accentColor}10`, border: `1px solid ${tc.accentColor}40`, color: tc.textColor }}
-          data-testid="banner-inherits-from-primary"
-        >
-          <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: tc.accentColor }} />
-          <div>
-            <div className="font-semibold" style={{ color: tc.accentColor }}>Visibility settings are inherited from your Primary profile</div>
-            <div className="mt-0.5" style={{ color: tc.mutedText }}>
-              Toggles for header, services, tools, showpieces and the QR code are now controlled
-              from your Primary profile and apply to every secondary profile automatically.
-              Content fields (title, bio, services list, theme, links and your profile picture)
-              still live on each secondary profile independently.
-            </div>
-          </div>
-        </div>
-
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile URL</label>
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${profileSlug && !slugValid ? "#ef4444" : tc.inputBorder}`, backgroundColor: tc.inputBg }}>

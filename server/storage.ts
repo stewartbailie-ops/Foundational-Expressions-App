@@ -75,11 +75,11 @@ export class DatabaseStorage implements IStorage {
       .innerJoin(advisors, eq(advisorProfiles.advisorId, advisors.id))
       .where(eq(advisorProfiles.profileSlug, slug));
     if (!profile) return undefined;
-    // F8 — Secondary profiles now INHERIT every visibility toggle from the
-    // primary advisor row. Per-profile toggle columns on advisor_profiles are
-    // ignored on read (they continue to exist for backward compat / migration
-    // — no schema change today). Per-profile content fields (title, bio,
-    // services, theme, links, profile pic) remain independent.
+    // Secondary profile = fully independent. Every visibility toggle is sourced
+    // from the secondary's OWN row in advisor_profiles, not from the primary
+    // advisor row. Changing primary toggles must have zero effect on a secondary.
+    // (Truly advisor-level fields like contact number, location, working hours
+    // and showContactDetails still come from the parent advisor row.)
     return {
       ...profile.advisor,
       profileSlug: profile.profile.profileSlug,
@@ -94,35 +94,35 @@ export class DatabaseStorage implements IStorage {
       profilePicUrl: profile.profile.profilePicUrl,
       linkedinUrl: profile.profile.linkedinUrl,
       websiteUrl: profile.profile.websiteUrl,
-      // ── F8: visibility toggles inherited from the primary advisor row ──
-      showCallbackLink: profile.advisor.showCallbackLink,
-      showReferralsLink: profile.advisor.showReferralsLink,
-      showQrCode: profile.advisor.showQrCode,
-      showHeader: profile.advisor.showHeader,
-      showProfilePic: profile.advisor.showProfilePic,
-      showIntro: profile.advisor.showIntro,
-      showIndividualServices: profile.advisor.showIndividualServices,
-      showCorporateServices: profile.advisor.showCorporateServices,
-      showSocials: profile.advisor.showSocials,
-      showAstute: profile.advisor.showAstute,
-      showDocuments: profile.advisor.showDocuments,
-      showComplimentaryWill: profile.advisor.showComplimentaryWill,
-      showFinancialMedia: profile.advisor.showFinancialMedia,
-      showMoneywebFeed: (profile.advisor as any).showMoneywebFeed,
-      showTools: profile.advisor.showTools,
-      showToolTax: profile.advisor.showToolTax,
-      showToolExchange: profile.advisor.showToolExchange,
-      showToolCompound: profile.advisor.showToolCompound,
-      showToolPension: profile.advisor.showToolPension,
-      showToolCgt: profile.advisor.showToolCgt,
-      showToolVehicle: profile.advisor.showToolVehicle,
-      showToolReality: (profile.advisor as any).showToolReality,
-      showToolLatte: (profile.advisor as any).showToolLatte,
-      showInteractive: (profile.advisor as any).showInteractive,
-      showShowpieceSqueeze: (profile.advisor as any).showShowpieceSqueeze,
-      showShowpieceTaxBite: (profile.advisor as any).showShowpieceTaxBite,
-      showEmergencyContacts: (profile.advisor as any).showEmergencyContacts,
-      // ── End inherited toggles ──
+      // ── Visibility toggles: per-secondary, NOT inherited from primary ──
+      showCallbackLink: (profile.profile as any).showCallbackLink,
+      showReferralsLink: (profile.profile as any).showReferralsLink,
+      showQrCode: (profile.profile as any).showQrCode,
+      showHeader: (profile.profile as any).showHeader,
+      showProfilePic: (profile.profile as any).showProfilePic,
+      showIntro: (profile.profile as any).showIntro,
+      showIndividualServices: (profile.profile as any).showIndividualServices,
+      showCorporateServices: (profile.profile as any).showCorporateServices,
+      showSocials: (profile.profile as any).showSocials,
+      showAstute: (profile.profile as any).showAstute,
+      showDocuments: (profile.profile as any).showDocuments,
+      showComplimentaryWill: (profile.profile as any).showComplimentaryWill,
+      showFinancialMedia: (profile.profile as any).showFinancialMedia,
+      showMoneywebFeed: (profile.profile as any).showMoneywebFeed,
+      showTools: (profile.profile as any).showTools,
+      showToolTax: (profile.profile as any).showToolTax,
+      showToolExchange: (profile.profile as any).showToolExchange,
+      showToolCompound: (profile.profile as any).showToolCompound,
+      showToolPension: (profile.profile as any).showToolPension,
+      showToolCgt: (profile.profile as any).showToolCgt,
+      showToolVehicle: (profile.profile as any).showToolVehicle,
+      showToolReality: (profile.profile as any).showToolReality,
+      showToolLatte: (profile.profile as any).showToolLatte,
+      showInteractive: (profile.profile as any).showInteractive,
+      showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze,
+      showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite,
+      showEmergencyContacts: (profile.profile as any).showEmergencyContacts,
+      // ── End per-secondary toggles ──
       facebookUrl: profile.profile.facebookUrl,
       instagramUrl: profile.profile.instagramUrl,
       youtubeUrl: profile.profile.youtubeUrl,
