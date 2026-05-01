@@ -1,0 +1,28 @@
+Build notes (Planned session 01-02.05) - Friday, Claude & Bailey
+
+Good evening you two absolute beauty's; Please read over the below goals for tonight and send any suggestions or idea's before committing to any changes/build.. It's crazy! If you look at that completed list, you can see this team has been grafting none stop!! It's an honour to be by your side!! Glad it's all starting to come together <3 - Should you need clarity on anything please request a screen-shot 
+
+Targets & goals for today's session; 
+	1. Please can we work on the fade between articles in the news feed (Can we make a slightly smoother transition) & can we increase the tick timer to say 8 seconds 
+	2. I would like to-do the changes to the footer (Please see the attached drawn sample) Re-arrange everything and neaten up | Add/swap the new logo (See attached) everywhere the old one is | Add the "Advisory Connect" (See attached) - At the top left of the Master & all Sub-control panels (For a more professional look) - Question; Ive attached two versions of each, each with a white & black background, I did this because I'm not sure how it's going to come out with all the theme options (Colours) What's the plan here and what can be done? 
+	3. New Logo Implementation (Joint) Integrate the new Advisory Connect logo across the app. C to advise on all locations (favicon, OG image, manifest icons, login screen, footer). Friday to implement once locations confirmed.
+	4. Ive added new images to the Github folder for more Daily financial facts (fact-50 to fact-93) - Please can you add them to the rotation, please ensure the feed is 100% randomized and not in numerical order - Can we add a fade between the images (Same settings as the news feed?)
+	5. Please can we work on the structure/placements on how clients are seen in the Registry (See attached overview sample) Uneven, un-aligned etc (Can we refine this somehow and make them unanimous/neaten up) Boxed etc 
+	6. Additional small tweaks, depending on difficulty 
+		a. Can we add the profile views to the advisors sub-profiles "My stats" onto the "Lead activity - Last 7 days" Graph, with each profile "Primary & Secondary" showing separately. 
+		b. On the second contact card, under "Edit" - We have "Inherited from Primary profile (manage these in the Primary tab — they apply to all your profiles)" - Can we not make the secondary profile dependant on what's selected on the Primary?
+	7. Website improvements (audit advisoryconnect.pro marketing pages and produce a prioritised list of suggested improvements) - Please send any suggestions for improvement (Wording, descriptions, placements)
+		a. Use actual App screenshots on website for features 
+		b. Add features not previously included 
+		c. Add a testimonials? (We don’t have any)
+		d. Add a basic Q&A section? 
+		e. Can't add a pricing/subscription section yet (Has not been finalized between the partners)
+		f. Update logo and header (New images) - Where needed
+	8. Stew general questions; 
+		a. How many registered e-mails are there for the Master control panel?
+		b. Send security check screen shots to Friday & Claude - Implement necessary fixes (After next build session, re-run Fridays security agent and fix's)
+		c. Discuss the scaling cliff with Claude & Friday - How can we stress test this to the max? (Works at scale | What are our limits)
+			i. Data base queries with proper indexing 
+			ii. What's our caching strategy? 
+			iii. Do we need async processing?
+How can we run load-testing? (Simulated traffic - Logged) 
