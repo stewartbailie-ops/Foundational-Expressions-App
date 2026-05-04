@@ -590,6 +590,9 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/grade", async (req, res) => {
+    if (!(req.session as any)?.authenticated) {
+      return res.status(403).json({ message: "Grade can only be changed by an administrator." });
+    }
     if (!await canAccessLead(req, Number(req.params.id))) {
       return res.status(401).json({ message: "Unauthorized" });
     }

@@ -4,7 +4,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock } from "lucide-react";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
@@ -1433,26 +1433,23 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                       </div>
                     </div>
 
-                    {/* Grade */}
+                    {/* Grade — read-only for advisors, set by admin only */}
                     <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: tc.mutedText }}>Grade</div>
-                      <div className="flex gap-2 flex-wrap">
-                        {["Gold", "Silver", "Bronze", "Development"].map(g => {
+                      <div className="flex items-center gap-1.5">
+                        <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: tc.mutedText }}>Grade</div>
+                        <Lock className="h-3 w-3" style={{ color: tc.mutedText }} />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {(() => {
+                          const g = lead.grade || "Silver";
                           const gc2 = gradeColors[g];
                           return (
-                            <button key={g}
-                              onClick={() => gradeMutation.mutate({ id: lead.id, grade: g })}
-                              className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-                              style={{
-                                backgroundColor: (lead.grade || "Silver") === g ? gc2.bg : tc.inputBg,
-                                color: (lead.grade || "Silver") === g ? gc2.text : tc.mutedText,
-                                border: `1.5px solid ${(lead.grade || "Silver") === g ? gc2.text : tc.borderColor}`,
-                              }}
-                              data-testid={`button-grade-${lead.id}-${g.toLowerCase()}`}>
+                            <span className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: gc2.bg, color: gc2.text, border: `1.5px solid ${gc2.text}` }} data-testid={`badge-grade-${lead.id}`}>
                               {g}
-                            </button>
+                            </span>
                           );
-                        })}
+                        })()}
+                        <span className="text-[10px]" style={{ color: tc.mutedText }}>Set by administrator</span>
                       </div>
                     </div>
 
