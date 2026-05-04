@@ -2876,6 +2876,12 @@ function AdditionalProfileForm({
   const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((existingProfile as any)?.showShowpieceSqueeze !== false);
   const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((existingProfile as any)?.showShowpieceTaxBite !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
+  const [showSecondNews, setShowSecondNews] = useState(!!(existingProfile as any)?.showSecondNews);
+  const [showForex, setShowForex] = useState(!!(existingProfile as any)?.showForex);
+  const [showFunFacts, setShowFunFacts] = useState(!!(existingProfile as any)?.showFunFacts);
+  const [showLiberty, setShowLiberty] = useState(!!(existingProfile as any)?.showLiberty);
+  const [showStanlib, setShowStanlib] = useState(!!(existingProfile as any)?.showStanlib);
+  const [showSigninghub, setShowSigninghub] = useState(!!(existingProfile as any)?.showSigninghub);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
@@ -2946,6 +2952,12 @@ function AdditionalProfileForm({
         showShowpieceSqueeze,
         showShowpieceTaxBite,
         showMoneywebFeed,
+        showSecondNews,
+        showForex,
+        showFunFacts,
+        showLiberty,
+        showStanlib,
+        showSigninghub,
         showEmergencyContacts,
         patternOpacity,
         nickname: nickname || null,
@@ -3207,8 +3219,14 @@ function AdditionalProfileForm({
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
             { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
+            { label: "More Finance News (second feed)", value: showSecondNews, set: setShowSecondNews },
+            { label: "Live Exchange Rates", value: showForex, set: setShowForex },
+            { label: "Financial Facts of the Day", value: showFunFacts, set: setShowFunFacts },
             { label: "Financial Tools Section", value: showTools, set: setShowTools },
             { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
+            { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
+            { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
+            { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
