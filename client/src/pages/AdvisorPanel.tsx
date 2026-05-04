@@ -3051,20 +3051,20 @@ function AdditionalProfileForm({
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Picture</label>
-          <input type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
+          <input id="secondary-profile-pic-input" type="file" ref={fileInputRef} accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleFileChange} />
           {profilePicUrl ? (
             <div className="flex items-center gap-3">
               <img src={profilePicUrl} alt="Profile" className="h-12 w-12 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
               <div className="flex gap-2">
-                <button onClick={() => fileInputRef.current?.click()} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Change</button>
+                <label htmlFor="secondary-profile-pic-input" className="px-2 py-1 rounded text-xs cursor-pointer" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Change</label>
                 <button onClick={() => setProfilePicUrl(null)} className="px-2 py-1 rounded text-xs" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Remove</button>
               </div>
             </div>
           ) : (
-            <div onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 py-4 rounded-lg cursor-pointer" style={{ border: `2px dashed ${tc.borderColor}` }}>
+            <label htmlFor="secondary-profile-pic-input" className="flex items-center justify-center gap-2 py-4 rounded-lg cursor-pointer" style={{ border: `2px dashed ${tc.borderColor}` }}>
               {uploading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: tc.mutedText }} /> : <Upload className="h-4 w-4" style={{ color: tc.mutedText }} />}
               <span className="text-xs" style={{ color: tc.mutedText }}>{uploading ? "Uploading..." : "Upload photo"}</span>
-            </div>
+            </label>
           )}
         </div>
 
