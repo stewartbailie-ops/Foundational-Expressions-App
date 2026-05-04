@@ -6225,6 +6225,7 @@ export default function AdvisorPanel() {
       <div className="max-w-lg mx-auto">
         <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor, borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
+            <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-9 w-9 shrink-0" />
             {advisor.profilePicUrl ? (
               <img src={advisor.profilePicUrl} alt={advisor.name} className="h-9 w-9 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
             ) : (

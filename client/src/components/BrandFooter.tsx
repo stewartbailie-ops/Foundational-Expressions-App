@@ -41,7 +41,6 @@ interface BrandFooterProps {
 
 export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, poweredByLabel }: BrandFooterProps) {
   const t = theme;
-  const verifiedBadgeSrc = "/verification-badge.png"; // existing public asset
   return (
     <div
       className={`rounded-xl ${compact ? "p-3" : "p-4"}`}
@@ -56,18 +55,6 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
           alt="Advisory Connect"
           className={compact ? "h-9 w-9 shrink-0" : "h-11 w-11 shrink-0"}
           data-testid="img-footer-logo"
-        />
-        <img
-          src={verifiedBadgeSrc}
-          alt="Registered Company"
-          className={compact ? "h-8 w-auto shrink-0" : "h-10 w-auto shrink-0"}
-          data-testid="img-footer-badge"
-        />
-        <img
-          src="/logo/wordmark-160.png"
-          alt="advisory connect"
-          className={compact ? "h-6 w-auto shrink-0" : "h-7 w-auto shrink-0"}
-          data-testid="img-footer-wordmark"
         />
 
         {/* Middle — tagline plus inline legal links. min-w-0 so flex-wrap can
