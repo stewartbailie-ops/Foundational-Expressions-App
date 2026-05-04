@@ -2023,8 +2023,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     setCropperSrc(null);
     setUploading(true);
     try {
-      const res2 = await fetch(dataUrl);
-      const blob = await res2.blob();
+      const [header, b64] = dataUrl.split(",");
+      const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
       const formData = new FormData();
       formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
@@ -2994,8 +2998,12 @@ function AdditionalProfileForm({
     setCropperSrc(null);
     setUploading(true);
     try {
-      const r = await fetch(dataUrl);
-      const blob = await r.blob();
+      const [header, b64] = dataUrl.split(",");
+      const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
       const formData = new FormData();
       formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
