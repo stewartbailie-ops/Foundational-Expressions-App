@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -2998,10 +2999,15 @@ function AdditionalProfileForm({
       const formData = new FormData();
       formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Server error ${res.status}`);
+      }
       const data = await res.json();
       setProfilePicUrl(data.url);
-    } catch { toast({ title: "Upload Failed", variant: "destructive" }); }
+    } catch (e: any) {
+      toast({ title: "Upload Failed", description: e?.message || "Unknown error", variant: "destructive" });
+    }
     finally { setUploading(false); }
   };
 
@@ -3010,8 +3016,9 @@ function AdditionalProfileForm({
 
   return (
     <>
-    {cropperSrc && (
-      <ImageCropper src={cropperSrc} onConfirm={handleCropConfirm} onCancel={() => setCropperSrc(null)} tc={tc} />
+    {cropperSrc && createPortal(
+      <ImageCropper src={cropperSrc} onConfirm={handleCropConfirm} onCancel={() => setCropperSrc(null)} tc={tc} />,
+      document.body
     )}
     <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
       <div className="px-4 py-3 flex items-center justify-between" style={{ backgroundColor: tc.cardBg, borderBottom: `1px solid ${tc.borderColor}` }}>
