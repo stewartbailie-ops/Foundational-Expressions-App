@@ -7,6 +7,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { requireAuth } from "./auth";
 import { storage } from "./storage";
+import { runStartupMigrations } from "./migrations";
 import fs from "fs";
 
 const app = express();
@@ -126,12 +127,16 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  await runStartupMigrations();
   await registerRoutes(httpServer, app);
   registerOgImageRoute(app);
 
   app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const cause = err.cause?.message || err.cause?.toString?.() || "";
+    const message = cause
+      ? `${err.message || "Internal Server Error"} | cause: ${cause}`
+      : err.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
 
