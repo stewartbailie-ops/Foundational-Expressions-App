@@ -2,6 +2,8 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import { pool } from "./db";
 import { registerRoutes, registerOgImageRoute } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -83,8 +85,14 @@ app.post("/api/csp-report", (req, res) => {
   res.status(204).end();
 });
 
+const PgSession = connectPgSimple(session);
 app.use(
   session({
+    store: new PgSession({
+      pool,
+      tableName: "session",
+      createTableIfMissing: true,
+    }),
     secret: process.env.ADMIN_PASSWORD || "fallback-secret-key",
     resave: false,
     saveUninitialized: false,
