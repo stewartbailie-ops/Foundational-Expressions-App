@@ -126,25 +126,29 @@ app.use((req, res, next) => {
   next();
 });
 
-// Surface any unhandled rejection during startup with a CLEAR message
-// instead of a truncated minified stack — production deploy logs were eating
-// the real error otherwise.
+// Surface any unhandled rejection or uncaught exception with a CLEAR plaintext
+// message before the process exits. Production deploy logs were truncating
+// minified bundle stacks and hiding the real error class behind drizzle-orm
+// source dumps; printing err.name + err.message + stack as plain text first
+// guarantees the next incident is diagnosable. We do NOT swallow — Node's
+// default exit behaviour is preserved so misconfigured startups still fail
+// fast and the deploy is marked broken.
 process.on("unhandledRejection", (reason) => {
   console.error(
     "[startup] UNHANDLED REJECTION:",
     reason instanceof Error ? `${reason.name}: ${reason.message}\n${reason.stack}` : String(reason)
   );
 });
+process.on("uncaughtException", (err) => {
+  console.error(
+    "[startup] UNCAUGHT EXCEPTION:",
+    `${err.name}: ${err.message}\n${err.stack}`
+  );
+  process.exit(1);
+});
 
 (async () => {
-  try {
-    await runStartupMigrations();
-  } catch (err) {
-    console.error(
-      "[startup] runStartupMigrations threw — continuing so the port opens:",
-      err instanceof Error ? `${err.name}: ${err.message}` : String(err)
-    );
-  }
+  await runStartupMigrations();
   await registerRoutes(httpServer, app);
   registerOgImageRoute(app);
 
