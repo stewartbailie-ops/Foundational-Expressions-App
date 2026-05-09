@@ -126,8 +126,25 @@ app.use((req, res, next) => {
   next();
 });
 
+// Surface any unhandled rejection during startup with a CLEAR message
+// instead of a truncated minified stack — production deploy logs were eating
+// the real error otherwise.
+process.on("unhandledRejection", (reason) => {
+  console.error(
+    "[startup] UNHANDLED REJECTION:",
+    reason instanceof Error ? `${reason.name}: ${reason.message}\n${reason.stack}` : String(reason)
+  );
+});
+
 (async () => {
-  await runStartupMigrations();
+  try {
+    await runStartupMigrations();
+  } catch (err) {
+    console.error(
+      "[startup] runStartupMigrations threw — continuing so the port opens:",
+      err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+    );
+  }
   await registerRoutes(httpServer, app);
   registerOgImageRoute(app);
 
