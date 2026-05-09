@@ -138,6 +138,9 @@ process.on("unhandledRejection", (reason) => {
     "[startup] UNHANDLED REJECTION:",
     reason instanceof Error ? `${reason.name}: ${reason.message}\n${reason.stack}` : String(reason)
   );
+  // Preserve Node's default fail-fast behaviour. Just attaching a listener
+  // would otherwise suppress the default exit, leaving startup hung.
+  process.exit(1);
 });
 process.on("uncaughtException", (err) => {
   console.error(
