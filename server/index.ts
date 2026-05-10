@@ -91,7 +91,7 @@ app.use(
     store: new PgSession({
       pool,
       tableName: "session",
-      createTableIfMissing: true,
+      createTableIfMissing: false,
     }),
     secret: process.env.ADMIN_PASSWORD || "fallback-secret-key",
     resave: false,
