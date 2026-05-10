@@ -714,6 +714,6 @@ export default function ReferralForm() {
           Powered by Advisory Connect
         </p>
       </div>
-    </div>
+    </main>
   );
 }

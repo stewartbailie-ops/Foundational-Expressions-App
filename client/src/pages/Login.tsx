@@ -37,11 +37,20 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
   const canSubmit = email.trim() !== "" && password !== "";
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: "#0a0a0a" }}>
+    <main className="min-h-screen flex items-center justify-center p-6" style={{ backgroundColor: "#0a0a0a" }}>
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          {/* Brand logo replaces the generic lock chip — straight visual identity hit on the login. */}
-          <img src="/logo/icon-64.png" alt="Advisory Connect" className="mx-auto h-16 w-16 mb-5" data-testid="img-login-logo" />
+          {/* Brand logo replaces the generic lock chip — straight visual identity hit on the login.
+              Uses the 192px source so retina mobile renders sharp; explicit width/height locks the
+              aspect ratio so Lighthouse stops flagging "Displays images with incorrect aspect ratio". */}
+          <img
+            src="/logo/icon-192.png"
+            alt="Advisory Connect"
+            width={64}
+            height={64}
+            className="mx-auto h-16 w-16 mb-5"
+            data-testid="img-login-logo"
+          />
           <h1 className="text-2xl font-bold text-white tracking-tight">Advisory Connect</h1>
           <p className="text-white/50 text-sm mt-2">Control Panel — sign in to continue</p>
         </div>
@@ -71,7 +80,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
             <button
               type="button"
               onClick={() => setShowPw(v => !v)}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
+              aria-label={showPw ? "Hide password" : "Show password"}
+              className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] px-2 inline-flex items-center justify-center text-xs font-medium text-white/40 hover:text-white/70 transition-colors"
             >
               {showPw ? "Hide" : "Show"}
             </button>
@@ -93,28 +103,28 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
           </button>
         </form>
 
-        <p className="text-center text-xs text-white/40 mt-6">
+        <p className="flex items-center justify-center gap-3 text-xs text-white/40 mt-6">
           <a
             href="/privacy-policy"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-white/70 transition-colors"
+            className="inline-flex items-center min-h-[44px] px-2 underline hover:text-white/70 transition-colors"
             data-testid="link-privacy-policy-admin-login"
           >
             Privacy Policy
           </a>
-          <span className="mx-1.5">·</span>
+          <span aria-hidden="true">·</span>
           <a
             href="/terms"
             target="_blank"
             rel="noopener noreferrer"
-            className="underline hover:text-white/70 transition-colors"
+            className="inline-flex items-center min-h-[44px] px-2 underline hover:text-white/70 transition-colors"
             data-testid="link-terms-admin-login"
           >
             Terms of Service
           </a>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

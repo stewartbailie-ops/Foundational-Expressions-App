@@ -413,6 +413,6 @@ export default function WillForm() {
           Powered by Advisory Connect
         </p>
       </div>
-    </div>
+    </main>
   );
 }
