@@ -197,6 +197,58 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Dynamic sitemap.xml — includes static legal pages plus every active
+  // advisor's primary slug and all of their secondary profile slugs, so
+  // Google can discover advisor profiles without us hand-maintaining a
+  // static file. Replaces the old client/public/sitemap.xml.
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const allAdvisors = await storage.getAdvisors();
+      const active = allAdvisors.filter((a) => a.active && a.profileSlug);
+
+      const urls: { loc: string; priority: string; changefreq: string }[] = [
+        { loc: "https://advisoryconnect.pro/", priority: "1.0", changefreq: "weekly" },
+        { loc: "https://advisoryconnect.pro/privacy-policy", priority: "0.3", changefreq: "monthly" },
+        { loc: "https://advisoryconnect.pro/terms", priority: "0.3", changefreq: "monthly" },
+      ];
+
+      for (const a of active) {
+        urls.push({
+          loc: `https://advisoryconnect.pro/profile/${encodeURIComponent(a.profileSlug)}`,
+          priority: "0.8",
+          changefreq: "weekly",
+        });
+        const secondaries = await storage.getAdvisorProfiles(a.id);
+        for (const sp of secondaries) {
+          if (!sp.profileSlug) continue;
+          urls.push({
+            loc: `https://advisoryconnect.pro/profile/${encodeURIComponent(sp.profileSlug)}`,
+            priority: "0.6",
+            changefreq: "weekly",
+          });
+        }
+      }
+
+      const xml =
+        `<?xml version="1.0" encoding="UTF-8"?>\n` +
+        `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
+        urls
+          .map(
+            (u) =>
+              `  <url>\n    <loc>${u.loc}</loc>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`
+          )
+          .join("\n") +
+        `\n</urlset>\n`;
+
+      res.set("Content-Type", "application/xml; charset=utf-8");
+      res.set("Cache-Control", "public, max-age=3600");
+      res.send(xml);
+    } catch (err) {
+      console.error("[sitemap] generation failed:", err);
+      res.status(500).send("sitemap generation failed");
+    }
+  });
+
   app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
