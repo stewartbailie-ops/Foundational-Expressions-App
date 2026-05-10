@@ -207,14 +207,14 @@ export async function registerRoutes(
       const active = allAdvisors.filter((a) => a.active && a.profileSlug);
 
       const urls: { loc: string; priority: string; changefreq: string }[] = [
-        { loc: "https://advisoryconnect.pro/", priority: "1.0", changefreq: "weekly" },
-        { loc: "https://advisoryconnect.pro/privacy-policy", priority: "0.3", changefreq: "monthly" },
-        { loc: "https://advisoryconnect.pro/terms", priority: "0.3", changefreq: "monthly" },
+        { loc: "https://app.advisoryconnect.pro/", priority: "1.0", changefreq: "weekly" },
+        { loc: "https://app.advisoryconnect.pro/privacy-policy", priority: "0.3", changefreq: "monthly" },
+        { loc: "https://app.advisoryconnect.pro/terms", priority: "0.3", changefreq: "monthly" },
       ];
 
       for (const a of active) {
         urls.push({
-          loc: `https://advisoryconnect.pro/profile/${encodeURIComponent(a.profileSlug)}`,
+          loc: `https://app.advisoryconnect.pro/${encodeURIComponent(a.profileSlug)}`,
           priority: "0.8",
           changefreq: "weekly",
         });
@@ -222,7 +222,7 @@ export async function registerRoutes(
         for (const sp of secondaries) {
           if (!sp.profileSlug) continue;
           urls.push({
-            loc: `https://advisoryconnect.pro/profile/${encodeURIComponent(sp.profileSlug)}`,
+            loc: `https://app.advisoryconnect.pro/${encodeURIComponent(sp.profileSlug)}`,
             priority: "0.6",
             changefreq: "weekly",
           });

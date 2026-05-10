@@ -183,7 +183,7 @@ process.on("uncaughtException", (err) => {
     const host = req.headers.host || "";
     if (host.includes(".replit.app")) {
       const qs = req.url.startsWith(req.path) ? req.url.slice(req.path.length) : "";
-      return res.redirect(301, `https://advisoryconnect.pro${req.path}${qs}`);
+      return res.redirect(301, `https://app.advisoryconnect.pro${req.path}${qs}`);
     }
     next();
   });
@@ -205,9 +205,9 @@ process.on("uncaughtException", (err) => {
       const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
       const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
       const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
-      const siteUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+      const siteUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
       const hasPic = !!(advisor as any).profilePicUrl;
-      const imageUrl = hasPic ? `https://advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
+      const imageUrl = hasPic ? `https://app.advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
       const imageTag = hasPic
         ? `<meta property="og:image" content="${imageUrl}" />
 <meta property="og:image:width" content="600" />

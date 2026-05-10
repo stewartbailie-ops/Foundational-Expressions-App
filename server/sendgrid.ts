@@ -14,7 +14,7 @@ const MASTER_INBOX = "info@advisoryconnect.pro";
 // footer. Email clients are conservative about CSS so this is all inline
 // styles + table-friendly markup. Absolute https URLs are used for the logos
 // because mail clients don't load relative paths.
-const PROD_ORIGIN = "https://advisoryconnect.pro";
+const PROD_ORIGIN = "https://app.advisoryconnect.pro";
 
 export function brandedEmail(innerHtml: string, opts?: { previewText?: string }): string {
   const preview = opts?.previewText ? opts.previewText.slice(0, 200) : "";

@@ -823,7 +823,7 @@ export default function AdvisorProfile() {
     advisor.corporateServices?.includes(s.key)
   ).map((s) => ({ ...s, ...(t.corpServices[s.key] || {}) }));
 
-  const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileUrl = `app.advisoryconnect.pro/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
 
   const hasContactDetails = advisor.showContactDetails !== false && (
@@ -832,7 +832,7 @@ export default function AdvisorProfile() {
 
   const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity);
 
-  const profileShareUrl = `https://advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileShareUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
   const hasWhatsApp = !!(advisor as any).contactNumber;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
@@ -996,7 +996,7 @@ export default function AdvisorProfile() {
         }
         ctx.fillStyle = "#555"; ctx.font = `8.5px Arial, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText("advisoryconnect.pro/privacy-policy", W / 2, H - 11);
+        ctx.fillText("app.advisoryconnect.pro/privacy-policy", W / 2, H - 11);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
@@ -1024,7 +1024,7 @@ export default function AdvisorProfile() {
           ctx.textAlign = "center";
           ctx.fillText("Scan to view full profile", W / 2, qrY + QR_SIZE + 14);
           ctx.fillStyle = "#bbb"; ctx.font = `9px Arial, sans-serif`;
-          ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 28);
+          ctx.fillText(`app.advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 28);
           afterQr();
         };
         qrImg.onerror = () => { URL.revokeObjectURL(url); afterQr(); };
@@ -1348,7 +1348,7 @@ export default function AdvisorProfile() {
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
-          <QRCodeSVG id="hidden-qr-card" value={`https://advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
+          <QRCodeSVG id="hidden-qr-card" value={`https://app.advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
         </div>
 
         {/* Ordered Sections */}

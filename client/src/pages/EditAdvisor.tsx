@@ -64,7 +64,7 @@ export default function EditAdvisor() {
   }, [advisor, loaded]);
 
   const slug = advisor?.profileSlug || "";
-  const profileUrl = `https://advisoryconnect.pro/${slug}`;
+  const profileUrl = `https://app.advisoryconnect.pro/${slug}`;
   const initials = name.trim() ? name.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "NA";
   const bioText = bioOption === "custom" ? customBio : BIO_OPTIONS[bioOption] || "";
   const themeInitialsBg = theme === "pink" ? "bg-pink-800 text-pink-100" : theme === "blue" ? "bg-blue-800 text-blue-100" : "bg-neutral-800 text-white";

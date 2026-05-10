@@ -2696,7 +2696,7 @@ function ProfileCard({
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const url = `advisoryconnect.pro/${profileSlug}`;
+  const url = `app.advisoryconnect.pro/${profileSlug}`;
   const themeAccent = getThemeColors(theme).accentColor;
   const badgeColors = getInitialsBadgeColors(theme);
   const initials = getInitials(name);
@@ -2979,7 +2979,7 @@ function AdditionalProfileForm({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisorId}/profiles`] });
-      toast({ title: isEditing ? "Profile Updated" : "Profile Created", description: isEditing ? "Changes saved." : `Profile live at advisoryconnect.pro/${profileSlug}` });
+      toast({ title: isEditing ? "Profile Updated" : "Profile Created", description: isEditing ? "Changes saved." : `Profile live at app.advisoryconnect.pro/${profileSlug}` });
       onDone();
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -3039,7 +3039,7 @@ function AdditionalProfileForm({
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile URL</label>
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${profileSlug && !slugValid ? "#ef4444" : tc.inputBorder}`, backgroundColor: tc.inputBg }}>
-            <span className="px-2 py-2 text-xs flex-shrink-0" style={{ color: tc.mutedText, borderRight: `1px solid ${tc.inputBorder}` }}>advisoryconnect.pro/</span>
+            <span className="px-2 py-2 text-xs flex-shrink-0" style={{ color: tc.mutedText, borderRight: `1px solid ${tc.inputBorder}` }}>app.advisoryconnect.pro/</span>
             <input value={profileSlug} onChange={e => setProfileSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
               placeholder={`${baseSlug}-2`} className="flex-1 px-2 py-2 text-xs bg-transparent outline-none" style={{ color: tc.textColor }} data-testid="input-profile-slug" />
           </div>
@@ -6224,7 +6224,7 @@ export default function AdvisorPanel() {
   }
 
   const initials = getInitials(advisor.name);
-  const profileUrl = `advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileUrl = `app.advisoryconnect.pro/${advisor.profileSlug}`;
 
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },

@@ -51,7 +51,7 @@ By accepting these terms, the advisor agrees to:
 
 4. Allow Advisory Connect to send transactional emails (lead notifications, OTPs, account-related communications) to the registered email address.
 
-5. Acknowledge that the public-facing profile served at advisoryconnect.pro/[their-slug] will be visible to anyone with the link.
+5. Acknowledge that the public-facing profile served at app.advisoryconnect.pro/[their-slug] will be visible to anyone with the link.
 
 The full Terms of Service document is currently being finalised and will be made available shortly. By ticking the box below, the advisor confirms they accept these interim terms and the formal Terms of Service once published.`;
 
@@ -554,7 +554,7 @@ export default function CreateAdvisor() {
                 </div>
               </div>
               <div className="p-4 space-y-2.5 text-xs">
-                <Row label="Profile URL" value={formattedSlug ? `advisoryconnect.pro/${formattedSlug}` : "—"} />
+                <Row label="Profile URL" value={formattedSlug ? `app.advisoryconnect.pro/${formattedSlug}` : "—"} />
                 <Row label="Contact Number" value={contactNumber || "—"} />
                 <Row label="Login Email" value={email || "—"} />
                 <Row label="Advisor Code" value={advisorCode || "—"} />
