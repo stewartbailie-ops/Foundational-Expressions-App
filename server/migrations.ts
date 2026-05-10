@@ -15,7 +15,6 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
 type ExistsRow = { exists: boolean | null };
 
 export async function runStartupMigrations() {
-<<<<<<< HEAD
   // Confirm the parent table exists before issuing ALTERs. This gives a clear,
   // untruncated diagnostic in production logs if the database doesn't yet
   // have the schema (drizzle-kit push hasn't been run against this URL),
@@ -70,17 +69,4 @@ export async function runStartupMigrations() {
     `CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");`
   ));
   console.log("[migrations] session table verified");
-=======
-  try {
-    for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
-      await db.execute(
-        sql.raw(`ALTER TABLE advisor_profiles ADD COLUMN IF NOT EXISTS ${col} ${def}`)
-      );
-    }
-    console.log("[migrations] advisor_profiles columns verified");
-  } catch (err) {
-    // Non-fatal: columns likely already exist. Log and continue so the server starts.
-    console.warn("[migrations] startup migration warning (non-fatal):", err);
-  }
->>>>>>> e4282aec51f2d34c64a75b91e9cdc264fff7f2af
 }
