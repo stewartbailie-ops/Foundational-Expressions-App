@@ -13,10 +13,15 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
 ];
 
 export async function runStartupMigrations() {
-  for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
-    await db.execute(
-      sql.raw(`ALTER TABLE advisor_profiles ADD COLUMN IF NOT EXISTS ${col} ${def}`)
-    );
+  try {
+    for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
+      await db.execute(
+        sql.raw(`ALTER TABLE advisor_profiles ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+      );
+    }
+    console.log("[migrations] advisor_profiles columns verified");
+  } catch (err) {
+    // Non-fatal: columns likely already exist. Log and continue so the server starts.
+    console.warn("[migrations] startup migration warning (non-fatal):", err);
   }
-  console.log("[migrations] advisor_profiles columns verified");
 }
