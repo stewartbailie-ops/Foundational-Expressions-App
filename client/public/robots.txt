@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /civ
+Disallow: /manage
+Disallow: /create
+Disallow: /edit/
+Disallow: /stats
+
+Sitemap: https://advisoryconnect.pro/sitemap.xml
