@@ -150,7 +150,7 @@ export default function WillForm() {
   }
 
   return (
-    <div className="min-h-screen pb-10" style={{ backgroundColor: tc.bgColor }}>
+    <main className="min-h-screen pb-10" style={{ backgroundColor: tc.bgColor }}>
       <div className="max-w-md mx-auto px-4 pt-5 space-y-5">
 
         <button

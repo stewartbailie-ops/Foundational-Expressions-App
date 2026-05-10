@@ -226,7 +226,7 @@ export default function CallbackForm() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="callback-form-container">
+    <main className="min-h-screen" style={{ backgroundColor: bgColor, color: textColor }} data-testid="callback-form-container">
       <div className="max-w-md mx-auto px-5 py-8 space-y-6">
         <button
           onClick={() => window.history.back()}
