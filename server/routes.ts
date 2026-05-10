@@ -197,6 +197,47 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Public sitemap — no auth required. Includes all active advisor primary slugs
+  // and any secondary profile slugs so Google can discover every profile page.
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const BASE = "https://advisoryconnect.pro";
+      const allAdvisors = await storage.getAdvisors();
+      const active = allAdvisors.filter((a) => a.active && a.profileSlug);
+
+      const slugs: string[] = [];
+      for (const a of active) {
+        slugs.push(a.profileSlug!);
+        const profiles = await storage.getAdvisorProfiles(a.id);
+        for (const p of profiles) {
+          if (p.profileSlug) slugs.push(p.profileSlug);
+        }
+      }
+
+      const today = new Date().toISOString().slice(0, 10);
+      const urls = slugs
+        .map(
+          (slug) => `  <url>
+    <loc>${BASE}/${slug}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>`
+        )
+        .join("\n");
+
+      const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`;
+
+      res.set("Content-Type", "application/xml").send(xml);
+    } catch (err) {
+      console.error("sitemap error", err);
+      res.status(500).send("<?xml version='1.0'?><urlset/>");
+    }
+  });
+
   app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
     const adminPassword = process.env.ADMIN_PASSWORD;
