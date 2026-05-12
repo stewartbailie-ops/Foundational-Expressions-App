@@ -101,8 +101,13 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
       style={{ backgroundColor: t.cardBg, border: `1px solid ${t.borderColor}` }}
       data-testid="footer-brand"
     >
-      {/* Desktop / tablet: single row with absolute-centered text block. */}
-      <div className="hidden sm:block relative">
+      {/* Wide screens: single row with absolute-centered text block.
+          May 2026: bumped breakpoint sm: → lg: because the absolute-centered
+          "Powered by Advisory Connect" + Privacy/Terms text was overlapping
+          the right-side pills inside the advisor control panel (which is a
+          narrower container than the public profile). Stacked layout now used
+          for mobile, tablet, and panel-width viewports. */}
+      <div className="hidden lg:block relative">
         <div className="flex items-center justify-between gap-3">
           {logo}
           {pills}
@@ -111,8 +116,8 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
           <div className="pointer-events-auto">{center}</div>
         </div>
       </div>
-      {/* Mobile fallback: stack so logo + pills don't collide with the centered text. */}
-      <div className="sm:hidden space-y-2">
+      {/* Stacked fallback: logo + pills on top, centered text below. */}
+      <div className="lg:hidden space-y-2">
         <div className="flex items-center justify-between gap-3">
           {logo}
           {pills}

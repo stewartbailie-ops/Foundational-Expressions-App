@@ -644,10 +644,21 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
                   </div>
                 </div>
               </div>
-              {/* Expanded body — description only; the actual interactive widget renders on the public profile, not here. */}
+              {/* Expanded body — May 2026: render the ACTUAL interactive widget
+                  (sliders, toggles, output panels) so the advisor can preview
+                  exactly what the public sees, not just a static description.
+                  Description sits above the live widget for context. */}
               {isOpen && (
-                <div className="px-3 pb-3 pt-1 text-xs leading-relaxed" style={{ color: tc.mutedText, borderTop: `1px solid ${tc.borderColor}` }}>
-                  {m.desc}
+                <div className="px-3 pb-3 pt-1 space-y-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                  <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>{m.desc}</p>
+                  <div className="pt-1">
+                    {key === "showShowpieceSqueeze"   && <RealMoneySqueeze   accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} />}
+                    {key === "showShowpieceTaxBite"   && <TaxBite            accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} />}
+                    {key === "showShowpieceInflation" && <InflationMillion   accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} />}
+                    {key === "showShowpieceWaiting"   && <CostOfWaiting      accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} />}
+                    {key === "showToolReality"        && <RealityCheck       accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} />}
+                    {key === "showToolLatte"          && <LatteMillionaire   accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} textColor={tc.textColor} mutedText={tc.mutedText} inputBg={tc.inputBg} />}
+                  </div>
                 </div>
               )}
             </div>
