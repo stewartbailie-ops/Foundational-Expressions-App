@@ -359,12 +359,12 @@ export function getThemeColors(theme: string | null | undefined, themeColor?: st
     return lightBase(
       accent,
       mixWithWhite(themeColor, 0.92),                    // bgColor
-      "rgba(255,255,255,0.85)",                           // cardBg
-      "#ffffff",                                          // popupBg
+      mixWithWhite(themeColor, 0.88),                    // cardBg — light tint of chosen colour (was 85% white)
+      "#ffffff",                                          // popupBg (modals stay opaque white for readability)
       mixWithBlack(themeColor, 0.80),                    // textColor
       "rgba(0,0,0,0.6)",                                  // mutedText (always readable)
       accent,                                             // sectionTitle
-      "rgba(255,255,255,0.95)", "#ffffff",
+      mixWithWhite(themeColor, 0.94), "#ffffff",         // inputBg — slight tint (was 95% white)
       `rgba(${r},${g},${b},0.30)`,
       `rgba(${r},${g},${b},0.22)`,
       accent, buttonText,

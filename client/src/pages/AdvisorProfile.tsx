@@ -1236,11 +1236,16 @@ export default function AdvisorProfile() {
               </div>
             </div>
           )}
-          {/* Auto-generated header badge — sits inside the profile card, just below the photo */}
+          {/* Auto-generated header badge — sits inside the profile card, just
+              below the photo. May 2026: bg switched from hardcoded #ffffff to
+              tc.cardBg so it inherits the chosen theme tint instead of looking
+              like a stark white strip on every coloured/dark theme. Text
+              colours follow the theme (sectionTitle for the name, mutedText for
+              the title) so they stay readable across all 12 + custom themes. */}
           {(advisor as any).showHeader !== false && (
             <div
               className="flex items-center gap-3 px-4 py-3"
-              style={{ backgroundColor: "#ffffff", borderTop: `1px solid ${tc.borderColor}` }}
+              style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}
               data-testid="section-header-badge"
             >
               <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={52} downloadable={false} name={advisor.name} />
@@ -1248,7 +1253,7 @@ export default function AdvisorProfile() {
                 <div
                   className="font-bold tracking-widest leading-tight truncate uppercase"
                   style={{
-                    color: getInitialsBadgeColors(advisor.theme || "blue").from,
+                    color: tc.sectionTitle,
                     fontSize: 17,
                     letterSpacing: 2.5,
                   }}
@@ -1259,7 +1264,7 @@ export default function AdvisorProfile() {
                 {advisor.title && (
                   <div
                     className="font-medium leading-tight truncate mt-0.5"
-                    style={{ color: "#444", fontSize: 11, letterSpacing: 0.5 }}
+                    style={{ color: tc.mutedText, fontSize: 11, letterSpacing: 0.5 }}
                     data-testid="text-header-badge-title"
                   >
                     {advisor.title}
