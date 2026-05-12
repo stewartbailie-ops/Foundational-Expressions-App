@@ -191,32 +191,23 @@ process.on("uncaughtException", (err) => {
   const RESERVED = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "assets"];
   const CRAWLER_UA = /facebookexternalhit|WhatsApp|Twitterbot|LinkedInBot|Slackbot|TelegramBot|Discordbot|bot|crawler|spider|preview/i;
 
-  app.use(async (req, res, next) => {
-    const ua = req.headers["user-agent"] || "";
-    if (!CRAWLER_UA.test(ua)) return next();
-
-    const slug = req.path.replace(/^\//, "").split("/")[0];
-    if (!slug || RESERVED.includes(slug)) return next();
-
-    try {
-      const advisor = await storage.getAdvisorBySlug(slug);
-      if (!advisor) return next();
-
-      const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
-      const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
-      const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
-      const siteUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
-      const hasPic = !!(advisor as any).profilePicUrl;
-      const imageUrl = hasPic ? `https://app.advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
-      const imageTag = hasPic
-        ? `<meta property="og:image" content="${imageUrl}" />
+  // Render an advisor-themed OG document for crawlers. Shared by both the
+  // bare-root branch (sole-advisor fallback) and the per-slug branch.
+  const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const renderAdvisorOg = (advisor: any): string => {
+    const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
+    const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
+    const siteUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
+    const hasPic = !!advisor.profilePicUrl;
+    const imageUrl = hasPic ? `https://app.advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
+    const imageTag = hasPic
+      ? `<meta property="og:image" content="${imageUrl}" />
 <meta property="og:image:width" content="600" />
 <meta property="og:image:height" content="600" />
 <meta name="twitter:image" content="${imageUrl}" />
 <meta name="twitter:card" content="summary_large_image" />`
-        : `<meta name="twitter:card" content="summary" />`;
-
-      res.status(200).set({ "Content-Type": "text/html" }).send(`<!DOCTYPE html>
+      : `<meta name="twitter:card" content="summary" />`;
+    return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -230,7 +221,37 @@ ${imageTag}
 <title>${title}</title>
 </head>
 <body></body>
-</html>`);
+</html>`;
+  };
+
+  app.use(async (req, res, next) => {
+    const ua = req.headers["user-agent"] || "";
+    if (!CRAWLER_UA.test(ua)) return next();
+
+    const slug = req.path.replace(/^\//, "").split("/")[0];
+
+    // Bare root URL — if there's exactly ONE active advisor with a profile
+    // pic, surface their card. With 0 or 2+ active advisors the bare URL is
+    // ambiguous, so fall through to the static index.html (clean AC branding).
+    if (!slug) {
+      try {
+        const all = await storage.getAdvisors();
+        const eligible = all.filter((a: any) => a.active && a.profileSlug && a.profilePicUrl);
+        if (eligible.length === 1) {
+          return res.status(200).set({ "Content-Type": "text/html" }).send(renderAdvisorOg(eligible[0]));
+        }
+      } catch {
+        // fall through to static
+      }
+      return next();
+    }
+
+    if (RESERVED.includes(slug)) return next();
+
+    try {
+      const advisor = await storage.getAdvisorBySlug(slug);
+      if (!advisor) return next();
+      res.status(200).set({ "Content-Type": "text/html" }).send(renderAdvisorOg(advisor));
     } catch {
       next();
     }
