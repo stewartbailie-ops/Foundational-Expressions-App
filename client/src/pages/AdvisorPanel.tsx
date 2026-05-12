@@ -1209,7 +1209,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
       <button
         onClick={() => setAddLeadOpen(true)}
         className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 active:scale-[0.99]"
-        style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+        style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
         data-testid="button-add-lead"
       >
         <Plus className="h-4 w-4" />
@@ -1465,7 +1465,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                       {phone ? (
                         <a href={`tel:${phone}`}
                           className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
-                          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                          style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
                           data-testid={`link-call-${lead.id}`}>
                           <Phone className="h-3.5 w-3.5" />
                           Call
@@ -3004,10 +3004,10 @@ function getThemeLabel(theme: string) {
 }
 
 function ProfileCard({
-  profileSlug, title, theme, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
+  profileSlug, title, theme, themeColor, tc, label, isPrimary, onEditClick, onDeleteClick, nickname, profileDesc,
   name, profilePicUrl,
 }: {
-  profileSlug: string; title: string; theme: string; tc: ReturnType<typeof getThemeColors>;
+  profileSlug: string; title: string; theme: string; themeColor?: string | null; tc: ReturnType<typeof getThemeColors>;
   label: string; isPrimary: boolean; onEditClick: () => void; onDeleteClick?: () => void;
   nickname?: string; profileDesc?: string;
   name: string; profilePicUrl?: string | null;
@@ -3015,8 +3015,11 @@ function ProfileCard({
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const url = `app.advisoryconnect.pro/${profileSlug}`;
-  const themeAccent = getThemeColors(theme).accentColor;
-  const badgeColors = getInitialsBadgeColors(theme);
+  // M3: pass themeColor through so when the advisor picks a custom hex via the
+  // ColourPicker, the dropdown overview card gradient + accent border reflect
+  // it immediately (previously stuck on the legacy theme→hex map and ignored).
+  const themeAccent = getThemeColors(theme, themeColor).accentColor;
+  const badgeColors = getInitialsBadgeColors(theme, themeColor);
   const initials = getInitials(name);
   const hasAdminNotes = !!(nickname || profileDesc);
   // Inner contrast palette — always dark surface + white text inside the card,
@@ -3486,6 +3489,39 @@ function AdditionalProfileForm({
           ].map(f => (
             <input key={f.placeholder} value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder} className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
           ))}
+        </div>
+
+        {/* M6: Contact Details — read-only inherited section so the secondary
+            editor mirrors the primary's section list. Contact number, location
+            and working hours are advisor-level (single source of truth) and are
+            edited on the Primary profile; shown here so advisors can see what
+            their secondary will display. */}
+        <div className="space-y-2 p-3 rounded-lg" style={{ border: `1px dashed ${tc.borderColor}`, backgroundColor: tc.inputBg + "40" }}>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Contact Details</label>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Inherited from Primary</span>
+          </div>
+          <p className="text-[11px]" style={{ color: tc.mutedText }}>
+            Contact number, location and working hours are shared across all your profiles. Edit them on your Primary profile.
+          </p>
+          <div className="grid grid-cols-1 gap-1.5 pt-1">
+            <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+              <span style={{ color: tc.mutedText }}>Phone</span>
+              <span className="font-medium" style={{ color: tc.textColor }}>{(advisor as any).contactNumber || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+              <span style={{ color: tc.mutedText }}>Location</span>
+              <span className="font-medium truncate ml-2" style={{ color: tc.textColor }}>{(advisor as any).location || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+              <span style={{ color: tc.mutedText }}>Hours</span>
+              <span className="font-medium truncate ml-2" style={{ color: tc.textColor }}>{(advisor as any).workingHours || "—"}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs px-2 py-1.5 rounded" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+              <span style={{ color: tc.mutedText }}>Email</span>
+              <span className="font-medium truncate ml-2" style={{ color: tc.textColor }}>{advisor.email || "—"}</span>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-1.5 p-3 rounded-lg" style={{ border: `1px dashed ${tc.borderColor}` }}>
@@ -6338,6 +6374,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         profileSlug={advisor.profileSlug}
         title={advisor.title || "Financial Advisor"}
         theme={advisor.theme || "dark"}
+        themeColor={(advisor as any).themeColor}
         tc={tc}
         label="Primary"
         isPrimary={true}
@@ -6378,6 +6415,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             profileSlug={profile.profileSlug}
             title={profile.title || "Financial Advisor"}
             theme={profile.theme || "dark"}
+            themeColor={(profile as any).themeColor}
             tc={tc}
             label="Secondary"
             isPrimary={false}
