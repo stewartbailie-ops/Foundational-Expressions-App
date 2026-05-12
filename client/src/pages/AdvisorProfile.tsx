@@ -873,9 +873,7 @@ export default function AdvisorProfile() {
 
   const handleDownloadBusinessCard = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor);
-    // H bumped 800 → 820 to keep the QR caption clear of the (now slightly
-    // taller) footer band on worst-case 5-contact cards.
-    const W = 400, H = 820, SCALE = 2;
+    const W = 400, H = 800, SCALE = 2;
     const PHOTO_H = 440;
     const phone = (advisor as any).contactNumber || "";
     const location = (advisor as any).location || "";
@@ -982,13 +980,8 @@ export default function AdvisorProfile() {
       // can't load (offline / 404) we just fall through to the text-only
       // footer so the download never breaks.
       const drawFooterWithLogo = (logoImg?: HTMLImageElement) => {
-        // F6 (May 2026) — band grown 36 → 44px and text baselines repositioned
-        // so the AC icon (14px tall) no longer kisses the privacy-URL line.
-        // Label sits at H-30, URL at H-12 → ~7px clear between icon bottom
-        // and URL top, ~10px clear between label baseline and URL baseline.
-        const BAND = 44;
         ctx.fillStyle = "#f7f7f7";
-        ctx.fillRect(0, H - BAND, W, BAND);
+        ctx.fillRect(0, H - 36, W, 36);
         ctx.fillStyle = "#444"; ctx.font = `bold 9px Arial, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
         const label = "Powered by Advisory Connect";
@@ -998,15 +991,15 @@ export default function AdvisorProfile() {
         const totalW = (logoImg ? ICON + GAP : 0) + labelMetrics.width;
         const startX = (W - totalW) / 2;
         if (logoImg) {
-          ctx.drawImage(logoImg, startX, H - 30 - ICON / 2, ICON, ICON);
+          ctx.drawImage(logoImg, startX, H - 24 - ICON / 2, ICON, ICON);
           ctx.textAlign = "left";
-          ctx.fillText(label, startX + ICON + GAP, H - 30);
+          ctx.fillText(label, startX + ICON + GAP, H - 24);
         } else {
-          ctx.fillText(label, W / 2, H - 30);
+          ctx.fillText(label, W / 2, H - 24);
         }
         ctx.fillStyle = "#555"; ctx.font = `8.5px Arial, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText("app.advisoryconnect.pro/privacy-policy", W / 2, H - 12);
+        ctx.fillText("app.advisoryconnect.pro/privacy-policy", W / 2, H - 11);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
@@ -2221,11 +2214,14 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* F4 — unified BrandFooter; uses the same row layout as the master &
-            sub-control panels so the brand reads consistently everywhere. */}
+        {/* F4 — unified BrandFooter. forceStack=true because the profile card
+            is constrained to a narrow column (max ~440px) regardless of
+            viewport width; the wide absolute-centered layout would overlap the
+            logo and pills exactly like it did inside the advisor sub-panel. */}
         <div className="pt-4 pb-2">
           <BrandFooter
             compact
+            forceStack
             poweredByLabel={t.poweredBy}
             theme={{
               cardBg: tc.cardBg,
