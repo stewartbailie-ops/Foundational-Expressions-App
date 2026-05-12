@@ -1,0 +1,16 @@
+	1. Add the option in the advisors sub-control panels registry - to "Add a lead" Manual entry - Added, please see attached sample for visual issue
+	2. Custom colour picker - hex input + native colour wheel + auto-derive accent/text from luminance. Its working! I just wanted to check with you and it was maybe because you playing it safe, but all the wording no matter what colour/theme set is on a white back drop, that’s changed hasn’t it? I can't 100% remember how it was last time, but the drop-downs and individual sections colour also changed when the theme changed? (Can we may be re-add this, or work/discuss solutions here?)
+	3. Angled-name background pattern - (SVG/CSS pattern at e.g. -30° rotation, low opacity, tiled across the profile background. Its working on both the Primary & Secondary, with the in-put name - Is there any chance you can make the wording 100% larger and bolder? 
+	4. The new tools and interactive tools Claude added are there, but the tools from the control panel and the contact cards are not lining up - Perfect, I see you added the interactive tools Claude added and you made the drop-down in the advisors sub-control panel, that’s great but can you add the actual tools themselves in the advisors control panel, as it currently is (A drop-down under "Platforms") But one step further, where the actual tool (Each individually) can be dropped down and the advisor work the sliders etc - I love how you put the toggles to add/remove from the public facing contact card, please keep that as is. If we adding them in the Advisors control panel, we can remove them from the Edit on the profiles themselves? 
+
+Primary & Secondary elements re-build; You’ve done an amazing job here, ive made a few notes below <3 - If the below two changes are going to be challenging, then just say so and we can skip :)
+	1. Section Order (Please use the current primary profile layout) - Can you not re-structure the section order layout on the secondary profile to exactly the same layout we have on the primary? - See attached as reference 
+	2. Individual & Corporate Services offered (Please use the current primary profile layout) - Can you not re-structure the services section layout on the secondary profile exactly the same layout we have on the primary? - See attached as reference
+	3. Header & header image (Please use the current primary profile layout) - Complete & closed 
+	4. Admin notes (Please use the current primary profile layout) - Complete & closed 
+	5. Contact Details (Please use the current primary profile layout) - Added & Happy with the Inherited from Primary - Complete & closed 
+	6. Intro & Bio (No real difference, can stay as is or whichever is easiest for you) - Complete & closed 
+	7. Profile Elements Selections/Toggles (Please use the current primary profile layout) - Complete & closed 
+	8. Social Links (No real difference, can stay as is or whichever is easiest for you) - Complete & closed
+	9. Theme Selection (Please use the current primary profile layout) - Complete & closed
+Background Pattern Selection (No real difference, can stay as is or whichever is easiest for you) - Complete & closed
