@@ -333,20 +333,46 @@ export const FUN_FACTS: FunFact[] = [
 ];
 
 /**
- * Returns 6 unique facts for today, deterministically seeded by date
- * so the same 6 show all day but change the next day.
+ * Returns 6 unique facts for today. Picks are fully random per day and
+ * cached in localStorage under today's date so refreshes return the same
+ * set within the day, but a new random 6 are drawn at midnight.
  */
+const FACTS_STORAGE_KEY = "ac:daily-facts:today";
+function factsTodayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
 export function getDailyFacts(): FunFact[] {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
-
-  const shuffled = [...FUN_FACTS];
-  let s = seed;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    const j = Math.abs(s) % (i + 1);
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(FACTS_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { date: string; ids: number[] };
+        if (parsed.date === factsTodayKey() && Array.isArray(parsed.ids) && parsed.ids.length === 6) {
+          const byId = new Map(FUN_FACTS.map((f) => [f.id, f] as const));
+          const resolved = parsed.ids.map((id) => byId.get(id)).filter(Boolean) as FunFact[];
+          if (resolved.length === 6) return resolved;
+        }
+      }
+    } catch {
+      // ignore
+    }
   }
-
-  return shuffled.slice(0, 6);
+  const pool = [...FUN_FACTS];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  const picked = pool.slice(0, 6);
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(
+        FACTS_STORAGE_KEY,
+        JSON.stringify({ date: factsTodayKey(), ids: picked.map((f) => f.id) })
+      );
+    } catch {
+      // ignore
+    }
+  }
+  return picked;
 }

@@ -619,6 +619,17 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
     const data: any = parsed.data;
+    // Targeted fence: "Manual Entry" leads come from the advisor's own panel
+    // ("Add Lead Manually" button). Anyone hitting /api/emails anonymously is
+    // either using legacy callback/referral flows (other types) or attempting
+    // to spoof an advisor-curated lead. Require an advisor or admin session
+    // for the manual flow specifically. The broader /api/emails authz lockdown
+    // is tracked separately and does not need to block this small fence.
+    if (typeof data.type === "string" && data.type.toLowerCase().includes("manual")) {
+      if (!(await canAccessAdvisor(req, data.advisorId))) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+    }
     const result = calculateLeadGrade({
       age: data.clientAge,
       income: data.clientIncome,

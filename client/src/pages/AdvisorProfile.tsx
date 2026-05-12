@@ -2426,11 +2426,11 @@ export default function AdvisorProfile() {
           </div>
         )}
 
-        {/* o. QR Code / barcode (S2 — sized to fill the card column so it
-              reads/scans easily and feels intentional, not tucked-away). */}
+        {/* o. QR Code / barcode (S2 sized to column; F-batch -15% to give the
+              card a touch more breathing room without losing scannability). */}
         {advisor.showQrCode !== false && (
-          <div className="flex flex-col items-stretch pt-4 space-y-3" data-testid="section-qr">
-            <div className="p-5 rounded-2xl w-full" style={{ backgroundColor: "#ffffff" }}>
+          <div className="flex flex-col items-center pt-4 space-y-3" data-testid="section-qr">
+            <div className="p-5 rounded-2xl w-[85%] mx-auto" style={{ backgroundColor: "#ffffff" }}>
               <QRCodeSVG
                 value={`https://${profileUrl}`}
                 size={400}

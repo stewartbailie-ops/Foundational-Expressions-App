@@ -976,6 +976,75 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     },
   });
 
+  // ── Manual "Add Lead" modal — lets the advisor log a lead they captured
+  // outside the funnel (phone call, in-person meeting, etc). Same shape as
+  // the public callback form so it flows through the same auto-grader; the
+  // server tags it with type "Manual Entry" and sourceProfileSlug = primary. ──
+  const [addLeadOpen, setAddLeadOpen] = useState(false);
+  const blankLead = {
+    senderName: "",
+    senderEmail: "",
+    clientPhone: "",
+    clientAge: "",
+    clientIncome: "",
+    clientIndustry: "",
+    clientMarried: false,
+    clientChildren: false,
+    clientVehicle: false,
+    clientProperty: false,
+    selectedServices: [] as string[],
+    body: "",
+  };
+  const [newLead, setNewLead] = useState(blankLead);
+  const updateNewLead = <K extends keyof typeof blankLead>(k: K, v: (typeof blankLead)[K]) =>
+    setNewLead(prev => ({ ...prev, [k]: v }));
+  const toggleNewService = (key: string) =>
+    setNewLead(prev => ({
+      ...prev,
+      selectedServices: prev.selectedServices.includes(key)
+        ? prev.selectedServices.filter(s => s !== key)
+        : [...prev.selectedServices, key],
+    }));
+
+  const ADD_LEAD_INCOMES = [
+    "R0k - R15k", "R15k - R30k", "R30k - R45k", "R45k - R60k",
+    "R60k - R75k", "R75k - R100k", "R100k+",
+  ];
+
+  const createLeadMutation = useMutation({
+    mutationFn: async () => {
+      const services = newLead.selectedServices
+        .map(k => INDIVIDUAL_SERVICES.find(s => s.key === k)?.name || k)
+        .join(", ");
+      const payload = {
+        senderName: newLead.senderName.trim(),
+        senderEmail: newLead.senderEmail.trim() || `manual-${Date.now()}@no-email.local`,
+        type: "Manual Entry",
+        subject: `Manually added lead — ${newLead.senderName.trim()}`,
+        body: newLead.body.trim() || "Lead added manually by the advisor from the registry.",
+        clientPhone: newLead.clientPhone.trim() || null,
+        clientAge: newLead.clientAge ? Number(newLead.clientAge) : null,
+        clientIncome: newLead.clientIncome || null,
+        clientIndustry: newLead.clientIndustry.trim() || null,
+        clientMarried: newLead.clientMarried,
+        clientChildren: newLead.clientChildren,
+        clientVehicle: newLead.clientVehicle,
+        clientProperty: newLead.clientProperty,
+        servicesRequested: services || null,
+        source: "Manual Entry",
+        sourceProfileSlug: advisor.profileSlug,
+        advisorId: advisor.id, // critical: scopes the lead to this advisor's registry
+      };
+      return apiRequest("POST", "/api/emails", payload);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/emails`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/advisors/${slug}/profile-stats`] });
+      setNewLead(blankLead);
+      setAddLeadOpen(false);
+    },
+  });
+
   const GRADE_RANK: Record<string, number> = { "Gold": 0, "Silver": 1, "Bronze": 2, "Development": 3 };
   const STATUS_RANK: Record<string, number> = { "Need to Contact": 0, "Contacted": 1, "Archive": 2 };
 
@@ -1133,6 +1202,19 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
           </button>
         </div>
       )}
+      {/* Add Lead — primary action for the advisor to log an off-funnel lead.
+          Sits above the Active/Archived strip so it's the first thing the eye
+          catches when opening the registry. */}
+      <button
+        onClick={() => setAddLeadOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 active:scale-[0.99]"
+        style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+        data-testid="button-add-lead"
+      >
+        <Plus className="h-4 w-4" />
+        Add Lead Manually
+      </button>
+
       {/* Active / Archived top tab — Archive becomes a destination, not a status */}
       <div className="flex items-center gap-1 border-b" style={{ borderColor: tc.borderColor }}>
         {(["active", "archived"] as const).map(mode => {
@@ -1375,24 +1457,41 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                 {/* Inline expanded body */}
                 {isExpanded && (
                   <div className="px-4 pb-4 pt-1 space-y-4 border-t" style={{ borderColor: tc.borderColor }}>
-                    {/* Quick actions */}
-                    <div className="grid grid-cols-2 gap-2 pt-3">
+                    {/* Quick actions — Call / WhatsApp / Email. Call uses tel:
+                        which on mobile opens the dialer pre-filled with the
+                        client's number. Greys out (with WhatsApp) when no phone. */}
+                    <div className="grid grid-cols-3 gap-2 pt-3">
+                      {phone ? (
+                        <a href={`tel:${phone}`}
+                          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
+                          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                          data-testid={`link-call-${lead.id}`}>
+                          <Phone className="h-3.5 w-3.5" />
+                          Call
+                        </a>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold opacity-50"
+                          style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+                          <Phone className="h-3.5 w-3.5" />
+                          No phone
+                        </div>
+                      )}
                       {whatsappHref ? (
                         <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+                          className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
                           style={{ backgroundColor: "#25D366", color: "#fff" }}
                           data-testid={`link-wa-${lead.id}`}>
                           <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                           WhatsApp
                         </a>
                       ) : (
-                        <div className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold opacity-50"
+                        <div className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold opacity-50"
                           style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
                           No phone
                         </div>
                       )}
                       <a href={`mailto:${lead.senderEmail}`}
-                        className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold"
+                        className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
                         style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
                         data-testid={`link-email-${lead.id}`}>
                         <Mail className="h-3.5 w-3.5" />
@@ -1509,6 +1608,214 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Add Lead modal ── */}
+      {addLeadOpen && (
+        <div
+          className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
+          onClick={() => !createLeadMutation.isPending && setAddLeadOpen(false)}
+          data-testid="modal-add-lead"
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
+            style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+          >
+            <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b" style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}>
+              <div>
+                <h3 className="text-base font-semibold" style={{ color: tc.textColor }}>Add Lead Manually</h3>
+                <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Log a prospect from a call, meeting, or referral.</p>
+              </div>
+              <button
+                onClick={() => setAddLeadOpen(false)}
+                disabled={createLeadMutation.isPending}
+                className="p-2 rounded-lg hover:opacity-75"
+                style={{ backgroundColor: tc.buttonSecondaryBg }}
+                aria-label="Close"
+                data-testid="button-add-lead-close"
+              >
+                <X className="h-4 w-4" style={{ color: tc.mutedText }} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Full name *</label>
+                  <input
+                    value={newLead.senderName}
+                    onChange={e => updateNewLead("senderName", e.target.value)}
+                    placeholder="Jane Doe"
+                    className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                    style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                    data-testid="input-add-lead-name"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Email</label>
+                    <input
+                      type="email"
+                      value={newLead.senderEmail}
+                      onChange={e => updateNewLead("senderEmail", e.target.value)}
+                      placeholder="jane@example.com"
+                      className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                      style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                      data-testid="input-add-lead-email"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Phone</label>
+                    <input
+                      type="tel"
+                      value={newLead.clientPhone}
+                      onChange={e => updateNewLead("clientPhone", e.target.value)}
+                      placeholder="+27 …"
+                      className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                      style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                      data-testid="input-add-lead-phone"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Age</label>
+                    <input
+                      type="number"
+                      value={newLead.clientAge}
+                      onChange={e => updateNewLead("clientAge", e.target.value)}
+                      placeholder="35"
+                      className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                      style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                      data-testid="input-add-lead-age"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Income</label>
+                    <select
+                      value={newLead.clientIncome}
+                      onChange={e => updateNewLead("clientIncome", e.target.value)}
+                      className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                      style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                      data-testid="select-add-lead-income"
+                    >
+                      <option value="">Not specified</option>
+                      {ADD_LEAD_INCOMES.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Industry</label>
+                  <input
+                    value={newLead.clientIndustry}
+                    onChange={e => updateNewLead("clientIndustry", e.target.value)}
+                    placeholder="Optional"
+                    className="w-full text-sm rounded-lg px-3 py-2 outline-none"
+                    style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                    data-testid="input-add-lead-industry"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium block mb-2" style={{ color: tc.mutedText }}>Lifestyle</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      ["clientMarried", "Married"],
+                      ["clientChildren", "Children"],
+                      ["clientVehicle", "Vehicle"],
+                      ["clientProperty", "Property"],
+                    ] as const).map(([k, label]) => (
+                      <label
+                        key={k}
+                        className="flex items-center gap-2 text-xs rounded-lg px-3 py-2 cursor-pointer"
+                        style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={newLead[k]}
+                          onChange={e => updateNewLead(k, e.target.checked)}
+                          data-testid={`check-add-lead-${k}`}
+                        />
+                        {label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium block mb-2" style={{ color: tc.mutedText }}>Services of interest</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {INDIVIDUAL_SERVICES.map(s => {
+                      const on = newLead.selectedServices.includes(s.key);
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          onClick={() => toggleNewService(s.key)}
+                          className="text-[11px] px-2.5 py-1 rounded-full transition-colors"
+                          style={{
+                            backgroundColor: on ? tc.accentColor + "22" : tc.inputBg,
+                            color: on ? tc.accentColor : tc.mutedText,
+                            border: `1px solid ${on ? tc.accentColor : tc.borderColor}`,
+                          }}
+                          data-testid={`chip-add-lead-svc-${s.key}`}
+                        >
+                          {s.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium block mb-1" style={{ color: tc.mutedText }}>Notes</label>
+                  <textarea
+                    value={newLead.body}
+                    onChange={e => updateNewLead("body", e.target.value)}
+                    rows={3}
+                    placeholder="Anything to remember about this lead…"
+                    className="w-full text-sm rounded-lg px-3 py-2 outline-none resize-none"
+                    style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }}
+                    data-testid="textarea-add-lead-notes"
+                  />
+                </div>
+              </div>
+
+              {createLeadMutation.isError && (
+                <div className="text-xs flex items-start gap-2 rounded-lg p-2.5" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>Could not save the lead. Check the name field is filled in and try again.</span>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => setAddLeadOpen(false)}
+                  disabled={createLeadMutation.isPending}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                  data-testid="button-add-lead-cancel"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => createLeadMutation.mutate()}
+                  disabled={!newLead.senderName.trim() || createLeadMutation.isPending}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
+                  style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                  data-testid="button-add-lead-save"
+                >
+                  {createLeadMutation.isPending ? (
+                    <span className="inline-flex items-center gap-1.5"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving…</span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5" /> Save Lead</span>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
@@ -6244,10 +6551,11 @@ export default function AdvisorPanel() {
   const initials = getInitials(advisor.name);
   const profileUrl = `app.advisoryconnect.pro/${advisor.profileSlug}`;
 
+  // Settings moved out of the bottom tab strip — now a cog in the top-right
+  // header next to Sign-out. Only Home + Registry remain as primary tabs.
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
     { key: "registry" as const, label: "Registry", icon: Inbox },
-    { key: "settings" as const, label: "Settings", icon: Settings },
   ];
 
   return (
@@ -6270,10 +6578,24 @@ export default function AdvisorPanel() {
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setActiveTab("settings")}
+              className="p-2 rounded-lg transition-opacity hover:opacity-80"
+              style={{
+                backgroundColor: activeTab === "settings" ? tc.accentColor + "22" : tc.buttonSecondaryBg,
+                border: activeTab === "settings" ? `1px solid ${tc.accentColor}55` : "1px solid transparent",
+              }}
+              title="Settings"
+              aria-label="Settings"
+              data-testid="button-panel-settings"
+            >
+              <Settings className="h-4 w-4" style={{ color: tc.accentColor }} />
+            </button>
+            <button
               onClick={handleLogout}
               className="p-2 rounded-lg transition-opacity hover:opacity-80"
               style={{ backgroundColor: tc.buttonSecondaryBg }}
               title="Sign out"
+              aria-label="Sign out"
               data-testid="button-panel-logout"
             >
               <LogOut className="h-4 w-4" style={{ color: tc.accentColor }} />

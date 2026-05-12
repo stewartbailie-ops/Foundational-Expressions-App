@@ -11,6 +11,38 @@ function pickRandomImages(count: number): string[] {
   return pool.slice(0, Math.min(count, pool.length));
 }
 
+// Pull today's 6 facts from localStorage so the same set persists across
+// page refreshes within the same calendar day, then reshuffles fully at
+// midnight. Falls back to a fresh random pick if storage is unavailable
+// (e.g. private mode) or the stored set is from a previous day.
+const STORAGE_KEY = "ac:fact-images:today";
+const FACTS_PER_DAY = 6;
+function todayKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+}
+function getDailyImages(): string[] {
+  if (typeof window === "undefined") return pickRandomImages(FACTS_PER_DAY);
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw) as { date: string; images: string[] };
+      if (parsed.date === todayKey() && Array.isArray(parsed.images) && parsed.images.length === FACTS_PER_DAY) {
+        return parsed.images;
+      }
+    }
+  } catch {
+    // ignore
+  }
+  const fresh = pickRandomImages(FACTS_PER_DAY);
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ date: todayKey(), images: fresh }));
+  } catch {
+    // ignore
+  }
+  return fresh;
+}
+
 async function shareImage(src: string, advisorName: string) {
   const title = "Financial Fact";
   const text = `Check out this financial fact — shared by ${advisorName}`;
@@ -65,8 +97,10 @@ export function FunFactsCarousel({
   mutedText: string;
   advisorName?: string;
 }) {
-  const [hourKey, setHourKey] = useState(() => Math.floor(Date.now() / 3_600_000));
-  const [images, setImages] = useState<string[]>(() => pickRandomImages(10));
+  // Day-key drives the daily-rotation effect — when it ticks over at midnight
+  // we re-pull from storage which generates a fresh random set for the new day.
+  const [dayKey, setDayKey] = useState(() => todayKey());
+  const [images, setImages] = useState<string[]>(() => getDailyImages());
   const [index, setIndex] = useState(0);
   const [lightbox, setLightbox] = useState<string | null>(null);
   const [shareState, setShareState] = useState<"idle" | "shared" | "copied">("idle");
@@ -74,17 +108,19 @@ export function FunFactsCarousel({
   const timersRef = useRef<number[]>([]);
 
   useEffect(() => {
+    // Check once a minute — cheap, and means a phone left open overnight rolls
+    // to the next day's facts without needing a hard refresh.
     const interval = setInterval(() => {
-      const next = Math.floor(Date.now() / 3_600_000);
-      setHourKey((k) => (k !== next ? next : k));
+      const next = todayKey();
+      setDayKey((k) => (k !== next ? next : k));
     }, 60_000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    setImages(pickRandomImages(10));
+    setImages(getDailyImages());
     setIndex(0);
-  }, [hourKey]);
+  }, [dayKey]);
 
   useEffect(() => {
     return () => {
@@ -215,7 +251,7 @@ export function FunFactsCarousel({
         </div>
 
         <p className="text-[10px] text-center" style={{ color: mutedText }}>
-          Tap image to enlarge · New picks every hour
+          Tap image to enlarge · New picks daily
         </p>
       </div>
 

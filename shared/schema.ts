@@ -479,6 +479,7 @@ export function calculateLeadGrade(input: GraderInput): GraderResult {
   const type = (input.type || "").toLowerCase();
   if (type.includes("callback") || type.includes("call back")) sourcePts = 10;
   else if (type.includes("will")) sourcePts = 7;
+  else if (type.includes("manual")) sourcePts = 6; // advisor-logged from outside the funnel
   else if (type.includes("referral")) sourcePts = 5;
 
   const score = incomePts + agePts + lifestylePts + servicesPts + sourcePts;
@@ -496,8 +497,9 @@ export function calculateLeadGrade(input: GraderInput): GraderResult {
     temperature = "Hot";
   } else if (type.includes("will")) {
     temperature = "Warm";
-  } else if (type.includes("referral")) {
-    // Referrals are warm if they came in with rich client data, cold if minimal
+  } else if (type.includes("referral") || type.includes("manual")) {
+    // Referrals + Manual Entries: warm if they came in with rich client data,
+    // cold if minimal — the advisor either knows the prospect or doesn't yet.
     if (incomeNum > 0 || input.age) temperature = "Warm";
   }
 
