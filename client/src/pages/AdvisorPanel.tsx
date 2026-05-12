@@ -3185,11 +3185,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
         <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-          Pick one of our themes — your profile background, buttons, and badges all derive from it. Custom-colour picker coming back once the named themes are perfect.
+          Pick one of our themes — your profile background, buttons, and badges all derive from it. Or tap Custom to choose any colour from the wheel.
         </p>
         <ColourPicker
           value={theme}
-          onChange={(name) => { setTheme(name); setThemeColor(""); }}
+          themeColor={themeColor}
+          onChange={(name, hex) => { setTheme(name); setThemeColor(hex); }}
           tc={tc}
           testIdPrefix="profile-theme"
         />
@@ -4056,7 +4057,8 @@ function AdditionalProfileForm({
           </p>
           <ColourPicker
             value={theme}
-            onChange={(name) => { setTheme(name); setThemeColor(""); }}
+            themeColor={themeColor}
+            onChange={(name, hex) => { setTheme(name); setThemeColor(hex); }}
             tc={tc}
             testIdPrefix="secondary-theme"
           />
