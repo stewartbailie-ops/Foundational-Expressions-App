@@ -9,6 +9,10 @@ import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, U
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
+// May 2026: needed so the "Interactive Tools" drop-down in InteractiveToolsTab
+// can render the actual widgets as a live preview (was crashing because the
+// JSX referenced these components without importing them).
+import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
 import ColourPicker from "@/components/ColourPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1081,9 +1085,12 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         <EmergencyContactsCard tc={tc} />
       </div>
 
-      {/* F4 — unified BrandFooter (single balanced row matches public profile + master). */}
+      {/* F4 — unified BrandFooter. forceStack=true because the panel container
+          is narrower than viewport breakpoints can detect; without this the
+          centered "Powered by Advisory Connect" text overlaps the pills. */}
       <div className="pt-6 pb-2">
         <BrandFooter
+          forceStack
           theme={{
             cardBg: tc.cardBg,
             borderColor: tc.borderColor,
@@ -1661,9 +1668,15 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                         client's number. Greys out (with WhatsApp) when no phone. */}
                     <div className="grid grid-cols-3 gap-2 pt-3">
                       {phone ? (
+                        // May 2026 — hard-coded brand blue + white text to guarantee
+                        // legibility on every theme. Previously used tc.accentColor /
+                        // tc.buttonText which on the silver/coral/gold palettes
+                        // produced a near-white button with white text (Stewart
+                        // flagged "white bg + white text" in change-notes batch).
+                        // Mirrors the WhatsApp button's hard-coded #25D366 pattern.
                         <a href={`tel:${phone}`}
                           className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
-                          style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                          style={{ backgroundColor: "#2563eb", color: "#ffffff" }}
                           data-testid={`link-call-${lead.id}`}>
                           <Phone className="h-3.5 w-3.5" />
                           Call
@@ -3170,15 +3183,15 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme Colour</h3>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
         <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-          Pick a Quick Pick (our 8 starter themes) or choose any colour with the wheel — your profile background, buttons, and badges all derive from it.
+          Pick one of our themes — your profile background, buttons, and badges all derive from it. Custom-colour picker coming back once the named themes are perfect.
         </p>
         <ColourPicker
-          value={themeColor || "#4a8db5"}
-          onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
+          value={theme}
+          onChange={(name) => { setTheme(name); setThemeColor(""); }}
           tc={tc}
-          testIdPrefix="profile-colour"
+          testIdPrefix="profile-theme"
         />
       </div>
 
@@ -4037,15 +4050,15 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme Colour</label>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme</label>
           <p className="text-[11px]" style={{ color: tc.mutedText }}>
-            Pick the accent colour used across this profile — buttons, badges, header gradient and the contact card. Choose any quick pick or open the picker for a custom hex.
+            Pick the theme used across this profile — buttons, badges, header gradient and the contact card all inherit from it.
           </p>
           <ColourPicker
-            value={themeColor || "#4a8db5"}
-            onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
+            value={theme}
+            onChange={(name) => { setTheme(name); setThemeColor(""); }}
             tc={tc}
-            testIdPrefix="secondary-colour"
+            testIdPrefix="secondary-theme"
           />
         </div>
 

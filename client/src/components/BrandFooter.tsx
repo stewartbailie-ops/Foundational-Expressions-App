@@ -22,9 +22,15 @@ interface BrandFooterProps {
   theme?: BrandFooterTheme;
   compact?: boolean;
   poweredByLabel?: string;
+  // May 2026: when true, always render the stacked layout (logo+pills row,
+  // centered text below) regardless of viewport width. Needed for the advisor
+  // sub-control panel where the footer sits inside a narrow inner container
+  // — viewport-width breakpoints can't see the container so the absolute
+  // layout would still overlap. Set this true for any in-panel use.
+  forceStack?: boolean;
 }
 
-export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, poweredByLabel }: BrandFooterProps) {
+export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, poweredByLabel, forceStack = false }: BrandFooterProps) {
   const t = theme;
   // F5 (May 2026) — flattened from a two-row card (centered text on top, logo+pills below)
   // into a single balanced horizontal row per partner sample. Layout uses absolute centering
@@ -101,23 +107,24 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
       style={{ backgroundColor: t.cardBg, border: `1px solid ${t.borderColor}` }}
       data-testid="footer-brand"
     >
-      {/* Wide screens: single row with absolute-centered text block.
-          May 2026: bumped breakpoint sm: → lg: because the absolute-centered
-          "Powered by Advisory Connect" + Privacy/Terms text was overlapping
-          the right-side pills inside the advisor control panel (which is a
-          narrower container than the public profile). Stacked layout now used
-          for mobile, tablet, and panel-width viewports. */}
-      <div className="hidden lg:block relative">
-        <div className="flex items-center justify-between gap-3">
-          {logo}
-          {pills}
+      {/* Wide screens: single row with absolute-centered text block. Hidden
+          entirely when forceStack is true — used by the advisor sub-control
+          panel where viewport-based breakpoints can't see the narrow inner
+          container width. */}
+      {!forceStack && (
+        <div className="hidden lg:block relative">
+          <div className="flex items-center justify-between gap-3">
+            {logo}
+            {pills}
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="pointer-events-auto">{center}</div>
+          </div>
         </div>
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="pointer-events-auto">{center}</div>
-        </div>
-      </div>
-      {/* Stacked fallback: logo + pills on top, centered text below. */}
-      <div className="lg:hidden space-y-2">
+      )}
+      {/* Stacked fallback: logo + pills on top, centered text below. Always
+          shown when forceStack is true. */}
+      <div className={forceStack ? "space-y-2" : "lg:hidden space-y-2"}>
         <div className="flex items-center justify-between gap-3">
           {logo}
           {pills}
