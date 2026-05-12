@@ -497,14 +497,36 @@ function EmergencyContactsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }
   );
 }
 
-// M5(b): InteractiveToolsTab — compact panel exposing the 6 interactive
-// "showpiece" toggles (advisor-level columns on the advisors row). PATCHes
-// /api/advisors/:id then invalidates so the public profile + the panel's
-// preview state both refresh.
+// M5(b) → May 2026 partner-feedback rebuild: each of the 6 interactive
+// showpieces is now its own collapsible drop-down card sitting under the
+// master Interactive Tools accordion (matching the public profile contact
+// card layout where each tool has its own header). Order is persisted to
+// localStorage under INTERACTIVE_ORDER_KEY so each advisor's preferred
+// arrangement survives reloads — no schema change. Public profile render
+// order is unchanged (driven by AdvisorProfile.tsx); this affects panel
+// display only.
+const INTERACTIVE_ORDER_KEY = "advisorInteractiveOrder_v1";
+const DEFAULT_INTERACTIVE_ORDER: Array<InteractiveToolKey> = [
+  "showShowpieceSqueeze",
+  "showShowpieceTaxBite",
+  "showShowpieceInflation",
+  "showShowpieceWaiting",
+  "showToolReality",
+  "showToolLatte",
+];
+type InteractiveToolKey =
+  | "showShowpieceSqueeze"
+  | "showShowpieceTaxBite"
+  | "showShowpieceInflation"
+  | "showShowpieceWaiting"
+  | "showToolReality"
+  | "showToolLatte";
+type InteractiveVals = Record<InteractiveToolKey, boolean> & { showInteractive: boolean };
+
 function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
-  const [vals, setVals] = useState({
+  const [vals, setVals] = useState<InteractiveVals>({
     showShowpieceSqueeze: (advisor as any).showShowpieceSqueeze !== false,
     showShowpieceTaxBite: (advisor as any).showShowpieceTaxBite !== false,
     showShowpieceInflation: (advisor as any).showShowpieceInflation !== false,
@@ -513,7 +535,38 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
     showToolLatte: (advisor as any).showToolLatte !== false,
     showInteractive: (advisor as any).showInteractive !== false,
   });
-  const flip = (k: keyof typeof vals) => setVals(v => ({ ...v, [k]: !v[k] }));
+  const [expandedKey, setExpandedKey] = useState<keyof InteractiveVals | null>(null);
+  const [order, setOrder] = useState<Array<InteractiveToolKey>>(() => {
+    if (typeof window === "undefined") return [...DEFAULT_INTERACTIVE_ORDER];
+    try {
+      const raw = window.localStorage.getItem(INTERACTIVE_ORDER_KEY);
+      if (!raw) return [...DEFAULT_INTERACTIVE_ORDER];
+      const allowed = new Set<string>(DEFAULT_INTERACTIVE_ORDER);
+      const parsed = JSON.parse(raw) as string[];
+      const filtered = parsed.filter(k => allowed.has(k)) as Array<InteractiveToolKey>;
+      // Append any keys that weren't in storage (forward-compat if a new tool is added).
+      for (const k of DEFAULT_INTERACTIVE_ORDER) if (!filtered.includes(k)) filtered.push(k);
+      return filtered.length ? filtered : [...DEFAULT_INTERACTIVE_ORDER];
+    } catch {
+      return [...DEFAULT_INTERACTIVE_ORDER];
+    }
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try { window.localStorage.setItem(INTERACTIVE_ORDER_KEY, JSON.stringify(order)); } catch {}
+  }, [order]);
+
+  const flip = (k: keyof InteractiveVals) => setVals(v => ({ ...v, [k]: !v[k] }));
+  const moveUp = (idx: number) => {
+    if (idx <= 0) return;
+    setOrder(prev => { const a = [...prev]; [a[idx - 1], a[idx]] = [a[idx], a[idx - 1]]; return a; });
+  };
+  const moveDown = (idx: number) => {
+    setOrder(prev => {
+      if (idx >= prev.length - 1) return prev;
+      const a = [...prev]; [a[idx + 1], a[idx]] = [a[idx], a[idx + 1]]; return a;
+    });
+  };
   const save = async () => {
     setSaving(true);
     try {
@@ -524,19 +577,26 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
       toast({ title: "Save failed", description: e?.message || "Please try again.", variant: "destructive" });
     } finally { setSaving(false); }
   };
-  const items: Array<{ key: keyof typeof vals; label: string; desc: string }> = [
-    { key: "showShowpieceSqueeze",   label: "Real Money Squeeze",    desc: "Visualises how much take-home is left after tax, costs and savings." },
-    { key: "showShowpieceTaxBite",   label: "Tax Bite",              desc: "Shows the SA bracket impact on each rand earned." },
-    { key: "showShowpieceInflation", label: "Inflation Eats Million", desc: "Erodes a R1m stash year-by-year at chosen inflation." },
-    { key: "showShowpieceWaiting",   label: "The Cost of Waiting",   desc: "Compounds the cost of starting to invest 5 / 10 years late." },
-    { key: "showToolReality",        label: "30-Year Reality Check", desc: "Models a full 30-year wealth path with real assumptions." },
-    { key: "showToolLatte",          label: "The Latte Millionaire", desc: "Daily spend → invested = retirement nest egg." },
-  ];
+
+  const meta: Record<InteractiveToolKey, { label: string; tagline: string; desc: string }> = {
+    showShowpieceSqueeze:   { label: "The Real-Money Squeeze",    tagline: "What inflation does to your salary over time", desc: "Shows how a salary's buying power erodes over a 20-year horizon at the chosen inflation rate. Includes monthly salary, years out, assumed inflation and a real-value preview." },
+    showShowpieceTaxBite:   { label: "The Tax Bite",              tagline: "What SARS takes vs what you take home",        desc: "Splits a monthly salary into take-home vs SARS based on the SA brackets at a given age. Bar chart + take-home/SARS-gets cards." },
+    showShowpieceInflation: { label: "Inflation Eats Your Million", tagline: "What a lump sum is really worth in the future", desc: "Erodes a lump sum (e.g. R1m) year-by-year at a chosen inflation rate to show real value vs buying power lost." },
+    showShowpieceWaiting:   { label: "The Cost of Waiting",       tagline: "Why starting sooner changes everything",        desc: "Compares retirement nest eggs from starting at 25 vs 35 vs 45 with the same monthly investment — visualises the compounding cost of delay." },
+    showToolReality:        { label: "30-Year Reality Check",     tagline: "A quick reality check on your retirement nest egg", desc: "Models salary, savings rate and years to retirement against an SA long-run average to highlight any shortfall vs target." },
+    showToolLatte:          { label: "The Latte Millionaire",     tagline: "The everyday spends that really cost you",      desc: "Toggle daily spends (coffee, takeaways, streaming, etc.) and see what they would compound to if invested instead." },
+  };
+
+  // Disabled style helpers — when master switch is off, individual toggles become non-actionable.
+  const masterOff = !vals.showInteractive;
+
   return (
     <div className="space-y-3">
       <p className="text-xs" style={{ color: tc.mutedText }}>
-        Master switch shows the whole "Interactive Financial Tools" section on your public profile. Individual toggles hide specific showpieces inside it.
+        Master switch shows the whole "Interactive Financial Tools" section on your public profile. Each tool below has its own drop-down — tap a card to read what it does, use the arrows to reorder the list, and the toggle to show or hide it.
       </p>
+
+      {/* Master switch — sits above all individual cards. */}
       <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
         <div>
           <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Master switch</div>
@@ -546,19 +606,68 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
           <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: vals.showInteractive ? "22px" : "2px", backgroundColor: vals.showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
         </div>
       </div>
-      <div className="space-y-2">
-        {items.map(it => (
-          <div key={it.key} className="flex items-start justify-between gap-3 p-3 rounded-xl" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium" style={{ color: tc.textColor }}>{it.label}</div>
-              <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>{it.desc}</div>
+
+      {/* Individual tool cards — each its own collapsible drop-down with reorder arrows. */}
+      <div className="space-y-2" style={{ opacity: masterOff ? 0.55 : 1 }}>
+        {order.map((key, idx) => {
+          const m = meta[key];
+          const isOpen = expandedKey === key;
+          const enabled = vals[key];
+          return (
+            <div key={key} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid={`card-interactive-${key}`}>
+              {/* Header row — always visible. Click anywhere except the arrows/toggle to expand. */}
+              <div className="flex items-center gap-2 p-3">
+                <button
+                  type="button"
+                  onClick={() => setExpandedKey(isOpen ? null : key)}
+                  className="flex items-center gap-2 flex-1 min-w-0 text-left"
+                  aria-expanded={isOpen}
+                  data-testid={`toggle-interactive-open-${key}`}
+                >
+                  {isOpen
+                    ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+                    : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{m.label}</div>
+                    <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{m.tagline}</div>
+                  </div>
+                </button>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button type="button" onClick={() => moveUp(idx)} disabled={idx === 0} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-interactive-up-${key}`} aria-label={`Move ${m.label} up`}>
+                    <ArrowUp className="h-3.5 w-3.5" />
+                  </button>
+                  <button type="button" onClick={() => moveDown(idx)} disabled={idx === order.length - 1} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-interactive-down-${key}`} aria-label={`Move ${m.label} down`}>
+                    <ArrowDown className="h-3.5 w-3.5" />
+                  </button>
+                  <div onClick={() => flip(key)} className="w-9 h-5 rounded-full relative cursor-pointer ml-1" style={{ backgroundColor: enabled ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-interactive-${key}`}>
+                    <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: enabled ? "18px" : "2px", backgroundColor: enabled ? tc.checkDotActive : tc.checkDotInactive }} />
+                  </div>
+                </div>
+              </div>
+              {/* Expanded body — description only; the actual interactive widget renders on the public profile, not here. */}
+              {isOpen && (
+                <div className="px-3 pb-3 pt-1 text-xs leading-relaxed" style={{ color: tc.mutedText, borderTop: `1px solid ${tc.borderColor}` }}>
+                  {m.desc}
+                </div>
+              )}
             </div>
-            <div onClick={() => flip(it.key)} className="w-9 h-5 rounded-full relative cursor-pointer flex-shrink-0 mt-0.5" style={{ backgroundColor: vals[it.key] ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-interactive-${it.key}`}>
-              <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: vals[it.key] ? "18px" : "2px", backgroundColor: vals[it.key] ? tc.checkDotActive : tc.checkDotInactive }} />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* Reset order — only shows when the user has reordered the list. */}
+      {order.some((k, i) => k !== DEFAULT_INTERACTIVE_ORDER[i]) && (
+        <button
+          type="button"
+          onClick={() => setOrder([...DEFAULT_INTERACTIVE_ORDER])}
+          className="w-full text-[11px] py-1.5 rounded-md font-medium"
+          style={{ color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+          data-testid="button-interactive-reset-order"
+        >
+          Reset to default order
+        </button>
+      )}
+
       <button onClick={save} disabled={saving}
         className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
         style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
