@@ -1,0 +1,45 @@
+Planned current session; 
+	1. Custom colour picker - hex input + native colour wheel + auto-derive accent/text from luminance. Its working! I just wanted to check with you and it was maybe because you playing it safe, but all the wording no matter what colour/theme set is on a white back drop, that’s changed hasn’t it? I can't 100% remember how it was last time, but the drop-downs and individual sections colour also changed when the theme changed? (Can we may be re-add this, or work/discuss solutions here?) Reverted back to the original themes, is it possible to add the "Pick your colour" option back now? - In Progress
+	2. Auth gap on lead endpoints — /api/emails GET/grade/status/open/DELETE unprotected. Bigger task, needs advisor-session auth design first
+	3. Performance 58 → 80+ Lighthouse mobile (font self-hosting, lazy-loading, cache headers, JS trim). Bigger session of its own
+	4. Bare/www → app. 301 redirects — finishes the SEO consolidation we started
+	5. Investigate mystery e4282ae... branch — to stop it re-merging old code into main (low priority, probably an old laptop checkout)
+	6. W2.6 - Enhanced Date Stamp Tracking (Stew explain what he's expecting) - ID Assigned (Linked to contact number / ID) - To avoid duplicate leads generated
+	7. W3.1 Profile button cleanup (Image generator) - Stew illustrate - Explain the share to socials goal here
+	8. Add Website: split public/advisor landing - As per Clauds re-view & feedback 
+	9. Angled-name background pattern - (SVG/CSS pattern at e.g. -30° rotation, low opacity, tiled across the profile background. Its working on both the Primary & Secondary, with the in-put name - Enlarged, needs some work - In progress 
+	10. Build in the new feature/TAB "My clients/Book Of Life" - Within that function; option to move leads from the Registry over to my clients - Add the book of life section - Options for clients/advisors to upload all policies or summaries of all policies - A section for the client or advisor to put all the clients details and documents (Stew list and confirm) - Build in a function, where advisors are informed daily "Clients birthday's / Policy review dates etc) - Client details shown [Data Capture - Updated by either the advisor or client at any time] ID Number, Payslip, Proof of Address, Bank Details, Marital Status, All Contact Details, Next of Kin, Tax Number, Their active Will & All their current open policy's (Short/Long term insurance; Medical Aid, Risk Cover, Life policy's, Corporate Benefits, Investments, Savings etc.)
+	11. Gaps for Grader 2.0: - Please add the below as options for when completing/filling out leads - (Add the parameters to the Registry, Grader & Temperature)
+	Request call back link; 
+		○ Add "How did you find me?" As a drop-down / source attribution field (organic, social, referral)
+		○ Add "Estimated net worth / savings bracket" (only income) As a drop-down
+		○ Add "What's your biggest financial concern right now?" As an open text field
+		○ Add "Are you currently working with a financial advisor?" (existing client vs. new) As an open text field
+	Refer Friends & Family; 
+		○ Add "Why are you referring them?" As an open text field
+	Claim Your Free Will; 
+		○ Add "Do you already have a Will?" As a drop-down (Yes/No)
+		○ Add "What is the estimated value of your estate?" As a drop-down
+	
+Advisory Connect — Development Backlog - Completed (Build Sessions 11.05-12.05)
+	1. Cooked new financial interactive tools (Made them toggle on/off) - Added to the control panel - Complete 
+	2. Move the settings option to the top right corner (Next to log-out) - With the basic setting cog wheel image if possible (Ask if you would like a sample picture) - Complete
+	3. Add a "Call client" option in the registry - Complete
+	4. Add the option in the advisors sub-control panels registry - to "Add a lead" Manual entry - Complete 
+	5. Repositioned the footers (Master & Sub panels) + Add the new logo - Complete
+	6. Added the new Logo & re-built the footers for the master control & sub control panels, smoother, clean finish - Complete 
+	7. The new tools and interactive tools added are there, but the tools from the control panel and the contact cards are not lining up - Add the actual tools themselves in the advisors control panel, as it currently is (A drop-down under "Platforms") - Complete 
+	8. Daily financial facts, change the rotation to x6 per day, changes once daily (Full randomization) - Complete
+	9. Please re-size the bar-code again, make it 15% smaller - Complete
+	10. Final version of our Logo attached, final swap-around, all the locations need to be changed - Complete
+	11. Primary & Secondary profiles layout & elements re-build; 
+		○ Section Order (Please use the current primary profile layout) - Re-structure the section order layout on the secondary profile to exactly the same layout we have on the primary - Complete & closed 
+		○ Individual & Corporate Services offered (Please use the current primary profile layout) - Re-structure the services section layout on the secondary profile exactly the same layout we have on the primary - Complete & closed 
+		○ Header & header image (Current primary profile layout) - Complete & closed 
+		○ Admin notes (Current primary profile layout) - Complete & closed 
+		○ Contact Details (Current primary profile layout) - Complete & closed 
+		○ Intro & Bio (Current primary profile layout) - Complete & closed 
+		○ Profile Elements Selections/Toggles (Current primary profile layout) - Complete & closed 
+		○ Social Links (Current primary profile layout) - Complete & closed 
+		○ Theme Selection (Current primary profile layout) - Complete & closed 
+		○ Background Pattern Selection (Current primary profile layout) - Complete & closed 
