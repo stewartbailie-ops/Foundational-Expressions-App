@@ -5,7 +5,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap } from "lucide-react";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
@@ -497,8 +497,84 @@ function EmergencyContactsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }
   );
 }
 
+// M5(b): InteractiveToolsTab — compact panel exposing the 6 interactive
+// "showpiece" toggles (advisor-level columns on the advisors row). PATCHes
+// /api/advisors/:id then invalidates so the public profile + the panel's
+// preview state both refresh.
+function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+  const [saving, setSaving] = useState(false);
+  const [vals, setVals] = useState({
+    showShowpieceSqueeze: (advisor as any).showShowpieceSqueeze !== false,
+    showShowpieceTaxBite: (advisor as any).showShowpieceTaxBite !== false,
+    showShowpieceInflation: (advisor as any).showShowpieceInflation !== false,
+    showShowpieceWaiting: (advisor as any).showShowpieceWaiting !== false,
+    showToolReality: (advisor as any).showToolReality !== false,
+    showToolLatte: (advisor as any).showToolLatte !== false,
+    showInteractive: (advisor as any).showInteractive !== false,
+  });
+  const flip = (k: keyof typeof vals) => setVals(v => ({ ...v, [k]: !v[k] }));
+  const save = async () => {
+    setSaving(true);
+    try {
+      await apiRequest("PATCH", `/api/advisors/${advisor.id}`, vals);
+      queryClient.invalidateQueries();
+      toast({ title: "Saved", description: "Interactive tool visibility updated." });
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e?.message || "Please try again.", variant: "destructive" });
+    } finally { setSaving(false); }
+  };
+  const items: Array<{ key: keyof typeof vals; label: string; desc: string }> = [
+    { key: "showShowpieceSqueeze",   label: "Real Money Squeeze",    desc: "Visualises how much take-home is left after tax, costs and savings." },
+    { key: "showShowpieceTaxBite",   label: "Tax Bite",              desc: "Shows the SA bracket impact on each rand earned." },
+    { key: "showShowpieceInflation", label: "Inflation Eats Million", desc: "Erodes a R1m stash year-by-year at chosen inflation." },
+    { key: "showShowpieceWaiting",   label: "The Cost of Waiting",   desc: "Compounds the cost of starting to invest 5 / 10 years late." },
+    { key: "showToolReality",        label: "30-Year Reality Check", desc: "Models a full 30-year wealth path with real assumptions." },
+    { key: "showToolLatte",          label: "The Latte Millionaire", desc: "Daily spend → invested = retirement nest egg." },
+  ];
+  return (
+    <div className="space-y-3">
+      <p className="text-xs" style={{ color: tc.mutedText }}>
+        Master switch shows the whole "Interactive Financial Tools" section on your public profile. Individual toggles hide specific showpieces inside it.
+      </p>
+      <div className="flex items-center justify-between rounded-xl px-3 py-2.5" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+        <div>
+          <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Master switch</div>
+          <div className="text-[11px]" style={{ color: tc.mutedText }}>Show the Interactive Tools section on profile</div>
+        </div>
+        <div onClick={() => flip("showInteractive")} className="w-10 h-5 rounded-full relative cursor-pointer flex-shrink-0" style={{ backgroundColor: vals.showInteractive ? tc.checkActive : tc.checkInactive }} data-testid="toggle-master-interactive">
+          <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: vals.showInteractive ? "22px" : "2px", backgroundColor: vals.showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
+        </div>
+      </div>
+      <div className="space-y-2">
+        {items.map(it => (
+          <div key={it.key} className="flex items-start justify-between gap-3 p-3 rounded-xl" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium" style={{ color: tc.textColor }}>{it.label}</div>
+              <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>{it.desc}</div>
+            </div>
+            <div onClick={() => flip(it.key)} className="w-9 h-5 rounded-full relative cursor-pointer flex-shrink-0 mt-0.5" style={{ backgroundColor: vals[it.key] ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-interactive-${it.key}`}>
+              <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: vals[it.key] ? "18px" : "2px", backgroundColor: vals[it.key] ? tc.checkDotActive : tc.checkDotInactive }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <button onClick={save} disabled={saving}
+        className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+        style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
+        data-testid="button-save-interactive">
+        {saving && <Loader2 className="h-4 w-4 animate-spin" />}
+        Save Changes
+      </button>
+    </div>
+  );
+}
+
 function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | null>(null);
+  // M5(b): added "interactive" — 4th accordion card on the home tab exposing the
+  // 6 interactive showpiece toggles (Squeeze / Tax Bite / Inflation / Waiting /
+  // Reality / Latte) so the advisor can flip them without opening Profiles.
+  const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | "interactive" | null>(null);
 
   const { data: advisorStats } = useQuery<{
     totalLeads: number; totalReferrals: number; totalCallbacks: number; totalWillRequests: number;
@@ -551,9 +627,10 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
     .sort((a, b) => HOME_GRADE_ORDER.indexOf(a.grade) - HOME_GRADE_ORDER.indexOf(b.grade));
 
   const sections = [
-    { key: "profiles" as const,  label: "Profiles",  desc: "Edit your contact card & additional profiles", icon: Layers,     accent: "#3B82F6" },
-    { key: "toolbox" as const,   label: "Toolbox",   desc: "Calculators, calendars & quick tools",         icon: Calculator, accent: "#10B981" },
-    { key: "platforms" as const, label: "Platforms", desc: "Manage your provider platform links",          icon: Globe,      accent: "#8B5CF6" },
+    { key: "profiles" as const,    label: "Profiles",         desc: "Edit your contact card & additional profiles", icon: Layers,     accent: "#3B82F6" },
+    { key: "toolbox" as const,     label: "Toolbox",          desc: "Calculators, calendars & quick tools",         icon: Calculator, accent: "#10B981" },
+    { key: "platforms" as const,   label: "Platforms",        desc: "Manage your provider platform links",          icon: Globe,      accent: "#8B5CF6" },
+    { key: "interactive" as const, label: "Interactive Tools", desc: "Showpieces — Squeeze, Tax Bite, Inflation, Waiting, Reality, Latte", icon: Zap, accent: "#F59E0B" },
   ];
 
   return (
@@ -603,6 +680,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                   {s.key === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
                   {s.key === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
                   {s.key === "platforms" && <PlatformsTab tc={tc} />}
+                  {s.key === "interactive" && <InteractiveToolsTab advisor={advisor} tc={tc} />}
                 </div>
               )}
             </div>
@@ -2138,6 +2216,128 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   );
 }
 
+// Module-level helpers extracted so AdditionalProfileForm (secondary editor)
+// can reuse the same Header PNG + Profile Image PNG generators as the primary
+// ProfileTab without duplicating ~150 lines of canvas/SVG drawing code.
+// Kept identical visual output to the original primary handlers (M6 parity).
+function makeInitials(n: string): string {
+  return n.trim() ? n.trim().split(" ").map(p => p[0]).join("").toUpperCase().slice(0, 2) : "NA";
+}
+function downloadHeaderBadgePng(opts: { name: string; theme: string; themeColor?: string | null }) {
+  const { name, theme, themeColor } = opts;
+  const initials = makeInitials(name);
+  const { from, to, border } = getInitialsBadgeColors(theme, themeColor || undefined);
+  const accentColor = getThemeColors(theme, themeColor || undefined).accentColor;
+  const l1 = initials[0] || "", l2 = initials[1] || "";
+  const displayName = (name || "Your Name").toUpperCase();
+  const bSize = 200, pad = 30, gap = 48, fontSize = 120;
+  const approxTextW = displayName.length * (fontSize * 0.62);
+  const svgW = Math.round(pad + bSize + gap + approxTextW + pad);
+  const svgH = bSize + pad * 2;
+  const rx = Math.round(bSize * 22 / 120), rxInner = Math.round(bSize * 19 / 120);
+  const strokeW = (1.8 * bSize / 120).toFixed(1);
+  const textX1 = Math.round(38 * bSize / 120), textX2 = Math.round(82 * bSize / 120);
+  const textY = Math.round(84 * bSize / 120), fSize = Math.round(62 * bSize / 120);
+  const svgContent = [
+    `<svg width="${svgW}" height="${svgH}" viewBox="0 0 ${svgW} ${svgH}" xmlns="http://www.w3.org/2000/svg">`,
+    `<defs>`,
+    `<linearGradient id="cbg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="${from}"/><stop offset="100%" stop-color="${to}"/></linearGradient>`,
+    `<linearGradient id="cshim" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="rgba(255,255,255,0.18)"/><stop offset="100%" stop-color="rgba(255,255,255,0)"/></linearGradient>`,
+    `</defs>`,
+    `<rect width="${svgW}" height="${svgH}" fill="white"/>`,
+    `<g transform="translate(${pad},${pad})">`,
+    `<rect width="${bSize}" height="${bSize}" rx="${rx}" fill="url(#cbg)"/>`,
+    `<rect width="${bSize}" height="${bSize / 2}" rx="${rx}" fill="url(#cshim)"/>`,
+    `<rect x="4" y="4" width="${bSize - 8}" height="${bSize - 8}" rx="${rxInner}" fill="none" stroke="${border}" stroke-width="${strokeW}"/>`,
+    `<text x="${textX1}" y="${textY}" font-family="Georgia,'Times New Roman',serif" font-size="${fSize}" font-weight="bold" fill="white" text-anchor="middle" opacity="0.92" letter-spacing="-${(2 * bSize / 120).toFixed(1)}">${l1}</text>`,
+    `<text x="${textX2}" y="${textY}" font-family="Georgia,'Times New Roman',serif" font-size="${fSize}" font-weight="bold" fill="white" text-anchor="middle" opacity="0.78" letter-spacing="-${(2 * bSize / 120).toFixed(1)}">${l2}</text>`,
+    `</g>`,
+    `<text x="${pad + bSize + gap}" y="${Math.round(svgH / 2 + fontSize * 0.35)}" font-family="Arial,Helvetica,sans-serif" font-size="${fontSize}" font-weight="bold" fill="${accentColor}" letter-spacing="4">${displayName}</text>`,
+    `</svg>`,
+  ].join("");
+  const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const img = new Image();
+  img.crossOrigin = "anonymous";
+  img.onload = () => {
+    const scale = 2;
+    const canvas = document.createElement("canvas");
+    canvas.width = svgW * scale; canvas.height = svgH * scale;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.scale(scale, scale);
+    ctx.drawImage(img, 0, 0, svgW, svgH);
+    URL.revokeObjectURL(url);
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${(name || "advisor").replace(/\s+/g, "-").toLowerCase()}-header.png`;
+    link.click();
+  };
+  img.src = url;
+}
+function downloadProfileImagePng(opts: { name: string; title: string; theme: string; themeColor?: string | null; profilePicUrl: string | null }) {
+  const { name, title, theme, themeColor, profilePicUrl } = opts;
+  const initials = makeInitials(name);
+  const W = 600, BAR = 140;
+  const hasPhoto = !!profilePicUrl;
+  const PHOTO_H = hasPhoto ? W : 320;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = PHOTO_H + BAR;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+  const { from, to } = getInitialsBadgeColors(theme, themeColor || undefined);
+  const drawBadge = (bx: number, by: number, bs: number) => {
+    const r = bs * 0.18;
+    const grad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
+    grad.addColorStop(0, from); grad.addColorStop(1, to);
+    ctx.beginPath();
+    ctx.moveTo(bx + r, by); ctx.lineTo(bx + bs - r, by); ctx.quadraticCurveTo(bx + bs, by, bx + bs, by + r);
+    ctx.lineTo(bx + bs, by + bs - r); ctx.quadraticCurveTo(bx + bs, by + bs, bx + bs - r, by + bs);
+    ctx.lineTo(bx + r, by + bs); ctx.quadraticCurveTo(bx, by + bs, bx, by + bs - r);
+    ctx.lineTo(bx, by + r); ctx.quadraticCurveTo(bx, by, bx + r, by); ctx.closePath();
+    ctx.fillStyle = grad; ctx.fill();
+    const shimGrad = ctx.createLinearGradient(bx, by, bx, by + bs / 2);
+    shimGrad.addColorStop(0, "rgba(255,255,255,0.18)"); shimGrad.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = shimGrad; ctx.fill();
+    const fSize = bs * 0.52;
+    ctx.font = `bold ${fSize}px Georgia, serif`; ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.92)"; ctx.fillText(initials[0] || "", bx + bs * 0.3, by + bs * 0.54);
+    ctx.fillStyle = "rgba(255,255,255,0.78)"; ctx.fillText(initials[1] || "", bx + bs * 0.66, by + bs * 0.54);
+  };
+  const finalize = () => {
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(0, PHOTO_H, W, BAR);
+    const BS = 80, BX = 24, BY = PHOTO_H + (BAR - BS) / 2;
+    drawBadge(BX, BY, BS);
+    const TX = BX + BS + 20;
+    const nameSize = Math.min(32, Math.max(20, Math.floor(30 - (name || "").length * 0.3)));
+    ctx.font = `bold ${nameSize}px Arial, sans-serif`; ctx.fillStyle = "#111111"; ctx.textBaseline = "middle";
+    ctx.fillText((name || "Your Name").toUpperCase(), TX, PHOTO_H + BAR * 0.38);
+    if (title) { ctx.font = `500 14px Arial, sans-serif`; ctx.fillStyle = "#666666"; ctx.fillText(title.toUpperCase(), TX, PHOTO_H + BAR * 0.68); }
+    const link = document.createElement("a");
+    link.href = canvas.toDataURL("image/png");
+    link.download = `${(name || "advisor").replace(/\s+/g, "-").toLowerCase()}-profile.png`;
+    link.click();
+  };
+  if (hasPhoto) {
+    const img2 = new Image(); img2.crossOrigin = "anonymous";
+    img2.onload = () => {
+      const srcAspect = img2.naturalWidth / img2.naturalHeight;
+      let sx = 0, sy = 0, sw = img2.naturalWidth, sh = img2.naturalHeight;
+      if (srcAspect > 1) { sw = img2.naturalHeight; sx = (img2.naturalWidth - sw) / 2; }
+      else if (srcAspect < 1) { sh = img2.naturalWidth; sy = (img2.naturalHeight - sh) / 2; }
+      ctx.drawImage(img2, sx, sy, sw, sh, 0, 0, W, PHOTO_H); finalize();
+    };
+    img2.onerror = () => {
+      const g = ctx.createLinearGradient(0, 0, W, PHOTO_H); g.addColorStop(0, from); g.addColorStop(1, to);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, PHOTO_H); drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160); finalize();
+    };
+    img2.src = profilePicUrl!;
+  } else {
+    const g = ctx.createLinearGradient(0, 0, W, PHOTO_H); g.addColorStop(0, from); g.addColorStop(1, to);
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, PHOTO_H); drawBadge((W - 160) / 2, (PHOTO_H - 160) / 2, 160); finalize();
+  }
+}
+
 function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -3201,6 +3401,16 @@ function AdditionalProfileForm({
   const [showInteractive, setShowInteractive] = useState((existingProfile as any)?.showInteractive !== false);
   const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((existingProfile as any)?.showShowpieceSqueeze !== false);
   const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((existingProfile as any)?.showShowpieceTaxBite !== false);
+  // M6 parity: 6 toggles that existed on the primary editor but were missing
+  // here. Calculator section gained Bond / Emergency / LifeCover / Debt and
+  // the Interactive section gained Inflation / Waiting. Mirroring all of them
+  // so a secondary's profile-elements list reads identically to its primary.
+  const [showShowpieceInflation, setShowShowpieceInflation] = useState((existingProfile as any)?.showShowpieceInflation !== false);
+  const [showShowpieceWaiting, setShowShowpieceWaiting] = useState((existingProfile as any)?.showShowpieceWaiting !== false);
+  const [showToolBond, setShowToolBond] = useState((existingProfile as any)?.showToolBond !== false);
+  const [showToolEmergency, setShowToolEmergency] = useState((existingProfile as any)?.showToolEmergency !== false);
+  const [showToolLifeCover, setShowToolLifeCover] = useState((existingProfile as any)?.showToolLifeCover !== false);
+  const [showToolDebt, setShowToolDebt] = useState((existingProfile as any)?.showToolDebt !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [showSecondNews, setShowSecondNews] = useState(!!(existingProfile as any)?.showSecondNews);
   const [showForex, setShowForex] = useState(!!(existingProfile as any)?.showForex);
@@ -3277,6 +3487,12 @@ function AdditionalProfileForm({
         showInteractive,
         showShowpieceSqueeze,
         showShowpieceTaxBite,
+        showShowpieceInflation,
+        showShowpieceWaiting,
+        showToolBond,
+        showToolEmergency,
+        showToolLifeCover,
+        showToolDebt,
         showMoneywebFeed,
         showSecondNews,
         showForex,
@@ -3407,6 +3623,42 @@ function AdditionalProfileForm({
           )}
         </div>
 
+        {/* M6 parity: Header Image card mirrors the primary editor. The advisor's
+            display NAME is inherited (single source of truth on the advisor row,
+            edited on the Primary profile), so both downloads use advisor.name +
+            this secondary's title / theme / colour / pic. */}
+        <div className="space-y-2 p-3 rounded-lg" style={{ border: `1px dashed ${tc.borderColor}` }}>
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Header Image</label>
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>Name inherited</span>
+          </div>
+          <p className="text-[11px]" style={{ color: tc.mutedText }}>
+            Download a name-and-initials header PNG (great for email signatures or social banners) or a portrait card PNG (for sharing). Both use your inherited name plus this profile's title, theme and photo.
+          </p>
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() => downloadHeaderBadgePng({ name: advisor.name || "", theme, themeColor })}
+              className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-secondary-download-header"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Header PNG
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadProfileImagePng({ name: advisor.name || "", title, theme, themeColor, profilePicUrl })}
+              className="flex items-center justify-center gap-1.5 px-2 py-2 rounded-lg text-xs font-medium"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-secondary-download-profile"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Profile Card PNG
+            </button>
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Introduction &amp; Bio</label>
@@ -3530,44 +3782,8 @@ function AdditionalProfileForm({
           <textarea value={profileDescription} onChange={e => setProfileDescription(e.target.value)} placeholder="Short description..." rows={2} className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
         </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme Colour</label>
-          <ColourPicker
-            value={themeColor || "#4a8db5"}
-            onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
-            tc={tc}
-            testIdPrefix="secondary-colour"
-          />
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Background Pattern</label>
-          <div className="grid grid-cols-3 gap-2">
-            {BACKGROUND_STYLE_OPTIONS.map(opt => (
-              <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
-                className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
-                style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {backgroundStyle > 1 && (
-            <div className="space-y-1.5 pt-1">
-              <div className="flex justify-between items-center">
-                <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
-                <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
-              </div>
-              <input type="range" min={5} max={100} step={5} value={patternOpacity}
-                onChange={e => setPatternOpacity(parseInt(e.target.value))}
-                className="w-full" style={{ accentColor: tc.accentColor }} />
-              <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
-                <span>Barely visible</span><span>Solid</span>
-              </div>
-            </div>
-          )}
-        </div>
-
+        {/* M6 parity reorder: Profile Page Elements → Theme Colour → Section
+            Order → Background Pattern, matching the Primary editor exactly. */}
         <div className="space-y-2">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Page Elements</label>
           {[
@@ -3602,6 +3818,10 @@ function AdditionalProfileForm({
                 { label: "Pension Savings Calc", value: showToolPension, set: setShowToolPension },
                 { label: "Capital Gains Tax Calc", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
+                { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
+                { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
+                { label: "Life Cover Needs Calculator", value: showToolLifeCover, set: setShowToolLifeCover },
+                { label: "Debt Payoff Calculator", value: showToolDebt, set: setShowToolDebt },
               ].map(item => (
                 <div key={item.label} className="flex items-center justify-between pl-2">
                   <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3625,6 +3845,8 @@ function AdditionalProfileForm({
               {[
                 { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
                 { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
+                { label: "Inflation Eats Your Million", value: showShowpieceInflation, set: setShowShowpieceInflation },
+                { label: "The Cost of Waiting", value: showShowpieceWaiting, set: setShowShowpieceWaiting },
                 { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
                 { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
               ].map(item => (
@@ -3637,6 +3859,19 @@ function AdditionalProfileForm({
               ))}
             </div>
           )}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme Colour</label>
+          <p className="text-[11px]" style={{ color: tc.mutedText }}>
+            Pick the accent colour used across this profile — buttons, badges, header gradient and the contact card. Choose any quick pick or open the picker for a custom hex.
+          </p>
+          <ColourPicker
+            value={themeColor || "#4a8db5"}
+            onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
+            tc={tc}
+            testIdPrefix="secondary-colour"
+          />
         </div>
 
         <div className="space-y-2 pt-1">
@@ -3671,6 +3906,35 @@ function AdditionalProfileForm({
                   {PROFILE_SECTION_LABELS[key] || key}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* M6 parity: Background Pattern is the LAST section (matching primary). */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Background Pattern</label>
+          <div className="grid grid-cols-3 gap-2">
+            {BACKGROUND_STYLE_OPTIONS.map(opt => (
+              <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
+                className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
+                style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          {backgroundStyle > 1 && (
+            <div className="space-y-1.5 pt-1">
+              <div className="flex justify-between items-center">
+                <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
+                <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
+              </div>
+              <input type="range" min={5} max={100} step={5} value={patternOpacity}
+                onChange={e => setPatternOpacity(parseInt(e.target.value))}
+                className="w-full" style={{ accentColor: tc.accentColor }} />
+              <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
+                <span>Barely visible</span><span>Solid</span>
+              </div>
             </div>
           )}
         </div>
@@ -4803,12 +5067,34 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, pension: false, cgt: false, vehicle: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
-  // Toolbox ordering
-  const DEFAULT_TOOL_ORDER = ["std", "tax", "ci", "er", "forex", "scan", "cal", "media", "pension", "cgt", "vehicle"];
+  // Toolbox ordering — M5(a): aligned with public profile financial tools order
+  // (tax, exchange, compound, pension, cgt, vehicle …) so when an advisor toggles
+  // a tool in the panel the matching section appears in the same place on their
+  // public profile. Storage key bumped to _v2 to force a one-time refresh past
+  // the legacy ["std","tax","ci","er","forex",…] layout cached on existing devices.
+  const DEFAULT_TOOL_ORDER = ["tax", "er", "ci", "pension", "cgt", "vehicle", "std", "forex", "scan", "cal", "media"];
   const [organizing, setOrganizing] = useState(false);
   const [toolOrder, setToolOrder] = useState<string[]>(() => {
-    try { const s = localStorage.getItem("advisorToolboxOrder"); return s ? JSON.parse(s) : DEFAULT_TOOL_ORDER; }
-    catch { return DEFAULT_TOOL_ORDER; }
+    try {
+      // Prefer the new key. If absent, perform a one-time, lossless migration
+      // from the legacy key: keep any items the advisor reordered, drop any
+      // unknown IDs, then append any defaults they don't have so new tools
+      // don't get hidden. Only the migration writes the new key — keeps the
+      // legacy key untouched until next reorder, in case of rollback.
+      const v2 = localStorage.getItem("advisorToolboxOrder_v2");
+      if (v2) return JSON.parse(v2);
+      const v1 = localStorage.getItem("advisorToolboxOrder");
+      if (v1) {
+        const allowed = new Set(DEFAULT_TOOL_ORDER);
+        const legacy: string[] = JSON.parse(v1);
+        const cleaned = legacy.filter(k => allowed.has(k));
+        const merged = [...cleaned];
+        for (const k of DEFAULT_TOOL_ORDER) if (!merged.includes(k)) merged.push(k);
+        localStorage.setItem("advisorToolboxOrder_v2", JSON.stringify(merged));
+        return merged;
+      }
+      return DEFAULT_TOOL_ORDER;
+    } catch { return DEFAULT_TOOL_ORDER; }
   });
   const moveSection = (key: string, dir: -1 | 1) => {
     setToolOrder(prev => {
@@ -4818,7 +5104,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       const swapIdx = idx + dir;
       if (swapIdx < 0 || swapIdx >= next.length) return prev;
       [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
-      localStorage.setItem("advisorToolboxOrder", JSON.stringify(next));
+      localStorage.setItem("advisorToolboxOrder_v2", JSON.stringify(next));
       return next;
     });
   };

@@ -91,6 +91,12 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showFinancialMedia", "showTools", "showToolTax", "showToolExchange",
   "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle", "showToolReality", "showToolLatte",
   "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
+  // M6 parity: 6 toggles added to both primary + secondary editors. Without
+  // these in the public allowlist the panel reads them as undefined and the
+  // `!== false` defaulting flips them back to true on every save (same class
+  // of bug as the S5 email/advisorCode regression).
+  "showShowpieceInflation", "showShowpieceWaiting",
+  "showToolBond", "showToolEmergency", "showToolLifeCover", "showToolDebt",
   "showMoneywebFeed", "showEmergencyContacts",
   "showLiberty", "showStanlib", "showSigninghub",
   "showFunFacts", "showForex", "showSecondNews",
