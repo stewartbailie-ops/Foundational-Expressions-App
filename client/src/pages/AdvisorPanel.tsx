@@ -1693,16 +1693,16 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
       {/* ── Add Lead modal ── */}
       {addLeadOpen && (
         <div
-          className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4"
+          className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/80 backdrop-blur-sm p-0 sm:p-4"
           onClick={() => !createLeadMutation.isPending && setAddLeadOpen(false)}
           data-testid="modal-add-lead"
         >
           <div
             onClick={e => e.stopPropagation()}
-            className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl"
-            style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+            className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl shadow-2xl"
+            style={{ backgroundColor: tc.popupBg, border: `1px solid ${tc.borderColor}` }}
           >
-            <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b" style={{ backgroundColor: tc.cardBg, borderColor: tc.borderColor }}>
+            <div className="sticky top-0 flex items-center justify-between px-5 py-4 border-b" style={{ backgroundColor: tc.popupBg, borderColor: tc.borderColor }}>
               <div>
                 <h3 className="text-base font-semibold" style={{ color: tc.textColor }}>Add Lead Manually</h3>
                 <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Log a prospect from a call, meeting, or referral.</p>
@@ -3422,6 +3422,8 @@ function AdditionalProfileForm({
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [organizingProfile, setOrganizingProfile] = useState(false);
+  const [indServicesOpen, setIndServicesOpen] = useState(false);
+  const [corpServicesOpen, setCorpServicesOpen] = useState(false);
   const [sectionOrder, setSectionOrder] = useState<string[]>(() => {
     const raw = (existingProfile as any)?.profileSectionOrder as string | null;
     const allowed = new Set<string>(DEFAULT_PROFILE_SECTION_ORDER as readonly string[]);
@@ -3682,44 +3684,97 @@ function AdditionalProfileForm({
           )}
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Individual Services</label>
-            <div className="flex items-center gap-1.5">
+        {/* Individual Services — primary-parity collapsible card with full
+            descriptions, count badge and Show toggle. */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setIndServicesOpen(v => !v)}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+              data-testid="toggle-secondary-ind-services-open"
+            >
+              {indServicesOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+              <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Individual Services</h3>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>{selectedIndividual.length}/{INDIVIDUAL_SERVICES.length}</span>
+            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowIndividualServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showIndividualServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-individual">
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showIndividualServices ? "14px" : "1px", backgroundColor: showIndividualServices ? tc.checkDotActive : tc.checkDotInactive }} />
+              <div onClick={() => setShowIndividualServices(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showIndividualServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-individual">
+                <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showIndividualServices ? "17px" : "2px", backgroundColor: showIndividualServices ? tc.checkDotActive : tc.checkDotInactive }} />
               </div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            {INDIVIDUAL_SERVICES.map(s => (
-              <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-                <input type="checkbox" checked={selectedIndividual.includes(s.key)} onChange={() => toggleService(selectedIndividual, setSelectedIndividual, s.key)} className="flex-shrink-0" />
-                <span className="text-xs" style={{ color: tc.textColor }}>{s.name}</span>
-              </label>
-            ))}
-          </div>
+          {!indServicesOpen && selectedIndividual.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {INDIVIDUAL_SERVICES.filter(s => selectedIndividual.includes(s.key)).map(s => (
+                <span key={s.key} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>{s.name}</span>
+              ))}
+            </div>
+          )}
+          {!indServicesOpen && selectedIndividual.length === 0 && (
+            <p className="text-xs italic" style={{ color: tc.mutedText }}>No services selected — tap to choose.</p>
+          )}
+          {indServicesOpen && (
+            <div className="space-y-2">
+              {INDIVIDUAL_SERVICES.map(s => (
+                <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                  <input type="checkbox" checked={selectedIndividual.includes(s.key)} onChange={() => toggleService(selectedIndividual, setSelectedIndividual, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-secondary-ind-${s.key}`} />
+                  <div>
+                    <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
+                  </div>
+                </label>
+              ))}
+              <button type="button" onClick={() => setIndServicesOpen(false)} className="w-full text-[11px] py-1.5 rounded-md font-medium" style={{ color: tc.accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-secondary-collapse-ind-services">Done — collapse</button>
+            </div>
+          )}
         </div>
 
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Corporate Services</label>
-            <div className="flex items-center gap-1.5">
+        {/* Corporate Services — primary-parity collapsible card. */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setCorpServicesOpen(v => !v)}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+              data-testid="toggle-secondary-corp-services-open"
+            >
+              {corpServicesOpen ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+              <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Corporate Services</h3>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>{selectedCorporate.length}/{CORPORATE_SERVICES.length}</span>
+            </button>
+            <div className="flex items-center gap-2 flex-shrink-0">
               <span className="text-xs" style={{ color: tc.mutedText }}>Show</span>
-              <div onClick={() => setShowCorporateServices(v => !v)} className="w-7 h-3.5 rounded-full relative cursor-pointer" style={{ backgroundColor: showCorporateServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-corporate">
-                <div className="absolute top-0.5 w-2.5 h-2.5 rounded-full transition-all" style={{ left: showCorporateServices ? "14px" : "1px", backgroundColor: showCorporateServices ? tc.checkDotActive : tc.checkDotInactive }} />
+              <div onClick={() => setShowCorporateServices(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showCorporateServices ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-corporate">
+                <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showCorporateServices ? "17px" : "2px", backgroundColor: showCorporateServices ? tc.checkDotActive : tc.checkDotInactive }} />
               </div>
             </div>
           </div>
-          <div className="space-y-1.5">
-            {CORPORATE_SERVICES.map(s => (
-              <label key={s.key} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-                <input type="checkbox" checked={selectedCorporate.includes(s.key)} onChange={() => toggleService(selectedCorporate, setSelectedCorporate, s.key)} className="flex-shrink-0" />
-                <span className="text-xs" style={{ color: tc.textColor }}>{s.name}</span>
-              </label>
-            ))}
-          </div>
+          {!corpServicesOpen && selectedCorporate.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {CORPORATE_SERVICES.filter(s => selectedCorporate.includes(s.key)).map(s => (
+                <span key={s.key} className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>{s.name}</span>
+              ))}
+            </div>
+          )}
+          {!corpServicesOpen && selectedCorporate.length === 0 && (
+            <p className="text-xs italic" style={{ color: tc.mutedText }}>No services selected — tap to choose.</p>
+          )}
+          {corpServicesOpen && (
+            <div className="space-y-2">
+              {CORPORATE_SERVICES.map(s => (
+                <label key={s.key} className="flex items-start gap-3 cursor-pointer p-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+                  <input type="checkbox" checked={selectedCorporate.includes(s.key)} onChange={() => toggleService(selectedCorporate, setSelectedCorporate, s.key)} className="mt-0.5 flex-shrink-0" data-testid={`check-secondary-corp-${s.key}`} />
+                  <div>
+                    <div className="text-xs font-medium" style={{ color: tc.textColor }}>{s.name}</div>
+                    <div className="text-xs mt-0.5" style={{ color: tc.mutedText }}>{s.description}</div>
+                  </div>
+                </label>
+              ))}
+              <button type="button" onClick={() => setCorpServicesOpen(false)} className="w-full text-[11px] py-1.5 rounded-md font-medium" style={{ color: tc.accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-secondary-collapse-corp-services">Done — collapse</button>
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -3874,39 +3929,84 @@ function AdditionalProfileForm({
           />
         </div>
 
-        <div className="space-y-2 pt-1">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Section Order</label>
+        {/* Section Order — primary-parity collapsible card with numbered rows
+            and per-row up/down arrows. Replaces the previous inline pill grid. */}
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setOrganizingProfile(v => !v)}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all"
-              style={{ backgroundColor: organizingProfile ? tc.accentColor : tc.buttonSecondaryBg, color: organizingProfile ? tc.buttonText : tc.accentColor, border: `1px solid ${organizingProfile ? tc.accentColor : tc.borderColor}` }}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left"
+              data-testid="toggle-secondary-section-order-open"
             >
-              <GripVertical className="h-3 w-3" />
-              {organizingProfile ? "Done" : "Organise"}
+              {organizingProfile ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} /> : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+              <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Section Order</h3>
+              {(() => {
+                const isDefault = sectionOrder.length === DEFAULT_PROFILE_SECTION_ORDER.length && sectionOrder.every((k, i) => k === DEFAULT_PROFILE_SECTION_ORDER[i]);
+                return (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>
+                    {isDefault ? "Default" : "Custom"}
+                  </span>
+                );
+              })()}
             </button>
+            {!organizingProfile && (
+              <button
+                type="button"
+                onClick={() => setOrganizingProfile(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex-shrink-0"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="button-secondary-organize-sections"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+                Reorder
+              </button>
+            )}
           </div>
-          {organizingProfile ? (
-            <div className="space-y-1.5">
-              {sectionOrder.map((key, idx) => (
-                <div key={key} className="flex items-center gap-2 rounded-lg px-2.5 py-1.5" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
-                  <GripVertical className="h-3 w-3 flex-shrink-0" style={{ color: tc.mutedText }} />
-                  <span className="flex-1 text-xs" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
-                  <button type="button" onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded disabled:opacity-25" style={{ color: tc.accentColor }}><ArrowUp className="h-3 w-3" /></button>
-                  <button type="button" onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded disabled:opacity-25" style={{ color: tc.accentColor }}><ArrowDown className="h-3 w-3" /></button>
-                </div>
-              ))}
-            </div>
+          {!organizingProfile ? (
+            <p className="text-xs" style={{ color: tc.mutedText }}>
+              Sections appear on this profile in the recommended order. Tap <strong>Reorder</strong> to customise.
+            </p>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
-              {sectionOrder.map((key, idx) => (
-                <div key={key} className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px]" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
-                  <span className="font-bold" style={{ color: tc.accentColor }}>{idx + 1}.</span>
-                  {PROFILE_SECTION_LABELS[key] || key}
-                </div>
-              ))}
-            </div>
+            <>
+              <p className="text-xs" style={{ color: tc.mutedText }}>Use the arrows to move sections up or down. Changes save when you hit <strong>Save Changes</strong> below.</p>
+              <div className="space-y-1.5">
+                {sectionOrder.map((key, idx) => (
+                  <div key={key} className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                    <span className="text-[10px] font-bold w-4 text-center" style={{ color: tc.accentColor }}>{idx + 1}</span>
+                    <span className="flex-1 text-xs font-medium" style={{ color: tc.textColor }}>{PROFILE_SECTION_LABELS[key] || key}</span>
+                    <div className="flex gap-1">
+                      <button type="button" onClick={() => moveSectionUp(idx)} disabled={idx === 0} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-secondary-move-up-${key}`}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button type="button" onClick={() => moveSectionDown(idx)} disabled={idx === sectionOrder.length - 1} className="p-1 rounded hover:opacity-70 disabled:opacity-25 transition-opacity" style={{ color: tc.accentColor }} data-testid={`button-secondary-move-down-${key}`}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSectionOrder([...DEFAULT_PROFILE_SECTION_ORDER])}
+                  className="flex-1 text-[11px] py-1.5 rounded-md font-medium"
+                  style={{ color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+                  data-testid="button-secondary-reset-section-order"
+                >
+                  Reset to default
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrganizingProfile(false)}
+                  className="flex-1 text-[11px] py-1.5 rounded-md font-medium"
+                  style={{ color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}
+                  data-testid="button-secondary-collapse-section-order"
+                >
+                  Done — collapse
+                </button>
+              </div>
+            </>
           )}
         </div>
 

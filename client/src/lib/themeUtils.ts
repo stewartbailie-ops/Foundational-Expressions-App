@@ -98,9 +98,12 @@ function applyPatternOverlay(
     // fill inherits that intensity directly.
     const rawName = (advisorName || "Advisory Connect").trim() || "Advisory Connect";
     const safe = rawName.replace(/[<>&"']/g, "").slice(0, 40);
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='340' height='170' viewBox='0 0 340 170'><text x='170' y='85' font-family='Inter, system-ui, sans-serif' font-size='22' font-weight='600' fill='${accent}' text-anchor='middle' dominant-baseline='middle' transform='rotate(-25 170 85)'>${safe}</text></svg>`;
+    // Bigger + bolder per partner feedback (May 2026): font-size 22 → 44 (~100%
+    // larger) and weight 600 → 900. Tile width/height grow proportionally so
+    // the rotated text isn't clipped at the edges.
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='520' height='260' viewBox='0 0 520 260'><text x='260' y='130' font-family='Inter, system-ui, sans-serif' font-size='44' font-weight='900' letter-spacing='1' fill='${accent}' text-anchor='middle' dominant-baseline='middle' transform='rotate(-25 260 130)'>${safe}</text></svg>`;
     overlay = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
-    overlaySize = "340px 170px";
+    overlaySize = "520px 260px";
   }
 
   return {
