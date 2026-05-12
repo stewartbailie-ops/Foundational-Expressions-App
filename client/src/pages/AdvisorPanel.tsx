@@ -1895,6 +1895,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showInteractive, setShowInteractive] = useState((advisor as any).showInteractive !== false);
   const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((advisor as any).showShowpieceSqueeze !== false);
   const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((advisor as any).showShowpieceTaxBite !== false);
+  const [showShowpieceInflation, setShowShowpieceInflation] = useState((advisor as any).showShowpieceInflation !== false);
+  const [showShowpieceWaiting, setShowShowpieceWaiting] = useState((advisor as any).showShowpieceWaiting !== false);
+  const [showToolBond, setShowToolBond] = useState((advisor as any).showToolBond !== false);
+  const [showToolEmergency, setShowToolEmergency] = useState((advisor as any).showToolEmergency !== false);
+  const [showToolLifeCover, setShowToolLifeCover] = useState((advisor as any).showToolLifeCover !== false);
+  const [showToolDebt, setShowToolDebt] = useState((advisor as any).showToolDebt !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [indServicesOpen, setIndServicesOpen] = useState(false);
@@ -1983,6 +1989,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showInteractive,
         showShowpieceSqueeze,
         showShowpieceTaxBite,
+        showShowpieceInflation,
+        showShowpieceWaiting,
+        showToolBond,
+        showToolEmergency,
+        showToolLifeCover,
+        showToolDebt,
         patternOpacity,
         showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
@@ -2482,6 +2494,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "Pension Savings Calculator", value: showToolPension, set: setShowToolPension },
               { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
+              { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
+              { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
+              { label: "Life Cover Needs Calculator", value: showToolLifeCover, set: setShowToolLifeCover },
+              { label: "Debt Payoff Calculator", value: showToolDebt, set: setShowToolDebt },
             ].map(item => (
               <div key={item.label} className="flex items-center justify-between py-1 pl-2">
                 <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -2505,6 +2521,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             {[
               { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
               { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
+              { label: "Inflation Eats Your Million", value: showShowpieceInflation, set: setShowShowpieceInflation },
+              { label: "The Cost of Waiting", value: showShowpieceWaiting, set: setShowShowpieceWaiting },
               { label: "30-Year Reality Check", value: showToolReality, set: setShowToolReality },
               { label: "The Latte Millionaire", value: showToolLatte, set: setShowToolLatte },
             ].map(item => (

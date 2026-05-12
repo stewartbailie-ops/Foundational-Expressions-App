@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { TrendingDown, Receipt } from "lucide-react";
+import { TrendingDown, Receipt, Flame, Clock } from "lucide-react";
 
 const fmt = (n: number) =>
   "R" + Math.round(n).toLocaleString("en-ZA");
@@ -160,6 +160,191 @@ export function RealMoneySqueeze({ accentColor, borderColor, cardBg, textColor, 
   );
 }
 
+// ─── Inflation Eats Your Million ─────────────────────────────────────────────
+export function InflationMillion({ accentColor, borderColor, cardBg, textColor, mutedText }: ThemeProps) {
+  const [amount, setAmount] = useState(1000000);
+  const [years, setYears] = useState(20);
+  const [inflation, setInflation] = useState(6);
+
+  const realValue = amount / Math.pow(1 + inflation / 100, years);
+  const lost = amount - realValue;
+  const lostPct = (lost / amount) * 100;
+  const barWidth = Math.max(6, (realValue / amount) * 100);
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}
+      data-testid="card-inflation-million"
+    >
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${borderColor}`, background: `linear-gradient(135deg, rgba(239,68,68,0.12) 0%, transparent 60%)` }}>
+        <Flame className="h-4 w-4" style={{ color: "#ef4444" }} />
+        <div>
+          <div className="text-sm font-bold" style={{ color: textColor }}>Inflation Eats Your Million</div>
+          <div className="text-[11px]" style={{ color: mutedText }}>What a lump sum is really worth in the future</div>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <SliderRow
+          label="Lump sum today"
+          value={amount}
+          display={fmtCompact(amount)}
+          min={100000} max={5000000} step={50000}
+          onChange={setAmount}
+          accentColor={accentColor}
+          mutedText={mutedText}
+          testId="slider-inflation-amount"
+        />
+        <SliderRow
+          label="Years from now"
+          value={years}
+          display={`${years} yrs`}
+          min={5} max={40} step={1}
+          onChange={setYears}
+          accentColor={accentColor}
+          mutedText={mutedText}
+          testId="slider-inflation-years"
+        />
+        <SliderRow
+          label="Assumed inflation"
+          value={inflation}
+          display={`${inflation}%`}
+          min={3} max={12} step={0.5}
+          onChange={setInflation}
+          accentColor={accentColor}
+          mutedText={mutedText}
+          testId="slider-inflation-rate"
+        />
+
+        {/* Visual bar */}
+        <div className="pt-2 space-y-2">
+          <div className="flex items-baseline justify-between">
+            <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>Buying power in {years} years</span>
+            <span className="text-[11px] font-semibold" style={{ color: "#ef4444" }}>−{lostPct.toFixed(0)}% gone</span>
+          </div>
+          <div className="relative h-8 rounded-md overflow-hidden" style={{ backgroundColor: "rgba(239,68,68,0.12)", border: `1px solid rgba(239,68,68,0.25)` }}>
+            <div
+              className="h-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+              style={{ width: `${barWidth}%`, background: `linear-gradient(90deg, ${accentColor} 0%, ${accentColor}cc 100%)` }}
+              data-testid="bar-inflation-real"
+            >
+              {barWidth > 20 && <span className="text-[11px] font-bold text-white">{fmtCompact(realValue)}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg p-2.5" style={{ backgroundColor: `${accentColor}15`, border: `1px solid ${accentColor}35` }}>
+            <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>Real value</div>
+            <div className="text-base font-bold" style={{ color: accentColor }} data-testid="text-inflation-real">{fmtCompact(realValue)}</div>
+            <div className="text-[10px]" style={{ color: mutedText }}>in today's money</div>
+          </div>
+          <div className="rounded-lg p-2.5" style={{ backgroundColor: "rgba(239,68,68,0.10)", border: "1px solid rgba(239,68,68,0.30)" }}>
+            <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>Buying power lost</div>
+            <div className="text-base font-bold" style={{ color: "#ef4444" }} data-testid="text-inflation-lost">{fmtCompact(lost)}</div>
+            <div className="text-[10px]" style={{ color: mutedText }}>silently evaporated</div>
+          </div>
+        </div>
+
+        <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.25)", color: textColor }} data-testid="text-inflation-punchline">
+          Your <span className="font-bold">{fmtCompact(amount)}</span> today will only feel like <span className="font-bold" style={{ color: "#ef4444" }}>{fmtCompact(realValue)}</span> in {years} years. Inflation silently destroyed <span className="font-bold" style={{ color: "#ef4444" }}>{fmtCompact(lost)}</span> — without touching your account once.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── The Cost of Waiting ──────────────────────────────────────────────────────
+export function CostOfWaiting({ accentColor, borderColor, cardBg, textColor, mutedText }: ThemeProps) {
+  const [monthly, setMonthly] = useState(2000);
+  const [returnRate, setReturnRate] = useState(10);
+
+  const fv = (startAge: number) => {
+    const months = (65 - startAge) * 12;
+    const r = returnRate / 100 / 12;
+    if (months <= 0) return 0;
+    return r > 0 ? monthly * ((Math.pow(1 + r, months) - 1) / r) : monthly * months;
+  };
+
+  const ages = [25, 35, 45] as const;
+  const values = ages.map(age => ({ age, value: fv(age) }));
+  const maxVal = Math.max(...values.map(v => v.value), 1);
+  const COLORS = [accentColor, "#F59E0B", "#ef4444"];
+
+  return (
+    <div
+      className="rounded-xl overflow-hidden"
+      style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}
+      data-testid="card-cost-of-waiting"
+    >
+      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: `1px solid ${borderColor}`, background: `linear-gradient(135deg, ${accentColor}18 0%, transparent 60%)` }}>
+        <Clock className="h-4 w-4" style={{ color: accentColor }} />
+        <div>
+          <div className="text-sm font-bold" style={{ color: textColor }}>The Cost of Waiting</div>
+          <div className="text-[11px]" style={{ color: mutedText }}>Why starting sooner changes everything</div>
+        </div>
+      </div>
+
+      <div className="p-4 space-y-4">
+        <SliderRow
+          label="Monthly investment"
+          value={monthly}
+          display={fmt(monthly)}
+          min={500} max={10000} step={100}
+          onChange={setMonthly}
+          accentColor={accentColor}
+          mutedText={mutedText}
+          testId="slider-waiting-monthly"
+        />
+        <SliderRow
+          label="Annual return"
+          value={returnRate}
+          display={`${returnRate}%`}
+          min={7} max={15} step={0.5}
+          onChange={setReturnRate}
+          accentColor={accentColor}
+          mutedText={mutedText}
+          testId="slider-waiting-return"
+        />
+
+        {/* Horizontal bar chart */}
+        <div className="space-y-3 pt-1">
+          {values.map(({ age, value }, i) => {
+            const barPct = Math.max(6, (value / maxVal) * 100);
+            return (
+              <div key={age} className="space-y-1.5">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: mutedText }}>
+                    Start at {age} → {65 - age} yrs
+                  </span>
+                  <span className="text-sm font-bold" style={{ color: COLORS[i] }}>{fmtCompact(value)}</span>
+                </div>
+                <div className="relative h-7 rounded-md overflow-hidden" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: `1px solid ${borderColor}` }}>
+                  <div
+                    className="h-full transition-all duration-500 ease-out flex items-center justify-end pr-2"
+                    style={{ width: `${barPct}%`, background: `linear-gradient(90deg, ${COLORS[i]}ee 0%, ${COLORS[i]}bb 100%)` }}
+                    data-testid={`bar-waiting-age-${age}`}
+                  >
+                    {barPct > 22 && <span className="text-[11px] font-bold text-white">{fmtCompact(value)}</span>}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: `${accentColor}10`, border: `1px solid ${accentColor}28`, color: textColor }} data-testid="text-waiting-punchline">
+          Starting at <span className="font-bold" style={{ color: COLORS[0] }}>25</span> vs <span className="font-bold" style={{ color: "#ef4444" }}>45</span> with the same <span className="font-bold">{fmt(monthly)}/month</span> produces{" "}
+          <span className="font-bold" style={{ color: COLORS[0] }}>{fmtCompact(values[0].value - values[2].value)} more</span> at retirement. Time in the market beats timing the market.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TaxBite ──────────────────────────────────────────────────────────────────
 export function TaxBite({ accentColor, borderColor, cardBg, textColor, mutedText }: ThemeProps) {
   const [salary, setSalary] = useState(45000);
   const [age, setAge] = useState(35);

@@ -9,7 +9,7 @@ import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_S
 import { BrandFooter } from "@/components/BrandFooter";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { NewsHero } from "@/components/NewsHero";
-import { RealMoneySqueeze, TaxBite } from "@/components/MoneyShowpieces";
+import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting } from "@/components/MoneyShowpieces";
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 
@@ -685,6 +685,21 @@ export default function AdvisorProfile() {
     () => Object.fromEntries(LATTE_ITEMS.map(i => [i.key, { enabled: i.key === "coffee" || i.key === "takeaways", amount: i.defaultMonthly }]))
   );
   const [latteYears, setLatteYears] = useState("30");
+  // Bond / Home Loan Calculator
+  const [bondAmount, setBondAmount] = useState("1500000");
+  const [bondRate, setBondRate] = useState("11.75");
+  const [bondTerm, setBondTerm] = useState("20");
+  // Emergency Fund Calculator
+  const [efMonthly, setEfMonthly] = useState("25000");
+  const [efMonths, setEfMonths] = useState("6");
+  // Life Cover Needs Calculator
+  const [lcIncome, setLcIncome] = useState("25000");
+  const [lcYears, setLcYears] = useState("10");
+  const [lcExisting, setLcExisting] = useState("0");
+  // Debt Payoff Calculator
+  const [dpDebt, setDpDebt] = useState("150000");
+  const [dpRate, setDpRate] = useState("20");
+  const [dpPayment, setDpPayment] = useState("3000");
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -1438,13 +1453,17 @@ export default function AdvisorProfile() {
             interactive: ((advisor as any).showInteractive !== false) ? (() => {
               const showSqueeze = (advisor as any).showShowpieceSqueeze !== false;
               const showTaxBite = (advisor as any).showShowpieceTaxBite !== false;
+              const showInflation = (advisor as any).showShowpieceInflation !== false;
+              const showWaiting = (advisor as any).showShowpieceWaiting !== false;
               const showReality = (advisor as any).showToolReality !== false;
               const showLatte = (advisor as any).showToolLatte !== false;
-              if (!showSqueeze && !showTaxBite && !showReality && !showLatte) return null;
+              if (!showSqueeze && !showTaxBite && !showInflation && !showWaiting && !showReality && !showLatte) return null;
               return (
                 <div className="space-y-3" data-testid="section-interactive">
                   {showSqueeze && <RealMoneySqueeze accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
                   {showTaxBite && <TaxBite accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
+                  {showInflation && <InflationMillion accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
+                  {showWaiting && <CostOfWaiting accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
                   {showReality && (() => {
                     const salary = Math.max(0, parseFloat(rcSalary) || 0);
                     const savePct = Math.min(90, Math.max(0, parseFloat(rcSavePct) || 0));
@@ -1888,6 +1907,10 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolPension !== false && "pension",
                 (advisor as any).showToolCgt !== false && "cgt",
                 (advisor as any).showToolVehicle !== false && "vehicle",
+                (advisor as any).showToolBond !== false && "bond",
+                (advisor as any).showToolEmergency !== false && "emergency",
+                (advisor as any).showToolLifeCover !== false && "lifecover",
+                (advisor as any).showToolDebt !== false && "debt",
               ].filter(Boolean) as string[];
 
               // Pension calc
@@ -1919,6 +1942,41 @@ export default function AdvisorProfile() {
                 : (vehP - vehBal) / vehN2;
               const vehTotal = vehPMT * vehN2 + vehBal;
 
+              // Bond / Home Loan calc
+              const bondP = parseFloat(bondAmount) || 0;
+              const bondR = parseFloat(bondRate) / 100 / 12;
+              const bondN = (parseFloat(bondTerm) || 20) * 12;
+              const bondPMT = bondR > 0
+                ? bondP * (bondR * Math.pow(1 + bondR, bondN)) / (Math.pow(1 + bondR, bondN) - 1)
+                : (bondN > 0 ? bondP / bondN : 0);
+              const bondTotal = bondPMT * bondN;
+              const bondInterest = bondTotal - bondP;
+
+              // Emergency Fund calc
+              const efTarget = (parseFloat(efMonthly) || 0) * (parseFloat(efMonths) || 6);
+              const efMonthsNum = parseFloat(efMonths) || 6;
+
+              // Life Cover calc
+              const lcMonthly = parseFloat(lcIncome) || 0;
+              const lcYearsNum = parseFloat(lcYears) || 10;
+              const lcExistingNum = parseFloat(lcExisting) || 0;
+              const lcNeeded = lcMonthly * 12 * lcYearsNum;
+              const lcShortfall = Math.max(0, lcNeeded - lcExistingNum);
+              const lcSurplus = Math.max(0, lcExistingNum - lcNeeded);
+
+              // Debt Payoff calc
+              const dpP = parseFloat(dpDebt) || 0;
+              const dpR = parseFloat(dpRate) / 100 / 12;
+              const dpPMT = parseFloat(dpPayment) || 0;
+              const dpMinPayment = dpR > 0 ? dpP * dpR : 0;
+              const dpCantPayOff = dpPMT <= dpMinPayment && dpR > 0;
+              const dpMonths = dpCantPayOff || dpPMT <= 0 || dpP <= 0 ? 0
+                : dpR > 0
+                  ? Math.ceil(-Math.log(1 - (dpP * dpR) / dpPMT) / Math.log(1 + dpR))
+                  : Math.ceil(dpP / dpPMT);
+              const dpTotalPaid = dpMonths > 0 ? dpPMT * dpMonths : 0;
+              const dpTotalInterest = dpTotalPaid - dpP;
+
               return (
                 <div className="px-4 pb-4 pt-3 space-y-2" style={{ backgroundColor: cardBg }}>
                   {toolItems.map(toolKey => (
@@ -1936,6 +1994,10 @@ export default function AdvisorProfile() {
                           {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Savings</>}
                           {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
                           {toolKey === "vehicle" && <><Calculator className="h-3.5 w-3.5" /> Vehicle Finance</>}
+                          {toolKey === "bond" && <><Calculator className="h-3.5 w-3.5" /> Bond / Home Loan</>}
+                          {toolKey === "emergency" && <><Calculator className="h-3.5 w-3.5" /> Emergency Fund</>}
+                          {toolKey === "lifecover" && <><Calculator className="h-3.5 w-3.5" /> Life Cover Needs</>}
+                          {toolKey === "debt" && <><Calculator className="h-3.5 w-3.5" /> Debt Payoff</>}
                         </span>
                         {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
                       </button>
@@ -2150,6 +2212,138 @@ export default function AdvisorProfile() {
                                 ))}
                                 <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes initiation fees, insurance &amp; service plans.</p>
                               </div>
+                            </>
+                          )}
+                          {toolKey === "bond" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Calculate your monthly bond repayment and total interest over the loan term.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1 col-span-2">
+                                  <label className="text-xs" style={{ color: mutedText }}>Loan Amount (R)</label>
+                                  <input type="number" value={bondAmount} onChange={e => setBondAmount(e.target.value)} style={is} data-testid="input-tool-bond-amount" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Interest Rate (%)</label>
+                                  <input type="number" value={bondRate} onChange={e => setBondRate(e.target.value)} style={is} data-testid="input-tool-bond-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Term (years)</label>
+                                  <input type="number" value={bondTerm} onChange={e => setBondTerm(e.target.value)} style={is} data-testid="input-tool-bond-term" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Monthly Repayment", val: `R ${bondPMT.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
+                                  { label: "Total Repayable", val: `R ${bondTotal.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                  { label: "Total Interest Paid", val: `R ${bondInterest.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes bond registration costs, transfer duties &amp; bank fees.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "emergency" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>How much should you have set aside for unexpected events? Financial planners recommend 3–6 months of expenses.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Expenses (R)</label>
+                                  <input type="number" value={efMonthly} onChange={e => setEfMonthly(e.target.value)} style={is} data-testid="input-tool-ef-monthly" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Months of Cover</label>
+                                  <input type="number" min="1" max="24" value={efMonths} onChange={e => setEfMonths(e.target.value)} style={is} data-testid="input-tool-ef-months" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                <div className="flex justify-between text-xs">
+                                  <span style={{ color: mutedText }}>Emergency Fund Target</span>
+                                  <span className="font-semibold" style={{ color: accentColor }}>R {efTarget.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}</span>
+                                </div>
+                                <div className="flex justify-between text-xs">
+                                  <span style={{ color: mutedText }}>Cover level</span>
+                                  <span className="font-semibold" style={{ color: efMonthsNum < 3 ? "#ef4444" : efMonthsNum < 6 ? "#F59E0B" : "#10B981" }}>
+                                    {efMonthsNum < 3 ? "Below recommended" : efMonthsNum < 6 ? "Minimum range" : "Well covered"}
+                                  </span>
+                                </div>
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Keep this in an accessible money market or savings account earning interest.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "lifecover" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Estimate how much life cover your dependants would need to replace your income.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Income (R)</label>
+                                  <input type="number" value={lcIncome} onChange={e => setLcIncome(e.target.value)} style={is} data-testid="input-tool-lc-income" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Years to Replace</label>
+                                  <input type="number" min="1" max="40" value={lcYears} onChange={e => setLcYears(e.target.value)} style={is} data-testid="input-tool-lc-years" />
+                                </div>
+                                <div className="space-y-1 col-span-2">
+                                  <label className="text-xs" style={{ color: mutedText }}>Existing Cover (R)</label>
+                                  <input type="number" value={lcExisting} onChange={e => setLcExisting(e.target.value)} placeholder="0" style={is} data-testid="input-tool-lc-existing" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Income to Replace", val: `R ${lcNeeded.toLocaleString("en-ZA")}` },
+                                  { label: "Existing Cover", val: `R ${lcExistingNum.toLocaleString("en-ZA")}` },
+                                  lcShortfall > 0
+                                    ? { label: "Cover Shortfall", val: `R ${lcShortfall.toLocaleString("en-ZA")}`, accent: true, red: true }
+                                    : { label: "Cover Surplus", val: `R ${lcSurplus.toLocaleString("en-ZA")}`, accent: true, red: false },
+                                ].map(({ label, val, accent, red }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? (red ? "#ef4444" : "#10B981") : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Simple income-replacement estimate — speak to an advisor for a full needs analysis.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "debt" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>See how long it takes to pay off debt and how much interest you'll pay in total.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1 col-span-2">
+                                  <label className="text-xs" style={{ color: mutedText }}>Total Debt (R)</label>
+                                  <input type="number" value={dpDebt} onChange={e => setDpDebt(e.target.value)} style={is} data-testid="input-tool-dp-debt" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Interest Rate (%)</label>
+                                  <input type="number" value={dpRate} onChange={e => setDpRate(e.target.value)} style={is} data-testid="input-tool-dp-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Payment (R)</label>
+                                  <input type="number" value={dpPayment} onChange={e => setDpPayment(e.target.value)} style={is} data-testid="input-tool-dp-payment" />
+                                </div>
+                              </div>
+                              {dpCantPayOff ? (
+                                <div className="rounded-lg p-3 text-xs text-center" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+                                  Your monthly payment doesn't cover the interest. Increase your payment above <strong>R {Math.ceil(dpMinPayment).toLocaleString("en-ZA")}/month</strong> to start reducing this debt.
+                                </div>
+                              ) : (
+                                <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                  {[
+                                    { label: "Months to Pay Off", val: dpMonths > 0 ? `${dpMonths} months (${(dpMonths / 12).toFixed(1)} yrs)` : "—", accent: true },
+                                    { label: "Total Paid", val: dpMonths > 0 ? `R ${dpTotalPaid.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` : "—" },
+                                    { label: "Total Interest", val: dpMonths > 0 ? `R ${dpTotalInterest.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` : "—" },
+                                  ].map(({ label, val, accent }) => (
+                                    <div key={label} className="flex justify-between text-xs">
+                                      <span style={{ color: mutedText }}>{label}</span>
+                                      <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                    </div>
+                                  ))}
+                                  <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Assumes fixed rate and consistent monthly payment. Actual results may vary.</p>
+                                </div>
+                              )}
                             </>
                           )}
                         </div>

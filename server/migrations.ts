@@ -4,12 +4,18 @@ import { sql } from "drizzle-orm";
 // Idempotent column additions — safe to run on every startup.
 // Each ALTER TABLE uses IF NOT EXISTS so it's a no-op when the column already exists.
 const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
-  ["show_second_news", "boolean NOT NULL DEFAULT false"],
-  ["show_forex",       "boolean NOT NULL DEFAULT false"],
-  ["show_fun_facts",   "boolean NOT NULL DEFAULT false"],
-  ["show_liberty",     "boolean NOT NULL DEFAULT false"],
-  ["show_stanlib",     "boolean NOT NULL DEFAULT false"],
-  ["show_signinghub",  "boolean NOT NULL DEFAULT false"],
+  ["show_second_news",         "boolean NOT NULL DEFAULT false"],
+  ["show_forex",               "boolean NOT NULL DEFAULT false"],
+  ["show_fun_facts",           "boolean NOT NULL DEFAULT false"],
+  ["show_liberty",             "boolean NOT NULL DEFAULT false"],
+  ["show_stanlib",             "boolean NOT NULL DEFAULT false"],
+  ["show_signinghub",          "boolean NOT NULL DEFAULT false"],
+  ["show_showpiece_inflation", "boolean NOT NULL DEFAULT true"],
+  ["show_showpiece_waiting",   "boolean NOT NULL DEFAULT true"],
+  ["show_tool_bond",           "boolean NOT NULL DEFAULT true"],
+  ["show_tool_emergency",      "boolean NOT NULL DEFAULT true"],
+  ["show_tool_life_cover",     "boolean NOT NULL DEFAULT true"],
+  ["show_tool_debt",           "boolean NOT NULL DEFAULT true"],
 ];
 
 type ExistsRow = { exists: boolean | null };
@@ -38,6 +44,14 @@ export async function runStartupMigrations() {
     );
   }
   console.log("[migrations] advisor_profiles columns verified");
+
+  // Same new columns on the advisors table (primary profiles share the same toggle set).
+  for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
+    await db.execute(
+      sql.raw(`ALTER TABLE advisors ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    );
+  }
+  console.log("[migrations] advisors columns verified");
 
   // Session table for connect-pg-simple. We create it here (instead of
   // relying on connect-pg-simple's createTableIfMissing) because that
