@@ -115,7 +115,7 @@ export default function ReferralForm() {
 
   useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, []);
 
-  const tc = getThemeColors(advisor?.theme);
+  const tc = getThemeColors(advisor?.theme, advisor?.themeColor);
   const accentColor = tc.accentColor;
   const bgColor = tc.bgColor;
   const cardBg = tc.cardBg;

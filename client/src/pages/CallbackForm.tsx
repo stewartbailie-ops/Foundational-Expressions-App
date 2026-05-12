@@ -113,7 +113,7 @@ export default function CallbackForm() {
     );
   }
 
-  const tc = getThemeColors(advisor.theme);
+  const tc = getThemeColors(advisor.theme, advisor.themeColor);
   const accentColor = tc.accentColor;
   const bgColor = tc.bgColor;
   const textColor = tc.textColor;

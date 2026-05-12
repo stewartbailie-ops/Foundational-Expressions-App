@@ -78,7 +78,7 @@ function LoginScreen({ slug, onDone, onSetup }: { slug: string; onDone: () => vo
   const [loading, setLoading] = useState(false);
 
   const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
-  const tc = getThemeColors(advisor?.theme);
+  const tc = getThemeColors(advisor?.theme, advisor?.themeColor);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,7 +174,7 @@ function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVer
   const [loading, setLoading] = useState(false);
 
   const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
-  const tc = getThemeColors(advisor?.theme);
+  const tc = getThemeColors(advisor?.theme, advisor?.themeColor);
   const rules = passwordRules(password);
   const allRulesMet = rules.length && rules.uppercase && rules.number && rules.special;
   const passwordsMatch = confirm.length > 0 && password === confirm;
@@ -346,7 +346,7 @@ function VerifyScreen({ slug, onDone, onBack }: { slug: string; onDone: () => vo
   const [countdown, setCountdown] = useState(60);
 
   const { data: advisor } = useQuery<Advisor>({ queryKey: [`/api/advisors/slug/${slug}`] });
-  const tc = getThemeColors(advisor?.theme);
+  const tc = getThemeColors(advisor?.theme, advisor?.themeColor);
 
   useEffect(() => {
     if (countdown <= 0) return;
@@ -2704,8 +2704,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const initials = name.trim() ? name.trim().split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2) : "NA";
 
   const handleDownloadBadge = () => {
-    const { from, to, border } = getInitialsBadgeColors(theme);
-    const accentColor = getThemeColors(theme).accentColor;
+    const { from, to, border } = getInitialsBadgeColors(theme, themeColor);
+    const accentColor = getThemeColors(theme, themeColor).accentColor;
     const l1 = initials[0] || "";
     const l2 = initials[1] || "";
     const displayName = (name || "Your Name").toUpperCase();
@@ -2775,7 +2775,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
     canvas.height = PHOTO_H + BAR;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const { from, to } = getInitialsBadgeColors(theme);
+    const { from, to } = getInitialsBadgeColors(theme, themeColor);
     const drawBadge = (bx: number, by: number, bs: number) => {
       const r = bs * 0.18;
       const grad = ctx.createLinearGradient(bx, by, bx + bs, by + bs);
@@ -7077,7 +7077,8 @@ export default function AdvisorPanel() {
 
   // Sub-Control Panel uses panelTheme (separate from public Contact Card theme)
   const panelThemeKey = (advisor as any).panelTheme || advisor.theme;
-  const tc = getThemeColors(panelThemeKey);
+  const panelThemeColorKey = (advisor as any).panelThemeColor || advisor.themeColor;
+  const tc = getThemeColors(panelThemeKey, panelThemeColorKey);
 
   if (authState === "login") {
     return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;

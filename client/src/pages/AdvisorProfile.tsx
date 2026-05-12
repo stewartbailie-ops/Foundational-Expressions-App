@@ -29,12 +29,12 @@ function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-function ProfileInitialsBadge({ initials, theme, size = 288, downloadable = false, name = "" }: {
-  initials: string; theme: string; size?: number; downloadable?: boolean; name?: string;
+function ProfileInitialsBadge({ initials, theme, themeColor, size = 288, downloadable = false, name = "" }: {
+  initials: string; theme: string; themeColor?: string | null; size?: number; downloadable?: boolean; name?: string;
 }) {
-  const { from, to, border } = getInitialsBadgeColors(theme);
+  const { from, to, border } = getInitialsBadgeColors(theme, themeColor);
   const svgId = `profile-badge-svg`;
-  const tc = getThemeColors(theme);
+  const tc = getThemeColors(theme, themeColor);
   const l1 = initials[0] || "";
   const l2 = initials[1] || "";
 
@@ -800,7 +800,7 @@ export default function AdvisorProfile() {
     );
   }
 
-  const tc = getThemeColors(advisor.theme);
+  const tc = getThemeColors(advisor.theme, advisor.themeColor);
   const isDark = tc.isDark;
   const accentColor = tc.accentColor;
   const bgColor = tc.bgColor;
@@ -872,7 +872,7 @@ export default function AdvisorProfile() {
   };
 
   const handleDownloadBusinessCard = () => {
-    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
+    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor);
     const W = 400, H = 800, SCALE = 2;
     const PHOTO_H = 440;
     const phone = (advisor as any).contactNumber || "";
@@ -1071,7 +1071,7 @@ export default function AdvisorProfile() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue");
+    const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor);
 
     const drawBadge = (bx: number, by: number, bs: number) => {
       const r = bs * 0.18;
@@ -1210,9 +1210,9 @@ export default function AdvisorProfile() {
               />
             </div>
           ) : (
-            <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue").from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue").to} 100%)` }}>
+            <div className="flex flex-col items-center pt-10 pb-7 px-5 gap-5" style={{ background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor).from} 0%, ${getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor).to} 100%)` }}>
               <div data-testid="section-initials-fallback">
-                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={220} downloadable={false} name={advisor.name} />
+                <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} themeColor={advisor.themeColor} size={220} downloadable={false} name={advisor.name} />
               </div>
               {/* Name + Title */}
               <div className="text-center">
@@ -1233,7 +1233,7 @@ export default function AdvisorProfile() {
               style={{ backgroundColor: tc.cardBg, borderTop: `1px solid ${tc.borderColor}` }}
               data-testid="section-header-badge"
             >
-              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} size={52} downloadable={false} name={advisor.name} />
+              <ProfileInitialsBadge initials={initials} theme={advisor.theme || "blue"} themeColor={advisor.themeColor} size={52} downloadable={false} name={advisor.name} />
               <div className="flex-1 min-w-0">
                 <div
                   className="font-bold tracking-widest leading-tight truncate uppercase"

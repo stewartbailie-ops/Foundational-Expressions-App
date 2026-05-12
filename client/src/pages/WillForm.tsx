@@ -31,7 +31,7 @@ export default function WillForm() {
     enabled: !!slug,
   });
 
-  const tc = getThemeColors(advisor?.theme);
+  const tc = getThemeColors(advisor?.theme, advisor?.themeColor);
 
   const [firstName, setFirstName] = useState("");
   const [surname, setSurname] = useState("");

@@ -332,45 +332,62 @@ export function getThemeColors(theme: string | null | undefined, themeColor?: st
   // Custom-colour path: derive a full palette from a single advisor-chosen hex.
   // Luminance < 0.55 → dark theme variant; else light theme variant.
   if (t === "custom" && themeColor) {
-    const { r, g, b } = hexToRgb(themeColor);
-    const lum = getLuminance(themeColor);
-    const accent = themeColor;
+    // Clamp pathological extremes — pure #ffffff or #000000 picks would
+    // collapse every derivative to the same colour and erase elevation cues.
+    // Substitute a neutral "near-extreme" so the surface palette still has
+    // something to mix with.
+    const rawLum = getLuminance(themeColor);
+    const safeColor = rawLum > 0.96 ? "#e5e7eb" : (rawLum < 0.04 ? "#1a1a1a" : themeColor);
+    const { r, g, b } = hexToRgb(safeColor);
+    const lum = getLuminance(safeColor);
+    const accent = safeColor;
     const buttonText = lum < 0.55 ? "#ffffff" : (lum > 0.85 ? "#000000" : "#ffffff");
     if (lum < 0.55) {
+      // Dark-custom — bumped surface alphas to match the May 2026 "full send"
+      // pass on named dark themes (cardBg/inputBg ~0.20, not ~0.10).
+      // popupBg uses a lower black-mix (0.55) than card's effective tint so
+      // modals read clearly elevated above the card surface.
       return darkBase(
         accent,
-        mixWithBlack(themeColor, 0.92),                  // bgColor
-        `rgba(${r},${g},${b},0.10)`,                     // cardBg
-        mixWithBlack(themeColor, 0.80),                  // popupBg
-        mixWithWhite(themeColor, 0.90),                  // textColor
-        "rgba(255,255,255,0.6)",                          // mutedText (always readable)
-        mixWithWhite(themeColor, 0.45),                  // sectionTitle
-        `rgba(${r},${g},${b},0.12)`,                     // inputBg
-        mixWithBlack(themeColor, 0.78),                  // solidInputBg
-        `rgba(${r},${g},${b},0.35)`,                     // inputBorder
-        `rgba(${r},${g},${b},0.25)`,                     // borderColor
+        mixWithBlack(safeColor, 0.92),                   // bgColor
+        `rgba(${r},${g},${b},0.20)`,                     // cardBg (was 0.10)
+        mixWithBlack(safeColor, 0.55),                   // popupBg — clearly lighter than card
+        mixWithWhite(safeColor, 0.90),                   // textColor
+        "rgba(255,255,255,0.65)",                         // mutedText (always readable)
+        mixWithWhite(safeColor, 0.55),                   // sectionTitle — brighter mix for legibility on tinted card
+        `rgba(${r},${g},${b},0.20)`,                     // inputBg (was 0.12)
+        mixWithBlack(safeColor, 0.62),                   // solidInputBg — between card and popup
+        `rgba(${r},${g},${b},0.40)`,                     // inputBorder (was 0.35)
+        `rgba(${r},${g},${b},0.30)`,                     // borderColor (was 0.25)
         accent, buttonText,                               // buttonBg / buttonText
-        `rgba(${r},${g},${b},0.18)`,                     // buttonSecondaryBg
-        `rgba(${r},${g},${b},0.20)`,                     // initialsCircleBg
-        `rgba(${r},${g},${b},0.40)`,                     // initialsCircleBorder
+        `rgba(${r},${g},${b},0.20)`,                     // buttonSecondaryBg
+        `rgba(${r},${g},${b},0.22)`,                     // initialsCircleBg
+        `rgba(${r},${g},${b},0.42)`,                     // initialsCircleBorder
         accent, "rgba(255,255,255,0.15)", "#ffffff", "rgba(255,255,255,0.5)"
       );
     }
+    // Light-custom — bumped surface alphas to match named light themes
+    // (pink/light-blue/coral/silver) which use ~12-18% accent in cardBg/inputBg.
+    // Popup tinted (was hardcoded #ffffff so modals slammed back to pure white)
+    // and uses a lower mix than card so the modal still reads as elevated.
+    // Section title falls back to a darker derivative for very pale picks
+    // where the raw accent would fail contrast against the tinted card.
+    const tintedSectionTitle = lum > 0.7 ? mixWithBlack(safeColor, 0.45) : accent;
     return lightBase(
       accent,
-      mixWithWhite(themeColor, 0.92),                    // bgColor
-      mixWithWhite(themeColor, 0.88),                    // cardBg — light tint of chosen colour (was 85% white)
-      "#ffffff",                                          // popupBg (modals stay opaque white for readability)
-      mixWithBlack(themeColor, 0.80),                    // textColor
-      "rgba(0,0,0,0.6)",                                  // mutedText (always readable)
-      accent,                                             // sectionTitle
-      mixWithWhite(themeColor, 0.94), "#ffffff",         // inputBg — slight tint (was 95% white)
-      `rgba(${r},${g},${b},0.30)`,
-      `rgba(${r},${g},${b},0.22)`,
+      mixWithWhite(safeColor, 0.92),                     // bgColor
+      mixWithWhite(safeColor, 0.82),                     // cardBg — ~18% tint (was 12%)
+      mixWithWhite(safeColor, 0.90),                     // popupBg — lighter than card so modal reads elevated
+      mixWithBlack(safeColor, 0.80),                     // textColor
+      "rgba(0,0,0,0.65)",                                 // mutedText (always readable)
+      tintedSectionTitle,                                 // sectionTitle (contrast-safe for pale picks)
+      mixWithWhite(safeColor, 0.88), "#ffffff",          // inputBg — ~12% tint (was 6%)
+      `rgba(${r},${g},${b},0.32)`,
+      `rgba(${r},${g},${b},0.25)`,                       // borderColor (was 0.22)
       accent, buttonText,
-      `rgba(${r},${g},${b},0.12)`,
-      `rgba(${r},${g},${b},0.15)`,
-      `rgba(${r},${g},${b},0.35)`,
+      `rgba(${r},${g},${b},0.14)`,
+      `rgba(${r},${g},${b},0.18)`,
+      `rgba(${r},${g},${b},0.38)`,
       accent, "rgba(0,0,0,0.15)", "#ffffff", "rgba(0,0,0,0.3)"
     );
   }
