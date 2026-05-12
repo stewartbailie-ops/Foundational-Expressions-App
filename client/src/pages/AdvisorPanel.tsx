@@ -9,6 +9,7 @@ import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, U
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
+import ColourPicker from "@/components/ColourPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -2162,6 +2163,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(advisor.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(advisor.corporateServices || []);
   const [theme, setTheme] = useState(advisor.theme || "blue");
+  // Auto-migrate: pre-fill colour picker with stored hex, falling back to the
+  // legacy theme→hex map for any rows that pre-date the picker.
+  const THEME_HEX_MAP: Record<string, string> = { dark:"#1a1a1a", blue:"#4a8db5", pink:"#be185d", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" };
+  const [themeColor, setThemeColor] = useState<string>((advisor as any).themeColor || THEME_HEX_MAP[advisor.theme || "blue"] || "#4a8db5");
   const [backgroundStyle, setBackgroundStyle] = useState<number>((advisor as any).backgroundStyle || 1);
   const [email, setEmail] = useState(advisor.email || "");
   const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
@@ -2259,7 +2264,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         corporateServices: selectedCorporate,
         theme,
         backgroundStyle,
-        themeColor: ({ dark:"#1a1a1a", blue:"#4a8db5", pink:"#d4738a", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" } as Record<string,string>)[theme] ?? "#4a8db5",
+        themeColor,
         contactNumber: contactNumber || null,
         location: location || null,
         workingHours: workingHours || null,
@@ -2845,28 +2850,16 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme</h3>
-        <div className="grid grid-cols-4 gap-2">
-          {[
-            { key: "dark",               label: "Black",      bg: "#1a1a1a" },
-            { key: "silver",             label: "Silver",     bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
-            { key: "pink",               label: "Pink",       bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-            { key: "dark-royal-purple",  label: "Purple",     bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-            { key: "dark-green",         label: "Green",      bg: "linear-gradient(135deg, #052e16, #22c55e)" },
-            { key: "teal",               label: "Teal",       bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
-            { key: "light-blue",         label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-            { key: "navy",               label: "Dark Blue",  bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTheme(t.key)}
-              className="rounded-xl border-2 p-2 text-center transition-all"
-              style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}
-              data-testid={`theme-panel-${t.key}`}
-            >
-              <div className="w-full h-8 rounded-lg mb-1.5" style={{ background: t.bg }} />
-              <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
-            </button>
-          ))}
-        </div>
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Theme Colour</h3>
+        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
+          Pick a Quick Pick (our 8 starter themes) or choose any colour with the wheel — your profile background, buttons, and badges all derive from it.
+        </p>
+        <ColourPicker
+          value={themeColor || "#4a8db5"}
+          onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
+          tc={tc}
+          testIdPrefix="profile-colour"
+        />
       </div>
 
       {/* Section Order — collapsed by default to keep the panel tidy */}
@@ -3174,6 +3167,9 @@ function AdditionalProfileForm({
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>(existingProfile?.individualServices || []);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>(existingProfile?.corporateServices || []);
   const [theme, setTheme] = useState(existingProfile?.theme || "blue");
+  // Same auto-migration as the primary editor — secondary owns its own hex.
+  const SEC_THEME_HEX_MAP: Record<string, string> = { dark:"#1a1a1a", blue:"#4a8db5", pink:"#be185d", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" };
+  const [themeColor, setThemeColor] = useState<string>((existingProfile as any)?.themeColor || SEC_THEME_HEX_MAP[existingProfile?.theme || "blue"] || "#4a8db5");
   const [backgroundStyle, setBackgroundStyle] = useState<number>((existingProfile as any)?.backgroundStyle || 1);
   const [showHeader, setShowHeader] = useState((existingProfile as any)?.showHeader !== false);
   const [showProfilePic, setShowProfilePic] = useState((existingProfile as any)?.showProfilePic !== false);
@@ -3250,7 +3246,7 @@ function AdditionalProfileForm({
         corporateServices: selectedCorporate,
         theme,
         backgroundStyle,
-        themeColor: ({ dark:"#1a1a1a", blue:"#4a8db5", pink:"#d4738a", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" } as Record<string,string>)[theme] ?? "#4a8db5",
+        themeColor,
         // Secondary profile owns its OWN copy of every visibility toggle
         // — no inheritance from primary.
         showHeader,
@@ -3499,25 +3495,13 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme</label>
-          <div className="grid grid-cols-4 gap-2">
-            {[
-              { key: "dark",               label: "Black",      bg: "#1a1a1a" },
-              { key: "silver",             label: "Silver",     bg: "linear-gradient(135deg, #e5e7eb, #6b7280)" },
-              { key: "pink",               label: "Pink",       bg: "linear-gradient(135deg, #f472b6, #be185d)" },
-              { key: "dark-royal-purple",  label: "Purple",     bg: "linear-gradient(135deg, #3b0764, #a855f7)" },
-              { key: "dark-green",         label: "Green",      bg: "linear-gradient(135deg, #052e16, #22c55e)" },
-              { key: "teal",               label: "Teal",       bg: "linear-gradient(135deg, #134e4a, #0d9488)" },
-              { key: "light-blue",         label: "Light Blue", bg: "linear-gradient(135deg, #bae6fd, #0ea5e9)" },
-              { key: "navy",               label: "Dark Blue",  bg: "linear-gradient(135deg, #1e3a8a, #1d4ed8)" },
-            ].map(t => (
-              <button key={t.key} onClick={() => setTheme(t.key)} className="rounded-lg border-2 p-2 text-center transition-all"
-                style={{ borderColor: theme === t.key ? tc.accentColor : tc.borderColor }}>
-                <div className="w-full h-7 rounded mb-1" style={{ background: t.bg }} />
-                <span className="text-xs font-medium" style={{ color: tc.textColor }}>{t.label}</span>
-              </button>
-            ))}
-          </div>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Theme Colour</label>
+          <ColourPicker
+            value={themeColor || "#4a8db5"}
+            onChange={(hex) => { setTheme("custom"); setThemeColor(hex); }}
+            tc={tc}
+            testIdPrefix="secondary-colour"
+          />
         </div>
 
         <div className="space-y-1.5">

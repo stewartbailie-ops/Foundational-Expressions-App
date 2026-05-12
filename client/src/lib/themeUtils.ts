@@ -18,7 +18,32 @@ export const BACKGROUND_STYLE_OPTIONS = [
   { value: 4, label: "Diamond Grid" },
   { value: 5, label: "Crosshatch" },
   { value: 6, label: "Concentric Rings" },
+  { value: 7, label: "Tiled Name" },
 ] as const;
+
+// ─── Hex / colour helpers (used by the custom-colour theme path) ────────────
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const h = (hex || "").replace("#", "").trim();
+  const full = h.length === 3 ? h.split("").map(c => c + c).join("") : h;
+  const n = parseInt(full || "4a8db5", 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+function rgbToHex(r: number, g: number, b: number): string {
+  const c = (n: number) => Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, "0");
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+function getLuminance(hex: string): number {
+  const { r, g, b } = hexToRgb(hex);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+function mixWithWhite(hex: string, t: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return rgbToHex(r + (255 - r) * t, g + (255 - g) * t, b + (255 - b) * t);
+}
+function mixWithBlack(hex: string, t: number): string {
+  const { r, g, b } = hexToRgb(hex);
+  return rgbToHex(r * (1 - t), g * (1 - t), b * (1 - t));
+}
 
 function scaleRgbaOpacity(rgba: string, multiplier: number): string {
   const m = rgba.match(/rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/);
@@ -32,6 +57,7 @@ function applyPatternOverlay(
   accentRgba: string,
   style: number,
   opacityMultiplier = 1,
+  advisorName?: string,
 ): React.CSSProperties {
   if (style === 1 || !style) return base;
   const accent = opacityMultiplier !== 1 ? scaleRgbaOpacity(accentRgba, opacityMultiplier) : accentRgba;
@@ -65,12 +91,23 @@ function applyPatternOverlay(
       `radial-gradient(circle at 50% 50%, transparent 40px, ${accent} 41px, transparent 42px)`,
     ].join(", ");
     overlaySize = "88px 88px, 88px 88px";
+  } else if (style === 7) {
+    // Tiled angled name watermark — advisor's full name repeated at -25°.
+    // Falls back to "Advisory Connect" if no name provided. The accent RGBA is
+    // already opacity-scaled by the patternOpacity slider above, so the SVG
+    // fill inherits that intensity directly.
+    const rawName = (advisorName || "Advisory Connect").trim() || "Advisory Connect";
+    const safe = rawName.replace(/[<>&"']/g, "").slice(0, 40);
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='340' height='170' viewBox='0 0 340 170'><text x='170' y='85' font-family='Inter, system-ui, sans-serif' font-size='22' font-weight='600' fill='${accent}' text-anchor='middle' dominant-baseline='middle' transform='rotate(-25 170 85)'>${safe}</text></svg>`;
+    overlay = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}")`;
+    overlaySize = "340px 170px";
   }
 
   return {
     ...base,
     backgroundImage: overlay ? `${overlay}, ${baseImg}` : baseImg,
     backgroundSize: overlaySize ? `${overlaySize}, ${baseSize}` : baseSize,
+    backgroundRepeat: style === 7 ? "repeat, no-repeat" : undefined,
   };
 }
 
@@ -78,6 +115,8 @@ export function getThemeBackground(
   theme: string | null | undefined,
   backgroundStyle?: number | null,
   patternOpacity?: number | null,
+  themeColor?: string | null,
+  advisorName?: string | null,
 ): React.CSSProperties {
   const t = theme || "blue";
   const s = Number(backgroundStyle) || 1;
@@ -85,6 +124,35 @@ export function getThemeBackground(
 
   let base: React.CSSProperties;
   let accentRgba: string;
+
+  // Custom-colour path: derive base + accent from the advisor's chosen hex.
+  if (t === "custom" && themeColor) {
+    const { r, g, b } = hexToRgb(themeColor);
+    const lum = getLuminance(themeColor);
+    accentRgba = `rgba(${r},${g},${b},0.20)`;
+    if (lum < 0.55) {
+      // Dark theme around a deep colour
+      base = {
+        backgroundColor: mixWithBlack(themeColor, 0.92),
+        backgroundImage: [
+          `radial-gradient(ellipse at 25% 10%, rgba(${r},${g},${b},0.55), transparent 55%)`,
+          `radial-gradient(ellipse at 80% 80%, rgba(${r},${g},${b},0.20), transparent 50%)`,
+        ].join(", "),
+        backgroundSize: "100% 100%, 100% 100%",
+      };
+    } else {
+      // Light theme around a bright colour
+      base = {
+        backgroundColor: mixWithWhite(themeColor, 0.90),
+        backgroundImage: [
+          `radial-gradient(ellipse at 30% -10%, rgba(${r},${g},${b},0.45), transparent 55%)`,
+          `radial-gradient(ellipse at 85% 90%, rgba(${r},${g},${b},0.18), transparent 50%)`,
+        ].join(", "),
+        backgroundSize: "100% 100%, 100% 100%",
+      };
+    }
+    return applyPatternOverlay(base, accentRgba, s, opacityMult, advisorName || undefined);
+  }
 
   if (t === "dark") {
     accentRgba = "rgba(255,255,255,0.18)";
@@ -208,11 +276,23 @@ export function getThemeBackground(
     };
   }
 
-  return applyPatternOverlay(base, accentRgba, s, opacityMult);
+  return applyPatternOverlay(base, accentRgba, s, opacityMult, advisorName || undefined);
 }
 
-export function getInitialsBadgeColors(theme: string | null | undefined): { from: string; to: string; border: string; accent: string } {
+export function getInitialsBadgeColors(
+  theme: string | null | undefined,
+  themeColor?: string | null,
+): { from: string; to: string; border: string; accent: string } {
   const t = theme || "blue";
+  if (t === "custom" && themeColor) {
+    const lum = getLuminance(themeColor);
+    return {
+      from: mixWithWhite(themeColor, 0.18),
+      to: mixWithBlack(themeColor, 0.55),
+      border: lum < 0.55 ? "rgba(255,255,255,0.25)" : "rgba(255,255,255,0.45)",
+      accent: lum < 0.55 ? mixWithWhite(themeColor, 0.85) : "#ffffff",
+    };
+  }
   if (t === "dark")             return { from: "#3a3a3a", to: "#111111", border: "rgba(255,255,255,0.22)", accent: "#ffffff" };
   if (t === "pink")             return { from: "#f472b6", to: "#9d174d", border: "rgba(255,255,255,0.3)", accent: "#fce7f3" };
   if (t === "light-blue")       return { from: "#38bdf8", to: "#0369a1", border: "rgba(255,255,255,0.3)", accent: "#e0f2fe" };
@@ -227,7 +307,7 @@ export function getInitialsBadgeColors(theme: string | null | undefined): { from
   return { from: "#4a8db5", to: "#1e3a5f", border: "rgba(255,255,255,0.25)", accent: "#e0f2fe" };
 }
 
-export function getThemeColors(theme: string | null | undefined) {
+export function getThemeColors(theme: string | null | undefined, themeColor?: string | null) {
   const t = theme || "blue";
 
   const darkBase = (accent: string, bg: string, cardBg: string, popupBg: string, text: string, muted: string, sectionTitle: string, inputBg: string, solidInputBg: string, inputBorder: string, border: string, btnBg: string, btnText: string, btnSecBg: string, circBg: string, circBorder: string, checkActive: string, checkInactive: string, checkDotActive: string, checkDotInactive: string) => ({
@@ -245,6 +325,52 @@ export function getThemeColors(theme: string | null | undefined) {
     buttonSecondaryBg: btnSecBg, initialsCircleBg: circBg, initialsCircleBorder: circBorder,
     successColor: "#22c55e", checkActive, checkInactive, checkDotActive, checkDotInactive,
   });
+
+  // Custom-colour path: derive a full palette from a single advisor-chosen hex.
+  // Luminance < 0.55 → dark theme variant; else light theme variant.
+  if (t === "custom" && themeColor) {
+    const { r, g, b } = hexToRgb(themeColor);
+    const lum = getLuminance(themeColor);
+    const accent = themeColor;
+    const buttonText = lum < 0.55 ? "#ffffff" : (lum > 0.85 ? "#000000" : "#ffffff");
+    if (lum < 0.55) {
+      return darkBase(
+        accent,
+        mixWithBlack(themeColor, 0.92),                  // bgColor
+        `rgba(${r},${g},${b},0.10)`,                     // cardBg
+        mixWithBlack(themeColor, 0.80),                  // popupBg
+        mixWithWhite(themeColor, 0.90),                  // textColor
+        "rgba(255,255,255,0.6)",                          // mutedText (always readable)
+        mixWithWhite(themeColor, 0.45),                  // sectionTitle
+        `rgba(${r},${g},${b},0.12)`,                     // inputBg
+        mixWithBlack(themeColor, 0.78),                  // solidInputBg
+        `rgba(${r},${g},${b},0.35)`,                     // inputBorder
+        `rgba(${r},${g},${b},0.25)`,                     // borderColor
+        accent, buttonText,                               // buttonBg / buttonText
+        `rgba(${r},${g},${b},0.18)`,                     // buttonSecondaryBg
+        `rgba(${r},${g},${b},0.20)`,                     // initialsCircleBg
+        `rgba(${r},${g},${b},0.40)`,                     // initialsCircleBorder
+        accent, "rgba(255,255,255,0.15)", "#ffffff", "rgba(255,255,255,0.5)"
+      );
+    }
+    return lightBase(
+      accent,
+      mixWithWhite(themeColor, 0.92),                    // bgColor
+      "rgba(255,255,255,0.85)",                           // cardBg
+      "#ffffff",                                          // popupBg
+      mixWithBlack(themeColor, 0.80),                    // textColor
+      "rgba(0,0,0,0.6)",                                  // mutedText (always readable)
+      accent,                                             // sectionTitle
+      "rgba(255,255,255,0.95)", "#ffffff",
+      `rgba(${r},${g},${b},0.30)`,
+      `rgba(${r},${g},${b},0.22)`,
+      accent, buttonText,
+      `rgba(${r},${g},${b},0.12)`,
+      `rgba(${r},${g},${b},0.15)`,
+      `rgba(${r},${g},${b},0.35)`,
+      accent, "rgba(0,0,0,0.15)", "#ffffff", "rgba(0,0,0,0.3)"
+    );
+  }
 
   if (t === "pink") return lightBase(
     "#be185d","#fff0f5","rgba(255,255,255,0.8)","#ffffff","#1a1a1a","rgba(0,0,0,0.55)","#be185d",

@@ -845,7 +845,7 @@ export default function AdvisorProfile() {
     (advisor as any).contactNumber || (advisor as any).workingHours || advisor.email
   );
 
-  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity);
+  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity, (advisor as any).themeColor, advisor.name);
 
   const profileShareUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
   const hasWhatsApp = !!(advisor as any).contactNumber;
