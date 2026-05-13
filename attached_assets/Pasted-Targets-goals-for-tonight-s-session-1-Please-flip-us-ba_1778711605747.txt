@@ -1,0 +1,26 @@
+Targets & goals for tonight's session 
+	1. Please flip us back to Autoscale (Ive noted for us to flip back to reserved VM prior to launch)
+	2. How can we fix/correct, the image on the link (WhatsApp) when shared - Its currently the control panel log-in page, I would like it to be the advisors profile picture (Is this possible?)
+	3. Enhanced Date Stamp Tracking (Stew explain what he's expecting) - ID Assigned (Linked to contact number / ID?) - To avoid duplicate leads generated (Master Control & Advisors Registry) - Stew to send screen-shot should Friday request
+	4. Client Onboarding Flow (Design phase) Re-view current / Updates to the flow (Stew create his profile) - Send screen-shots of change requests
+	5. The massive/big one; Build in the "My Clients" New tab/section in the advisor's sub-control panel. (not all the functionality needs to be built in tonight - But place-holders (Like we did with the "Donate & Deduct" Function) - Quick question; Given this feature and the ability to add sensitive information, do we need to add additional security's? 
+		○ Promote/Move a lead from the Registry into their personal Clients list (How can the Master Control Panel show/indicate/View what leads are in who's "My Clients" Tab?
+		○ The client get a unique code (They download the App) - Link to their advisor (Discuss options) - Client Portal 
+		○ A linked display on the Advisors sub-control panel home - Displaying; Clients birthdays that day - Review/Follow up's - Messages or requests from the clients)
+		○ Upload and store that client's policy documents (Both ways)  "Book of Life" - Summaries of their current policy's below
+			§ Short/Long term insurance
+			§ Medical Aid
+			§ Risk Cover
+			§ Life policy's
+			§ Corporate Benefits
+			§ Investments
+			§ Savings accounts 
+		○ View a clean client profile with history - with additional details (Where the advisor can in-put the details) Listed below
+			§ ID Number
+			§ Payslip
+			§ Proof of Address
+			§ Bank Details
+			§ Marital Status
+			§ All Contact Details
+			§ Next of Kin details
+			§ Tax Number

@@ -5,7 +5,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus } from "lucide-react";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
@@ -873,6 +873,39 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
           />
         </div>
       )}
+
+      {/* ── Today snapshot — placeholder mini-widgets for the My Clients build.
+          UI-only for now; once the clients table lands these will pull live data
+          (birthdays this week, overdue follow-ups, unread client messages). ── */}
+      <div className="space-y-2 pt-1">
+        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Today</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {[
+            { key: "birthdays",  label: "Birthdays this week", value: "—", hint: "No clients yet",      icon: Cake,           accent: "#ec4899" },
+            { key: "followups",  label: "Follow-ups due",      value: "—", hint: "Nothing scheduled",   icon: Bell,           accent: "#f59e0b" },
+            { key: "messages",   label: "Client messages",     value: "—", hint: "Inbox empty",         icon: MessageSquare,  accent: "#3B82F6" },
+          ].map(({ key, label, value, hint, icon: Icon, accent }) => (
+            <div
+              key={key}
+              className="rounded-xl p-3 flex items-center gap-3"
+              style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+              data-testid={`widget-home-${key}`}
+            >
+              <div
+                className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
+                style={{ backgroundColor: accent + "1f", color: accent }}
+              >
+                <Icon className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[11px] font-medium truncate" style={{ color: tc.textColor }}>{label}</div>
+                <div className="text-[10px]" style={{ color: tc.mutedText }}>{hint}</div>
+              </div>
+              <div className="ml-auto text-lg font-bold" style={{ color: accent }}>{value}</div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── My Stats ── */}
       <div className="space-y-3 pt-1">
@@ -1814,6 +1847,25 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                         data-testid={`button-delete-${lead.id}`}>
                         <Trash2 className="h-3 w-3" /> Delete
                       </button>
+                    </div>
+
+                    {/* Received / Last viewed timestamps — same format as the
+                        master CIV ('PPpp' from date-fns), surfaced here so
+                        advisors see the same provenance trail on their own
+                        leads. */}
+                    <div className="pt-2 mt-2 border-t space-y-1" style={{ borderColor: tc.borderColor }}>
+                      {(lead as any).receivedAt && (
+                        <div className="text-[11px] flex items-center gap-1" style={{ color: tc.mutedText }} data-testid={`text-received-${lead.id}`}>
+                          <CalendarDays className="h-3 w-3" />
+                          Received: {format(new Date((lead as any).receivedAt), "PPpp")}
+                        </div>
+                      )}
+                      {(lead as any).lastOpenedAt && (
+                        <div className="text-[11px] flex items-center gap-1" style={{ color: tc.mutedText }} data-testid={`text-last-viewed-${lead.id}`}>
+                          <Eye className="h-3 w-3" />
+                          Last viewed: {format(new Date((lead as any).lastOpenedAt), "PPpp")}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -6368,6 +6420,397 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   );
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   MyClientsTab — UI-only placeholder skeleton (no DB, no API calls).
+   Mirrors the Donate & Deduct pattern: layout is real, controls are clickable,
+   nothing persists. Wired up so Stewart can demo to his partner. The real
+   schema, encryption, audit log, document storage, and per-advisor isolation
+   land in a future build session (see notes in chat / partner meeting).
+   ───────────────────────────────────────────────────────────────────────────── */
+type StubClient = {
+  id: string;
+  name: string;
+  initials: string;
+  status: "active" | "lead" | "lapsed";
+  email: string;
+  phone: string;
+  lastContact: string;
+  age: number;
+  city: string;
+};
+
+const STUB_CLIENTS: StubClient[] = [
+  { id: "c-001", name: "John Doe",       initials: "JD", status: "active", email: "john@example.com",       phone: "+27 82 123 4567", lastContact: "2 days ago",   age: 42, city: "Cape Town"    },
+  { id: "c-002", name: "Sarah Mthembu",  initials: "SM", status: "active", email: "sarah.m@example.com",    phone: "+27 71 555 0102", lastContact: "1 week ago",   age: 35, city: "Johannesburg" },
+  { id: "c-003", name: "Pieter van Wyk", initials: "PV", status: "lead",   email: "pieter.vw@example.com",  phone: "+27 84 207 9911", lastContact: "Yesterday",    age: 51, city: "Stellenbosch" },
+];
+
+const BOOK_OF_LIFE_CATEGORIES = [
+  { key: "short-term",  label: "Short-Term Insurance",  hint: "Vehicle, household, all-risk policies"  },
+  { key: "long-term",   label: "Long-Term Insurance",   hint: "Endowments, tax-free savings"           },
+  { key: "medical",     label: "Medical Aid",           hint: "Scheme, plan, dependants"               },
+  { key: "risk",        label: "Risk Cover",            hint: "Disability, dread disease, income protection" },
+  { key: "life",        label: "Life Cover",            hint: "Beneficiaries, sum assured, premiums"   },
+  { key: "corporate",   label: "Corporate / Group",     hint: "Group risk, pension/provident, GMA"     },
+  { key: "investments", label: "Investments",           hint: "Unit trusts, RAs, share portfolios"     },
+  { key: "savings",     label: "Savings",               hint: "Cash, money market, fixed deposits"     },
+];
+
+function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [activeSection, setActiveSection] = useState<"personal" | "financial" | "book" | "history">("personal");
+  // Local-only field state — placeholder, nothing persists.
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const setField = (k: string, v: string) => setDraft(prev => ({ ...prev, [k]: v }));
+
+  const filtered = STUB_CLIENTS.filter(c =>
+    !search.trim() || c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())
+  );
+  const selected = STUB_CLIENTS.find(c => c.id === selectedId) || null;
+
+  const showPlaceholder = () => alert("Demo only — saving will be wired in the next build session.");
+
+  if (selected) {
+    return (
+      <div className="space-y-4" data-testid="view-client-detail">
+        {/* Top bar — back + name + status */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => { setSelectedId(null); setActiveSection("personal"); setDraft({}); }}
+            className="p-2 rounded-lg"
+            style={{ backgroundColor: tc.buttonSecondaryBg }}
+            aria-label="Back to client list"
+            data-testid="button-client-back"
+          >
+            <ArrowLeft className="h-4 w-4" style={{ color: tc.accentColor }} />
+          </button>
+          <div
+            className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
+          >
+            {selected.initials}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{selected.name}</div>
+            <div className="text-[11px]" style={{ color: tc.mutedText }}>Client since — / {selected.city}</div>
+          </div>
+          <span
+            className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-semibold"
+            style={{ backgroundColor: selected.status === "active" ? "#22c55e22" : "#f59e0b22", color: selected.status === "active" ? "#16a34a" : "#d97706" }}
+          >
+            {selected.status}
+          </span>
+        </div>
+
+        {/* Section nav */}
+        <div className="flex gap-1 overflow-x-auto pb-1">
+          {[
+            { key: "personal"  as const, label: "Personal",     icon: User       },
+            { key: "financial" as const, label: "Financial",    icon: CreditCard },
+            { key: "book"      as const, label: "Book of Life", icon: Briefcase  },
+            { key: "history"   as const, label: "History",      icon: Clock      },
+          ].map(s => {
+            const Icon = s.icon;
+            const isActive = activeSection === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => setActiveSection(s.key)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap"
+                style={{
+                  backgroundColor: isActive ? tc.accentColor + "22" : tc.buttonSecondaryBg,
+                  color: isActive ? tc.accentColor : tc.mutedText,
+                  border: isActive ? `1px solid ${tc.accentColor}55` : "1px solid transparent",
+                }}
+                data-testid={`tab-client-section-${s.key}`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* PERSONAL ─────────────────────────── */}
+        {activeSection === "personal" && (
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+              <ShieldCheck className="h-4 w-4" style={{ color: tc.accentColor }} />
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Personal Details</div>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#f59e0b22", color: "#d97706" }}>Sensitive</span>
+            </div>
+            {[
+              { k: "id_number",       label: "SA ID Number",        placeholder: "13-digit ID number" },
+              { k: "marital",         label: "Marital Status",      placeholder: "Single / Married / Divorced / Widowed" },
+              { k: "spouse",          label: "Spouse Full Name",    placeholder: "—" },
+              { k: "address",         label: "Residential Address", placeholder: "Street, suburb, city, postal code" },
+              { k: "tax_number",      label: "SARS Tax Number",     placeholder: "10-digit tax reference" },
+              { k: "next_of_kin",     label: "Next of Kin",         placeholder: "Name + relationship" },
+              { k: "next_of_kin_tel", label: "Next of Kin Phone",   placeholder: "+27 …" },
+            ].map(f => (
+              <div key={f.k}>
+                <label className="text-[11px] font-medium block mb-1" style={{ color: tc.mutedText }}>{f.label}</label>
+                <input
+                  type="text"
+                  value={draft[f.k] ?? ""}
+                  onChange={e => setField(f.k, e.target.value)}
+                  placeholder={f.placeholder}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                  data-testid={`input-personal-${f.k}`}
+                />
+              </div>
+            ))}
+            <button
+              onClick={showPlaceholder}
+              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              data-testid="button-save-personal"
+            >
+              <Save className="h-3.5 w-3.5" /> Save Personal Details
+            </button>
+          </div>
+        )}
+
+        {/* FINANCIAL ─────────────────────────── */}
+        {activeSection === "financial" && (
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+              <CreditCard className="h-4 w-4" style={{ color: tc.accentColor }} />
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Financial Profile</div>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#f59e0b22", color: "#d97706" }}>Sensitive</span>
+            </div>
+            {[
+              { k: "employer",       label: "Employer",            placeholder: "Company name" },
+              { k: "occupation",     label: "Occupation",          placeholder: "Job title" },
+              { k: "monthly_income", label: "Monthly Income (R)",  placeholder: "e.g. 45 000" },
+              { k: "bank_name",      label: "Bank",                placeholder: "Standard Bank / FNB / etc." },
+              { k: "bank_account",   label: "Account Number",      placeholder: "—" },
+              { k: "bank_branch",    label: "Branch Code",         placeholder: "—" },
+            ].map(f => (
+              <div key={f.k}>
+                <label className="text-[11px] font-medium block mb-1" style={{ color: tc.mutedText }}>{f.label}</label>
+                <input
+                  type="text"
+                  value={draft[f.k] ?? ""}
+                  onChange={e => setField(f.k, e.target.value)}
+                  placeholder={f.placeholder}
+                  className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                  style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                  data-testid={`input-financial-${f.k}`}
+                />
+              </div>
+            ))}
+            {/* Stub upload zones for payslip + proof of address */}
+            <div className="grid grid-cols-2 gap-2 pt-2">
+              {[
+                { k: "payslip", label: "Latest Payslip" },
+                { k: "poa",     label: "Proof of Address" },
+              ].map(d => (
+                <button
+                  key={d.k}
+                  onClick={showPlaceholder}
+                  className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-lg border-2 border-dashed text-[11px]"
+                  style={{ borderColor: tc.borderColor, color: tc.mutedText, backgroundColor: tc.inputBg }}
+                  data-testid={`upload-financial-${d.k}`}
+                >
+                  <Upload className="h-4 w-4" />
+                  {d.label}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={showPlaceholder}
+              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              data-testid="button-save-financial"
+            >
+              <Save className="h-3.5 w-3.5" /> Save Financial Profile
+            </button>
+          </div>
+        )}
+
+        {/* BOOK OF LIFE ─────────────────────────── */}
+        {activeSection === "book" && (
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+              <Briefcase className="h-4 w-4" style={{ color: tc.accentColor }} />
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Book of Life</div>
+              <span className="ml-auto text-[10px]" style={{ color: tc.mutedText }}>Policy documents per category</span>
+            </div>
+            <div className="space-y-2">
+              {BOOK_OF_LIFE_CATEGORIES.map(cat => (
+                <div
+                  key={cat.key}
+                  className="rounded-lg p-3 flex items-center gap-3"
+                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}
+                  data-testid={`book-category-${cat.key}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold" style={{ color: tc.textColor }}>{cat.label}</div>
+                    <div className="text-[10px]" style={{ color: tc.mutedText }}>{cat.hint}</div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>0 docs</span>
+                  <button
+                    onClick={showPlaceholder}
+                    className="p-2 rounded-lg shrink-0"
+                    style={{ backgroundColor: tc.accentColor + "22", color: tc.accentColor }}
+                    aria-label={`Upload ${cat.label} document`}
+                    data-testid={`button-book-upload-${cat.key}`}
+                  >
+                    <Upload className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* HISTORY ─────────────────────────── */}
+        {activeSection === "history" && (
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+              <Clock className="h-4 w-4" style={{ color: tc.accentColor }} />
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Notes &amp; History</div>
+            </div>
+            <textarea
+              value={draft["note"] ?? ""}
+              onChange={e => setField("note", e.target.value)}
+              placeholder="Add a note — call summary, meeting outcome, follow-up reminder…"
+              rows={4}
+              className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
+              style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="input-history-note"
+            />
+            <button
+              onClick={showPlaceholder}
+              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              data-testid="button-add-note"
+            >
+              <Plus className="h-3.5 w-3.5" /> Add Note
+            </button>
+            <div className="pt-2 text-center text-[11px]" style={{ color: tc.mutedText }}>
+              Timeline of past notes will appear here.
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── List view ──
+  return (
+    <div className="space-y-4" data-testid="view-client-list">
+      {/* Header + actions */}
+      <div className="flex items-center gap-2">
+        <div className="min-w-0 flex-1">
+          <div className="text-base font-semibold" style={{ color: tc.textColor }}>My Clients</div>
+          <div className="text-[11px]" style={{ color: tc.mutedText }}>Personal book — promote a lead once they sign on.</div>
+        </div>
+        <button
+          onClick={showPlaceholder}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shrink-0"
+          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          data-testid="button-promote-lead"
+        >
+          <UserPlus className="h-3.5 w-3.5" />
+          Promote Lead
+        </button>
+      </div>
+
+      {/* Snapshot tiles */}
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: "Active",  value: STUB_CLIENTS.filter(c => c.status === "active").length, accent: "#16a34a" },
+          { label: "Leads",   value: STUB_CLIENTS.filter(c => c.status === "lead").length,   accent: "#3B82F6" },
+          { label: "Lapsed",  value: STUB_CLIENTS.filter(c => c.status === "lapsed").length, accent: "#94a3b8" },
+        ].map(s => (
+          <div key={s.label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="text-xl font-bold" style={{ color: s.accent }}>{s.value}</div>
+            <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search clients by name or email…"
+          className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+          style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+          data-testid="input-client-search"
+        />
+      </div>
+
+      {/* List or empty state */}
+      {filtered.length === 0 ? (
+        <div
+          className="rounded-xl p-6 text-center space-y-2"
+          style={{ backgroundColor: tc.cardBg, border: `1px dashed ${tc.borderColor}` }}
+          data-testid="empty-clients"
+        >
+          <Users className="h-8 w-8 mx-auto" style={{ color: tc.mutedText }} />
+          <div className="text-sm font-semibold" style={{ color: tc.textColor }}>No clients yet</div>
+          <div className="text-[11px]" style={{ color: tc.mutedText }}>Promote a lead from your Registry to start your book.</div>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setSelectedId(c.id)}
+              className="w-full rounded-xl p-3 flex items-center gap-3 text-left transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
+              data-testid={`button-client-${c.id}`}
+            >
+              <div
+                className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+                style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
+              >
+                {c.initials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{c.name}</div>
+                <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{c.email} · {c.city}</div>
+              </div>
+              <div className="text-right shrink-0">
+                <span
+                  className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold"
+                  style={{
+                    backgroundColor: c.status === "active" ? "#22c55e22" : c.status === "lead" ? "#3B82F622" : "#94a3b822",
+                    color: c.status === "active" ? "#16a34a" : c.status === "lead" ? "#2563eb" : "#64748b",
+                  }}
+                >
+                  {c.status}
+                </span>
+                <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>{c.lastContact}</div>
+              </div>
+              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Footer note — make it loud that this is a placeholder */}
+      <div
+        className="rounded-xl p-3 flex items-start gap-2"
+        style={{ backgroundColor: "#f59e0b14", border: "1px solid #f59e0b50" }}
+        data-testid="placeholder-banner"
+      >
+        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
+        <div className="text-[11px]" style={{ color: tc.textColor }}>
+          <strong>Demo layout.</strong> Sample clients and uploads do not save yet — wiring the database, encrypted storage and audit log is the next build session.
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const picInputRef = useRef<HTMLInputElement>(null);
@@ -6990,7 +7433,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "registry" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -7100,6 +7543,7 @@ export default function AdvisorPanel() {
   const tabs = [
     { key: "home" as const, label: "Home", icon: Home },
     { key: "registry" as const, label: "Registry", icon: Inbox },
+    { key: "clients" as const, label: "My Clients", icon: Users },
   ];
 
   return (
@@ -7182,6 +7626,7 @@ export default function AdvisorPanel() {
         <div className="p-5 pb-12">
           {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
           {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
+          {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} />}
           {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
         </div>
       </div>

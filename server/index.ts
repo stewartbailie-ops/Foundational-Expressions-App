@@ -228,7 +228,18 @@ ${imageTag}
     const ua = req.headers["user-agent"] || "";
     if (!CRAWLER_UA.test(ua)) return next();
 
-    const slug = req.path.replace(/^\//, "").split("/")[0];
+    // Slug extraction: handle BOTH bare-root URLs (e.g. /stewart-bailie) AND
+    // the canonical /profile/:slug URL that the share buttons actually emit.
+    // Previously only bare-root was handled, so WhatsApp/Facebook scraping
+    // /profile/stewart-bailie saw "profile" in RESERVED and fell through to
+    // the static control-panel og:image.
+    const segments = req.path.replace(/^\//, "").split("/").filter(Boolean);
+    let slug: string | undefined;
+    if (segments[0] === "profile" && segments[1]) {
+      slug = segments[1];
+    } else if (segments[0]) {
+      slug = segments[0];
+    }
 
     // Bare root URL — if there's exactly ONE active advisor with a profile
     // pic, surface their card. With 0 or 2+ active advisors the bare URL is
@@ -246,7 +257,9 @@ ${imageTag}
       return next();
     }
 
-    if (RESERVED.includes(slug)) return next();
+    // Only RESERVED-check the bare-root branch; if we already matched
+    // /profile/:slug above, we know the second segment is an advisor slug.
+    if (segments[0] !== "profile" && RESERVED.includes(slug)) return next();
 
     try {
       const advisor = await storage.getAdvisorBySlug(slug);
