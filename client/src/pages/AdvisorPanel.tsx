@@ -1812,12 +1812,15 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                         {lead.clientAge != null && <Row label="Age" value={String(lead.clientAge)} tc={tc} />}
                         {lead.clientIncome && <Row label="Income" value={lead.clientIncome} tc={tc} />}
                         {lead.clientIndustry && <Row label="Industry" value={lead.clientIndustry} tc={tc} />}
-                        {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} />}
                         {lead.clientMarried != null && <Row label="Married" value={lead.clientMarried ? "Yes" : "No"} tc={tc} />}
                         {lead.clientChildren != null && <Row label="Children" value={lead.clientChildren ? "Yes" : "No"} tc={tc} />}
                         {lead.clientVehicle != null && <Row label="Vehicle" value={lead.clientVehicle ? "Yes" : "No"} tc={tc} />}
                         {lead.clientProperty != null && <Row label="Property" value={lead.clientProperty ? "Yes" : "No"} tc={tc} />}
                       </div>
+                      {/* Long-form fields go full-width below the 2-col grid so
+                          values like "Mornings (08:00-12:00)" don't bleed into
+                          the neighbouring cell. */}
+                      {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} full />}
                       {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
                     </div>
 
@@ -6460,7 +6463,7 @@ const BOOK_OF_LIFE_CATEGORIES = [
 function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [activeSection, setActiveSection] = useState<"personal" | "financial" | "book" | "history">("personal");
+  const [activeSection, setActiveSection] = useState<"personal" | "financial" | "book" | "astute" | "history">("personal");
   // Local-only field state — placeholder, nothing persists.
   const [draft, setDraft] = useState<Record<string, string>>({});
   const setField = (k: string, v: string) => setDraft(prev => ({ ...prev, [k]: v }));
@@ -6510,6 +6513,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             { key: "personal"  as const, label: "Personal",     icon: User       },
             { key: "financial" as const, label: "Financial",    icon: CreditCard },
             { key: "book"      as const, label: "Book of Life", icon: Briefcase  },
+            { key: "astute"    as const, label: "Draw Astute",  icon: Download   },
             { key: "history"   as const, label: "History",      icon: Clock      },
           ].map(s => {
             const Icon = s.icon;
@@ -6665,6 +6669,40 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* DRAW ASTUTE ─────────────────────────── */}
+        {activeSection === "astute" && (
+          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+              <Download className="h-4 w-4" style={{ color: tc.accentColor }} />
+              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Draw from Astute</div>
+              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#3B82F622", color: "#2563eb" }}>Integration</span>
+            </div>
+            <p className="text-[11px] leading-relaxed" style={{ color: tc.mutedText }}>
+              Pull the latest policy, investment and contract data straight from Astute. Once your Astute credentials are linked, you'll be able to refresh a client's full record in one click.
+            </p>
+            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="text-[11px] font-semibold" style={{ color: tc.textColor }}>Last drawn</div>
+              <div className="text-[11px]" style={{ color: tc.mutedText }}>Never — connect your Astute account to begin.</div>
+            </div>
+            <button
+              onClick={showPlaceholder}
+              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              data-testid="button-draw-astute"
+            >
+              <Download className="h-3.5 w-3.5" /> Draw Latest from Astute
+            </button>
+            <button
+              onClick={showPlaceholder}
+              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+              data-testid="button-link-astute"
+            >
+              <KeyRound className="h-3.5 w-3.5" /> Link Astute Account
+            </button>
           </div>
         )}
 
@@ -7084,14 +7122,15 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
 
       {/* Profile Completion Score */}
       {(() => {
+        // Services + social links live on the per-profile sub-pages now, so
+        // the master Profile Completion only counts the four core advisor
+        // fields. Stops the score sitting at 4/7 forever for advisors who
+        // legitimately have no socials or service ticks at this level.
         const checks = [
           { label: "Profile photo", done: !!advisor.profilePicUrl },
           { label: "Title", done: !!advisor.title },
           { label: "Contact number", done: !!(advisor as any).contactNumber },
           { label: "Bio / Intro", done: !!advisor.bio || !!advisor.customBio },
-          { label: "Individual services", done: (advisor.individualServices?.length ?? 0) > 0 },
-          { label: "Corporate services", done: (advisor.corporateServices?.length ?? 0) > 0 },
-          { label: "Social links", done: !!(advisor.linkedinUrl || advisor.websiteUrl || (advisor as any).facebookUrl) },
         ];
         const done = checks.filter(c => c.done).length;
         const pct = Math.round((done / checks.length) * 100);

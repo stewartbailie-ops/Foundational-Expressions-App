@@ -250,81 +250,13 @@ export default function EditAdvisor() {
             </CardContent>
           </Card>
 
-          <Card className="border-border">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">Introduction, Overview & Bio</h3>
-              <div className="space-y-1.5">
-                <Label>Pre-scripted Introduction</Label>
-                <Select value={bioOption} onValueChange={setBioOption}>
-                  <SelectTrigger data-testid="select-bio-option"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="a">Option A - Core focus overview</SelectItem>
-                    <SelectItem value="b">Option B - Integrated strategic approach</SelectItem>
-                    <SelectItem value="c">Option C - Clarity & structure focus</SelectItem>
-                    <SelectItem value="custom">Custom Biography</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {bioOption === "custom" ? (
-                <div className="space-y-1.5">
-                  <Label>Custom Biography</Label>
-                  <Textarea value={customBio} onChange={(e) => setCustomBio(e.target.value)} placeholder="Write a personalized biography..." className="min-h-[150px] resize-none" data-testid="textarea-custom-bio" />
-                </div>
-              ) : (
-                <div className="bg-muted/50 rounded-lg p-4 text-sm text-muted-foreground leading-relaxed border whitespace-pre-line">{BIO_OPTIONS[bioOption]}</div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">Individual Services</h3>
-              <div className="space-y-3">
-                {INDIVIDUAL_SERVICES.map(service => (
-                  <label key={service.key} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
-                    <Checkbox checked={selectedIndividual.includes(service.key)} onCheckedChange={() => toggleService(selectedIndividual, setSelectedIndividual, service.key)} />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{service.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{service.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">Corporate Services</h3>
-              <div className="space-y-3">
-                {CORPORATE_SERVICES.map(service => (
-                  <label key={service.key} className="flex items-start gap-3 p-3 rounded-lg border hover:bg-muted/30 transition-colors cursor-pointer">
-                    <Checkbox checked={selectedCorporate.includes(service.key)} onCheckedChange={() => toggleService(selectedCorporate, setSelectedCorporate, service.key)} />
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">{service.name}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{service.description}</div>
-                    </div>
-                  </label>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="text-lg font-semibold border-b pb-2">Links to Socials</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Input placeholder="LinkedIn Profile URL" value={linkedinUrl} onChange={(e) => setLinkedinUrl(e.target.value)} />
-                </div>
-                <div className="flex items-center gap-3">
-                  <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <Input placeholder="Personal Website URL" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Introduction/Bio, Individual Services, Corporate Services, and
+              Links to Socials cards removed from the master Edit Advisor form
+              — these are now managed by each advisor inside their own sub-
+              control panel (Settings + Profile pages), so the master form
+              stays focused on the core record. State (bioOption, customBio,
+              selectedIndividual/Corporate, linkedinUrl, websiteUrl) is kept
+              in scope so existing values still post-back unchanged. */}
 
           <Card className="border-border">
             <CardContent className="p-6 space-y-5">
@@ -396,10 +328,7 @@ export default function EditAdvisor() {
               <CardContent className="p-5">
                 <h4 className="text-sm font-semibold mb-2">Profile Summary</h4>
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <p>Individual Services: {selectedIndividual.length} selected</p>
-                  <p>Corporate Services: {selectedCorporate.length} selected</p>
                   <p>Theme: {theme === "dark" ? "Black & White" : theme === "blue" ? "Blue" : "Pink"}</p>
-                  <p>Bio: Option {bioOption.toUpperCase()}</p>
                   <p>Profile Pic: {profilePicUrl ? "Set" : "Not set"}</p>
                 </div>
               </CardContent>
