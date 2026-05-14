@@ -876,18 +876,18 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
       {/* ── Today snapshot — placeholder mini-widgets for the My Clients build.
           UI-only for now; once the clients table lands these will pull live data
-          (birthdays this week, overdue follow-ups, unread client messages). ── */}
+          (birthdays today, scheduled client re-views). Two-tile layout — wider
+          tiles, smaller value, no truncation on labels. ── */}
       <div className="space-y-2 pt-1">
         <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Today</div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {[
-            { key: "birthdays",  label: "Birthdays this week", value: "—", hint: "No clients yet",      icon: Cake,           accent: "#ec4899" },
-            { key: "followups",  label: "Follow-ups due",      value: "—", hint: "Nothing scheduled",   icon: Bell,           accent: "#f59e0b" },
-            { key: "messages",   label: "Client messages",     value: "—", hint: "Inbox empty",         icon: MessageSquare,  accent: "#3B82F6" },
+            { key: "birthdays",  label: "Client Birthdays Today", value: "0", hint: "No clients yet",     icon: Cake, accent: "#ec4899" },
+            { key: "reviews",    label: "Client Re-views Today",  value: "0", hint: "Nothing scheduled",  icon: Bell, accent: "#f59e0b" },
           ].map(({ key, label, value, hint, icon: Icon, accent }) => (
             <div
               key={key}
-              className="rounded-xl p-3 flex items-center gap-3"
+              className="rounded-xl p-3 flex items-center gap-2.5"
               style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
               data-testid={`widget-home-${key}`}
             >
@@ -897,11 +897,11 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
               >
                 <Icon className="h-4 w-4" />
               </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-medium truncate" style={{ color: tc.textColor }}>{label}</div>
-                <div className="text-[10px]" style={{ color: tc.mutedText }}>{hint}</div>
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-semibold leading-tight" style={{ color: tc.textColor }}>{label}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{hint}</div>
               </div>
-              <div className="ml-auto text-lg font-bold" style={{ color: accent }}>{value}</div>
+              <div className="text-base font-bold shrink-0" style={{ color: accent }}>{value}</div>
             </div>
           ))}
         </div>
@@ -6446,14 +6446,15 @@ const STUB_CLIENTS: StubClient[] = [
 ];
 
 const BOOK_OF_LIFE_CATEGORIES = [
-  { key: "short-term",  label: "Short-Term Insurance",  hint: "Vehicle, household, all-risk policies"  },
-  { key: "long-term",   label: "Long-Term Insurance",   hint: "Endowments, tax-free savings"           },
-  { key: "medical",     label: "Medical Aid",           hint: "Scheme, plan, dependants"               },
-  { key: "risk",        label: "Risk Cover",            hint: "Disability, dread disease, income protection" },
-  { key: "life",        label: "Life Cover",            hint: "Beneficiaries, sum assured, premiums"   },
-  { key: "corporate",   label: "Corporate / Group",     hint: "Group risk, pension/provident, GMA"     },
-  { key: "investments", label: "Investments",           hint: "Unit trusts, RAs, share portfolios"     },
-  { key: "savings",     label: "Savings",               hint: "Cash, money market, fixed deposits"     },
+  { key: "will",        label: "Latest Will & Testament", hint: "Signed will, executor, beneficiaries"        },
+  { key: "medical",     label: "Medical Aid Details",     hint: "Scheme, plan, dependants"                    },
+  { key: "short-term",  label: "Short Term Insurance",    hint: "Vehicle, household, all-risk policies"       },
+  { key: "long-term",   label: "Long Term Insurance",     hint: "Endowments, tax-free savings"                },
+  { key: "life",        label: "Life Cover",              hint: "Beneficiaries, sum assured, premiums"        },
+  { key: "risk",        label: "Risk Cover",              hint: "Disability, dread disease, income protection"},
+  { key: "corporate",   label: "Corporate Benefits",      hint: "Group risk, pension/provident, GMA"          },
+  { key: "investments", label: "Investments",             hint: "Unit trusts, RAs, share portfolios"          },
+  { key: "savings",     label: "Savings Accounts",        hint: "Cash, money market, fixed deposits"          },
 ];
 
 function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
