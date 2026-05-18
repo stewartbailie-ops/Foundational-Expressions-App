@@ -1,0 +1,72 @@
+Meeting Agenda; Friday 15th May
+	1. Progress on below meeting minutes
+	2. Play store application - Discuss test users (Launch & users) - 25$ Application 
+	3. Discuss Demo profile - Get some testers running (Zeeman profile)
+	4. Discuss the available subscription services (Pro's / Con's) - Listed below
+	5. Discuss the "My Clients" tab - With the potential difficulties/Issues (Confirm before committing a build session) - Listed below
+	6. Discuss Zeeman attached mail - What's the idea/draw here (Monthly reporting bot)
+	7. Discuss the Astute online (Single user - Multiple users) - Need Native App state & bank details (Stew reach out to Vergil, draft mail - Need bank details/NDA signed
+	8. Social media platforms (Business focus/approach) Instagram, LinkedIn, YouTube, WhatsApp Channel
+	9. Deleted referrals never actually deleted off the Master Control Panel - Primary card can never be deleted | Point out and close off 
+
+Meeting 04/05 - Minutes/Notes 
+Meeting minutes & Meeting Agenda;  (Monday 04th April 9:15)
+	1. Bank account registered - Shift debit orders - Need for foundation (Subscriptions) - Complete (Stew building in sub service)
+	2. Discuss budget/Up-keep (Budget Updated) - Discuss possible additional costs for May
+	3. New Logo (Vectored) - Complete (Added to site)
+	4. Current goals and order of events; Registered bank account - New Company Logo/Icon - Build subscription service into foundation - Build "My clients" / "Book of life" Function into application - Google Play launch - Present Application to possible subscribers (Newly listed below)
+	5. New WhatsApp booking appointments feature (Zeeman's WhatsApp message) - Look into functionality / Our App implementation options (Guided WhatsApp bookings | Front Desk)
+	6. Arrange Company Contact Number [082/084/072 - 2666328 C-O-N-N-E-C-T] - In Progress
+
+Option 	Setup	Build Effort	Fee's 	Notes
+Stripe (Recommended)	Medium (you: 1-2 hrs in Stripe dashboard, KYC docs)	Medium-Large (1 focused session)	~3.5% + R2 per transaction in ZAR	First-class Stripe integration blueprint - meaning the wiring (checkout, webhook, customer portal) is essentially pre-built. Mature recurring-billing primitives (free trial, dunning, proration, upgrades). The gold standard. (Fingerprint)
+Paystack	Medium (SA-native, simpler KYC than Stripe)	Medium-Large (no Replit blueprint — manual integration)	2.9% + R1	Cheaper than Stripe, SA-built. But we'd be writing more glue code. (Try avoid glue code)
+PayFast	Low (SA-native, fast onboarding)	Medium-Large (legacy API, fiddly recurring)	~3.5% + R2	Recurring works but the API is dated. Worth it only if Stripe rejects you for some reason.
+Manual EFT (We activate)	Zero	Zero (just a toggle)	Free	Cheapest, but you become the billing department. Fine for first 5-10 advisors as a stopgap.
+
+What a Stripe build involves end-to-end (1 focused session):
+	• Two things to think about before I build it: What tiers and what features per tier? This is a product decision, not a tech one. |Do we want a free trial? (Stripe makes this trivial — 7 or 14 days is industry-standard.)
+	• Set up: Stripe account, business verification (KYC), bank account link, create Products + Prices in Stripe dashboard (e.g. Bronze R99/mo, Silver R249/mo, Gold R499/mo — you decide).
+	• Build: An upgrade page in the advisor panel showing the three tiers; "Upgrade" button → Stripe Checkout session; webhook handler on /api/webhook/stripe that listens to customer.subscription.created/updated/deleted and writes to the existing advisors.subscriptionTier column (already in schema, currently unused); a "Manage billing" link that opens the Stripe Customer Portal so advisors handle their own card updates / cancellations.
+
+Security for client PII. Storing ID numbers, payslips, bank details, and policy documents puts us deep into POPIA "special personal information" territory. The minimum should be:
+	• Encryption at rest for ID number, bank details, tax number — column-level AES via a key from a new PII_ENCRYPTION_KEY secret. Server decrypts on read.
+	• Encrypted file storage for uploaded documents — files at rest are encrypted, only the advisor who owns the client can fetch.
+	• Audit log — every read/write of sensitive PII gets a row in an audit table (who, what, when, IP). POPIA requires this.
+	• Per-advisor isolation — backend queries hard-scope to clientRecord.advisorId === session.advisorId. No client document ever returnable to a different advisor.
+	• Consent capture — when a lead is promoted to a client, capture explicit consent ("This advisor may store my personal documents"). Datestamp + IP.
+	• Delete-on-request — POPIA right-to-erasure. We need a "permanently delete client" path that wipes encrypted data and audit-logs the deletion event itself.
+	• One additional consideration: Stripe's South Africa onboarding requires a SA-registered business with a SA bank account linked — confirm those details are in order before the build session
+
+Build Notes; (Add all changes - Run security agent)
+	1. Profile button cleanup (Image generator) - Stew illustrate - Explain the share to socials goal here
+	2. Angled-name background pattern - (SVG/CSS pattern at e.g. -30° rotation, low opacity, tiled across the profile background. Its working on both the Primary & Secondary, with the in-put name - Enlarged/Moving 
+	3. Auth gap on lead endpoints — /api/emails GET/grade/status/open/DELETE unprotected. Bigger task, needs advisor-session auth design first (Large fix)
+	4. Performance 58 --> 80+ Lighthouse mobile (font self-hosting, lazy-loading, cache headers, JS trim). Bigger session of its own (Large fix)
+	5. ID Assigned (Linked to contact number / ID?) - a soft-warn approach is friendliest — when a lead is submitted with a phone number or ID that already exists for that advisor, flag it as a likely duplicate rather than hard-blocking. Advisors can then decide whether it's genuinely the same person or a coincidence. Hard-blocking risks losing real leads from family members sharing a number.
+	6. Bare/www --> app. 301 redirects — finishes the SEO consolidation we started (Large fix)
+	7. Investigate mystery e4282ae... branch — to stop it re-merging old code into main (low priority, probably an old laptop checkout - Small fix)
+	8. Email DNS Authentication (Admin/DNS — Stewart action) Set up SPF, DKIM, and DMARC records on advisoryconnect.pro to prevent email spoofing and ensure SendGrid emails land in inboxes rather than spam. (High priority - 24/48 Hrs)
+	9. CSP Production Monitoring - Add a CSP report-uri or report-to directive to the Helmet config so any legitimate content blocked in production is logged and visible rather than silently failing.
+	10. Localisation Review - Audit all user-facing wording across the app — dropdowns, form labels, button text, error messages — and confirm SA English consistency ahead of final deployment. (Afrikaans & Zulu translations need to be checked/confirmed through-out.)
+	11. Add Website: split public/advisor landing - As per Clauds re-view & feedback (Notes below)
+	12. Leave the flagged concerns from security centre for now and for a later session (Given the coming changes, I'm sure more will appear and I'd prefer to tackle them all once off in their own dedicated session) 
+	13. Note: Before launch - Switch back to reserved VM (Discuss costs / Upkeep)
+	14. Play Store TWA Submission - Generate the Trusted Web Activity wrapper using PWABuilder (advisoryconnect.pro manifest is already clean). Outstanding checklist: assetlinks.json domain verification file, Play Developer account ($25), app screenshots, Privacy Policy URL (already live). Produce a step-by-step submission checklist.
+	15. Build in the "My Clients" New tab/section in the advisor's sub-control panel;
+		○ Promote/Move a lead from the Registry into their personal Clients list (How can the Master Control Panel show/indicate/View what leads are in who's "My Clients" Tab - In Progress
+		○ The client get a unique code (They download the App) - Link to their advisor (Discuss options) - Client Portal - In Progress
+		○ A linked display on the Advisors sub-control panel home - Displaying; Clients birthdays that day - Review/Follow up's - Messages or requests from the clients) - Complete
+		○ Upload and store that client's policy documents (Both ways)  "Book of Life" - [Latest Will & Testimony | Medical Aid Details | Short term insurance | Long term insurance | Life Cover | Risk Cover | Corporate Benefits | Investments | Savings accounts] - Complete
+		○ View a clean client profile with history - with additional details (Where the advisor can in-put the details) Listed below [ID Number | Income range | Payslip Uploaded | Residential Address | Proof of Address Uploaded | Bank Details | Marital Status | Employer | Occupation | Next of Kin details | All Contact Details | SARS Tax Number] - Complete
+	16. Gaps for Grader feed-back links: - Please add the below as options for when completing/filling out leads - (Add the parameters to the Registry, Grader & Temperature)
+	Request call back link; 
+		○ Add "How did you find me?" As a drop-down / source attribution field (organic, social, referral)
+		○ Add "Estimated net worth / savings bracket" (only income) As a drop-down
+		○ Add "What's your biggest financial concern right now?" As an open text field
+		○ Add "Are you currently working with a financial advisor?" (existing client vs. new) As an open text field
+	Refer Friends & Family; 
+		○ Add "Why are you referring them?" As an open text field
+	Claim Your Free Will; 
+		○ Add "Do you already have a Will?" As a drop-down (Yes/No)
+Add "What is the estimated value of your estate?" As a drop-down
