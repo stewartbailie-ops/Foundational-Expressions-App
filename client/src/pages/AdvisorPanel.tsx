@@ -2729,6 +2729,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
+  const [showToolPension, setShowToolPension] = useState((advisor as any).showToolPension !== false);
+  const [showToolCgt, setShowToolCgt] = useState((advisor as any).showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((advisor as any).showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((advisor as any).showToolLatte !== false);
@@ -2829,6 +2831,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolTax,
         showToolExchange,
         showToolCompound,
+        showToolPension,
+        showToolCgt,
         showToolVehicle,
         showToolReality,
         showToolLatte,
@@ -3378,6 +3382,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
               { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
               { label: "Compound Interest Calculator", value: showToolCompound, set: setShowToolCompound },
+              { label: "Pension Fund Calculator", value: showToolPension, set: setShowToolPension },
+              { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
               { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
               { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
@@ -3767,6 +3773,8 @@ function AdditionalProfileForm({
   const [showToolTax, setShowToolTax] = useState((existingProfile as any)?.showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((existingProfile as any)?.showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((existingProfile as any)?.showToolCompound !== false);
+  const [showToolPension, setShowToolPension] = useState((existingProfile as any)?.showToolPension !== false);
+  const [showToolCgt, setShowToolCgt] = useState((existingProfile as any)?.showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((existingProfile as any)?.showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((existingProfile as any)?.showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((existingProfile as any)?.showToolLatte !== false);
@@ -3865,6 +3873,8 @@ function AdditionalProfileForm({
         showToolTax,
         showToolExchange,
         showToolCompound,
+        showToolPension,
+        showToolCgt,
         showToolVehicle,
         showToolReality,
         showToolLatte,
@@ -4298,6 +4308,8 @@ function AdditionalProfileForm({
                 { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
                 { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
                 { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
+                { label: "Pension Fund Calculator", value: showToolPension, set: setShowToolPension },
+                { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
                 { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
                 { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
@@ -5080,18 +5092,18 @@ function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false, pubtv: false, pubdq: false, pubcc: false, pubret: false, pubcal: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, pension: false, cgt: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false, bond: false, emergency: false, lifecover: false, debt: false, myemail: false, pubtv: false, pubdq: false, pubcc: false, pubret: false, pubcal: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Toolbox ordering — M5(a): aligned with public profile financial tools order
   // (tax, exchange, compound, vehicle …) so when an advisor toggles
   // a tool in the panel the matching section appears in the same place on their
-  // public profile. Storage key bumped to _v2 to force a one-time refresh past
-  // the legacy ["std","tax","ci","er","forex",…] layout cached on existing devices.
-  // Task #42: append the 5 public-profile widgets (Live Markets, Daily Quotes,
-  // Compound Calc, Retirement Calc, Financial Calendar) so advisors can also
-  // use them directly from the panel.
-  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "vehicle", "std", "forex", "scan", "cal", "media"];
+  // public profile. Storage key bumped to _v3 (T#43) so existing advisors pick
+  // up the new pension/cgt/bond/emergency/lifecover/debt/myemail entries
+  // (T#43) plus pubtv/pubdq/pubcc/pubret/pubcal (T#42 — Live Markets, Daily
+  // Quotes, Compound, Retirement, Financial Calendar) rather than having them
+  // silently filtered out of their saved order.
+  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "pension", "cgt", "vehicle", "bond", "emergency", "lifecover", "debt", "std", "forex", "scan", "myemail", "cal", "media"];
   const [organizing, setOrganizing] = useState(false);
   const [toolOrder, setToolOrder] = useState<string[]>(() => {
     try {
@@ -5100,16 +5112,25 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       // unknown IDs, then append any defaults they don't have so new tools
       // don't get hidden. Only the migration writes the new key — keeps the
       // legacy key untouched until next reorder, in case of rollback.
-      const v2 = localStorage.getItem("advisorToolboxOrder_v2");
-      if (v2) return JSON.parse(v2);
-      const v1 = localStorage.getItem("advisorToolboxOrder");
-      if (v1) {
+      const v3 = localStorage.getItem("advisorToolboxOrder_v3");
+      if (v3) {
         const allowed = new Set(DEFAULT_TOOL_ORDER);
-        const legacy: string[] = JSON.parse(v1);
+        const parsed: string[] = JSON.parse(v3);
+        const cleaned = parsed.filter(k => allowed.has(k));
+        const merged = [...cleaned];
+        for (const k of DEFAULT_TOOL_ORDER) if (!merged.includes(k)) merged.push(k);
+        return merged;
+      }
+      const v2 = localStorage.getItem("advisorToolboxOrder_v2");
+      const v1 = localStorage.getItem("advisorToolboxOrder");
+      const source = v2 || v1;
+      if (source) {
+        const allowed = new Set(DEFAULT_TOOL_ORDER);
+        const legacy: string[] = JSON.parse(source);
         const cleaned = legacy.filter(k => allowed.has(k));
         const merged = [...cleaned];
         for (const k of DEFAULT_TOOL_ORDER) if (!merged.includes(k)) merged.push(k);
-        localStorage.setItem("advisorToolboxOrder_v2", JSON.stringify(merged));
+        localStorage.setItem("advisorToolboxOrder_v3", JSON.stringify(merged));
         return merged;
       }
       return DEFAULT_TOOL_ORDER;
@@ -5123,7 +5144,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       const swapIdx = idx + dir;
       if (swapIdx < 0 || swapIdx >= next.length) return prev;
       [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
-      localStorage.setItem("advisorToolboxOrder_v2", JSON.stringify(next));
+      localStorage.setItem("advisorToolboxOrder_v3", JSON.stringify(next));
       return next;
     });
   };
@@ -5237,6 +5258,31 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [ciYears, setCiYears] = useState("10");
   const [ciMonthly, setCiMonthly] = useState("500");
   const [ciFreq, setCiFreq] = useState("12");
+
+  // T#43: Pension Fund Calculator (advisor-side parity).
+  const [penBalance, setPenBalance] = useState("250000");
+  const [penMonthly, setPenMonthly] = useState("3000");
+  const [penRate, setPenRate] = useState("9");
+  const [penYears, setPenYears] = useState("25");
+  // T#43: Capital Gains Tax Calculator (advisor-side parity).
+  const [cgtSalePrice, setCgtSalePrice] = useState("3000000");
+  const [cgtCostBase, setCgtCostBase] = useState("1500000");
+  const [cgtIncome, setCgtIncome] = useState("450000");
+  // T#43: Bond / Home Loan
+  const [bondAmount, setBondAmount] = useState("1500000");
+  const [bondRate, setBondRate] = useState("11.75");
+  const [bondTerm, setBondTerm] = useState("20");
+  // T#43: Emergency Fund
+  const [efMonthly, setEfMonthly] = useState("25000");
+  const [efMonths, setEfMonths] = useState("6");
+  // T#43: Life Cover Needs
+  const [lcIncome, setLcIncome] = useState("25000");
+  const [lcYears, setLcYears] = useState("10");
+  const [lcExisting, setLcExisting] = useState("0");
+  // T#43: Debt Payoff
+  const [dpDebt, setDpDebt] = useState("150000");
+  const [dpRate, setDpRate] = useState("20");
+  const [dpPayment, setDpPayment] = useState("3000");
 
   const _today = new Date();
   const [calYear, setCalYear] = useState(_today.getFullYear());
@@ -6150,6 +6196,226 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         {openSections.vehicle && (
           <div className="px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
             <VehicleCalcPanel tc={tc} />
+          </div>
+        )}
+      </div>
+
+      {/* Pension Fund Calculator — T#43 restore */}
+      {(() => {
+        const P = parseFloat(penBalance) || 0;
+        const PMT = parseFloat(penMonthly) || 0;
+        const r = (parseFloat(penRate) || 0) / 100;
+        const t = parseFloat(penYears) || 0;
+        const n = 12;
+        const finalVal = r > 0
+          ? P * Math.pow(1 + r / n, n * t) + PMT * ((Math.pow(1 + r / n, n * t) - 1) / (r / n))
+          : P + PMT * 12 * t;
+        const contrib = P + PMT * 12 * t;
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("pension")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="pension" title="Pension Fund Calculator" subtitle="Project retirement balance from current pot plus monthly contributions." />
+            </div>
+            {openSections.pension && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Current Balance (R)</label><input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Monthly Contribution (R)</label><input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Annual Growth (%)</label><input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Years to Retirement</label><input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <ResultRow label="Total Contributions" value={ZAR(contrib)} />
+                  <ResultRow label="Growth Earned" value={ZAR(finalVal - contrib)} accent />
+                  <ResultRow label={`Projected Balance in ${penYears} yrs`} value={ZAR(finalVal)} accent />
+                </div>
+                <p className="text-xs" style={ls}>Nominal value, before tax and inflation.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Capital Gains Tax Calculator — T#43 restore */}
+      {(() => {
+        const gain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0));
+        const exclusion = 40000;
+        const taxableAdd = Math.max(0, gain - exclusion) * 0.40;
+        const annual = parseFloat(cgtIncome) || 0;
+        const taxFor = (a: number) => {
+          let g = 0;
+          for (const b of TAX_BRACKETS) { if (a >= b.min) g = b.base + (Math.min(a, b.max) - b.min) * b.rate; }
+          return Math.max(0, g - 17235);
+        };
+        const liability = Math.max(0, taxFor(annual + taxableAdd) - taxFor(annual));
+        const netProceeds = (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0) - liability;
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("cgt")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="cgt" title="Capital Gains Tax Calculator" subtitle="SA CGT estimate on an asset disposal (2024/25 individual rules)." />
+            </div>
+            {openSections.cgt && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Sale Price (R)</label><input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Cost Base (R)</label><input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="col-span-2 space-y-1"><label className="text-xs" style={ls}>Other Annual Taxable Income (R)</label><input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <ResultRow label="Capital Gain" value={ZAR(gain)} />
+                  <ResultRow label="Annual Exclusion" value={`− ${ZAR(exclusion)}`} />
+                  <ResultRow label="Taxable Gain (40% inclusion)" value={ZAR(taxableAdd)} />
+                  <ResultRow label="Est. CGT Liability" value={ZAR(liability)} accent />
+                  <ResultRow label="Net Proceeds After CGT" value={ZAR(netProceeds)} accent />
+                </div>
+                <p className="text-xs" style={ls}>Estimate only. Excludes primary-residence exclusion and exchange-rate adjustments.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Bond / Home Loan — T#43 parity */}
+      {(() => {
+        const P = parseFloat(bondAmount) || 0;
+        const r = parseFloat(bondRate) / 100 / 12;
+        const N = (parseFloat(bondTerm) || 20) * 12;
+        const pmt = r > 0 ? P * (r * Math.pow(1 + r, N)) / (Math.pow(1 + r, N) - 1) : (N > 0 ? P / N : 0);
+        const total = pmt * N;
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("bond")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="bond" title="Bond / Home Loan Calculator" subtitle="Monthly repayment, total interest, total paid over term." />
+            </div>
+            {openSections.bond && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Loan Amount (R)</label><input type="number" value={bondAmount} onChange={e => setBondAmount(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Interest Rate (%)</label><input type="number" value={bondRate} onChange={e => setBondRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Term (years)</label><input type="number" value={bondTerm} onChange={e => setBondTerm(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <ResultRow label="Monthly Repayment" value={ZAR(pmt)} accent />
+                  <ResultRow label="Total Paid" value={ZAR(total)} />
+                  <ResultRow label="Total Interest" value={ZAR(total - P)} accent />
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Emergency Fund — T#43 parity */}
+      {(() => {
+        const target = (parseFloat(efMonthly) || 0) * (parseFloat(efMonths) || 6);
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("emergency")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="emergency" title="Emergency Fund Calculator" subtitle="How much cash buffer is enough for life's curveballs." />
+            </div>
+            {openSections.emergency && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Monthly Expenses (R)</label><input type="number" value={efMonthly} onChange={e => setEfMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Months of Cover</label><input type="number" value={efMonths} onChange={e => setEfMonths(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <ResultRow label={`Target Fund (${efMonths} months)`} value={ZAR(target)} accent />
+                </div>
+                <p className="text-xs" style={ls}>Most advisors recommend 3–6 months of essential expenses in an accessible savings account.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Life Cover Needs — T#43 parity */}
+      {(() => {
+        const monthly = parseFloat(lcIncome) || 0;
+        const years = parseFloat(lcYears) || 10;
+        const existing = parseFloat(lcExisting) || 0;
+        const needed = monthly * 12 * years;
+        const shortfall = Math.max(0, needed - existing);
+        const surplus = Math.max(0, existing - needed);
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("lifecover")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="lifecover" title="Life Cover Needs Calculator" subtitle="Income-replacement estimate for your dependants." />
+            </div>
+            {openSections.lifecover && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Monthly Income (R)</label><input type="number" value={lcIncome} onChange={e => setLcIncome(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Years to Cover</label><input type="number" value={lcYears} onChange={e => setLcYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="col-span-2 space-y-1"><label className="text-xs" style={ls}>Existing Cover (R)</label><input type="number" value={lcExisting} onChange={e => setLcExisting(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                  <ResultRow label={`Cover Needed (${years} yrs)`} value={ZAR(needed)} />
+                  <ResultRow label="Existing Cover" value={ZAR(existing)} />
+                  <ResultRow label={shortfall > 0 ? "Additional Cover Needed" : "Cover Surplus"} value={ZAR(shortfall > 0 ? shortfall : surplus)} accent />
+                </div>
+                <p className="text-xs" style={ls}>Simple income-replacement method. Doesn't include debt settlement or estate costs — speak to your advisor.</p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* Debt Payoff — T#43 parity */}
+      {(() => {
+        const P = parseFloat(dpDebt) || 0;
+        const r = parseFloat(dpRate) / 100 / 12;
+        const pmt = parseFloat(dpPayment) || 0;
+        const minPayment = r > 0 ? P * r : 0;
+        const cantPayOff = pmt <= minPayment && r > 0;
+        const months = cantPayOff || pmt <= 0 || P <= 0 ? 0
+          : r > 0 ? Math.ceil(-Math.log(1 - (P * r) / pmt) / Math.log(1 + r)) : Math.ceil(P / pmt);
+        const totalPaid = months > 0 ? pmt * months : 0;
+        return (
+          <div className="rounded-xl overflow-hidden" style={sectionStyle("debt")}>
+            <div className="p-4">
+              <SectionHeader sectionKey="debt" title="Debt Payoff Calculator" subtitle="Months to clear a debt at a fixed monthly payment." />
+            </div>
+            {openSections.debt && (
+              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+                <div className="pt-3 grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Debt Balance (R)</label><input type="number" value={dpDebt} onChange={e => setDpDebt(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="space-y-1"><label className="text-xs" style={ls}>Interest Rate (%)</label><input type="number" value={dpRate} onChange={e => setDpRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                  <div className="col-span-2 space-y-1"><label className="text-xs" style={ls}>Monthly Payment (R)</label><input type="number" value={dpPayment} onChange={e => setDpPayment(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
+                </div>
+                {cantPayOff ? (
+                  <div className="rounded-lg p-3 text-xs text-center" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#ef4444" }}>
+                    Payment doesn't cover interest. Pay more than {ZAR(minPayment)}/month to start reducing the balance.
+                  </div>
+                ) : (
+                  <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
+                    <ResultRow label="Months to Pay Off" value={months > 0 ? `${months} months (${(months / 12).toFixed(1)} yrs)` : "—"} accent />
+                    <ResultRow label="Total Paid" value={months > 0 ? ZAR(totalPaid) : "—"} />
+                    <ResultRow label="Total Interest" value={months > 0 ? ZAR(totalPaid - P) : "—"} accent />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+      {/* My Email — T#43 advisor-only tile, mailto: to the advisor's own primary email */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("myemail")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="myemail" title="My Email" subtitle={`Open a new message to ${advisor.email || "your inbox"}.`} />
+        </div>
+        {openSections.myemail && (
+          <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs pt-3" style={ls}>One-tap shortcut to compose to your own primary email — handy when you need to forward something to yourself.</p>
+            <a
+              href={advisor.email ? `mailto:${advisor.email}` : "#"}
+              className="w-full block text-center py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ backgroundColor: tc.accentColor, color: tc.isDark ? "#000" : "#fff" }}
+              data-testid="link-toolbox-myemail"
+            >
+              <Mail className="h-4 w-4 inline mr-1.5" /> Open Email to {advisor.email || "—"}
+            </a>
           </div>
         )}
       </div>

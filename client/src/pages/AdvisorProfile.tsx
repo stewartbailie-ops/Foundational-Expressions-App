@@ -993,6 +993,50 @@ export default function AdvisorProfile() {
   const [dpDebt, setDpDebt] = useState("150000");
   const [dpRate, setDpRate] = useState("20");
   const [dpPayment, setDpPayment] = useState("3000");
+  // Pension Fund Calculator (T#43 restore)
+  const [penBalance, setPenBalance] = useState("250000");
+  const [penMonthly, setPenMonthly] = useState("3000");
+  const [penRate, setPenRate] = useState("9");
+  const [penYears, setPenYears] = useState("25");
+  // Capital Gains Tax Calculator (T#43 restore)
+  const [cgtSalePrice, setCgtSalePrice] = useState("3000000");
+  const [cgtCostBase, setCgtCostBase] = useState("1500000");
+  const [cgtIncome, setCgtIncome] = useState("450000");
+  // Standard Calculator (T#43 parity)
+  const [stdDisplay, setStdDisplay] = useState("0");
+  const [stdPrev, setStdPrev] = useState<string | null>(null);
+  const [stdOp, setStdOp] = useState<string | null>(null);
+  const [stdFresh, setStdFresh] = useState(false);
+  const stdPress = (val: string) => {
+    if (val === "C") { setStdDisplay("0"); setStdPrev(null); setStdOp(null); setStdFresh(false); return; }
+    if (val === "±") { setStdDisplay(d => d.startsWith("-") ? d.slice(1) : d === "0" ? "0" : "-" + d); return; }
+    if (val === "%") { setStdDisplay(d => String(parseFloat(d) / 100)); return; }
+    if (["+", "−", "×", "÷"].includes(val)) { setStdPrev(stdDisplay); setStdOp(val); setStdFresh(true); return; }
+    if (val === "=") {
+      if (!stdOp || !stdPrev) return;
+      const a = parseFloat(stdPrev), b = parseFloat(stdDisplay);
+      let r = a;
+      if (stdOp === "+") r = a + b;
+      else if (stdOp === "−") r = a - b;
+      else if (stdOp === "×") r = a * b;
+      else if (stdOp === "÷") r = b !== 0 ? a / b : 0;
+      setStdDisplay(String(parseFloat(r.toFixed(10))));
+      setStdPrev(null); setStdOp(null); setStdFresh(false); return;
+    }
+    if (val === ".") { setStdDisplay(d => (stdFresh ? "0." : d.includes(".") ? d : d + ".")); setStdFresh(false); return; }
+    setStdDisplay(d => stdFresh || d === "0" ? val : d + val); setStdFresh(false);
+  };
+  // Forex (pip / lot) Calculator (T#43 parity)
+  const [fxPair, setFxPair] = useState("EURUSD");
+  const [fxLots, setFxLots] = useState("1");
+  const [fxPips, setFxPips] = useState("10");
+  const FX_UNITS_PER_LOT = 100000;
+  const fxPipSize = fxPair.endsWith("JPY") ? 0.01 : 0.0001;
+  const fxValuePerPipUsd = (parseFloat(fxLots) || 0) * FX_UNITS_PER_LOT * fxPipSize;
+  const fxPnlUsd = fxValuePerPipUsd * (parseFloat(fxPips) || 0);
+  // Scan Documents (T#43 parity)
+  const scanInputRef = useRef<HTMLInputElement>(null);
+  const [scanFiles, setScanFiles] = useState<File[]>([]);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -1770,31 +1814,31 @@ export default function AdvisorProfile() {
                 transition={{ duration: 0.3, ease: "easeOut" }}
                 /* W1 T2: cap at 22rem so 320px-wide phones (iPhone SE) don't
                    overflow the modal; step text wraps via min-w-0 in row header. */
-                className="w-full max-w-[22rem] sm:max-w-sm rounded-2xl p-4 sm:p-5 space-y-3"
+                className="w-full max-w-[20rem] rounded-2xl p-4 space-y-3"
                 style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
                 onClick={e => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-semibold text-sm min-w-0" style={{ color: tc.textColor }}>Save to home screen</div>
+                  <div className="font-semibold text-sm min-w-0" style={{ color: tc.textColor }}>Save to Home Screen</div>
                   <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="leading-none shrink-0" aria-label="Close"><X className="h-4 w-4" /></button>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2">
                   {isIOS ? (
                     <>
-                      <Step num={1} text={`Open this page in Safari`} color={accentColor} />
-                      <Step num={2} text={`Tap the Share button`} color={accentColor} />
+                      <Step num={1} text="Open in Safari" color={accentColor} />
+                      <Step num={2} text="Tap the Share icon" color={accentColor} />
                       <Step num={3} text={`Choose "Add to Home Screen"`} color={accentColor} />
                     </>
                   ) : (
                     <>
-                      <Step num={1} text={`Tap your browser's menu`} color={accentColor} />
+                      <Step num={1} text="Tap your browser menu" color={accentColor} />
                       <Step num={2} text={`Choose "Add to Home Screen"`} color={accentColor} />
-                      <Step num={3} text={`Tap Add to confirm`} color={accentColor} />
+                      <Step num={3} text="Tap Add" color={accentColor} />
                     </>
                   )}
                 </div>
-                <p className="text-[11px] leading-relaxed" style={{ color: mutedText }}>
-                  Opens like an app from your home screen. No app store needed.
+                <p className="text-[11px] leading-snug" style={{ color: mutedText }}>
+                  Opens like an app — no store needed.
                 </p>
               </motion.div>
             </div>
@@ -2144,7 +2188,39 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolEmergency !== false && "emergency",
                 (advisor as any).showToolLifeCover !== false && "lifecover",
                 (advisor as any).showToolDebt !== false && "debt",
+                (advisor as any).showToolPension !== false && "pension",
+                (advisor as any).showToolCgt !== false && "cgt",
+                "standard",
+                "forex",
+                "scan",
               ].filter(Boolean) as string[];
+
+              // Pension Fund projection
+              const penP = parseFloat(penBalance) || 0;
+              const penPmt = parseFloat(penMonthly) || 0;
+              const penR = (parseFloat(penRate) || 0) / 100;
+              const penT = parseFloat(penYears) || 0;
+              const penN = 12;
+              const penFinal = penR > 0
+                ? penP * Math.pow(1 + penR / penN, penN * penT) + penPmt * ((Math.pow(1 + penR / penN, penN * penT) - 1) / (penR / penN))
+                : penP + penPmt * 12 * penT;
+              const penContrib = penP + penPmt * 12 * penT;
+              const penInterest = penFinal - penContrib;
+
+              // Capital Gains Tax (SA, 2024/25)
+              const cgtGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0));
+              const cgtExclusion = 40000;
+              const cgtTaxable = Math.max(0, cgtGain - cgtExclusion) * 0.40;
+              const cgtAnnual = parseFloat(cgtIncome) || 0;
+              const taxFor = (annual: number) => {
+                let g = 0;
+                for (const b of TAX_BRACKETS) { if (annual >= b.min) g = b.base + (Math.min(annual, b.max) - b.min) * b.rate; }
+                return Math.max(0, g - 17235);
+              };
+              const cgtBaselineTax = taxFor(cgtAnnual);
+              const cgtTotalTax = taxFor(cgtAnnual + cgtTaxable);
+              const cgtLiability = Math.max(0, cgtTotalTax - cgtBaselineTax);
+              const cgtNetProceeds = (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0) - cgtLiability;
 
               // Vehicle finance calc
               const vehP = (parseFloat(vehPrice) || 0) - (parseFloat(vehDeposit) || 0);
@@ -2210,6 +2286,11 @@ export default function AdvisorProfile() {
                           {toolKey === "emergency" && <><Calculator className="h-3.5 w-3.5" /> Emergency Fund</>}
                           {toolKey === "lifecover" && <><Calculator className="h-3.5 w-3.5" /> Life Cover Needs</>}
                           {toolKey === "debt" && <><Calculator className="h-3.5 w-3.5" /> Debt Payoff</>}
+                          {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Fund</>}
+                          {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
+                          {toolKey === "standard" && <><Calculator className="h-3.5 w-3.5" /> Standard Calculator</>}
+                          {toolKey === "forex" && <><Calculator className="h-3.5 w-3.5" /> Forex Calculator</>}
+                          {toolKey === "scan" && <><FileText className="h-3.5 w-3.5" /> Scan Documents</>}
                         </span>
                         {openTool === toolKey ? <ChevronUp className="h-3.5 w-3.5" style={{ color: mutedText }} /> : <ChevronDown className="h-3.5 w-3.5" style={{ color: mutedText }} />}
                       </button>
@@ -2485,6 +2566,161 @@ export default function AdvisorProfile() {
                                     </div>
                                   ))}
                                   <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Assumes fixed rate and consistent monthly payment. Actual results may vary.</p>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {toolKey === "pension" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Project a retirement / pension fund value from current balance plus monthly contributions.</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Current Balance (R)</label>
+                                  <input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} style={is} data-testid="input-tool-pen-balance" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Contribution (R)</label>
+                                  <input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} style={is} data-testid="input-tool-pen-monthly" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Annual Growth (%)</label>
+                                  <input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} step="0.1" style={is} data-testid="input-tool-pen-rate" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Years to Retirement</label>
+                                  <input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} style={is} data-testid="input-tool-pen-years" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Total Contributions", val: `R ${penContrib.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
+                                  { label: "Growth Earned", val: `R ${penInterest.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
+                                  { label: `Projected Balance in ${penYears} yrs`, val: `R ${penFinal.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Nominal value, before tax & inflation. Speak to your advisor for a full projection.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "cgt" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Estimate SA Capital Gains Tax on an asset disposal (2024/25 rules, individual taxpayer).</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Sale Price (R)</label>
+                                  <input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} style={is} data-testid="input-tool-cgt-sale" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Cost Base (R)</label>
+                                  <input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} style={is} data-testid="input-tool-cgt-cost" />
+                                </div>
+                                <div className="col-span-2 space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Other Annual Taxable Income (R)</label>
+                                  <input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} style={is} data-testid="input-tool-cgt-income" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Capital Gain", val: `R ${cgtGain.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
+                                  { label: "Annual Exclusion", val: `− R ${cgtExclusion.toLocaleString("en-ZA")}` },
+                                  { label: "Taxable Gain (40% inclusion)", val: `R ${cgtTaxable.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
+                                  { label: "Est. CGT Liability", val: `R ${cgtLiability.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
+                                  { label: "Net Proceeds After CGT", val: `R ${cgtNetProceeds.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only. Excludes primary-residence exclusion, exchange-rate adjustments and special inclusions.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "standard" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Quick arithmetic — add, subtract, multiply, divide.</p>
+                              <div className="rounded-lg px-3 py-2 text-right" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}` }}>
+                                {stdOp && stdPrev && <p className="text-xs mb-0.5" style={{ color: mutedText }}>{stdPrev} {stdOp}</p>}
+                                <p className="text-2xl font-bold tracking-tight truncate" style={{ color: textColor }} data-testid="text-tool-std-display">{stdDisplay}</p>
+                              </div>
+                              {[
+                                ["C","±","%","÷"],
+                                ["7","8","9","×"],
+                                ["4","5","6","−"],
+                                ["1","2","3","+"],
+                                ["0",".","="],
+                              ].map((row, ri) => (
+                                <div key={ri} className={`grid gap-1.5 ${row.length === 3 ? "grid-cols-3" : "grid-cols-4"}`}>
+                                  {row.map(key => {
+                                    const isOp = ["÷","×","−","+","="].includes(key);
+                                    const isFn = ["C","±","%"].includes(key);
+                                    const isZero = key === "0" && row.length === 3;
+                                    return (
+                                      <button key={key} type="button" onClick={() => stdPress(key)} className={`py-2.5 rounded-lg text-sm font-semibold active:scale-95 ${isZero ? "col-span-2" : ""}`} style={{ backgroundColor: isOp ? accentColor : isFn ? tc.buttonSecondaryBg : tc.inputBg, color: isOp ? (tc.isDark ? "#000" : "#fff") : isFn ? accentColor : textColor, border: `1px solid ${isOp ? accentColor : tc.borderColor}` }} data-testid={`button-tool-std-${key}`}>{key}</button>
+                                    );
+                                  })}
+                                </div>
+                              ))}
+                            </>
+                          )}
+                          {toolKey === "forex" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Trader position sizing — value per pip and profit / loss for a given pip move (standard lot = 100 000 units).</p>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className="col-span-2 space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Currency Pair</label>
+                                  <select value={fxPair} onChange={e => setFxPair(e.target.value)} style={is} data-testid="select-tool-fx-pair">
+                                    {["EURUSD","GBPUSD","AUDUSD","NZDUSD","USDCHF","USDCAD","USDJPY","USDZAR","EURZAR","GBPZAR","EURJPY","GBPJPY"].map(p => <option key={p} value={p}>{p}</option>)}
+                                  </select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Lot Size</label>
+                                  <input type="number" value={fxLots} onChange={e => setFxLots(e.target.value)} step="0.01" style={is} data-testid="input-tool-fx-lots" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-xs" style={{ color: mutedText }}>Pip Move</label>
+                                  <input type="number" value={fxPips} onChange={e => setFxPips(e.target.value)} step="0.1" style={is} data-testid="input-tool-fx-pips" />
+                                </div>
+                              </div>
+                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
+                                {[
+                                  { label: "Pip Size", val: fxPipSize === 0.01 ? "0.01 (JPY pair)" : "0.0001" },
+                                  { label: "Value per Pip (quote ccy)", val: fxValuePerPipUsd.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), accent: true },
+                                  { label: `P&L on ${fxPips || 0} pips (quote ccy)`, val: fxPnlUsd.toLocaleString("en-ZA", { minimumFractionDigits: 2, maximumFractionDigits: 2 }), accent: true },
+                                ].map(({ label, val, accent }) => (
+                                  <div key={label} className="flex justify-between text-xs">
+                                    <span style={{ color: mutedText }}>{label}</span>
+                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
+                                  </div>
+                                ))}
+                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Value is denominated in the second currency of the pair. Convert to ZAR using the Exchange Rate tool.</p>
+                              </div>
+                            </>
+                          )}
+                          {toolKey === "scan" && (
+                            <>
+                              <p className="text-xs" style={{ color: mutedText }}>Capture documents with your camera and forward to your advisor.</p>
+                              <input ref={scanInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { const files = e.target.files ? Array.from(e.target.files) : []; if (files.length) setScanFiles(prev => [...prev, ...files]); }} data-testid="input-tool-scan-file" />
+                              <button type="button" onClick={() => scanInputRef.current?.click()} className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: accentColor, color: tc.isDark ? "#000" : "#fff" }} data-testid="button-tool-scan-open">
+                                <FileText className="h-4 w-4 inline mr-1.5" /> Take / Choose Photo
+                              </button>
+                              {scanFiles.length > 0 && (
+                                <div className="space-y-1.5">
+                                  {scanFiles.map((f, i) => (
+                                    <div key={i} className="flex items-center justify-between gap-2 text-xs rounded-lg px-2 py-1.5" style={{ backgroundColor: tc.inputBg }}>
+                                      <span className="truncate" style={{ color: textColor }}>{f.name || `Scan ${i + 1}`}</span>
+                                      <span style={{ color: mutedText }}>{(f.size / 1024).toFixed(0)} KB</span>
+                                    </div>
+                                  ))}
+                                  <div className="flex gap-2">
+                                    <a href={advisor.email ? `mailto:${advisor.email}?subject=Scanned%20Documents&body=Attached%20scans%20for%20your%20review.` : "#"} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="link-tool-scan-email">Email to Advisor</a>
+                                    <button type="button" onClick={() => setScanFiles([])} className="px-3 py-2 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: textColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-tool-scan-clear">Clear</button>
+                                  </div>
+                                  <p className="text-xs" style={{ color: mutedText }}>Photos stay on your device. Use your email client to attach them when sending.</p>
                                 </div>
                               )}
                             </>
