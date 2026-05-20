@@ -2071,7 +2071,7 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                   onClick={() => createLeadMutation.mutate()}
                   disabled={!newLead.senderName.trim() || createLeadMutation.isPending}
                   className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity disabled:opacity-50 hover:opacity-90"
-                  style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+                  style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
                   data-testid="button-add-lead-save"
                 >
                   {createLeadMutation.isPending ? (
@@ -2581,6 +2581,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showLiberty, setShowLiberty] = useState(!!(advisor as any).showLiberty);
   const [showStanlib, setShowStanlib] = useState(!!(advisor as any).showStanlib);
   const [showSigninghub, setShowSigninghub] = useState(!!(advisor as any).showSigninghub);
+  const [showMyEmail, setShowMyEmail] = useState(!!(advisor as any).showMyEmail);
   const [showFunFacts, setShowFunFacts] = useState(!!(advisor as any).showFunFacts);
   const [showForex, setShowForex] = useState(!!(advisor as any).showForex);
   const [showSecondNews, setShowSecondNews] = useState(!!(advisor as any).showSecondNews);
@@ -2672,6 +2673,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showLiberty,
         showStanlib,
         showSigninghub,
+        showMyEmail,
         showFunFacts,
         showForex,
         showSecondNews,
@@ -3172,6 +3174,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
           { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
           { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
+          { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3599,6 +3602,7 @@ function AdditionalProfileForm({
   const [showLiberty, setShowLiberty] = useState(!!(existingProfile as any)?.showLiberty);
   const [showStanlib, setShowStanlib] = useState(!!(existingProfile as any)?.showStanlib);
   const [showSigninghub, setShowSigninghub] = useState(!!(existingProfile as any)?.showSigninghub);
+  const [showMyEmail, setShowMyEmail] = useState(!!(existingProfile as any)?.showMyEmail);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
@@ -3681,6 +3685,7 @@ function AdditionalProfileForm({
         showLiberty,
         showStanlib,
         showSigninghub,
+        showMyEmail,
         showEmergencyContacts,
         patternOpacity,
         nickname: nickname || null,
@@ -4034,6 +4039,7 @@ function AdditionalProfileForm({
             { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
             { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
             { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
+            { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -4990,13 +4996,18 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [calYear, setCalYear] = useState(_today.getFullYear());
   const [calMonth, setCalMonth] = useState(_today.getMonth());
 
+  // W1 T1: route through shared 60s cache + in-flight dedupe. Eliminates the
+  // duplicate hit when AdvisorPanel renders inside the advisor preview pane
+  // (ForexWidget separately hits its own endpoint) and stops the manual
+  // refresh button from re-firing if pressed within the cache window.
   const fetchRates = async (base: string) => {
     setErLoading(true);
-    try {
-      const res = await fetch(`https://open.er-api.com/v6/latest/${base}`);
-      const data = await res.json();
-      if (data.result === "success") { setErRates(data.rates); setErUpdated(new Date().toLocaleTimeString()); }
-    } catch { /* silent */ }
+    const { getForexRates } = await import("@/lib/forexCache");
+    const rates = await getForexRates(base);
+    if (Object.keys(rates).length) {
+      setErRates(rates);
+      setErUpdated(new Date().toLocaleTimeString());
+    }
     setErLoading(false);
   };
 
@@ -6023,10 +6034,10 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             <button
               onClick={showPlaceholder}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-save-personal"
             >
-              <Save className="h-3.5 w-3.5" /> Save Personal Details
+              <Save className="h-3.5 w-3.5 inline mr-1" /> Save Personal Details
             </button>
           </div>
         )}
@@ -6081,7 +6092,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             <button
               onClick={showPlaceholder}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-save-financial"
             >
               <Save className="h-3.5 w-3.5" /> Save Financial Profile
@@ -6143,7 +6154,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             <button
               onClick={showPlaceholder}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-draw-astute"
             >
               <Download className="h-3.5 w-3.5" /> Draw Latest from Astute
@@ -6178,7 +6189,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             <button
               onClick={showPlaceholder}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+              style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-add-note"
             >
               <Plus className="h-3.5 w-3.5" /> Add Note
@@ -6204,7 +6215,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
         <button
           onClick={showPlaceholder}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shrink-0"
-          style={{ backgroundColor: tc.accentColor, color: "#fff" }}
+          style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
           data-testid="button-promote-lead"
         >
           <UserPlus className="h-3.5 w-3.5" />
@@ -6881,11 +6892,9 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             name={advisor.name}
             profilePicUrl={profile.profilePicUrl}
             onEditClick={() => setEditingProfileId(profile.id)}
-            onDeleteClick={() => {
-              if (window.confirm("Delete Secondary Profile? This cannot be undone.")) {
-                deleteProfileMutation.mutate(profile.id);
-              }
-            }}
+            /* W1 T8: secondary profiles are no longer independently deletable.
+               They cascade away when the parent advisor is removed. The API
+               also rejects non-admin DELETEs as defence in depth. */
           />
         )
       )}

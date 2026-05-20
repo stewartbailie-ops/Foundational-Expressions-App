@@ -16,6 +16,15 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["show_tool_emergency",      "boolean NOT NULL DEFAULT true"],
   ["show_tool_life_cover",     "boolean NOT NULL DEFAULT true"],
   ["show_tool_debt",           "boolean NOT NULL DEFAULT true"],
+  // W1 T3: My Email platform toggle. Opt-in default — advisors must enable it.
+  ["show_my_email",            "boolean NOT NULL DEFAULT false"],
+];
+
+// Lead-table additive columns. Same pattern, separate list because the parent
+// table is `emails`, not advisors/advisor_profiles.
+const EMAILS_COLUMNS: [string, string][] = [
+  // W1 T9: soft-warn duplicate lead detection. Nullable; points at prior lead id.
+  ["duplicate_of_id", "integer"],
 ];
 
 type ExistsRow = { exists: boolean | null };
@@ -52,6 +61,13 @@ export async function runStartupMigrations() {
     );
   }
   console.log("[migrations] advisors columns verified");
+
+  for (const [col, def] of EMAILS_COLUMNS) {
+    await db.execute(
+      sql.raw(`ALTER TABLE emails ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    );
+  }
+  console.log("[migrations] emails columns verified");
 
   // Session table for connect-pg-simple. We create it here (instead of
   // relying on connect-pg-simple's createTableIfMissing) because that

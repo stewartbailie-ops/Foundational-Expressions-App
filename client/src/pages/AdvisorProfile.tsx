@@ -735,16 +735,19 @@ export default function AdvisorProfile() {
 
   useEffect(() => {
     if (!toolsOpen) return;
-    const fetchRates = async () => {
+    let cancelled = false;
+    // W1 T1: shared cache prevents double-fire with ForexWidget (which also
+    // hits a forex endpoint on mount) and de-dupes repeat opens within 60s.
+    (async () => {
       setErLoading(true);
-      try {
-        const res = await fetch(`https://open.er-api.com/v6/latest/${erFrom}`);
-        const data = await res.json();
-        if (data.result === "success") setErRates(data.rates);
-      } catch { /* silent */ }
-      setErLoading(false);
-    };
-    fetchRates();
+      const { getForexRates } = await import("@/lib/forexCache");
+      const rates = await getForexRates(erFrom);
+      if (!cancelled) {
+        setErRates(rates);
+        setErLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [erFrom, toolsOpen]);
 
   const profileSectionOrder = useMemo<string[]>(() => {
@@ -1304,7 +1307,7 @@ export default function AdvisorProfile() {
           {/* iOS Add to Home Screen modal */}
           {showInstallHint && (
             <div
-              className="fixed inset-0 z-50 flex items-end justify-center p-4"
+              className="fixed inset-0 z-50 flex items-end justify-center p-3 sm:p-4"
               style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
               onClick={() => setShowInstallHint(false)}
             >
@@ -1312,32 +1315,33 @@ export default function AdvisorProfile() {
                 initial={{ opacity: 0, y: 40 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
-                className="w-full max-w-sm rounded-2xl p-5 space-y-4"
+                /* W1 T2: cap at 22rem so 320px-wide phones (iPhone SE) don't
+                   overflow the modal; step text wraps via min-w-0 in row header. */
+                className="w-full max-w-[22rem] sm:max-w-sm rounded-2xl p-4 sm:p-5 space-y-3"
                 style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex items-center justify-between">
-                  <div className="font-semibold text-sm" style={{ color: tc.textColor }}>Save to Home Screen</div>
-                  <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="leading-none" aria-label="Close"><X className="h-4 w-4" /></button>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold text-sm min-w-0" style={{ color: tc.textColor }}>Save to home screen</div>
+                  <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="leading-none shrink-0" aria-label="Close"><X className="h-4 w-4" /></button>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   {isIOS ? (
                     <>
                       <Step num={1} text={`Open this page in Safari`} color={accentColor} />
-                      <Step num={2} text={`Tap the Share icon at the bottom of your screen`} color={accentColor} />
-                      <Step num={3} text={`Scroll down and tap "Add to Home Screen"`} color={accentColor} />
-                      <Step num={4} text={`Tap "Add" — the profile appears on your home screen`} color={accentColor} />
+                      <Step num={2} text={`Tap the Share button`} color={accentColor} />
+                      <Step num={3} text={`Choose "Add to Home Screen"`} color={accentColor} />
                     </>
                   ) : (
                     <>
-                      <Step num={1} text={`Tap the 3-dot menu in your browser`} color={accentColor} />
-                      <Step num={2} text={`Tap "Add to Home Screen" or "Install app"`} color={accentColor} />
-                      <Step num={3} text={`Tap "Add" to confirm`} color={accentColor} />
+                      <Step num={1} text={`Tap your browser's menu`} color={accentColor} />
+                      <Step num={2} text={`Choose "Add to Home Screen"`} color={accentColor} />
+                      <Step num={3} text={`Tap Add to confirm`} color={accentColor} />
                     </>
                   )}
                 </div>
-                <p className="text-xs" style={{ color: mutedText }}>
-                  The profile will appear as an icon on your home screen — no app store needed.
+                <p className="text-[11px] leading-relaxed" style={{ color: mutedText }}>
+                  Opens like an app from your home screen. No app store needed.
                 </p>
               </motion.div>
             </div>
@@ -1392,8 +1396,21 @@ export default function AdvisorProfile() {
             ) : null,
 
             platforms: (() => {
-              const platformIcons: Record<string, any> = { liberty: Building2, stanlib: TrendingUp, signinghub: FileCheck };
-              const visible = PLATFORMS_META.filter(p => !!(advisor as any)[p.showField]);
+              const platformIcons: Record<string, any> = { liberty: Building2, stanlib: TrendingUp, signinghub: FileCheck, myemail: Mail };
+              // W1 T3: synthesise a "My Email" tile when the advisor opts in.
+              // Kept out of shared PLATFORMS_META because its URL is per-advisor
+              // (mailto:advisor.email) rather than a fixed portal URL.
+              const myEmailTile = ((advisor as any).showMyEmail && (advisor as any).email)
+                ? [{
+                    key: "myemail",
+                    showField: "showMyEmail",
+                    name: "Email Me",
+                    description: `Open an email to ${(advisor as any).email}`,
+                    url: `mailto:${(advisor as any).email}`,
+                    colorHex: accentColor,
+                  }]
+                : [];
+              const visible = [...myEmailTile, ...PLATFORMS_META.filter(p => !!(advisor as any)[p.showField])];
               if (visible.length === 0) return null;
               return (
                 <div className="rounded-2xl p-4 space-y-3" style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-platforms">
@@ -1411,7 +1428,8 @@ export default function AdvisorProfile() {
                         <a
                           key={p.key}
                           href={p.url}
-                          target="_blank"
+                          /* mailto: links should never open a blank tab; everything else does */
+                          target={p.url.startsWith("mailto:") ? "_self" : "_blank"}
                           rel="noopener noreferrer"
                           className="block rounded-xl p-3 transition-opacity hover:opacity-90"
                           style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}

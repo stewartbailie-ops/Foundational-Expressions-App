@@ -67,6 +67,8 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   showLiberty: boolean("show_liberty").default(false),
   showStanlib: boolean("show_stanlib").default(false),
   showSigninghub: boolean("show_signinghub").default(false),
+  // W1 T3: "My Email" platform tile (opens mailto:advisor.email). Opt-in default.
+  showMyEmail: boolean("show_my_email").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   notes: text("notes"),
@@ -155,6 +157,8 @@ export const advisors = pgTable("advisors", {
   showFunFacts: boolean("show_fun_facts").default(false),
   showForex: boolean("show_forex").default(false),
   showSecondNews: boolean("show_second_news").default(false),
+  // W1 T3: "My Email" platform tile (opens mailto:advisor.email). Opt-in default.
+  showMyEmail: boolean("show_my_email").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   advisorPasswordHash: text("advisor_password_hash"),
@@ -384,6 +388,11 @@ export const emails = pgTable("emails", {
   lastViewedAt: timestamp("last_viewed_at"),
   // Set when leadStatus transitions to "Archive", cleared when transitioning out
   archivedAt: timestamp("archived_at"),
+  // W1 T9: Soft-warn duplicate detection. When a new lead matches an existing
+  // lead's phone or email for the same advisor, this points to the prior lead's
+  // id so the registry expand row can surface a non-blocking "Possible duplicate"
+  // flag. Never blocks submission — advisor decides merge vs treat-as-new.
+  duplicateOfId: integer("duplicate_of_id"),
 });
 
 export const insertEmailSchema = createInsertSchema(emails).omit({

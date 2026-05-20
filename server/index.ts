@@ -19,6 +19,25 @@ if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
 }
 
+// W1 T6: CSP Reporting API. Modern browsers prefer the `Report-To` /
+// `Reporting-Endpoints` group + the CSP `report-to` directive over the legacy
+// `report-uri`. We emit both so older Safari/Firefox builds (which still only
+// understand report-uri) keep working while modern Chromium uses the new
+// Reporting API. Our /api/csp-report endpoint already parses both payload
+// shapes (application/csp-report + application/reports+json).
+app.use((_req, res, next) => {
+  res.setHeader("Reporting-Endpoints", 'csp-endpoint="/api/csp-report"');
+  res.setHeader(
+    "Report-To",
+    JSON.stringify({
+      group: "csp-endpoint",
+      max_age: 10886400,
+      endpoints: [{ url: "/api/csp-report" }],
+    })
+  );
+  next();
+});
+
 app.use(
   helmet({
     contentSecurityPolicy: {
@@ -30,9 +49,12 @@ app.use(
         imgSrc: ["'self'", "data:", "https:"],
         frameSrc: ["https://www.google.com"],
         connectSrc: ["'self'", "https:"],
-        // CSP violation reporting (W1.4) — gives us visibility into anything legitimate
-        // being silently blocked in production. Endpoint logs to the server console.
+        // CSP violation reporting (W1.6) — both directives emitted so old + new
+        // browsers both report violations to /api/csp-report. report-uri stays
+        // as the legacy fallback; report-to points at the Reporting-Endpoints
+        // group declared in the middleware above.
         reportUri: ["/api/csp-report"],
+        reportTo: ["csp-endpoint"],
       },
     },
     crossOriginEmbedderPolicy: false,

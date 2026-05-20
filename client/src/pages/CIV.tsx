@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Search, ChevronDown, ChevronUp, Check, X, Trash2, Eye, Download } from "lucide-react";
+import { Search, ChevronDown, ChevronUp, Check, X, Trash2, Eye, Download, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
@@ -689,6 +689,19 @@ export default function CIV() {
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-1">Message</span>
                                 <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-message-${email.id}`}>{email.body}</p>
+                              </div>
+                            )}
+
+                            {/* W1 T9: soft-warn duplicate flag. Non-blocking — just surfaces
+                                that this lead's phone/email matches a prior lead for the same
+                                advisor. Advisor decides merge vs treat as new. */}
+                            {(email as any).duplicateOfId && (
+                              <div className="rounded-lg p-2.5 border border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20 flex items-start gap-2" data-testid={`dup-flag-${email.id}`}>
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                <div className="text-xs text-amber-900 dark:text-amber-200">
+                                  <span className="font-semibold">Possible duplicate.</span>{" "}
+                                  Matches an earlier lead (#{(email as any).duplicateOfId}) for this advisor on phone or email.
+                                </div>
                               </div>
                             )}
 

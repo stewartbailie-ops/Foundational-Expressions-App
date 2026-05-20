@@ -26,6 +26,8 @@ export interface IStorage {
   updateEmailOpened(id: number): Promise<Email | undefined>;
   updateEmailViewedByAdvisor(id: number): Promise<Email | undefined>;
   deleteEmail(id: number): Promise<boolean>;
+  findDuplicateLead(advisorId: number, newId: number, phone?: string | null, email?: string | null): Promise<Email | undefined>;
+  markEmailDuplicate(id: number, duplicateOfId: number): Promise<void>;
   getAdvisorStats(advisorId: number): Promise<{
     totalLeads: number;
     totalReferrals: number;
@@ -115,6 +117,8 @@ export class DatabaseStorage implements IStorage {
       showLiberty: (profile.profile as any).showLiberty,
       showStanlib: (profile.profile as any).showStanlib,
       showSigninghub: (profile.profile as any).showSigninghub,
+      // W1 T3: secondary profiles get their own My Email toggle too.
+      showMyEmail: (profile.profile as any).showMyEmail,
       showTools: (profile.profile as any).showTools,
       showToolTax: (profile.profile as any).showToolTax,
       showToolExchange: (profile.profile as any).showToolExchange,
@@ -124,9 +128,18 @@ export class DatabaseStorage implements IStorage {
       showToolVehicle: (profile.profile as any).showToolVehicle,
       showToolReality: (profile.profile as any).showToolReality,
       showToolLatte: (profile.profile as any).showToolLatte,
+      // M6 + W1 review-fix: these per-secondary toggles were stored in the DB
+      // and writable from the editor, but the slug mapper wasn't including them
+      // — secondary profiles fell back to undefined and didn't render correctly.
+      showToolBond: (profile.profile as any).showToolBond,
+      showToolEmergency: (profile.profile as any).showToolEmergency,
+      showToolLifeCover: (profile.profile as any).showToolLifeCover,
+      showToolDebt: (profile.profile as any).showToolDebt,
       showInteractive: (profile.profile as any).showInteractive,
       showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze,
       showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite,
+      showShowpieceInflation: (profile.profile as any).showShowpieceInflation,
+      showShowpieceWaiting: (profile.profile as any).showShowpieceWaiting,
       showEmergencyContacts: (profile.profile as any).showEmergencyContacts,
       // ── End per-secondary toggles ──
       facebookUrl: profile.profile.facebookUrl,
@@ -239,6 +252,7 @@ export class DatabaseStorage implements IStorage {
         firstViewedAt: emails.firstViewedAt,
         lastViewedAt: emails.lastViewedAt,
         archivedAt: emails.archivedAt,
+        duplicateOfId: emails.duplicateOfId,
         advisorName: advisors.name,
       })
       .from(emails)
@@ -373,6 +387,33 @@ export class DatabaseStorage implements IStorage {
   async deleteEmail(id: number): Promise<boolean> {
     const [deleted] = await db.delete(emails).where(eq(emails.id, id)).returning();
     return !!deleted;
+  }
+
+  // W1 T9: Soft-warn duplicate lead detection.
+  // Find the most recent prior lead for this advisor that matches on phone or
+  // email (case-insensitive, ignoring blanks). Returns undefined if none found.
+  // Caller is responsible for excluding the newly-inserted lead via newId.
+  async findDuplicateLead(advisorId: number, newId: number, phone?: string | null, email?: string | null): Promise<Email | undefined> {
+    const phoneClean = (phone || "").trim();
+    const emailClean = (email || "").trim().toLowerCase();
+    if (!phoneClean && !emailClean) return undefined;
+    const conditions: any[] = [];
+    if (phoneClean) conditions.push(sql`${emails.clientPhone} = ${phoneClean}`);
+    if (emailClean) conditions.push(sql`lower(${emails.senderEmail}) = ${emailClean}`);
+    const orClause = conditions.length === 1
+      ? conditions[0]
+      : sql`(${conditions[0]} OR ${conditions[1]})`;
+    const [match] = await db
+      .select()
+      .from(emails)
+      .where(sql`${emails.advisorId} = ${advisorId} AND ${emails.id} != ${newId} AND ${orClause}`)
+      .orderBy(desc(emails.receivedAt))
+      .limit(1);
+    return match;
+  }
+
+  async markEmailDuplicate(id: number, duplicateOfId: number): Promise<void> {
+    await db.update(emails).set({ duplicateOfId }).where(eq(emails.id, id));
   }
 
   async getDashboardStats() {

@@ -99,6 +99,8 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showToolBond", "showToolEmergency", "showToolLifeCover", "showToolDebt",
   "showMoneywebFeed", "showEmergencyContacts",
   "showLiberty", "showStanlib", "showSigninghub",
+  // W1 T3: My Email tile — must be public so the profile page can render it.
+  "showMyEmail",
   "showFunFacts", "showForex", "showSecondNews",
   "patternOpacity", "profileSectionOrder", "active",
   "bookingUrl",
@@ -457,11 +459,19 @@ export async function registerRoutes(
   });
 
   app.delete("/api/advisors/:id/profiles/:profileId", async (req, res) => {
+    // W1 T8: Secondary profiles are NOT independently deletable. They cascade
+    // away only when their parent advisor is deleted (see storage.deleteAdvisor).
+    // Master-admin sessions retain the override so support can still clean up
+    // orphans, but advisors cannot delete their own secondary profiles from the
+    // panel — only edit them. UI hides the button; this is the defence in depth.
+    const isAdmin = !!(req.session as any)?.authenticated;
+    if (!isAdmin) {
+      return res.status(400).json({
+        message: "Secondary profiles cannot be deleted individually. Remove the advisor to remove all their profiles.",
+      });
+    }
     const advisorId = Number(req.params.id);
     const profileId = Number(req.params.profileId);
-    if (!(await canAccessAdvisor(req, advisorId))) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
     // Prevent IDOR: profileId must belong to this advisorId.
     const owned = await storage.getAdvisorProfiles(advisorId);
     if (!owned.some((p) => p.id === profileId)) {
@@ -792,6 +802,12 @@ export async function registerRoutes(
         sourceProfileSlug: data.sourceProfileSlug,
       });
 
+      // W1 T9: soft-warn duplicate detection. Non-blocking — just attaches a flag.
+      try {
+        const dup = await storage.findDuplicateLead(data.advisorId, email.id, data.clientPhone, data.clientEmail);
+        if (dup) await storage.markEmailDuplicate(email.id, dup.id);
+      } catch (dupErr) { console.warn("[dup-detect] referral:", dupErr); }
+
       const advisor = await storage.getAdvisor(data.advisorId);
       if (isSendGridConfigured()) {
         try {
@@ -897,6 +913,12 @@ export async function registerRoutes(
         source: data.source,
         sourceProfileSlug: data.sourceProfileSlug,
       });
+
+      // W1 T9: soft-warn duplicate detection.
+      try {
+        const dup = await storage.findDuplicateLead(data.advisorId, email.id, data.clientPhone, data.clientEmail);
+        if (dup) await storage.markEmailDuplicate(email.id, dup.id);
+      } catch (dupErr) { console.warn("[dup-detect] callback:", dupErr); }
 
       const advisor = await storage.getAdvisor(data.advisorId);
       if (isSendGridConfigured()) {
@@ -1005,6 +1027,12 @@ export async function registerRoutes(
         source: data.source || "will-form",
         sourceProfileSlug: data.sourceProfileSlug,
       });
+
+      // W1 T9: soft-warn duplicate detection. Will requests use phone + email.
+      try {
+        const dup = await storage.findDuplicateLead(data.advisorId, email.id, data.phone, data.email);
+        if (dup) await storage.markEmailDuplicate(email.id, dup.id);
+      } catch (dupErr) { console.warn("[dup-detect] will-request:", dupErr); }
 
       const advisor = await storage.getAdvisor(data.advisorId);
       if (isSendGridConfigured()) {
