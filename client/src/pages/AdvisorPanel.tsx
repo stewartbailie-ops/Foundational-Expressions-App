@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useRoute, useLocation } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus } from "lucide-react";
@@ -6795,6 +6796,9 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
 }
 
 function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  // Premium gate (Task #26): secondary profiles are Premium-only per the
+  // agreed tier-split. Trial advisors get full access until trialEndsAt.
+  const { isPremium: isPremiumActive } = usePremium();
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
@@ -6823,7 +6827,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   });
 
   const totalProfiles = 1 + additionalProfiles.length;
-  const canAddMore = totalProfiles < 2 && !showNewForm;
+  const canAddMore = totalProfiles < 2 && !showNewForm && isPremiumActive;
 
   return (
     <div className="space-y-4">
@@ -6937,6 +6941,21 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
       {!canAddMore && !showNewForm && totalProfiles >= 2 && (
         <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
           Maximum 2 profiles reached. Delete one to add a new profile.
+        </div>
+      )}
+
+      {!isPremiumActive && totalProfiles < 2 && !showNewForm && (
+        <div className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-secondary-profile-premium-gate">
+          <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: tc.mutedText }} />
+          <div className="flex-1">
+            <div className="text-sm font-semibold mb-1" style={{ color: tc.textColor }}>Secondary profile is a Premium feature</div>
+            <p className="text-xs mb-3" style={{ color: tc.mutedText }}>
+              Run a second branded profile for a different audience — corporate vs personal, English vs Afrikaans, your choice. Upgrade to unlock.
+            </p>
+            <a href="?tab=billing" className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: tc.accentColor }} data-testid="link-upgrade-from-profiles">
+              View plans <ArrowRight className="h-3 w-3" />
+            </a>
+          </div>
         </div>
       )}
     </div>

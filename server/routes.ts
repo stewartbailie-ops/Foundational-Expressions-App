@@ -476,6 +476,17 @@ export async function registerRoutes(
     if (!(await canAccessAdvisor(req, advisorId))) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+    // Premium gate: secondary profiles are a Premium-only feature per the
+    // agreed tier-split (Stewart + Friday + Claude, 16 May 2026). Admin
+    // sessions bypass the gate so support can still provision profiles.
+    const isAdmin = !!(req.session as any)?.authenticated;
+    if (!isAdmin) {
+      const { isPremiumActive } = await import("@shared/schema");
+      const gateAdvisor = await storage.getAdvisor(advisorId);
+      if (!gateAdvisor || !isPremiumActive(gateAdvisor)) {
+        return res.status(402).json({ message: "Secondary profiles require a Premium subscription", tier: gateAdvisor?.subscriptionTier ?? "trial" });
+      }
+    }
     const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId });
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
@@ -2132,7 +2143,7 @@ export async function registerRoutes(
       hasSubscription: !!advisor.paystackSubscriptionCode,
       premiumActive: isPremiumActive(advisor),
       basicOrBetter: isBasicOrBetter(advisor),
-      paystackConfigured: !!process.env.PAYSTACK_SECRET_KEY,
+      paystackConfigured: (await import("./paystack")).isPaystackConfigured(),
     });
   });
 
