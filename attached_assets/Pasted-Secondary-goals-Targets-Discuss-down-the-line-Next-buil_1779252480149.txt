@@ -1,0 +1,83 @@
+Secondary goals / Targets Discuss down the line: Next build sessions 
+	1. A real updating widget is not achievable through a web app - Need App form? 
+	2. Social media platforms (Business focus/approach) Instagram, LinkedIn, YouTube, WhatsApp Channel
+	3. Add Website: split public/advisor landing - As per Clauds re-view & feedback (Notes below) - As per re-structure PDF Document (Stew send PDF Document upon request/planned build)
+	4. NFC tap-to-share not possible for Apple & for Android requires a native Android App. 
+	5. Discuss the Astute online (Single user - Multiple users) - Need  state & bank details (Stew reach out to Vergil, draft mail - Need bank details/NDA signed
+	6. Add a "Book appointment" Option (Check all previous notes)
+	7. Build in the "My Clients" New tab/section in the advisor's sub-control panel; + Full POPIA build 
+		○ Promote/Move a lead from the Registry into their personal Clients list (How can the Master Control Panel show/indicate/View what leads are in who's "My Clients" Tab - In Progress
+		○ The client get a unique code (They download the App) - Link to their advisor (Discuss options) - Client Portal - In Progress
+		○ A linked display on the Advisors sub-control panel home - Displaying; Clients birthdays that day - Review/Follow up's - Messages or requests from the clients) - Complete
+		○ Upload and store that client's policy documents (Both ways)  "Book of Life" - [Latest Will & Testimony | Medical Aid Details | Short term insurance | Long term insurance | Life Cover | Risk Cover | Corporate Benefits | Investments | Savings accounts] - Complete
+		○ View a clean client profile with history - with additional details (Where the advisor can in-put the details) Listed below [ID Number | Income range | Payslip Uploaded | Residential Address | Proof of Address Uploaded | Bank Details | Marital Status | Employer | Occupation | Next of Kin details | All Contact Details | SARS Tax Number] - Complete
+
+Additional elements/options to Implement: Build Later Stage:
+Daily Game of the Day; Gives visitors a reason to return to the advisor's profile every day, which is genuinely rare for a financial platform. (Add a high-score somewhere maybe?)
+	• Sudoku - Best choice to start. Library exists, seed-based (same puzzle everyone gets on Monday, different on Tuesday), no server cost
+	• Wordle-style daily word - Actually better than crossword. Lower complexity, massive cultural familiarity right now
+	• Daily Finance Trivia - question (finance/investment themed) would be incredible here — same "sticky daily" mechanic but reinforces the advisor's expertise. "Which SA company became the first to list on the JSE in 1887?" One question, reveal at midnight.
+
+Meeting Recording & Summary; The most ambitious item and also the most valuable for advisors. The tech is real, browser records audio via MediaRecorder API, uploads to OpenAI Whisper for transcription, GPT summarises into action items. But there's a FAIS/POPIA blocker: you legally need explicit verbal consent before recording a client. So the UI needs a "Recording — client has given consent" confirmation step before it starts. This is a premium feature worth gating behind a paid tier eventually.
+
+Investment section: latest Smarty Box & Chosen preferred fund fact sheets (Zeeman needs to send latest Smartie Box and a number of fund-fact sheets please) Fund Fact Sheets Very SA. Allan Gray, Coronation, Ninety One, Sanlam, Discovery Invest - all produce monthly PDFs.
+	• Simple: Advisor pastes a URL link to the fund house's own PDF — we just display it as a card
+	• Full: Advisor uploads their own curated PDFs — needs file storage (Cloudinary or similar)
+
+Editors Comment / Article (Very Strong Impact). This is a mini-blog on the advisor's profile - they write a market commentary or personal finance article, it shows as a featured section visitors see when they land. Massive for SEO, massive for WhatsApp sharing ("Check out what my advisor wrote about the budget speech"), massive for establishing expertise. Rich text editor, one featured article at a time, stored in DB. Medium build (3-4 hrs).
+
+Risk Profile Quiz (Per document sent from Zeeman)
+	• 6-8 questions, visitor gets a risk score (Conservative / Moderate / Aggressive)
+	• Score is included with their lead submission
+	• Advisor immediately knows the quality and nature of the lead
+	• This is used by every major SA fund house (Advisors know exactly what it is)
+	• Huge competitive differentiator
+
+Weekly Financial Report (Advisory Connect | Weekly Brief | Financial News) Full brainstorm (Including Zeeman's Example) - who receives it? (The target audience) - As a copy to share & a subscription, automatically e-mailed (With option to unsubscribe) - It's the feature that makes the whole ecosystem
+	• Option A — The advisor receives it (practice summary: new leads this week, profile views, game stats)
+	• Option B — The advisor's clients/leads receive it (market wrap, keep the advisor top-of-mind)
+		a. Additional feedback needed; 
+			i. Report sent when; (Date & Time)
+				□ Friday; JSE and global markets close for the weekend (Full week's data is available) / "Week in review" framing is natural and people expect financial wrap-ups on Fridays / People are in a reflective, wind-down mood / 3pm or 4pm is the sweet spot (After markets close, before the weekend starts)
+				□ Monday; Per Zeeman's example / "what to watch this week" / Monday in boxes are brutal
+		b. Content sections (what goes in it) - All Auto-generated (With the advisors details) 
+			§ OPENING GREETING | Opening Greeting Warm, personal, day-appropriate. Advisor's name/brand.
+			§ MARKETS THIS WEEK | JSE All Share  +1.2% - ZAR / USD R18.42 / Gold $2,380 / oz / SA 10yr Bond 9.84%
+			§ FROM MY DESK | 2–3 sentences the advisor writes (AI-drafted, advisor-approved?) — their personal take on the week. This is the most valuable part - it's personal.
+			§ SA FINANCIAL NEW | 2–3 curated local stories (JSE events, SARB, major company news). Short bullet format
+			§ GAME OF THE WEEK (LEADERBOARD) | 1. Sarah M. 2,847 pts 2. James T. 2,340 pts (People love to see their name and are naturally competitive) 
+			§ DID YOU KNOW | One fun/surprising fact — SA-focused where possible "The Garden Route is the world's best road trip..."
+			§ TIP OF THE WEEK | One financial education tip
+			§ COMING UP | SARB MPC Decision: 22 May / Provisional Tax Deadline: 31 Aug
+			§ FEEL GOOD SECTION | Good News from Around the World 3–4 positive global or SA stories. The most forwarded section. Ends the email on a high.
+			§ FOOTER | [ADVISOR NAME]'S WEEKLY BRIEF - Friday, 16 May 2025 - View my profile - Unsubscribe link mandatory in every send - FAIS disclaimer
+
+Security for client PII. 
+Storing ID numbers, payslips, bank details, and policy documents puts us deep into POPIA "special personal information" territory. The minimum should be:
+	• Encryption at rest for ID number, bank details, tax number — column-level AES via a key from a new PII_ENCRYPTION_KEY secret. Server decrypts on read.
+	• Encrypted file storage for uploaded documents — files at rest are encrypted, only the advisor who owns the client can fetch.
+	• Audit log — every read/write of sensitive PII gets a row in an audit table (who, what, when, IP). POPIA requires this.
+	• Per-advisor isolation — backend queries hard-scope to clientRecord.advisorId === session.advisorId. No client document ever returnable to a different advisor.
+	• Consent capture — when a lead is promoted to a client, capture explicit consent ("This advisor may store my personal documents"). Datestamp + IP.
+	• Delete-on-request — POPIA right-to-erasure. We need a "permanently delete client" path that wipes encrypted data and audit-logs the deletion event itself.
+	• One additional consideration: Stripe's South Africa onboarding requires a SA-registered business with a SA bank account linked — confirm those details are in order before the build session
+
+Security session (Flag anything missing please) - The app has zero proper indexes today, no caching layer, no async job queue.
+	1. Discuss the scaling cliff - How can we stress test this to the max? (Works at scale | What are our limits)
+		a. Data base queries with proper indexing 
+		b. What's our caching strategy? 
+		c. Do we need async processing?
+		d. 12 pre-existing TS errors in routes.ts / sendgrid.ts / schema.ts (unrelated to tonight, flag for a cleanup pass)
+		e. How can we run load-testing? (Simulated traffic - Logged
+
+Professional development report for Chris (Claude & Friday In-put) - At the end 
+	• Full report needed: time, effort, meetings, dates, duration, tools used
+	• To be professionally presented
+	• Build from consolidated notes + session history
+Combined output per active day: 1,070 lines of code/day | 11–12 hours/day
+Project span	25 Feb - 14 May 2026	-11 weeks	-11 weeks
+Active build days	37	37	37
+Total commits shipped	412	210	622
+Lines of code added	-39,600	-39,600	-39,600
+Files created / modified	818	818	818
+Estimated hours	+270-295 hrs	+135–150 hrs	-405–445 hrs

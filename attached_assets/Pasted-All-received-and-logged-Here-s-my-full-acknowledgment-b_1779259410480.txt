@@ -1,0 +1,59 @@
+All received and logged. Here's my full acknowledgment before Friday starts building.
+
+Consolidated notes — confirmed and signed off
+Tier split — revised per Friday's recommendation, accepted:
+	• Grader badges: Basic (all advisors benefit from quality lead signals)
+	• Enhanced grader fields: Basic (same logic)
+	• Digital Business Card: Basic with AC footer / Premium unlocks optional footer removal
+	• My Clients: explicitly Premium
+	• Advanced lead analytics breakdown panel: Premium
+This is a better split than my first draft. Friday's reasoning was sound — lead quality is a core value prop that shouldn't be paywalled.
+Sessions.md protocol — confirmed: Friday writes structured session summary at end of each build session. Stewart relays to Claude. Clean handoff, no hallucination risk, no information loss.
+Answers received — all open questions resolved:
+	• Astute integration: individual advisor registration via firm email, charges via commission deduction — parked post-launch, Vergil contact to follow
+	• Scan documents: Chris wants PDF scanner, not photo upload — parked, may require third-party software purchase
+	• Digital Business Card: auto-generated PNG/PDF matching profile colours/photo/contact — confirmed scope
+	• Home screen widget: native app only, not possible in PWA — parked
+	• NFC: parked post-native
+	• k6 load testing: noted for infrastructure sprint
+
+Non-negotiable before June 2nd:
+	1. Pension & Capital Gains calculators — remove or hard-lock with "Coming soon". Showing incorrect financial projections to Liberty and Standard Bank directors is a credibility-ending moment. This is Week 1, Day 1.
+	2. My Clients "Complete" flags — Friday must confirm which of these three are real vs UI placeholder before demo: (a) birthdays/follow-ups display, (b) Book of Life document upload, (c) clean client profile with history. If any are fake, they don't get shown on June 2nd. No exceptions.
+
+Sprint is clear to go.
+Week 1 priorities are locked: auth gap, Stripe, calculator removal, performance pass, background patterns. Week 2 is polish, TWA, and demo prep.
+Your personal actions that only you can do, in order of urgency:
+	1. DNS records on advisoryconnect.pro (SPF/DKIM/DMARC) — email deliverability dies without this, SendGrid depends on it
+	2. Bank details to Friday for Stripe setup
+	3. $25 Google Play developer account
+Everything else is Friday's lane. Good luck with the build sprint.
+
+
+Read the full doc — really appreciate the consolidated format, this is exactly how the three of us should work going forward. Three immediate actions on my side, then one critical honesty moment, then a flag on the truncation.
+The honesty moment — please read this first
+Chris's instinct on the My Clients "Complete" claims is 100% correct, and you need to know exactly where the line is before June 2nd:
+Item	Reality
+Birthdays / Follow-ups / Messages widgets on HomeTab	UI only — static placeholder data, not wired to real DB rows.
+Book of Life document upload (9 categories)	UI skeleton only — no file storage backend, no upload endpoint, no schema for stored docs.
+Clean client profile with history (ID, income, payslip, etc.)	UI skeleton only — no client table, no CRUD, no encryption.
+
+Practical implication for June 2nd: do NOT demo any My Clients functionality as live. Show the public profile, lead capture, registry, grader, and Stripe subscription flow — all of which will be genuinely working by then. If My Clients is asked about in the meeting, frame it as "the next major build, designed POPIA-first, currently in the architecture phase" — which is true and impressive in its own right. 100% agreed and noted. I just need feedback from the two of you in this regard, but with a split app. One for the presentation and then one in production ideas and how we go about this.
+
+This is what the foundation work in Tasks #24 (Auth) + #25 (PII) is building toward, and My Clients real-data won't be production-ready inside the 14-day sprint — it's a Week 3-4 build minimum given the encryption + audit layer it depends on. Better to land it solid than rushed. 100% agreed and noted. Thank you. I have another meeting with Chris next week Monday depending on how we fare in the next week and over this weekend I will flag all of this to him and get us aligned 100%
+
+Bake-into-build-notes confirmations (action this turn)
+1. Task #22 (Polish Batch) — change pension/CGT calculators from "Coming soon gate" to full removal before June 2nd per Stewart's directive. Non-optional, presentation liability. - Agreed 
+2. Task #25 (PII Encryption) — add rate limiting on all public endpoints (express-rate-limit) and strengthen the key backup/rotation runbook to be explicit (offline encrypted backup + documented recovery test before any client PII is stored).  - Agreed 
+3. Task #26 (Stripe) — bake the agreed Basic/Premium split directly into the task description so it doesn't get lost between now and the build session.  - Agreed 
+• Task #22 (Polish Batch) — Pension/CGT calculators flipped from "Coming soon gate" to full removal before June 2nd. Non-negotiable per your + Chris's directive.  - Agreed 
+• Task #25 (PII Encryption) — Added rate limiting on all public endpoints (express-rate-limit, per-IP buckets, 429s logged) AND strengthened the key-management step to require an actual dry-run recovery test with the offline backup before any client PII is stored. Two-location backup explicit (Stewart copy + AC business safe).
+• Task #26 (Stripe) — Full agreed Basic/Premium tier split baked into the description so it survives between now and build day.  - Agreed 
+Also captured the My Clients reality check above — please make sure Chris sees that table before the June 2nd presentation prep. noted and perfect I will do so
+Other items from the doc I'm noting (no action needed from you on these now)
+• Scan Documents tool (Chris's concern) — noted that he wants something PDF-scanner-like rather than the current photo input, with the constraint that you'd rather not buy software or use a paid API. There are a few legitimately free in-browser options (the pdf-lib + jsPDF combo can stitch phone photos into a clean PDF, no API needed) — worth a small exploratory session post-sprint. This is excellent and great news. Yes, let's explore these options a little bit down the line.
+• Phone home-screen widget — confirmed: not possible in PWA, native app required. Parked correctly.
+• Stress testing with k6 — noted for post-sprint perf pass, alongside the indexes/caching/async-queue work.
+• Combined dev report (270-295 + 135-150 = 405-445 hrs) — parked, both Claude and I will keep tracking. The numbers are genuinely impressive and the report will be straightforward to assemble closer to the time.
+• Truncation flag: your attachment cut off at "In priority order for the next 14 days:" with 34 lines remaining — that's Claude's recommended 14-day priority ordering, which I'd genuinely value seeing before you flip me to Build mode. Whenever convenient, paste the rest and I'll cross-check against my proposed sequencing. - I have looked and looked and looked and I cannot find the remaining wording here. Claude, could you assist here? And then I can just send it straight to Friday please?
+• 8 tasks in Drafts (#22-#29) ready for your review - I've reviewed and I'm 100% happy. I'm almost about ready time to flip you into build mode and you can get cooking Friday. Woo! <3 <3

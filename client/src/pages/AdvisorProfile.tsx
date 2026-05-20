@@ -654,13 +654,6 @@ export default function AdvisorProfile() {
   const [ciRate, setCiRate] = useState("8");
   const [ciYears, setCiYears] = useState("10");
   const [ciMonthly, setCiMonthly] = useState("500");
-  const [penBalance, setPenBalance] = useState("50000");
-  const [penMonthly, setPenMonthly] = useState("2000");
-  const [penRate, setPenRate] = useState("9");
-  const [penYears, setPenYears] = useState("20");
-  const [cgtSalePrice, setCgtSalePrice] = useState("500000");
-  const [cgtCostBase, setCgtCostBase] = useState("300000");
-  const [cgtIncome, setCgtIncome] = useState("25000");
   const [vehPrice, setVehPrice] = useState("350000");
   const [vehDeposit, setVehDeposit] = useState("70000");
   const [vehRate, setVehRate] = useState("11.75");
@@ -1675,33 +1668,12 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolTax !== false && "tax",
                 (advisor as any).showToolExchange !== false && "exchange",
                 (advisor as any).showToolCompound !== false && "compound",
-                (advisor as any).showToolPension !== false && "pension",
-                (advisor as any).showToolCgt !== false && "cgt",
                 (advisor as any).showToolVehicle !== false && "vehicle",
                 (advisor as any).showToolBond !== false && "bond",
                 (advisor as any).showToolEmergency !== false && "emergency",
                 (advisor as any).showToolLifeCover !== false && "lifecover",
                 (advisor as any).showToolDebt !== false && "debt",
               ].filter(Boolean) as string[];
-
-              // Pension calc
-              const penB = parseFloat(penBalance) || 0, penM = parseFloat(penMonthly) || 0;
-              const penR = parseFloat(penRate) / 100, penY = parseFloat(penYears) || 1;
-              const penN = 12;
-              const penFV = penB * Math.pow(1 + penR / penN, penN * penY)
-                + (penR > 0 ? penM * ((Math.pow(1 + penR / penN, penN * penY) - 1) / (penR / penN)) : penM * penN * penY);
-              const penContrib = penB + penM * penN * penY;
-
-              // CGT calc (SA 2024/25 — individuals)
-              const cgtGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - (parseFloat(cgtCostBase) || 0));
-              const cgtAnnualExclusion = 50000;
-              const cgtNet = Math.max(0, cgtGain - cgtAnnualExclusion);
-              const cgtInclusion = cgtNet * 0.4; // 40% inclusion rate
-              const cgtAnnualInc = (parseFloat(cgtIncome) || 0) * 12;
-              const cgtTaxable = cgtAnnualInc + cgtInclusion;
-              const cgtTaxFull = (() => { const TAX_B = [{min:0,max:237100,rate:0.18,base:0},{min:237101,max:370500,rate:0.26,base:42678},{min:370501,max:512800,rate:0.31,base:77362},{min:512801,max:673000,rate:0.36,base:121475},{min:673001,max:857900,rate:0.39,base:179147},{min:857901,max:1817000,rate:0.41,base:251258},{min:1817001,max:Infinity,rate:0.45,base:644489}]; let g=0; for(const b of TAX_B){if(cgtTaxable>=b.min)g=b.base+(Math.min(cgtTaxable,b.max)-b.min)*b.rate;} return Math.max(0,g-17235); })();
-              const cgtTaxBase = (() => { const TAX_B = [{min:0,max:237100,rate:0.18,base:0},{min:237101,max:370500,rate:0.26,base:42678},{min:370501,max:512800,rate:0.31,base:77362},{min:512801,max:673000,rate:0.36,base:121475},{min:673001,max:857900,rate:0.39,base:179147},{min:857901,max:1817000,rate:0.41,base:251258},{min:1817001,max:Infinity,rate:0.45,base:644489}]; let g=0; for(const b of TAX_B){if(cgtAnnualInc>=b.min)g=b.base+(Math.min(cgtAnnualInc,b.max)-b.min)*b.rate;} return Math.max(0,g-17235); })();
-              const cgtTaxDue = Math.max(0, cgtTaxFull - cgtTaxBase);
 
               // Vehicle finance calc
               const vehP = (parseFloat(vehPrice) || 0) - (parseFloat(vehDeposit) || 0);
@@ -1762,8 +1734,6 @@ export default function AdvisorProfile() {
                           {toolKey === "tax" && <><TrendingUp className="h-3.5 w-3.5" /> SA Tax Calculator</>}
                           {toolKey === "exchange" && <><Calculator className="h-3.5 w-3.5" /> Exchange Rate Converter</>}
                           {toolKey === "compound" && <><TrendingUp className="h-3.5 w-3.5" /> Compound Interest</>}
-                          {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Savings</>}
-                          {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
                           {toolKey === "vehicle" && <><Calculator className="h-3.5 w-3.5" /> Vehicle Finance</>}
                           {toolKey === "bond" && <><Calculator className="h-3.5 w-3.5" /> Bond / Home Loan</>}
                           {toolKey === "emergency" && <><Calculator className="h-3.5 w-3.5" /> Emergency Fund</>}
@@ -1873,75 +1843,6 @@ export default function AdvisorProfile() {
                                     <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
                                   </div>
                                 ))}
-                              </div>
-                            </>
-                          )}
-                          {toolKey === "pension" && (
-                            <>
-                              <p className="text-xs" style={{ color: mutedText }}>Estimate your retirement fund value based on current savings and monthly contributions.</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Current Balance (R)</label>
-                                  <input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} style={is} data-testid="input-tool-pen-balance" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Contribution (R)</label>
-                                  <input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} style={is} data-testid="input-tool-pen-monthly" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Annual Growth Rate (%)</label>
-                                  <input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} style={is} data-testid="input-tool-pen-rate" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Years to Retirement</label>
-                                  <input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} style={is} data-testid="input-tool-pen-years" />
-                                </div>
-                              </div>
-                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
-                                {[
-                                  { label: "Projected Fund Value", val: `R ${penFV.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
-                                  { label: "Total Contributed", val: `R ${penContrib.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
-                                  { label: "Growth Earned", val: `R ${(penFV - penContrib).toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
-                                ].map(({ label, val, accent }) => (
-                                  <div key={label} className="flex justify-between text-xs">
-                                    <span style={{ color: mutedText }}>{label}</span>
-                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
-                                  </div>
-                                ))}
-                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — excludes inflation, tax, and fund charges.</p>
-                              </div>
-                            </>
-                          )}
-                          {toolKey === "cgt" && (
-                            <>
-                              <p className="text-xs" style={{ color: mutedText }}>Estimate SA Capital Gains Tax payable when selling an asset (2024/25).</p>
-                              <div className="space-y-2">
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Sale Price (R)</label>
-                                  <input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} style={is} data-testid="input-tool-cgt-sale" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Cost Base / Purchase Price (R)</label>
-                                  <input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} style={is} data-testid="input-tool-cgt-cost" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Income (R)</label>
-                                  <input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} style={is} data-testid="input-tool-cgt-income" />
-                                </div>
-                              </div>
-                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
-                                {[
-                                  { label: "Capital Gain", val: `R ${cgtGain.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
-                                  { label: "Annual Exclusion", val: `R ${cgtAnnualExclusion.toLocaleString("en-ZA")}` },
-                                  { label: "Taxable Gain (40% inclusion)", val: `R ${cgtInclusion.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}` },
-                                  { label: "Estimated CGT Payable", val: `R ${cgtTaxDue.toLocaleString("en-ZA", { minimumFractionDigits: 2 })}`, accent: true },
-                                ].map(({ label, val, accent }) => (
-                                  <div key={label} className="flex justify-between text-xs">
-                                    <span style={{ color: mutedText }}>{label}</span>
-                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
-                                  </div>
-                                ))}
-                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Estimate only — primary residence exclusion and other deductions not included.</p>
                               </div>
                             </>
                           )}

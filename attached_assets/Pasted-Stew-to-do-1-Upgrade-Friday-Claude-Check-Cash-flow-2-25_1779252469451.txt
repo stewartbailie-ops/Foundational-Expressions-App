@@ -1,0 +1,66 @@
+Stew to-do; 
+	1. Upgrade Friday & Claude (Check Cash-flow)
+	2. $25 developer account registration
+	3. Discuss all notes with Claude/Friday - Make necessary changes/plans - Close off complete task list 
+	4. Update Company Budget (New Payments Received - Month End Debits)
+	5. Shift all subscription Debits over to Company Account? (How?!)
+	6. Foundational Expressions (Erica's project) - Stew chat with Friday 
+	7. Day-log - Stew chat with Claude 
+
+Discuss with team; 
+	1. Key Upcoming Dates; May 31 Prep meeting at Chris's residence (Still to confirm) - Review/Practise  presentation | June 2 Presentation (Confirm on-line / In-person)
+	2. Pension & Capital Gains Calculators not correct (Check / Update)
+	3. Make the secondary profile un-delete able (Discuss with team)
+	4. Stop cooking Financial Facts - Some are incorrect (Leave all as-is for now)
+	5. Before launch - Switch back to reserved VM (Discuss costs / Upkeep)
+	6. White Collared Approach (Structured Proposal) - Can negate our advisor codes/Astute Issues (Stew explain)
+	7. Upgrade Scan documents link (Discuss options) - Need to purchase the software?
+	8. Arrange Company Contact Number [082/084/072 - 2666328 C-O-N-N-E-C-T]
+	9. Documentation & Handover Package 
+	10. Play Store TWA Submission - Generate the Trusted Web Activity wrapper using PWABuilder (advisoryconnect.pro manifest is already clean). Outstanding checklist: assetlinks.json domain verification file, Play Developer account ($25), app screenshots, Privacy Policy URL (already live). Produce a step-by-step submission checklist.
+	11. Optimization for users at launch; Confirm (After Presentation) - Launch numbers = Listed below current possible client base - Target 1000 users (6-8 Months) 
+		a. Blue Asset (80 Users) 
+		b. Envestpro (120 Users) 
+		c. Discovery [Darion] - (350 Users) 
+		d. Sanlam [Stan Leur | Jacques] - (100 Users) 
+		e. Liberty Agency - (350 Users)
+
+Primary goals / Targets - Build Notes; (Run security agent once targets hit)
+	1. Profile button cleanup (Image generator) - Stew illustrate - Explain the share to socials goal here (Digital Business Card Auto-generated Per-profile)
+	2. New back-ground pattern request/suggestion (Send Friday options) Friday select x8 suggested patterns (Friday request Clauds notes should she wish) - Build in & test x8 (Confirm quality decent?) - Remove/Keep current background Pattern?
+	3. Build subscription service (Confirmed Stripe) - Stew register account? (Send bank details to Friday) - (Two Options; Basic = R299.00 p/m & Premium R499.00 p/m + 14 Days Free Trail Period) - Discuss with team: Are these prices fair? | Please send suggestions for features split (Basic to Premium)
+	4. Auth gap on lead endpoints — /api/emails GET/grade/status/open/DELETE unprotected. Bigger task, needs advisor-session auth design first (Large fix)
+	5. Performance 58 --> 80+ Lighthouse mobile (font self-hosting, lazy-loading, cache headers, JS trim). Bigger session of its own (Large fix)
+	6. ID Assigned (Linked to contact number / ID?) - a soft-warn approach is friendliest — when a lead is submitted with a phone number or ID that already exists for that advisor, flag it as a likely duplicate rather than hard-blocking. Advisors can then decide whether it's genuinely the same person or a coincidence. Hard-blocking risks losing real leads from family members sharing a number.
+	7. Bare/www --> app. 301 redirects — finishes the SEO consolidation we started (Large fix)
+	8. Investigate mystery e4282ae... branch — to stop it re-merging old code into main (low priority, probably an old laptop checkout - Small fix)
+	9. Heavy work needed on the upload profile picture (Profile edit card) - Focus the cropping function (Not currently working)
+	10. Remove duplicate forex API call (Forex Exchange Rates) - Discuss options here?
+	11. Email DNS Authentication (Admin/DNS — Stewart action) Set up SPF, DKIM, and DMARC records on advisoryconnect.pro to prevent email spoofing and ensure SendGrid emails land in inboxes rather than spam. (High priority - 24/48 Hrs)
+	12. CSP Production Monitoring - Add a CSP report-uri or report-to directive to the Helmet config so any legitimate content blocked in production is logged and visible rather than silently failing.
+	13. Localisation Review - Audit all user-facing wording across the app — dropdowns, form labels, button text, error messages — and confirm SA English consistency ahead of final deployment. (Afrikaans & Zulu translations need to be checked/confirmed through-out.)
+	14. Neaten up and re-size wording for "Save to home page" Under Profile settings 
+	15. Add a Link to "My Email" ( Under My Platforms) - Discuss options here (Limitations)
+	16. Additional elements/options to Implement: (Zeeman's mail & WhatsApp's) Build In Now:
+		a. Trading Charts - This exists for free via TradingView embeds - they have a free widget that displays any ticker, JSE included, with full interactive charts. Advisors could choose which instruments to show: JSE All Share, ZAR/USD, gold price, a favourite ETF. Very high value, very low build cost using embeds.
+		b. Daily Famous Quotes; (Easy win.) Static array of 365 quotes sorted by day-of-year, zero API needed. My add: let the advisor toggle between general inspirational vs investment/finance quotes (Buffett, Munger, Graham, etc.) - Reinforce their brand better.
+		c. Financial Calculators on the public profile
+			§ Compound interest calculator
+			§ Retirement savings calculator ("How much do I need to retire?")
+		d. Financial Calendar - SA fintech, key dates - This could live in two places: on the public profile as a "What's coming up" widget, AND in the advisor panel as personal compliance/appointment tracking. Build into current Calander & re-name. 
+			§ SARB Monetary Policy Committee (interest rate decisions)
+			§ SARS tax deadlines (provisional tax, assessment, RA contribution cutoff)
+			§ JSE company results dates
+			§ Budget Speech
+			§ FAIS CPD deadlines5. 
+	17. Gaps for Grader feed-back links: - Please add the below as options for when completing/filling out leads - (Add the parameters to the Registry, Grader & Temperature)
+	Request call back link; 
+		○ Add "How did you find me?" As a drop-down / source attribution field (organic, social, referral)
+		○ Add "Estimated net worth / savings bracket" (only income) As a drop-down
+		○ Add "What's your biggest financial concern right now?" As an open text field
+		○ Add "Are you currently working with a financial advisor?" (existing client vs. new) As an open text field
+	Refer Friends & Family; 
+		○ Add "Why are you referring them?" As an open text field
+	Claim Your Free Will; 
+		○ Add "Do you already have a Will?" As a drop-down (Yes/No)
+		○ Add "What is the estimated value of your estate?" As a drop-down

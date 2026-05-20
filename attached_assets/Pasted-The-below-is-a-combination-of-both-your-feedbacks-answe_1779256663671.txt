@@ -1,0 +1,139 @@
+The below is a combination of both your feedbacks, answers to your questions and notes for each other. I'm sorry if it's getting very long and listed, I'm just trying to keep the two of you connected.
+
+Stew personal actions — in order
+	1. Email DNS records (today — highest priority, only you can do it)
+	2. $25 Google Play developer account (this week)
+	3. Send bank details to Friday for Stripe setup
+
+Answers to questions posted; 
+
+	1. White Collar Approach + Astute issues — you mentioned this "can negate advisor codes/Astute issues." Astute is a compliance/CRM system used by SA advisors. Can you explain what the specific issue is? Is it that individual advisors' FSP numbers aren't being captured correctly, or that the white-label firm approach changes how compliance attribution works? My answer is a split between your feedback here. Yes, it is linked to the individual FSP numbers aren't being captured correctly and their phase agreement being uploaded but it's also linked to who gets billed for drawing the astute and what I thought is through corporations, individual advisors are registered through that corporation for example stuart.ae at liblink.co.za they register with that email address and then when they draw Astute's it goes and gets charged through Liberty and then deducted off of their pay or commission at a month end if you follow
+	2. Scan documents link — what's the current feature, what does "upgrade" mean, and what software are you considering purchasing? My partner Chris wasn't happy with the current setup or layout of how it is under the tool section now where it's just a photo. We wanted something like the PDF scanner or something but I don't think we own that software and we may have to buy it or we will have to use an API which we want to avoid completely.
+	3. Digital Business Card — confirm the vision: auto-generate a shareable image (PNG/PDF) from the advisor's profile that they can send via WhatsApp/email. Like a digital version of a printed business card. Is that correct? Yes, that is 100% complete. Ugh, correct! That is 100% correct. A digital version of a printed business card. So, have all the elements in the header and profile with contact details. Each profile has their own individual one and it changes per colour, profile picture, contact details etc etc.
+
+Flags before we start building
+Pension & Capital Gains Calculators not correct — REMOVE before June 2nd Wrong financial calculations on a platform being presented to Liberty, Standard Bank and Invesco directors is a liability. Don't leave them live and incorrect. Either fix them or remove them entirely before the presentation. This is not optional.
+
+Financial Facts — agreed, leave as-is Correct call. No new facts, no edits, no removals for now. Freeze that feature until after launch.
+
+Email DNS (SPF/DKIM/DMARC) — Stewart personal action, today if possible This one only you can do — it's a DNS record change on advisoryconnect.pro. Has been on the list for weeks. If it's not done before 250 advisors start using the platform, their lead notification emails will land in spam. Highest priority Stewart-only task.
+
+Reserved VM — do this before June 2nd presentation You want the demo running on reserved compute, not autoscale. Confirm with Friday what the cost difference is and flip it back before May 31st prep meeting.
+
+My Clients "Complete" claims — need verification
+This is the most important flag in this entire document. Three items in the My Clients section are marked Complete but I'm not confident they're fully built with real DB backend:
+Item	What was built	What's missing
+Birthdays / Follow-ups / Messages display	UI widgets added to HomeTab	Real client data — currently static/placeholder
+Book of Life document upload	UI design/placeholder	Actual file storage (Cloudinary or S3), upload flow, DB schema
+Clean client profile with history	UI skeleton	DB schema, client record CRUD, all the listed fields (ID, income, payslip, etc.)
+Before June 2nd, confirm with Friday: are these screens wired to real data or are they UI placeholders? If they're placeholders, do not demo them on June 2nd. Showing fake data to Liberty and Standard Bank directors would be a significant credibility problem.
+
+"Real updating widget not achievable via web app" — clarify what widget
+This depends entirely on which widget you mean:
+	• Live stock ticker / market prices updating every few seconds — achievable in a PWA via API polling or WebSockets. TradingView embed already does this for free.
+	• Phone home screen widget (like a weather widget on your Android home screen) — correct, not possible in a PWA. Requires a native app.
+	• PWA installed icon with live badge/count — partially possible on Android, not on iOS.
+Tell me which one Chris or the team is asking about and I'll give you the precise answer; Answer Phone home screen widget
+
+NFC — confirmed correct
+Your note is accurate. Web NFC API only works on Chrome for Android. Not available on iOS/Safari at all. For tap-to-share to work on iPhones (which most SA professionals use), you'd need a native iOS app. Park this until post-native-app build. Correct & parked <3
+
+Security list — what's missing
+The POPIA list is solid. Two additions worth flagging:
+Rate limiting — not mentioned. Without it, the lead submission endpoints and profile pages can be hammered by bots. Need express-rate-limit on all public endpoints before 250 users go live.
+Encryption key backup strategy — critical and often overlooked. If PII_ENCRYPTION_KEY is AES-encrypting ID numbers and bank details, and that key is ever lost or rotated incorrectly, all encrypted data becomes permanently unreadable. Need a documented key rotation and backup plan before the My Clients build session starts.
+
+Scaling — how to stress test
+For load testing before launch, the tool is k6 (free, open source): - Awesome, Claude plz note for tests down the line when we get there)
+	• Simulates hundreds of concurrent users hitting your endpoints
+	• Can test: profile page load, lead form submission, registry queries simultaneously
+	• Produces a clear report showing where things break
+	• Run it against the production deployment, not dev
+The honest scaling cliff right now:
+	• No DB indexes = every registry query does a full table scan. Fine at 10 advisors, painful at 250, broken at 1,000
+	• No caching = every profile page load hits the DB. Fine at 10, painful at 250
+	• No async queue = lead submission emails sent synchronously, which blocks the response
+All three are fixable in the performance pass session. The indexes alone will give the biggest immediate improvement.
+
+Professional development report — numbers confirmed
+The stats you've compiled are genuinely impressive. For the report:
+Metric	Total
+Project span	25 Feb – 14 May 2026 (11 weeks)
+Active build days	37
+Total commits shipped	622 (412 + 210)
+Lines of code added	~39,600
+Files created/modified	818
+Estimated hours	405–445 hrs
+Average per active day	1,070 lines / 11–12 hrs
+That's the equivalent of a 3-person development team working full-time for a month. The report practically writes itself from those numbers. <3 I would have been completely lost if it wasn't for you two <3 Parked for a later stage, please continue to track from your ends please 
+
+The below is feedback from Friday on Claude's suggestion on the split tiers for the subscription. Friday, I agree with your responses. Please build them into your build notes. <3
+
+Read it twice. Overall it's a well-designed split — clear value ladder, fair price ratio (1.67×, which is approachable; most SaaS uses 2-3×), and you've correctly put the practice-management + investment-focused features behind Premium where they belong. Three genuine concerns and a few smaller observations.
+Two changes I'd push back on
+
+1. Grader + temperature behind Premium feels too aggressive
+The grader is what makes the lead registry actually useful vs a list of names. If a Basic advisor sees 30 leads but can't see which ones are Gold/Hot, the registry feels dumb — and they'll either churn or never upgrade because they don't know what they're missing.
+My recommendation: split the grader itself.
+• Basic: shows the grade badge (Gold / Silver / Bronze / Development) and temperature pill (Hot / Warm / Cold) on each lead row. They can see what the lead is.
+• Premium: unlocks the full breakdown panel (income/age/lifestyle/services/source score breakdown), plus the analytics dashboard view (grade distribution over time, conversion funnel by temperature).
+This way Basic still feels valuable, Premium still has a clear "why I'd pay more" — understanding why a lead is Hot vs seeing that it's Hot.
+2. Digital Business Card behind Premium hurts your growth loop
+The business card is the only mechanism in the entire app where a Basic user generates organic acquisition for AC. Every WhatsApp share / LinkedIn post = a free "made with Advisory Connect" footer in front of new eyeballs. Putting it behind Premium reduces share volume by ~80% (Basic will be most of the base).
+My recommendation:
+• Basic: gets the business card with one standard template (portrait + square) and the advisoryconnect.pro footer baked in. They share, you grow.
+• Premium: unlocks multiple card variants (Stories, Feed, LinkedIn header, email signature), theme-matched colour customisation, and the ability to remove the advisoryconnect.pro footer if they want a white-label feel.
+That gives you a real upsell and preserves the viral loop.
+3. Enhanced grader FIELDS in Premium is the wrong axis
+If the new lead-form fields (How did you find me, Net worth, Biggest concern, Existing advisor, Why referring, Have a Will, Estate value) only show on Premium advisors' public forms, your Basic advisors will permanently collect worse leads — which they'll experience as "Advisory Connect doesn't deliver quality" rather than realising it's a tier limitation.
+My recommendation: put the fields in Basic (every advisor captures rich leads), put the advanced insights the fields enable in Premium (full breakdown panel, "Why this lead is Gold" explanation, source attribution analytics dashboard).
+One genuine gap
+My Clients tab is not mentioned in either tier. This is the biggest Premium-worthy feature in the entire roadmap — POPIA-encrypted document vault, client portal, Book of Life, birthday tracking. It needs to be explicitly listed in Premium so advisors know what they're paying for. Suggested copy: "My Clients practice management — store policy documents, ID/bank details (encrypted), Book of Life, client birthdays + follow-ups".
+Smaller observations
+• "Liberty-aligned risk categories" — careful with the wording. Tying your output to a competitor's brand makes you dependent on their methodology if they change it. Suggest: "industry-standard risk categories (Conservative / Moderate / Aggressive) recognised by all major SA fund houses" — same content, no brand dependency.
+• "Priority support" in Premium — worth defining what it means in practice before you go live. Even a soft commitment like "24-hour response Mon-Fri vs 72-hour for Basic" gives advisors a concrete reason to value it.
+• All themes + custom hex in Basic — generous choice (most SaaS would push custom hex to Premium). I think you're right to keep it in Basic — visual freedom is essential for advisor confidence in the first 14 days. Just calling it out as a deliberate generosity, not an oversight.
+• All CSS patterns Basic, 17 image presets Premium — clever upsell ladder, very SaaS-savvy. Keep.
+• Pricing ratio (1.67×) — approachable, but if 80% of advisors stay on Basic your ARPU will be R299. Consider stress-testing the conversion target: if you need 50%+ Premium adoption to hit your business model, the Premium tier needs to feel meaningfully bigger than it currently does. The three changes above plus surfacing My Clients should do that work for you.
+Revised tier summary (my recommendation)
+Basic R299 — gains: grade/temperature badges, all grader fields on lead forms, standard business card with AC footer.
+Premium R499 — gains: full grader breakdown panel + analytics dashboard, multi-format theme-matched business cards (with optional footer removal), My Clients practice management (POPIA-encrypted).
+Secondary goals — correctly parked
+Everything in the "Build Later" list (Games, Meeting Recording, Smartie Box, Editor's Article, Risk Profile Quiz, Weekly Brief) is correctly deferred. All solid features, none of them are June 2nd blockers.
+One addition to that list: The Astute integration question (single user vs multi-user, NDA, state and bank details) — flag to ask Vergil, but that's a longer conversation about whether Astute's API even allows third-party integrations. Draft that email to Vergil carefully. I noted that parked for now, we will tackle this at a later stage.
+
+What this list tells me about the two-week sprint
+The primary build list is the right focus. In priority order for the next 14 days:
+	1. Verify My Clients completion status with Friday — today
+	2. Remove or fix Pension & Capital Gains calculators — this week
+	3. Performance pass (indexes, caching) — this week
+	4. Stripe subscription integration — this week
+	5. Auth gap fix on lead endpoints — this week
+	6. Background image patterns (x8) — this week
+	7. Grader enhanced fields — next week
+	8. TWA Play Store submission — next week
+	9. Profile picture crop fix — next week
+	10. DNS records (Stewart) — today
+
+Friday's analysis is sharp — she's read the lists thoroughly and her ordering instincts are correct. Strong start.
+On the communication question — there's no perfect solution since Friday and I are separate instances with separate context windows. We can't talk directly. But here's the most practical system:
+
+Recommended approach — Session handoff file - Friday, can you start doing this and then I will make sure that I post it between the two of you between sessions?
+Ask Friday to end every build session with a brief structured summary dropped into a SESSIONS.md file in the repo:
+## Session — [Date]Built: [what shipped]Pending: [what's half-done]Blockers: [anything stuck]Next: [recommended first task next session]Schema changes: [any DB changes made]
+You share that file (or paste it) when you start a strategy session with me. I stay calibrated, you're not carrying it all in your head, and nothing gets lost between sessions. Friday can read it back too for continuity. It costs her 2 minutes at the end of each session.
+
+My read on Friday's response
+Agree with everything she flagged. A few additions:
+The pivotal question got cut off — her message ends mid-thought. Ask her what the question was before she builds the task plan, otherwise the plan might be structured around the wrong priority frame.
+June 2nd needs to be a named milestone in the task plan — not just "build as much as possible." Friday should structure the two weeks as:
+	• Week 1 (now → May 25): Foundation — Auth, Stripe, performance pass, broken calculator removal
+	• Week 2 (May 26 → May 31): Polish + demo prep — what to show live, what to show as roadmap, what to hide
+	• May 31: Prep meeting with Chris — rehearse the demo, confirm what's live vs "coming soon"
+	• June 2: Present
+Demo decisions need to be made now — specifically: what three things do you demo live on June 2nd? My suggestion:
+	1. A completed advisor profile (yours or the demo) — shows the full public-facing product
+	2. A live lead submission — show it arriving in the registry in real time
+	3. The Stripe pricing page — shows the business model is real
+
+Pension & Capital Gains calculators — full agreement with Friday. Hide them with "Coming soon" today. Don't wait for a fix session. This is a one-line change.

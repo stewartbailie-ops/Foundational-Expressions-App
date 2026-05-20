@@ -1,0 +1,33 @@
+In priority order for the next 14 days:
+
+Week 1 — Demo blockers and revenue infrastructure first
+
+Day 1–2
+
+Task #22 (Polish Batch) — Pension/CGT calculators: full removal, not a "coming soon" gate. Gone from the UI entirely before anything else ships. Then profile picture crop fix and button cleanup while you're in that file set.
+Task #24 (Auth Gap) — Advisor-session middleware on all /api/emails endpoints (GET, grade, status, open, DELETE). No anonymous access to any advisor's leads. This is a security gap that's live in production right now.
+Day 3–5
+3. Task #26 (Stripe) — Basic R299/month + Premium R499/month + 14-day free trial on both. Tier split is baked into the task description — use that as the source of truth. Stewart is sending bank details separately.
+4. Task #25 (PII Encryption + Rate Limiting) — AES column-level encryption via PII_ENCRYPTION_KEY. express-rate-limit on all public endpoints with per-IP buckets and 429s logged. Key management step requires an actual dry-run recovery test with the offline backup before any real client PII gets stored. Two-location backup: Stewart's personal copy + AC business safe.
+
+Day 6–7
+5. Task #23 (Background Patterns) — 17 image presets already staged in client/public/patterns/registry.json. Cover-fill, no tiling. Category tabs (dark, neon, geometric, fluid, statement). Live preview before selection. iOS Safari background-attachment: fixed fallback required.
+
+Week 2 — Polish, features, and Play Store
+
+Day 8–9
+6. Task #27 (Grader Enhancement) — Gap fields: investment goal, risk tolerance, investment horizon, existing portfolio size, urgency flag. All in Basic tier. Enhanced grader badges also Basic.
+
+Day 10–11
+7. Task #28 (Digital Business Card) — Auto-generated PNG/PDF. Pulls advisor's profile photo, colours, name, contact details, slug URL. Basic tier includes card with AC footer. Premium unlocks optional footer removal (white-label).
+
+Day 12–13
+8. Task #29 (TWA + Play Store) — PWABuilder package. Targets Stewart's $25 Google Play developer account (Stewart to register before Day 12). Submission ready before June 2nd.
+9. Performance pass — DB indexes on advisors, leads, and slugs tables (none exist currently). Async email queue for SendGrid. Query review on any N+1 patterns.
+
+Day 14
+10. Demo smoke test — Full end-to-end of the three June 2nd flows: completed advisor profile → live lead submission → Stripe pricing page. Nothing else gets shown. If it's not in those three flows, it's roadmap.
+
+Hard constraint for June 2nd: My Clients is not demoed as live functionality. If asked, the framing is: "POPIA-first architecture, currently in build — launching post-sprint." That's accurate and impressive. Do not show the UI placeholders as working features.
+
+That's everything. Send that to Friday and the sprint has everything it needs.

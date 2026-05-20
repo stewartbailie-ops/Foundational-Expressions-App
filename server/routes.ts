@@ -89,7 +89,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showProfilePic", "showIntro", "showIndividualServices", "showCorporateServices",
   "showSocials", "showAstute", "showDocuments", "showComplimentaryWill",
   "showFinancialMedia", "showTools", "showToolTax", "showToolExchange",
-  "showToolCompound", "showToolPension", "showToolCgt", "showToolVehicle", "showToolReality", "showToolLatte",
+  "showToolCompound", "showToolVehicle", "showToolReality", "showToolLatte",
   "showInteractive", "showShowpieceSqueeze", "showShowpieceTaxBite",
   // M6 parity: 6 toggles added to both primary + secondary editors. Without
   // these in the public allowlist the panel reads them as undefined and the
