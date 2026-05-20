@@ -151,6 +151,12 @@ const PUBLIC_ADVISOR_FIELDS = [
   // W1 T3: My Email tile — must be public so the profile page can render it.
   "showMyEmail",
   "showFunFacts", "showForex", "showSecondNews",
+  // Task #29: Public Profile Feature Suite — five toggleable sections +
+  // their per-feature config must reach the public profile fetcher, else
+  // every section would be silently off regardless of advisor settings.
+  "showTradingView", "tradingViewSymbols",
+  "showDailyQuotes", "dailyQuotesSet",
+  "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar",
   "patternOpacity", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;

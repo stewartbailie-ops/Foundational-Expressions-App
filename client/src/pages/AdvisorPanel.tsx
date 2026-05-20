@@ -10,6 +10,7 @@ import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, U
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
+import { TRADINGVIEW_SYMBOLS as TRADINGVIEW_SYMBOLS_PANEL, SA_FINANCIAL_EVENTS_2026, getCategoryColor } from "@/lib/financialCalendar";
 // May 2026: needed so the "Interactive Tools" drop-down in InteractiveToolsTab
 // can render the actual widgets as a live preview (was crashing because the
 // JSX referenced these components without importing them).
@@ -2710,6 +2711,17 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showStanlib, setShowStanlib] = useState(!!(advisor as any).showStanlib);
   const [showSigninghub, setShowSigninghub] = useState(!!(advisor as any).showSigninghub);
   const [showMyEmail, setShowMyEmail] = useState(!!(advisor as any).showMyEmail);
+  // Task #29 — Public Profile Feature Suite toggles
+  const [showTradingView, setShowTradingView] = useState(!!(advisor as any).showTradingView);
+  const [tradingViewSymbols, setTradingViewSymbols] = useState<string[]>(() => {
+    const csv = (advisor as any).tradingViewSymbols as string | null;
+    return csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"];
+  });
+  const [showDailyQuotes, setShowDailyQuotes] = useState(!!(advisor as any).showDailyQuotes);
+  const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((advisor as any).dailyQuotesSet || "general");
+  const [showCompoundCalc, setShowCompoundCalc] = useState(!!(advisor as any).showCompoundCalc);
+  const [showRetirementCalc, setShowRetirementCalc] = useState(!!(advisor as any).showRetirementCalc);
+  const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(advisor as any).showFinancialCalendar);
   const [showFunFacts, setShowFunFacts] = useState(!!(advisor as any).showFunFacts);
   const [showForex, setShowForex] = useState(!!(advisor as any).showForex);
   const [showSecondNews, setShowSecondNews] = useState(!!(advisor as any).showSecondNews);
@@ -2802,6 +2814,13 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showStanlib,
         showSigninghub,
         showMyEmail,
+        showTradingView,
+        tradingViewSymbols: tradingViewSymbols.join(","),
+        showDailyQuotes,
+        dailyQuotesSet,
+        showCompoundCalc,
+        showRetirementCalc,
+        showFinancialCalendar,
         showFunFacts,
         showForex,
         showSecondNews,
@@ -3306,6 +3325,11 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
           { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
           { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
+          { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
+          { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
+          { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
+          { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
+          { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3314,6 +3338,38 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             </div>
           </div>
         ))}
+        {showTradingView && (
+          <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>TradingView instruments (max 8):</p>
+            <div className="grid grid-cols-2 gap-1">
+              {TRADINGVIEW_SYMBOLS_PANEL.map(sym => {
+                const checked = tradingViewSymbols.includes(sym.value);
+                return (
+                  <label key={sym.value} className="flex items-center gap-2 text-xs cursor-pointer py-1 px-1" style={{ color: tc.textColor }}>
+                    <input type="checkbox" checked={checked} onChange={() => {
+                      setTradingViewSymbols(prev => {
+                        if (checked) return prev.filter(v => v !== sym.value);
+                        if (prev.length >= 8) return prev;
+                        return [...prev, sym.value];
+                      });
+                    }} data-testid={`check-tv-${sym.value}`} />
+                    <span>{sym.label}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
+        )}
+        {showDailyQuotes && (
+          <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Quote set:</p>
+            <div className="flex gap-2">
+              {[{ k: "general", l: "General Inspiration" }, { k: "investment", l: "Investment / Finance" }].map(opt => (
+                <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.accentColor : tc.inputBg, color: dailyQuotesSet === opt.k ? "#fff" : tc.textColor, border: `1px solid ${tc.borderColor}` }} data-testid={`btn-quoteset-${opt.k}`}>{opt.l}</button>
+              ))}
+            </div>
+          </div>
+        )}
         {showTools && (
           <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
             <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
@@ -3734,6 +3790,17 @@ function AdditionalProfileForm({
   const [showStanlib, setShowStanlib] = useState(!!(existingProfile as any)?.showStanlib);
   const [showSigninghub, setShowSigninghub] = useState(!!(existingProfile as any)?.showSigninghub);
   const [showMyEmail, setShowMyEmail] = useState(!!(existingProfile as any)?.showMyEmail);
+  // Task #29 — Public Profile Feature Suite toggles (secondary)
+  const [showTradingView, setShowTradingView] = useState(!!(existingProfile as any)?.showTradingView);
+  const [tradingViewSymbols, setTradingViewSymbols] = useState<string[]>(() => {
+    const csv = (existingProfile as any)?.tradingViewSymbols as string | null;
+    return csv ? csv.split(",").map((s: string) => s.trim()).filter(Boolean) : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"];
+  });
+  const [showDailyQuotes, setShowDailyQuotes] = useState(!!(existingProfile as any)?.showDailyQuotes);
+  const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((existingProfile as any)?.dailyQuotesSet || "general");
+  const [showCompoundCalc, setShowCompoundCalc] = useState(!!(existingProfile as any)?.showCompoundCalc);
+  const [showRetirementCalc, setShowRetirementCalc] = useState(!!(existingProfile as any)?.showRetirementCalc);
+  const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(existingProfile as any)?.showFinancialCalendar);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
@@ -3817,6 +3884,13 @@ function AdditionalProfileForm({
         showStanlib,
         showSigninghub,
         showMyEmail,
+        showTradingView,
+        tradingViewSymbols: tradingViewSymbols.join(","),
+        showDailyQuotes,
+        dailyQuotesSet,
+        showCompoundCalc,
+        showRetirementCalc,
+        showFinancialCalendar,
         showEmergencyContacts,
         patternOpacity,
         nickname: nickname || null,
@@ -4171,6 +4245,11 @@ function AdditionalProfileForm({
             { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
             { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
             { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
+            { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
+            { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
+            { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
+            { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
+            { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
@@ -4179,6 +4258,38 @@ function AdditionalProfileForm({
               </div>
             </div>
           ))}
+          {showTradingView && (
+            <div className="rounded-lg px-2 py-2 space-y-1" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>TradingView instruments (max 8):</p>
+              <div className="grid grid-cols-2 gap-0.5">
+                {TRADINGVIEW_SYMBOLS_PANEL.map(sym => {
+                  const checked = tradingViewSymbols.includes(sym.value);
+                  return (
+                    <label key={sym.value} className="flex items-center gap-1.5 text-[11px] cursor-pointer py-0.5" style={{ color: tc.textColor }}>
+                      <input type="checkbox" checked={checked} onChange={() => {
+                        setTradingViewSymbols(prev => {
+                          if (checked) return prev.filter(v => v !== sym.value);
+                          if (prev.length >= 8) return prev;
+                          return [...prev, sym.value];
+                        });
+                      }} data-testid={`check-secondary-tv-${sym.value}`} />
+                      <span className="truncate">{sym.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {showDailyQuotes && (
+            <div className="rounded-lg px-2 py-2 space-y-1.5" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Quote set:</p>
+              <div className="flex gap-2">
+                {[{ k: "general", l: "General" }, { k: "investment", l: "Investment" }].map(opt => (
+                  <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-2 py-1 rounded-md text-[11px] font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.accentColor : tc.inputBg, color: dailyQuotesSet === opt.k ? "#fff" : tc.textColor, border: `1px solid ${tc.borderColor}` }} data-testid={`btn-secondary-quoteset-${opt.k}`}>{opt.l}</button>
+                ))}
+              </div>
+            </div>
+          )}
           {showTools && (
             <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
               <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
@@ -5769,7 +5880,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       {/* SA Calendar */}
       <div className="rounded-xl overflow-hidden" style={sectionStyle("cal")}>
         <div className="p-4">
-          <SectionHeader sectionKey="cal" icon={<CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />} title="SA Calendar" subtitle="South African public holidays — navigate by month." />
+          <SectionHeader sectionKey="cal" icon={<CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Financial Calendar" subtitle="SA public holidays, SARB MPC, SARS deadlines, JSE results, Budget & FAIS dates." />
         </div>
         {openSections.cal && (
           <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
@@ -5835,6 +5946,26 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
                 })}
               </div>
             )}
+
+            {/* SA Financial events (SARB MPC, SARS, Budget, JSE, FAIS) — Task #29 */}
+            <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+              <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>SA Financial Events 2026</p>
+              {SA_FINANCIAL_EVENTS_2026.slice().sort((a, b) => a.date.localeCompare(b.date)).map((ev, idx) => {
+                const d = new Date(ev.date);
+                const isPast = d < new Date(_today.getFullYear(), _today.getMonth(), _today.getDate());
+                const colour = getCategoryColor(ev.category);
+                return (
+                  <div key={`${ev.date}-${idx}`} className="flex items-start gap-2 py-1" style={{ opacity: isPast ? 0.45 : 1 }} data-testid={`fin-event-${idx}`}>
+                    <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full mt-0.5" style={{ backgroundColor: `${colour}22`, color: colour, minWidth: 44, textAlign: "center" }}>{ev.category}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs" style={{ color: tc.textColor }}>{ev.title}</p>
+                      {ev.detail && <p className="text-[10px]" style={{ color: tc.mutedText }}>{ev.detail}</p>}
+                    </div>
+                    <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: tc.mutedText }}>{d.getDate()} {MONTH_NAMES[d.getMonth()].slice(0,3)}</span>
+                  </div>
+                );
+              })}
+            </div>
 
             {/* Full year upcoming holidays */}
             <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>

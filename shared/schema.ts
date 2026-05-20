@@ -69,6 +69,14 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   showSigninghub: boolean("show_signinghub").default(false),
   // W1 T3: "My Email" platform tile (opens mailto:advisor.email). Opt-in default.
   showMyEmail: boolean("show_my_email").default(false),
+  // Task #29 — Public Profile Feature Suite. Five opt-in toggles + supporting fields.
+  showTradingView: boolean("show_trading_view").default(false),
+  tradingViewSymbols: text("trading_view_symbols"),
+  showDailyQuotes: boolean("show_daily_quotes").default(false),
+  dailyQuotesSet: text("daily_quotes_set").default("general"),
+  showCompoundCalc: boolean("show_compound_calc").default(false),
+  showRetirementCalc: boolean("show_retirement_calc").default(false),
+  showFinancialCalendar: boolean("show_financial_calendar").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   notes: text("notes"),
@@ -159,6 +167,14 @@ export const advisors = pgTable("advisors", {
   showSecondNews: boolean("show_second_news").default(false),
   // W1 T3: "My Email" platform tile (opens mailto:advisor.email). Opt-in default.
   showMyEmail: boolean("show_my_email").default(false),
+  // Task #29 — Public Profile Feature Suite. Five opt-in toggles + supporting fields.
+  showTradingView: boolean("show_trading_view").default(false),
+  tradingViewSymbols: text("trading_view_symbols"),
+  showDailyQuotes: boolean("show_daily_quotes").default(false),
+  dailyQuotesSet: text("daily_quotes_set").default("general"),
+  showCompoundCalc: boolean("show_compound_calc").default(false),
+  showRetirementCalc: boolean("show_retirement_calc").default(false),
+  showFinancialCalendar: boolean("show_financial_calendar").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   profileSectionOrder: text("profile_section_order"),
   advisorPasswordHash: text("advisor_password_hash"),
@@ -296,6 +312,7 @@ export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
   "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
+  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
@@ -313,6 +330,11 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   will: "Complimentary Will",
   tools: "Financial Tools",
   platforms: "Financial Platforms",
+  tradingview: "TradingView Markets",
+  dailyquotes: "Quote of the Day",
+  compoundcalc: "Compound Interest Calculator",
+  retirementcalc: "Retirement Savings Calculator",
+  calendar: "Financial Calendar",
 };
 
 // Category-tinted backgrounds for fun-fact cards (dark, professional, white text on top)

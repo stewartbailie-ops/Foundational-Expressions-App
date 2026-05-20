@@ -209,6 +209,16 @@ export class DatabaseStorage implements IStorage {
       showShowpieceInflation: (profile.profile as any).showShowpieceInflation,
       showShowpieceWaiting: (profile.profile as any).showShowpieceWaiting,
       showEmergencyContacts: (profile.profile as any).showEmergencyContacts,
+      // Task #29: per-secondary Public Profile Feature Suite toggles +
+      // their config (instrument list + quote set). Must be mapped here so
+      // a secondary slug renders its own settings, not the primary's.
+      showTradingView: (profile.profile as any).showTradingView,
+      tradingViewSymbols: (profile.profile as any).tradingViewSymbols,
+      showDailyQuotes: (profile.profile as any).showDailyQuotes,
+      dailyQuotesSet: (profile.profile as any).dailyQuotesSet,
+      showCompoundCalc: (profile.profile as any).showCompoundCalc,
+      showRetirementCalc: (profile.profile as any).showRetirementCalc,
+      showFinancialCalendar: (profile.profile as any).showFinancialCalendar,
       // ── End per-secondary toggles ──
       facebookUrl: profile.profile.facebookUrl,
       instagramUrl: profile.profile.instagramUrl,

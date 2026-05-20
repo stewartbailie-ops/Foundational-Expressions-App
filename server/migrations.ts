@@ -18,6 +18,14 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["show_tool_debt",           "boolean NOT NULL DEFAULT true"],
   // W1 T3: My Email platform toggle. Opt-in default — advisors must enable it.
   ["show_my_email",            "boolean NOT NULL DEFAULT false"],
+  // Task #29 — Public Profile Feature Suite (Week 2).
+  ["show_trading_view",        "boolean NOT NULL DEFAULT false"],
+  ["trading_view_symbols",     "text"],
+  ["show_daily_quotes",        "boolean NOT NULL DEFAULT false"],
+  ["daily_quotes_set",         "text DEFAULT 'general'"],
+  ["show_compound_calc",       "boolean NOT NULL DEFAULT false"],
+  ["show_retirement_calc",     "boolean NOT NULL DEFAULT false"],
+  ["show_financial_calendar",  "boolean NOT NULL DEFAULT false"],
 ];
 
 // Lead-table additive columns. Same pattern, separate list because the parent

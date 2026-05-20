@@ -3,7 +3,9 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, X, ArrowRight, Building2, FileCheck } from "lucide-react";
+import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, X, ArrowRight, Building2, FileCheck, Quote, PiggyBank, LineChart } from "lucide-react";
+import { getQuoteForToday, type QuoteSet } from "@/lib/dailyQuotes";
+import { getUpcomingEvents, getCategoryColor, TRADINGVIEW_SYMBOLS } from "@/lib/financialCalendar";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BrandFooter } from "@/components/BrandFooter";
@@ -616,6 +618,274 @@ function EmergencyContactsSection({ tc, accentColor, mutedText, t }: {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Task #29 — Public Profile Feature Suite ──────────────────────────────
+// Five small, self-contained section components. Each takes a `tc` (theme
+// colours) + `advisor` and renders a card that matches the rest of the
+// public profile's styling. Hooks live inside each component so the parent
+// sectionMap stays a pure value map.
+
+function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
+  const symbolsCsv = (advisor as any).tradingViewSymbols as string | null;
+  const symbols = (symbolsCsv && symbolsCsv.trim()
+    ? symbolsCsv.split(",").map(s => s.trim()).filter(Boolean)
+    : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"]
+  ).slice(0, 8);
+  const widgetId = useMemo(() => `tv-widget-${advisor.id}-${Math.random().toString(36).slice(2, 7)}`, [advisor.id]);
+
+  useEffect(() => {
+    const container = document.getElementById(widgetId);
+    if (!container) return;
+    container.innerHTML = "";
+    const script = document.createElement("script");
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js";
+    script.async = true;
+    script.type = "text/javascript";
+    script.innerHTML = JSON.stringify({
+      symbols: symbols.map(s => [s.split(":").pop() || s, s + "|1D"]),
+      chartOnly: false,
+      width: "100%",
+      height: 400,
+      locale: "en",
+      colorTheme: tc.isDark ? "dark" : "light",
+      autosize: false,
+      showVolume: false,
+      showMA: false,
+      hideDateRanges: false,
+      hideMarketStatus: false,
+      hideSymbolLogo: false,
+      scalePosition: "right",
+      scaleMode: "Normal",
+      fontFamily: "Inter, -apple-system, BlinkMacSystemFont, sans-serif",
+      fontSize: "10",
+      noTimeScale: false,
+      valuesTracking: "1",
+      changeMode: "price-and-percent",
+      lineWidth: 2,
+      lineType: 0,
+      dateRanges: ["1d|1", "1m|30", "3m|60", "12m|1D", "60m|1W", "all|1M"],
+    });
+    container.appendChild(script);
+  }, [widgetId, symbolsCsv, tc.isDark]);
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-tradingview">
+      <div className="flex items-center gap-2">
+        <LineChart className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Live Markets</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>
+        Live chart data via TradingView. Tracking {symbols.length} instrument{symbols.length === 1 ? "" : "s"}.
+      </p>
+      <div id={widgetId} style={{ minHeight: 400 }} />
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>
+        Powered by TradingView · Prices for illustration only, not investment advice.
+      </p>
+    </div>
+  );
+}
+
+function DailyQuoteSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
+  const set = (((advisor as any).dailyQuotesSet as QuoteSet) || "general");
+  const q = useMemo(() => getQuoteForToday(set), [set]);
+  return (
+    <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-dailyquote">
+      <div className="flex items-center gap-2">
+        <Quote className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Quote of the Day</h3>
+      </div>
+      <blockquote className="text-sm leading-relaxed italic" style={{ color: tc.textColor }} data-testid="text-quote-text">
+        "{q.text}"
+      </blockquote>
+      <p className="text-xs text-right font-medium" style={{ color: tc.accentColor }} data-testid="text-quote-author">— {q.author}</p>
+    </div>
+  );
+}
+
+function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [principal, setPrincipal] = useState("10000");
+  const [monthly, setMonthly] = useState("1000");
+  const [rate, setRate] = useState("9");
+  const [years, setYears] = useState("20");
+
+  const result = useMemo(() => {
+    const P = parseFloat(principal) || 0;
+    const PMT = parseFloat(monthly) || 0;
+    const r = (parseFloat(rate) || 0) / 100;
+    const t = parseFloat(years) || 0;
+    const n = 12;
+    let total = P;
+    const series: { year: number; value: number; contributions: number }[] = [{ year: 0, value: P, contributions: P }];
+    let contributions = P;
+    for (let y = 1; y <= t; y++) {
+      for (let m = 0; m < n; m++) {
+        total = total * (1 + r / n) + PMT;
+        contributions += PMT;
+      }
+      series.push({ year: y, value: total, contributions });
+    }
+    return { total, contributions, interest: total - contributions, series };
+  }, [principal, monthly, rate, years]);
+
+  const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+  const inputStyle = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
+  const maxVal = result.series[result.series.length - 1]?.value || 1;
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-compoundcalc">
+      <div className="flex items-center gap-2">
+        <Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Compound Interest Calculator</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>See what consistent saving + compound growth can do over time.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Starting amount (R)</span>
+          <input type="number" value={principal} onChange={e => setPrincipal(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ci-principal" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Monthly contribution (R)</span>
+          <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ci-monthly" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Annual return (%)</span>
+          <input type="number" step="0.5" value={rate} onChange={e => setRate(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ci-rate" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Term (years)</span>
+          <input type="number" value={years} onChange={e => setYears(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ci-years" />
+        </label>
+      </div>
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Future value</span><span className="font-bold" style={{ color: tc.accentColor }} data-testid="text-ci-total">{fmt(result.total)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Total contributions</span><span style={{ color: tc.textColor }}>{fmt(result.contributions)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Interest earned</span><span style={{ color: tc.textColor }}>{fmt(result.interest)}</span></div>
+      </div>
+      <div className="space-y-1" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: 8 }}>
+        <p className="text-[11px] font-medium" style={{ color: tc.mutedText }}>Growth over time</p>
+        <div className="flex items-end gap-0.5 h-20">
+          {result.series.map((p, i) => {
+            const h = Math.max(2, (p.value / maxVal) * 100);
+            return <div key={i} className="flex-1 rounded-t" style={{ height: `${h}%`, backgroundColor: tc.accentColor, opacity: 0.4 + 0.6 * (i / result.series.length) }} title={`Year ${p.year}: ${fmt(p.value)}`} />;
+          })}
+        </div>
+        <div className="flex justify-between text-[10px]" style={{ color: tc.mutedText }}>
+          <span>Year 0</span><span>Year {years}</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Educational only — fees, tax and inflation are not modelled. Speak to an advisor for personalised advice.</p>
+    </div>
+  );
+}
+
+function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [currentAge, setCurrentAge] = useState("35");
+  const [retireAge, setRetireAge] = useState("65");
+  const [savings, setSavings] = useState("250000");
+  const [monthly, setMonthly] = useState("3000");
+  const [returnPct, setReturnPct] = useState("9");
+  const [targetMonthly, setTargetMonthly] = useState("25000");
+
+  const result = useMemo(() => {
+    const start = parseFloat(currentAge) || 0;
+    const end = parseFloat(retireAge) || 0;
+    const t = Math.max(0, end - start);
+    const P = parseFloat(savings) || 0;
+    const PMT = parseFloat(monthly) || 0;
+    const r = (parseFloat(returnPct) || 0) / 100;
+    const target = parseFloat(targetMonthly) || 0;
+    const n = 12;
+    let total = P;
+    for (let m = 0; m < t * n; m++) total = total * (1 + r / n) + PMT;
+    // Sustainable withdrawal at 4% (Bengen) — conservative.
+    const sustainableMonthly = (total * 0.04) / 12;
+    const yearsCovered = target > 0 ? total / (target * 12) : Infinity;
+    return { total, sustainableMonthly, yearsCovered, t };
+  }, [currentAge, retireAge, savings, monthly, returnPct, targetMonthly]);
+
+  const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+  const inputStyle = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
+  const onTrack = result.sustainableMonthly >= (parseFloat(targetMonthly) || 0);
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-retirementcalc">
+      <div className="flex items-center gap-2">
+        <PiggyBank className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Retirement Savings Calculator</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>Project your retirement pot and see whether it'll cover the lifestyle you want.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Current age</span>
+          <input type="number" value={currentAge} onChange={e => setCurrentAge(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-age" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Retirement age</span>
+          <input type="number" value={retireAge} onChange={e => setRetireAge(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-retire" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Current savings (R)</span>
+          <input type="number" value={savings} onChange={e => setSavings(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-savings" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Monthly contribution (R)</span>
+          <input type="number" value={monthly} onChange={e => setMonthly(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-monthly" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Expected return (%)</span>
+          <input type="number" step="0.5" value={returnPct} onChange={e => setReturnPct(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-return" />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Target monthly income (R)</span>
+          <input type="number" value={targetMonthly} onChange={e => setTargetMonthly(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} data-testid="input-ret-target" />
+        </label>
+      </div>
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Years to retirement</span><span style={{ color: tc.textColor }}>{result.t}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Projected pot at retirement</span><span className="font-bold" style={{ color: tc.accentColor }} data-testid="text-ret-pot">{fmt(result.total)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Sustainable income (4% rule)</span><span style={{ color: tc.textColor }}>{fmt(result.sustainableMonthly)}/mo</span></div>
+        <div className="flex justify-between text-xs">
+          <span style={{ color: tc.mutedText }}>vs target</span>
+          <span className="font-semibold" style={{ color: onTrack ? "#10B981" : "#F59E0B" }} data-testid="text-ret-status">
+            {onTrack ? "On track" : `Shortfall — ${result.yearsCovered === Infinity ? "set a target" : `${result.yearsCovered.toFixed(1)} yrs covered`}`}
+          </span>
+        </div>
+      </div>
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Educational only — does not model inflation, tax, or fees. Speak to an advisor for personalised advice.</p>
+    </div>
+  );
+}
+
+function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const events = useMemo(() => getUpcomingEvents(6), []);
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-financialcalendar">
+      <div className="flex items-center gap-2">
+        <CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>What's Coming Up</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>Upcoming SA financial dates — SARB MPC, SARS, Budget, JSE results & FAIS deadlines.</p>
+      {events.length === 0 ? (
+        <p className="text-xs italic" style={{ color: tc.mutedText }}>No upcoming events.</p>
+      ) : (
+        <div className="space-y-2">
+          {events.map((e, i) => {
+            const d = new Date(e.date);
+            const dayLabel = d.toLocaleDateString("en-ZA", { day: "numeric", month: "short" });
+            const colour = getCategoryColor(e.category);
+            return (
+              <div key={i} className="flex items-start gap-3 rounded-lg p-2.5" style={{ backgroundColor: tc.inputBg, borderLeft: `3px solid ${colour}` }} data-testid={`cal-event-${i}`}>
+                <div className="flex flex-col items-center min-w-[42px]">
+                  <span className="text-[10px] uppercase font-semibold" style={{ color: colour }}>{d.toLocaleDateString("en-ZA", { month: "short" })}</span>
+                  <span className="text-base font-bold leading-none" style={{ color: tc.textColor }}>{d.getDate()}</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold" style={{ color: tc.textColor }}>{e.title}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${colour}22`, color: colour }}>{e.category}</span>
+                  </div>
+                  {e.detail && <p className="text-[11px] mt-0.5 leading-snug" style={{ color: tc.mutedText }}>{e.detail}</p>}
+                  <p className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{dayLabel} {d.getFullYear()}</p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>2026 dates. Always verify against SARB, SARS and JSE official notices.</p>
     </div>
   );
 }
@@ -2189,6 +2459,21 @@ export default function AdvisorProfile() {
             })()}
           </div>
             ) : null,
+          tradingview: (advisor as any).showTradingView ? (
+            <TradingViewSection tc={tc} advisor={advisor} />
+          ) : null,
+          dailyquotes: (advisor as any).showDailyQuotes ? (
+            <DailyQuoteSection tc={tc} advisor={advisor} />
+          ) : null,
+          compoundcalc: (advisor as any).showCompoundCalc ? (
+            <CompoundCalcSection tc={tc} />
+          ) : null,
+          retirementcalc: (advisor as any).showRetirementCalc ? (
+            <RetirementCalcSection tc={tc} />
+          ) : null,
+          calendar: (advisor as any).showFinancialCalendar ? (
+            <FinancialCalendarSection tc={tc} />
+          ) : null,
           };
           return profileSectionOrder.map((key, i) =>
             sectionMap[key] ? (
