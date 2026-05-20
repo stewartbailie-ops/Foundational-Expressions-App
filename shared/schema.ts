@@ -178,6 +178,11 @@ export const advisors = pgTable("advisors", {
   paystackSubscriptionCode: text("paystack_subscription_code"),
   paystackEmailToken: text("paystack_email_token"),
   trialExpiryEmailSentAt: timestamp("trial_expiry_email_sent_at"),
+  // Period-end timestamp captured from Paystack's `next_payment_date` on
+  // subscription events. While `subscriptionStatus = cancelled` AND
+  // `subscriptionEndsAt > now()`, the advisor retains paid access until
+  // their already-paid-for period elapses.
+  subscriptionEndsAt: timestamp("subscription_ends_at"),
   panelTheme: text("panel_theme").default("blue"),
   panelThemeColor: text("panel_theme_color").default("#4a8db5"),
   panelBackgroundStyle: integer("panel_background_style").default(1),
@@ -222,28 +227,58 @@ export const PREMIUM_FEATURES = [
 ] as const;
 export type PremiumFeature = typeof PREMIUM_FEATURES[number];
 
-export function isPremiumActive(advisor: { subscriptionTier?: string | null; subscriptionStatus?: string | null; trialEndsAt?: Date | string | null }): boolean {
+type AccessShape = {
+  subscriptionTier?: string | null;
+  subscriptionStatus?: string | null;
+  trialEndsAt?: Date | string | null;
+  subscriptionEndsAt?: Date | string | null;
+};
+
+function toMs(v: Date | string | null | undefined): number | null {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  const t = d.getTime();
+  return Number.isFinite(t) ? t : null;
+}
+
+// A cancelled-but-still-paid-up subscription keeps access until the period
+// end. Paystack tells us this via `next_payment_date` on the subscription
+// row, which the webhook stores into `subscriptionEndsAt`. We grant access
+// when either the status is genuinely live (active/trialing) OR the status
+// is `cancelled` / `non-renewing` AND the paid period has not yet elapsed.
+function withinPaidPeriod(advisor: AccessShape): boolean {
+  const ends = toMs(advisor.subscriptionEndsAt);
+  return ends !== null && ends > Date.now();
+}
+
+export function isPremiumActive(advisor: AccessShape): boolean {
   const tier = advisor.subscriptionTier ?? "trial";
   const status = advisor.subscriptionStatus ?? "trialing";
-  // Active premium subscription
-  if (tier === "premium" && (status === "active" || status === "trialing")) return true;
+  if (tier === "premium") {
+    if (status === "active" || status === "trialing") return true;
+    // Cancellation does not revoke access until the paid period ends.
+    if ((status === "cancelled" || status === "non-renewing") && withinPaidPeriod(advisor)) return true;
+  }
   // Trial = full Premium access until trialEndsAt passes
   if (tier === "trial" && status === "trialing") {
     if (!advisor.trialEndsAt) return true; // legacy advisors without trialEndsAt — grandfathered
-    const ends = advisor.trialEndsAt instanceof Date ? advisor.trialEndsAt : new Date(advisor.trialEndsAt);
-    return ends.getTime() > Date.now();
+    const ends = toMs(advisor.trialEndsAt);
+    return ends !== null && ends > Date.now();
   }
   return false;
 }
 
-export function isBasicOrBetter(advisor: { subscriptionTier?: string | null; subscriptionStatus?: string | null; trialEndsAt?: Date | string | null }): boolean {
+export function isBasicOrBetter(advisor: AccessShape): boolean {
   const tier = advisor.subscriptionTier ?? "trial";
   const status = advisor.subscriptionStatus ?? "trialing";
-  if ((tier === "basic" || tier === "premium") && (status === "active" || status === "trialing")) return true;
+  if (tier === "basic" || tier === "premium") {
+    if (status === "active" || status === "trialing") return true;
+    if ((status === "cancelled" || status === "non-renewing") && withinPaidPeriod(advisor)) return true;
+  }
   if (tier === "trial" && status === "trialing") {
     if (!advisor.trialEndsAt) return true;
-    const ends = advisor.trialEndsAt instanceof Date ? advisor.trialEndsAt : new Date(advisor.trialEndsAt);
-    return ends.getTime() > Date.now();
+    const ends = toMs(advisor.trialEndsAt);
+    return ends !== null && ends > Date.now();
   }
   return false;
 }

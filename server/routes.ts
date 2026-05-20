@@ -2297,6 +2297,9 @@ export async function registerRoutes(
         if (advisor.subscriptionStatus !== "cancelled") {
           updates.subscriptionStatus = "active";
         }
+        // A successful charge extends the paid-through period.
+        const nextPay = data?.subscription?.next_payment_date || data?.plan?.next_payment_date;
+        if (nextPay) (updates as any).subscriptionEndsAt = new Date(nextPay);
         break;
       }
       case "subscription.create": {
@@ -2308,13 +2311,25 @@ export async function registerRoutes(
         if (advisor.subscriptionStatus !== "cancelled") {
           updates.subscriptionStatus = "active";
         }
+        // next_payment_date is the end of the currently-paid period.
+        if (data?.next_payment_date) {
+          (updates as any).subscriptionEndsAt = new Date(data.next_payment_date);
+        }
         break;
       }
       case "subscription.disable":
       case "subscription.not_renew": {
         updates.subscriptionStatus = "cancelled";
         // Tier intentionally NOT downgraded immediately — advisor keeps access
-        // through the paid-up period.
+        // through the paid-up period. `subscriptionEndsAt` is the gate.
+        if (data?.next_payment_date) {
+          (updates as any).subscriptionEndsAt = new Date(data.next_payment_date);
+        } else if (!advisor.subscriptionEndsAt) {
+          // Defensive fallback: if Paystack didn't include a period-end and we
+          // never captured one from the create/charge events, default to 30
+          // days so we don't strip access instantly on the next request.
+          (updates as any).subscriptionEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        }
         break;
       }
       case "invoice.payment_failed": {

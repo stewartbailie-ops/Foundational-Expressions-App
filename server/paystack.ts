@@ -22,7 +22,15 @@ function secret(): string {
 }
 
 export function isPaystackConfigured(): boolean {
-  return !!process.env.PAYSTACK_SECRET_KEY;
+  // Checkout cannot complete without the secret key AND both plan codes —
+  // an advisor clicking "Upgrade" with only the secret key set hits a 502
+  // from initializeTransaction (plan code lookup throws). Gate the whole
+  // billing surface on all three so we 503 cleanly instead.
+  return !!(
+    process.env.PAYSTACK_SECRET_KEY &&
+    process.env.PAYSTACK_PLAN_BASIC &&
+    process.env.PAYSTACK_PLAN_PREMIUM
+  );
 }
 
 export function planCodeForTier(tier: PaystackTier): string {

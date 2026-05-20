@@ -364,7 +364,7 @@ ${imageTag}
                 to: advisor.email,
                 name: advisor.name,
                 daysLeft,
-                upgradeUrl: `https://app.advisoryconnect.pro/${advisor.profileSlug}?tab=billing`,
+                upgradeUrl: `https://app.advisoryconnect.pro/advisor/${advisor.profileSlug}?tab=billing`,
               });
               await storage.updateAdvisor(advisor.id, { trialExpiryEmailSentAt: new Date() } as any);
               console.log(`[trial-cron] sent trial-expiry email to ${advisor.email}`);

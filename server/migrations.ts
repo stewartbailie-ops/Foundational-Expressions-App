@@ -80,6 +80,7 @@ export async function runStartupMigrations() {
     ["paystack_subscription_code",    "text"],
     ["paystack_email_token",          "text"],
     ["trial_expiry_email_sent_at",    "timestamp"],
+    ["subscription_ends_at",          "timestamp"],
   ];
   for (const [col, def] of BILLING_COLUMNS) {
     await db.execute(
