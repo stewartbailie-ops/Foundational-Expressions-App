@@ -1,212 +1,146 @@
 # Advisory Connect Control Panel
 
-> **Note**: Historical batch logs (Build History Phases 1–5, Saturday Batch S1–S7, Buckle Up M1–M6 + F5) live in `docs/CHANGELOG.md`. This file keeps only architecture and active operational context.
+> Historical batch logs live in `docs/CHANGELOG.md`. This file keeps only architecture and active operational context.
 
 ## Overview
-A master control panel / dashboard for managing Advisory Connect profiles, tracking client referrals/callbacks, and auto-grading clients. Desktop-optimized, corporate black-and-white theme. Each advisor gets a public-facing mobile-optimized profile page.
+Master control panel for managing Advisory Connect profiles, tracking client referrals/callbacks, and auto-grading leads. Desktop-optimised panel, mobile-optimised public profile per advisor. Corporate black-and-white voice.
 
 ## Style / Voice Preferences
-- **No emojis in UI** — corporate vibe. Always use Lucide icons (already imported across the app) instead of emoji glyphs in buttons, badges, cards, headers, or any visible UI text. Acceptable: emoji as fallback in plain-text email subjects only if necessary. The `📍` glyph in the contact-card "items" array is also an emoji — replace with Lucide where seen.
-- Stewart (the user) uses ❤️ casually in chat — reciprocate sparingly in chat only, never in shipped UI copy.
+- **No emojis in UI** — Lucide icons only in buttons, badges, cards, headers, copy. Acceptable only as fallback in plain-text email subjects. Watch for the `📍` glyph in legacy `items` arrays — replace with Lucide when seen.
+- Stewart uses ❤️ casually in chat — reciprocate sparingly in chat only, never in shipped UI copy.
 
 ## Architecture
-- **Frontend**: React + Vite + Tailwind CSS v4 + shadcn/ui components
-- **Backend**: Express.js with TypeScript
-- **Database**: PostgreSQL with Drizzle ORM
-- **Auth**: Session-based (express-session + connect-pg-simple), password stored as `ADMIN_PASSWORD` secret
-- **Email Service**: SendGrid (API key stored as secret `SENDGRID_API_KEY`)
-- **QR Codes**: `qrcode.react` for dynamic barcode generation
-
-## Authentication
-- Control panel routes are protected behind a login screen (password-only)
-- Sessions stored in PostgreSQL via `connect-pg-simple` (auto-creates `session` table)
-- Session lasts 7 days
-- Public routes (profile pages, callback/referral forms, webhooks) are NOT protected
-- Login: `POST /api/auth/login`, Session check: `GET /api/auth/session`, Logout: `POST /api/auth/logout`
-- Auth middleware in `server/auth.ts`, session setup in `server/index.ts`
+- **Frontend**: React + Vite + Tailwind v4 + shadcn/ui
+- **Backend**: Express + TypeScript
+- **DB**: PostgreSQL + Drizzle ORM
+- **Auth**: Session-based (`express-session` + `connect-pg-simple`), admin password in `ADMIN_PASSWORD` secret. Sessions 7 days.
+- **Email**: SendGrid (`SENDGRID_API_KEY`)
+- **QR**: `qrcode.react`
+- Public routes (profile, lead forms, webhooks) are NOT auth-gated. Control panel + advisor sub-panel are.
+- Auth middleware: `server/auth.ts`. Session setup: `server/index.ts`. Routes: `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout`.
 
 ## Database Tables
-- `advisors` - Advisor profiles (name, email, title, bio, bioOption, customBio, entityType, theme, themeColor, font, profilePicUrl, coverImageUrl, linkedinUrl, websiteUrl, profileSlug, individualServices[], corporateServices[], active, createdAt, **advisorCode, faisAgreementUrl, tosAcceptedAt, subscriptionTier, panelTheme, panelThemeColor, panelBackgroundStyle**)
-- `emails` - Incoming client submissions (senderName, senderEmail, type, grade, subject, body, clientAge, clientIncome, clientIndustry, clientPhone, clientMarried, clientChildren, clientVehicle, clientProperty, preferredContactTime, servicesRequested, referrerName, referrerEmail, referrerPhone, referrerRelation, source, sourceProfileSlug). `sourceProfileSlug` records WHICH profile slug a lead came in via (primary or secondary) — powers the "Where Leads Came From" attribution card on the advisor home tab. Null for legacy leads (folded into primary bucket on read).
-- `stats` - Event tracking (email_received, referral_sent, app_access)
-
-## Advisor Profile Fields
-- **Title**: Executive Financial Planner / Financial Planner / Executive Financial Advisor / Financial Advisor
-- **Bio Options**: a (core focus), b (integrated strategic), c (clarity & structure), or custom
-- **Individual Services**: 7 services (tax-efficiency, tax-investment, personal-risk, retirement, medical-aid, short-term, wills-estates)
-- **Corporate Services**: 5 services (corporate-planning, group-risk, pension-provident, group-medical, corporate-short-term)
-- **Theme**: dark (black/white), blue, or pink
-- **Profile Picture**: Uploaded via multer to `/uploads/` directory, URL stored as `profilePicUrl`
-- Services stored as key arrays, displayed by name via constants in schema.ts
+- `advisors` — profile + theme + services + subscription columns (`advisorCode`, `faisAgreementUrl`, `tosAcceptedAt`, `subscriptionTier`, `subscriptionStatus`, `trialEndsAt`, `paystack*`, `panelTheme/Color/BackgroundStyle`, all `show*` toggles).
+- `advisor_profiles` — per-advisor secondary profile, same toggle surface as `advisors`, no inheritance.
+- `emails` — lead submissions with grader fields (`leadScore`, `leadTemperature`, `gradeBreakdown`, lifestyle/income/age/services), `sourceProfileSlug` (primary vs secondary attribution; null = legacy → folded into primary on read).
+- `stats` — events (`email_received`, `referral_sent`, `app_access:<slug>` for slug attribution).
+- `clients`, `audit_pii`, `client_consent`, `client_documents` — POPIA-encrypted client vault (see PII section).
+- `session` — provisioned by our own migration, NOT `connect-pg-simple` (see Production Startup Diagnostics).
 
 ## Database Migration Notes
-Every column added so far has used additive `ALTER TABLE … ADD COLUMN IF NOT EXISTS` (no PK changes). `drizzle-kit push --force` is upstream-broken (drizzle-kit beta vs drizzle-orm 0.45 `_relations` incompatibility) — additive ALTERs in `server/migrations.ts` are the workaround. Don't try `db:push --force` until both packages move past those versions.
+Every column added so far has been additive `ALTER TABLE … ADD COLUMN IF NOT EXISTS`. `drizzle-kit push --force` is upstream-broken (drizzle-kit beta vs drizzle-orm 0.45 `_relations` incompatibility) — additive ALTERs in `server/migrations.ts` are the workaround. Don't try `db:push --force` until both packages move past those versions.
 
-## Deployment Target — Reserved VM (May 2026)
-Switched `.replit` `[deployment].deploymentTarget` from `autoscale` to `vm` (Reserved VM). Decision rationale:
-- **Cold starts gone**: Autoscale was spinning the instance down between traffic, so the first hit after idle ate the full Node + drizzle + Vite-static boot. Reserved VM keeps one warm instance, so the public profile + lead forms respond immediately.
-- **Sessions**: We use `connect-pg-simple` (Postgres-backed sessions) so multi-instance was already safe, but a single warm VM removes the entire question — no replica sticky-routing or session-store edge cases to reason about.
-- **Startup-crash visibility**: After May 2026's `unhandledRejection`/`uncaughtException` plain-text logging, a Reserved VM crash is loud and immediate (one instance, one log stream) instead of being masked by autoscale silently retrying a fresh instance.
-- **Trade-offs accepted**: Reserved VM bills continuously even at zero traffic (Autoscale only billed per request). For our load profile (small SA advisor base, steady not spiky) the warm-instance UX win + simpler ops outweighs the cost delta. Revisit if traffic ever becomes genuinely bursty / >10× current.
-- Do NOT flip back to `autoscale` without re-reading this section; the cold-start and crash-visibility issues will return.
+## Deployment Target — Reserved VM
+`.replit` `[deployment].deploymentTarget` is `vm` (not `autoscale`). Reasons: no cold starts, single warm instance simplifies session/crash reasoning, startup crashes are loud and immediate. Trade-off: bills continuously even at zero traffic — acceptable for current SA advisor base. **Do NOT flip back to `autoscale`** without re-reading the original rationale in `docs/CHANGELOG.md`.
 
-## Production Startup Diagnostics (May 2026)
-- **server/index.ts** registers process-level `unhandledRejection` and `uncaughtException` handlers that print `err.name`, `err.message`, and the full stack as plain text before calling `process.exit(1)`. This was added because production deploy logs were truncating minified drizzle-orm bundle dumps and hiding the real error class on a startup crash. Fail-fast behaviour is preserved (explicit `exit(1)`).
-- **server/migrations.ts** probes `to_regclass('public.advisor_profiles')` before issuing `ALTER TABLE` statements. If the table is missing it throws a clear, untruncated message naming the cause (DB hasn't had `npm run db:push` run against it). ALTERs themselves are not wrapped — startup fails fast on any other migration error rather than silently 500ing on every advisor route at runtime.
-- **Session table is provisioned by our own migration**, NOT by `connect-pg-simple`'s `createTableIfMissing` option. That option reads `node_modules/connect-pg-simple/table.sql` at runtime, which esbuild does not include in `dist/index.cjs` — production then crashes with `ENOENT: ... open '/dist/table.sql'` on first login. `runStartupMigrations()` runs the same `CREATE TABLE IF NOT EXISTS "session" ...` schema verbatim from `connect-pg-simple/table.sql` and `server/index.ts` sets `createTableIfMissing: false` on the store. Do NOT flip this back — it will break login in prod.
-- The `pg-connection-string` "SECURITY WARNING" about sslmode `prefer`/`require`/`verify-ca` being treated as `verify-full` is **deprecation noise** about a future v3.0.0 change. Source of `pg-connection-string@2.10.0` confirms the current behaviour still sets `rejectUnauthorized: false` for those modes (lines 109 + 117 of node_modules/pg-connection-string/index.js). `server/db.ts` left untouched — do NOT add `ssl: { rejectUnauthorized: false }` as a "fix"; it's a no-op masquerading as one and was rejected in code review.
+## Production Startup Diagnostics
+- `server/index.ts` has process-level `unhandledRejection` / `uncaughtException` handlers that print `err.name`, `err.message`, full stack as plain text before `process.exit(1)`. Added because production logs were truncating minified drizzle-orm bundle dumps.
+- `server/migrations.ts` probes `to_regclass('public.advisor_profiles')` before issuing `ALTER TABLE`s. Missing table throws a clear untruncated message naming the cause (DB hasn't had `npm run db:push` run). ALTERs themselves are unwrapped — fail fast on any other migration error.
+- **Session table is provisioned by our own migration**, NOT `connect-pg-simple`'s `createTableIfMissing` (that option reads `node_modules/.../table.sql` at runtime, which esbuild doesn't include in `dist/index.cjs` → `ENOENT` on first login in prod). `runStartupMigrations()` runs the same `CREATE TABLE IF NOT EXISTS "session"` schema and `server/index.ts` sets `createTableIfMissing: false`. **Do NOT flip this back.**
+- The `pg-connection-string` "SECURITY WARNING" about sslmode is **deprecation noise** about a future v3.0.0 change. Current behaviour still sets `rejectUnauthorized: false`. **Do NOT add `ssl: { rejectUnauthorized: false }`** to `server/db.ts` as a "fix" — it's a no-op and was rejected in code review.
 
-## POPIA / PII Encryption (Task #25, May 2026)
-At-rest encryption + audit trail for "special personal information" (POPIA s.26). Foundation laid for the My Clients feature; the UI itself arrives in a later task.
+## POPIA / PII Encryption (Task #25)
+At-rest encryption + audit trail for "special personal information" (POPIA s.26). Foundation for the My Clients feature.
 
 **Architecture**
-- `server/encryption.ts` — AES-256-GCM helper. Key loaded from `PII_ENCRYPTION_KEY` secret (32-byte base64, generate with `openssl rand -base64 32`). Wire format: `v1:<iv>:<ct>:<tag>` for strings; `[iv(12)][tag(16)][ct]` raw bytes for files. Round-trip self-test runs at startup — a misconfigured key fails the boot, never silently corrupts writes.
-- **Tables (additive migrations in `server/migrations.ts`)**:
-  - `clients` — plaintext name/email/phone; `id_number_enc`, `bank_account_enc`, `bank_branch_enc`, `tax_number_enc` are AES-256-GCM ciphertext. Plaintext never hits disk. `erased_at` / `erased_by` are the right-to-erasure tombstone.
-  - `audit_pii` — append-only via Postgres rules (`audit_pii_no_update`, `audit_pii_no_delete` rewrite UPDATE/DELETE to NOTHING). Records who/what/when/IP/UA for every PII read, write, erase, and rate-limit block.
-  - `client_consent` — one row per consent grant, captures the exact consent text the user agreed to (not just a boolean).
-  - `client_documents` — metadata only; bytes live on disk encrypted under `uploads/clients/<advisorId>/<random>.enc` (`chmod 0600`, never publicly served).
-- **Per-advisor isolation enforced at storage layer**, not just in routes. `listClients`, `getClient`, `updateClient`, `eraseClient` all take `advisorId` and `WHERE advisor_id = ?` it into the SQL — even a forgotten auth check in a future route handler cannot leak across advisors.
-- **Rate limits on public endpoints** (`/api/callback`, `/api/referral`, `/api/will-request`, `/api/advisors/slug/:slug`, `/api/webhook/*`, `/api/stats/access`). 429 blocks log a row to `audit_pii` so admin can spot abuse patterns. Per-IP, in-memory buckets via `express-rate-limit` (same store as the existing login limiters).
-- **Right-to-erasure** — admin-only `POST /api/clients/:id/erase?advisorId=…` wipes encrypted columns, unlinks document files on disk, marks the row with `erased_at`. Audit history is retained (POPIA Reg 4 permits anonymised processing records).
-- **API surface** — `/api/clients` CRUD + `/api/clients/:id/documents` (upload + list) + `/api/clients/documents/:id/download` + `/api/clients/:id/erase` + `/api/audit-pii` (admin read).
+- `server/encryption.ts` — AES-256-GCM. Key in `PII_ENCRYPTION_KEY` secret (32-byte base64, `openssl rand -base64 32`). Wire format: `v1:<iv>:<ct>:<tag>` strings; `[iv(12)][tag(16)][ct]` raw for files. Round-trip self-test runs at startup — misconfigured key fails the boot.
+- `clients` — plaintext name/email/phone; `id_number_enc`, `bank_account_enc`, `bank_branch_enc`, `tax_number_enc` are ciphertext only. `erased_at` / `erased_by` are the right-to-erasure tombstone.
+- `audit_pii` — append-only via Postgres rules (UPDATE/DELETE rewrite to NOTHING). Records who/what/when/IP/UA for every PII read, write, erase, rate-limit block.
+- `client_consent` — one row per consent grant, captures the exact text agreed to.
+- `client_documents` — metadata only; bytes live encrypted on disk at `uploads/clients/<advisorId>/<random>.enc` (`chmod 0600`, never publicly served).
+- **Per-advisor isolation is enforced at the storage layer**, not just routes — `listClients`/`getClient`/`updateClient`/`eraseClient` all take `advisorId` and `WHERE advisor_id = ?` it into the SQL. A forgotten route-level auth check cannot leak across advisors.
+- **Rate limits** on `/api/callback`, `/api/referral`, `/api/will-request`, `/api/advisors/slug/:slug`, `/api/webhook/*`, `/api/stats/access`. 429 blocks log to `audit_pii`. Per-IP in-memory via `express-rate-limit`.
+- **Right-to-erasure** — admin-only `POST /api/clients/:id/erase` wipes encrypted columns, unlinks documents, sets `erased_at`. Audit history retained (POPIA Reg 4 permits anonymised records).
+- **API surface** — `/api/clients` CRUD + `/api/clients/:id/documents` + `/api/clients/documents/:id/download` + `/api/clients/:id/erase` + `/api/audit-pii` (admin read).
 
-**Key-management runbook (operational)**
-1. **Generation**: `openssl rand -base64 32` → set as the `PII_ENCRYPTION_KEY` secret. Never commit. Never log.
-2. **Backup (mandatory before any real client PII is stored)**:
-   - Write the base64 string to two physical sealed envelopes.
-   - One held by Stewart (offsite), one in the Advisory Connect business safe.
-   - Each envelope also carries the date generated and a checksum (`echo -n "<key>" | shasum -a 256`).
-3. **Recovery dry-run (run BEFORE storing real PII)**:
-   - In a sandbox Repl, set `PII_ENCRYPTION_KEY` to the test key.
-   - `POST /api/clients` with `idNumber: "TEST-9001"`. Confirm the row in `psql` shows `id_number_enc` ciphertext only.
-   - Restart the app with the SAME key from the sealed-envelope backup. `GET /api/clients/:id` must return `idNumber: "TEST-9001"`.
-   - If the round-trip fails, the backup is wrong — re-generate and re-seal before going live. Document the date of the dry-run below.
-4. **Rotation**:
-   - Generate a new key. **Do not** delete the old key until every encrypted row is re-written.
-   - Add a temporary `PII_ENCRYPTION_KEY_OLD` secret. Build a one-off rotation script that reads each `*_enc` column with the old key, re-encrypts with the new key, writes back. Run inside a transaction. After verifying counts match, delete the old secret and update the sealed envelopes.
-5. **Breach procedure**: if the key is suspected compromised — assume all encrypted columns are exposed. Notify the Information Regulator within 72 h (POPIA s.22). Rotate immediately. Force-erase any client who requests it.
+**Key-management runbook**
+1. **Generate**: `openssl rand -base64 32` → `PII_ENCRYPTION_KEY` secret. Never commit, never log.
+2. **Backup (mandatory before storing real PII)**: write the base64 to two sealed envelopes — one with Stewart offsite, one in the Advisory Connect safe. Each carries the date + checksum (`echo -n "<key>" | shasum -a 256`).
+3. **Recovery dry-run (run BEFORE storing real PII)**: in a sandbox Repl, set the key, `POST /api/clients` with `idNumber: "TEST-9001"`, confirm `id_number_enc` is ciphertext in `psql`, restart with the SAME key from the sealed-envelope copy, `GET /api/clients/:id` must return `idNumber: "TEST-9001"`. Round-trip failure = re-generate and re-seal. **Dry-run log: pending — run before flipping My Clients to real data.**
+4. **Rotation**: generate new key, do NOT delete old until every `*_enc` row is re-written. Add temporary `PII_ENCRYPTION_KEY_OLD`, run one-off rotation script (read old → re-encrypt new → write back) in a transaction, verify counts, delete old secret, update envelopes.
+5. **Breach**: assume all encrypted columns are exposed. Notify the Information Regulator within 72h (POPIA s.22). Rotate immediately. Force-erase on request.
 
-**Dry-run log**: pending — run the recovery dry-run and record the date here before flipping My Clients to real data.
+**Loss of `PII_ENCRYPTION_KEY` = permanent loss of all encrypted columns.** Sealed-envelope backup is not optional.
 
-**Loss of `PII_ENCRYPTION_KEY` = permanent loss of all encrypted columns.** No recovery is possible without the key. The sealed-envelope backup is not optional.
+## Paystack Subscriptions (Task #26)
+Recurring billing for R299 Basic / R499 Premium with a 14-day free trial. Pivoted from Stripe mid-task — Stripe doesn't onboard SA businesses yet. Paystack is SA-native, Stripe-owned, ZAR-first.
 
-## Paystack Subscriptions (Task #26, May 2026)
-Recurring billing for the R299 Basic / R499 Premium tiers with a 14-day free trial. **PIVOT from Stripe** mid-task — Stripe does not yet onboard South African businesses, so we switched to Paystack (SA-native, Stripe-owned since Oct 2024, ZAR-first). Same business logic, schema, and UI as the original Stripe spec; only the SDK + webhook format changed.
-
-**Required secrets** (request via the secrets flow, never embed):
-- `PAYSTACK_SECRET_KEY` — server-side API key (`sk_test_…` / `sk_live_…`)
-- `PAYSTACK_PUBLIC_KEY` — reserved for future client-side inline checkout (currently unused; hosted redirect flow only)
-- `PAYSTACK_PLAN_BASIC` — plan code from the Paystack dashboard for R299/mo
-- `PAYSTACK_PLAN_PREMIUM` — plan code for R499/mo
+**Required secrets**: `PAYSTACK_SECRET_KEY`, `PAYSTACK_PUBLIC_KEY` (reserved, currently unused), `PAYSTACK_PLAN_BASIC`, `PAYSTACK_PLAN_PREMIUM`.
 
 **Architecture**
-- `server/paystack.ts` — plain `fetch` against `api.paystack.co` (no SDK dep). Helpers: `initializeTransaction`, `disableSubscription`, `getManageSubscriptionLink`, `verifyWebhookSignature`, `tierForPlanCode`. Webhook signature is HMAC-SHA512 of the raw body with `PAYSTACK_SECRET_KEY`, compared in constant time against the `x-paystack-signature` header. Raw body is captured by the existing `express.json({ verify })` hook in `server/index.ts`.
-- **DB columns** (additive migrations in `server/migrations.ts`): `subscription_status` (text, default `trialing`), `trial_ends_at` (timestamp), `paystack_customer_code`, `paystack_subscription_code`, `paystack_email_token`, `trial_expiry_email_sent_at`. Backfill sets `trial_ends_at = created_at + 14 days` for any pre-existing advisor row.
-- **Source of truth**: `advisors.subscriptionTier` ∈ `trial` / `basic` / `premium`; `subscriptionStatus` ∈ `trialing` / `active` / `cancelled` / `past_due`. Webhook is the only writer for `subscriptionTier` post-checkout (server never trusts client-supplied tier).
-- **Tier-split logic**: `isPremiumActive(advisor)` / `isBasicOrBetter(advisor)` in `shared/schema.ts` — both server and client import these so a single rule decides feature access. Trial = full Premium access until `trialEndsAt` passes.
-- **API surface**:
-  - `GET /api/billing/status` — current tier / status / trial countdown / configured flag.
-  - `POST /api/billing/checkout` `{ tier }` — returns `{ authorizationUrl }` for redirect to Paystack hosted checkout.
-  - `POST /api/billing/cancel` — calls Paystack `/subscription/disable`; tier downgrade waits for the `subscription.disable` webhook (no optimistic write).
-  - `GET /api/billing/manage-link` — one-time URL where the advisor updates card / views invoices (Paystack's closest analog to Stripe's Customer Portal).
-  - `POST /api/webhook/paystack` — **public**, signature-verified, idempotent. Handles `charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`. Returns 200 even on handler errors so Paystack doesn't retry a poison event indefinitely.
-- **Auth**: `/api/billing/*` is allow-listed for advisor sessions in `server/auth.ts` (same pattern as `/api/clients/*`). The webhook is in `PUBLIC_API_ROUTES`.
-- **Trial-expiry email**: daily `setInterval` in `server/index.ts` finds advisors whose trial ends in ≤2 days and who haven't been emailed yet, sends via `sendTrialExpiryEmail` (SendGrid, branded shell), marks `trial_expiry_email_sent_at`. First sweep 30s after boot. Safe on the Reserved VM (single instance, no double-fire risk).
+- `server/paystack.ts` — plain `fetch` against `api.paystack.co` (no SDK). Helpers: `initializeTransaction`, `disableSubscription`, `getManageSubscriptionLink`, `verifyWebhookSignature`, `tierForPlanCode`. Webhook signature is HMAC-SHA512 of the raw body with `PAYSTACK_SECRET_KEY`, constant-time compared to `x-paystack-signature`. Raw body captured by the existing `express.json({ verify })` hook.
+- **Source of truth**: `advisors.subscriptionTier` ∈ `trial`/`basic`/`premium`; `subscriptionStatus` ∈ `trialing`/`active`/`cancelled`/`past_due`. Webhook is the only writer for `subscriptionTier` post-checkout.
+- **Tier gating**: `isPremiumActive(advisor)` / `isBasicOrBetter(advisor)` in `shared/schema.ts` — server and client both import these. Trial = full Premium access until `trialEndsAt` passes.
+- **API surface**: `GET /api/billing/status`, `POST /api/billing/checkout {tier}` → `{authorizationUrl}`, `POST /api/billing/cancel` (waits for webhook to downgrade), `GET /api/billing/manage-link`, `POST /api/webhook/paystack` (public, signature-verified, idempotent — handles `charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`; returns 200 even on handler errors).
+- `/api/billing/*` allow-listed for advisor sessions in `server/auth.ts`. Webhook in `PUBLIC_API_ROUTES`.
+- **Trial-expiry email**: daily `setInterval` in `server/index.ts` finds advisors whose trial ends in ≤2 days and who haven't been emailed, sends via `sendTrialExpiryEmail`, marks `trialExpiryEmailSentAt`. First sweep 30s after boot.
 
-**Tier split** (agreed Stewart + Friday + Claude, 16 May 2026):
-- **Basic R299/mo** — 1 public profile · all 4 lead forms with rich grader fields · lead registry with grade + temperature · all themes + patterns · QR + share link + My Email · Daily Quotes · TradingView (1 instrument) · basic analytics · standard digital business card (footer baked in — viral loop) · 14-day trial.
-- **Premium R499/mo** — everything in Basic plus: secondary profile · full grader breakdown + advanced analytics dashboard · image pattern presets · Editor's article · Compound + Retirement calculators · Financial Calendar · Fund Fact Sheets · Smartie Box · Risk Profile Quiz · TradingView multi-instrument · multi-format business cards with optional footer removal (white-label) · My Clients (POPIA-encrypted vault, Book of Life, birthdays — ships with Task #25) · Weekly Brief (flagged coming soon) · Meeting Recording (flagged coming soon) · Priority support (24hr Mon–Fri vs 72hr).
-- **Why split this way**: business card stays in Basic to preserve the viral growth loop; rich grader fields stay in Basic so every advisor captures quality leads; full insights + practice management + white-label feel are the genuine Premium upsell.
+**Tier split** (Stewart + Friday + Claude, 16 May 2026):
+- **Basic R299/mo** — 1 public profile · 4 lead forms + grader · registry with grade + temperature · all themes + patterns · QR + share link + My Email · Daily Quotes · TradingView (1 instrument) · basic analytics · digital business card (footer baked in — viral loop) · 14-day trial.
+- **Premium R499/mo** — adds: secondary profile · full grader breakdown + advanced analytics · image pattern presets · Editor's article · Compound + Retirement calcs · Financial Calendar · Fund Fact Sheets · Smartie Box · Risk Profile Quiz · TradingView multi-instrument · multi-format business cards with optional footer removal (white-label) · My Clients · Weekly Brief (coming) · Meeting Recording (coming) · priority support.
+- **Rationale**: business card stays Basic to preserve viral loop; rich grader stays Basic so every advisor captures quality leads; insights + practice management + white-label are the genuine Premium upsell.
 
-**Stewart's KYC reminder**: certified IDs, CIPC reg, and Standard Bank docs were sent in chat (May 2026) and need to be uploaded to Paystack's onboarding flow before the live keys can issue. Test-mode keys can be set immediately for the checkout walkthrough.
+**KYC reminder**: certified IDs, CIPC reg, Standard Bank docs (sent in chat May 2026) need uploading to Paystack onboarding before live keys issue. Test-mode keys can be set immediately.
 
 ## Known Auth Gap (raised by code review, not yet fixed)
-`/api/emails` GET, `/api/emails/:id/grade`, `/api/emails/:id/status`, `/api/emails/:id/open`, `DELETE /api/emails/:id` are currently unprotected. CIV is admin-session-gated at the page level but the data endpoints aren't, so leads are technically world-readable via direct API. AdvisorPanel.tsx (`/advisor/:slug`) also calls the PATCH/DELETE endpoints, so locking them down requires building advisor-session auth (separate task). New CSV export endpoint IS admin-protected.
+`/api/emails` GET, `/api/emails/:id/grade`, `/api/emails/:id/status`, `/api/emails/:id/open`, `DELETE /api/emails/:id` are unprotected. CIV is admin-gated at the page level but the data endpoints aren't, so leads are technically world-readable via direct API. AdvisorPanel also calls PATCH/DELETE, so locking down requires building advisor-session auth (separate task). CSV export IS admin-protected.
 
 ## CIV Grading System (Grader 2.0)
-Implemented in `shared/schema.ts` via `calculateLeadGrade(input)`. Returns `{ score, grade, temperature, breakdown }`. Score is out of 100, weighted across 5 categories:
-- **Income** (0-35): R100k+→35, R75k+→30, R50k+→25, R35k+→20, R20k+→12, R10k+→6
-- **Age** (0-20): 35-55→20, 28-65→14, 22+→8, <22→3
-- **Lifestyle** (0-20): married/children/vehicle/property = +5 each
-- **Services** (0-15): 4pts per service listed (capped at 15) + 3pt bonus for estate/will/retirement keywords
-- **Source** (0-10): Call Back→10, Will Request→7, Referral→5
+`calculateLeadGrade(input)` in `shared/schema.ts` returns `{score, grade, temperature, breakdown}`. Score /100, weighted:
+- **Income** (0–35): R100k+→35, R75k+→30, R50k+→25, R35k+→20, R20k+→12, R10k+→6
+- **Age** (0–20): 35–55→20, 28–65→14, 22+→8, <22→3
+- **Lifestyle** (0–20): married/children/vehicle/property = +5 each
+- **Services** (0–15): 4pts each (cap 15) + 3pt bonus for estate/will/retirement keywords
+- **Source** (0–10): Callback→10, Will→7, Referral→5
 
-Grade thresholds: Gold ≥75, Silver ≥55, Bronze ≥35, Development <35.
+Grade: Gold ≥75, Silver ≥55, Bronze ≥35, Development <35.
+Temperature: Hot=Callback · Warm=Will OR Referral with rich data · Cold=Referral with minimal data.
 
-**Temperature** (independent axis, urgency/intent):
-- **Hot**: Call Back submissions
-- **Warm**: Will Request, OR Referral with rich client data (income or age)
-- **Cold**: Referral with minimal data, or unmatched
-
-CIV.tsx shows score/temperature pill under the grade selector and a full breakdown panel in the expanded detail row. New email rows store `leadScore`, `leadTemperature`, `gradeBreakdown` (JSON). Migration script: `scripts/recalculateLeads.ts` (idempotent, re-run anytime weights change).
+Migration script: `scripts/recalculateLeads.ts` (idempotent, re-run anytime weights change).
 
 ## Key Features
-1. **Home** - Welcome message, quick stats summary, navigation cards
-2. **Stat's Tracker** - Real-time stats from database with weekly activity chart
-3. **CIV (Client Information Viewer)** - Client table with grade cards, search, filter, expandable detail rows, inline grade override
-4. **Manage Advisors** - List advisors with active/inactive toggles, edit/view/copy/delete buttons, "New Advisor" button
-5. **Create New Advisor** - Full form with header, profile pic, bio options, services checkboxes, theme selection, QR code preview
-6. **Edit Advisor** (`/edit/:id`) - Full editing of existing advisor profiles
-7. **Public Profile Page** (`/profile/:slug`) - Mobile-optimized, dark/blue/pink themed, expandable services, callback/referral buttons, QR code, large profile pictures
-8. **Callback Form** (`/profile/:slug/request-callback`) - Client details form with income, situation toggles, service selection
-9. **Referral Form** (`/profile/:slug/referrals`) - Referrer details + up to 4 referral entries
-10. **Financial Tools on Profile** - Collapsible "Financial Tools" section on public profile with calculators: SA Tax, Exchange Rate, Compound Interest, Vehicle Finance, Bond / Home Loan, Emergency Fund, Life Cover Needs, Debt Payoff — each individually toggled in advisor panel. (Pension Savings + Capital Gains Tax calculators were removed May 2026 before the June 2nd presentation — accuracy could not be guaranteed on edge cases; DB columns `show_tool_pension` / `show_tool_cgt` retained per additive-only convention but are no longer read or written by the app.)
-11. **ZAR Rate Table in Toolbox** - Exchange Rate section in advisor toolbox shows ZAR vs top 10 global currencies table (1 ZAR = X, 1 unit = X ZAR)
-12. **reCAPTCHA** - Widget shown on forms (advisory, non-blocking) — removed hard gate so forms submit even if reCAPTCHA not completed; server-side soft-fail (returns true on network error)
-13. **Portrait Profile Header** - Public profile uses circular photo/initials at top of gradient card, centered name+title, with 2×2 utility button row inside the card
-14. **12 Themes** - dark, blue, pink, light-blue, dark-royal-purple, dark-green, gold, teal, red, navy, coral, silver
-15. **Background Patterns** - Advisors can pick from 6 background patterns with intensity slider (patternOpacity 5–100)
-16. **Per-advisor Mini Profiles** - AdditionalProfileForm lets advisors customize their own sub-profile (slug, theme, tools, pattern, services, etc.) independently of their main advisor record
+1. **Home / Stats / CIV / Manage Advisors / Create / Edit Advisor** — admin control panel pages
+2. **Public Profile** (`/profile/:slug`) — mobile-optimised, themed, expandable services, lead CTAs, QR
+3. **Callback / Referral / Will lead forms** — POPIA-compliant, soft reCAPTCHA, grader-aware fields
+4. **Advisor Sub-Panel** (`/advisor/:slug`) — per-advisor management of own profile + leads + share assets
+5. **Financial Tools** on profile — SA Tax, Exchange Rate, Compound Interest, Vehicle Finance, Bond, Emergency Fund, Life Cover, Debt Payoff (each individually toggled). Pension Savings + CGT removed May 2026 pre-presentation (accuracy concerns on edge cases). DB columns `show_tool_pension` / `show_tool_cgt` retained per additive-only convention but no longer read/written.
+6. **ZAR Rate Table** in Exchange Rate section — top 10 currencies vs ZAR both directions
+7. **12 themes**: dark, blue, pink, light-blue, dark-royal-purple, dark-green, gold, teal, red, navy, coral, silver
+8. **Background patterns** — 6 options with intensity slider (`patternOpacity` 5–100)
+9. **Per-advisor secondary profiles** — `AdditionalProfileForm`, independent slug/theme/tools/services
+10. **Digital Business Card** (Task #28) — canvas-rendered PNG, Portrait 1080×1920 (Stories) + Square 1080×1080 (Feed). Web Share API with download fallback. Footer bakes `advisoryconnect.pro/privacy-policy`. Helper: `client/src/lib/businessCard.ts`. Surfaces: AdvisorProfile share dialog + AdvisorPanel "Share Assets" section.
+11. **Public Profile Feature Suite** (Task #29) — 5 toggleable sections per profile: TradingView embed (up to 8 instruments), Daily Quotes (general/investment, day-of-year rotation), Compound Calculator, Retirement Calculator, SA Financial Calendar (SARB MPC / SARS / Budget / JSE / FAIS for 2026). Helpers: `client/src/lib/dailyQuotes.ts`, `client/src/lib/financialCalendar.ts`. All in `DEFAULT_PROFILE_SECTION_ORDER` so they reorder via the existing Section Order UI.
 
 ## Routes
-### Control Panel (inside AppLayout)
-- `/` Home, `/stats` Dashboard, `/civ` CIV, `/manage` Manage Advisors, `/create` Create Advisor, `/edit/:id` Edit Advisor
-
-### Public (standalone, no sidebar)
-- `/profile/:slug` - Advisor profile page
-- `/profile/:slug/request-callback` - Callback request form
-- `/profile/:slug/referrals` - Referral form
+- **Admin**: `/`, `/stats`, `/civ`, `/manage`, `/create`, `/edit/:id`
+- **Public**: `/profile/:slug`, `/profile/:slug/request-callback`, `/profile/:slug/referrals`, `/profile/:slug/will-request`
+- **Advisor sub-panel**: `/advisor/:slug`
+- **Legal**: `/privacy-policy`, `/terms`
 
 ## API Routes
-- `GET /api/dashboard/stats` - Dashboard summary counts
-- `GET /api/dashboard/activity` - Weekly activity data
-- `GET /api/advisors` - List all advisors
-- `GET /api/advisors/slug/:slug` - Lookup advisor by slug
-- `POST /api/advisors` - Create advisor
-- `PATCH /api/advisors/:id` - Update advisor
-- `PATCH /api/advisors/:id/toggle` - Toggle active/inactive
-- `GET /api/emails` - List all emails with advisor names
-- `POST /api/emails` - Create email record (auto-grades)
-- `PATCH /api/emails/:id/grade` - Update email grade
-- `POST /api/referral` - Referral submission (auto-grades, stores referrer info)
-- `POST /api/callback` - Callback request (auto-grades)
-- `POST /api/webhook/zoho` - Zoho Mail webhook
-- `POST /api/webhook/inbound-email` - SendGrid Inbound Parse
-- `POST /api/stats/access` - Record app access
-- `POST /api/upload/profile-pic` - Upload profile picture (returns URL)
+- **Dashboard**: `GET /api/dashboard/stats`, `GET /api/dashboard/activity`
+- **Advisors**: `GET /api/advisors`, `GET /api/advisors/slug/:slug`, `POST /api/advisors`, `PATCH /api/advisors/:id`, `PATCH /api/advisors/:id/toggle`, `GET /api/advisors/:slug/profile-stats`, `GET /api/advisors/:slug/views-series`
+- **Emails / Leads**: `GET /api/emails`, `POST /api/emails`, `PATCH /api/emails/:id/grade`, `GET /api/emails/export.csv` (admin), `POST /api/referral`, `POST /api/callback`, `POST /api/will-request`
+- **Webhooks**: `POST /api/webhook/zoho`, `POST /api/webhook/inbound-email`, `POST /api/webhook/paystack`
+- **Billing**: `GET /api/billing/status`, `POST /api/billing/checkout`, `POST /api/billing/cancel`, `GET /api/billing/manage-link`
+- **PII**: `/api/clients/*`, `/api/audit-pii` (admin)
+- **Misc**: `POST /api/stats/access`, `POST /api/upload/profile-pic`, `GET /api/forex/rates`, `GET /api/news/feed`, `GET /api/manifest`
 
 ## File Structure
-- `shared/schema.ts` - Drizzle schema, autoGradeClient(), BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, TITLE_OPTIONS
-- `server/db.ts` - Database connection
-- `server/storage.ts` - Storage interface with CRUD operations
-- `server/routes.ts` - Express API routes
-- `server/sendgrid.ts` - SendGrid email utility
-- `client/src/pages/` - HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, EditAdvisor, AdvisorProfile, CallbackForm, ReferralForm
-- `client/src/components/BrandFooter.tsx` - Single-row brand footer (logo · centered tagline + Privacy/Terms · advisoryconnect.pro + Contact Support pills) shared by master panel, sub-panel, and public profile
-- `client/src/lib/themeUtils.ts` - Shared theme color utility (dark/blue/pink) used by all public pages
-- `client/src/components/layout/AppLayout.tsx` - Black sidebar with "Control Panel" text, no logo
+- `shared/schema.ts` — Drizzle schema, `calculateLeadGrade()`, `isPremiumActive`/`isBasicOrBetter`, BIO/SERVICE/TITLE/PLATFORM constants, `DEFAULT_PROFILE_SECTION_ORDER`, `PROFILE_SECTION_LABELS`
+- `server/` — `db.ts`, `storage.ts` (IStorage interface), `routes.ts`, `auth.ts`, `migrations.ts`, `encryption.ts`, `paystack.ts`, `sendgrid.ts`
+- `client/src/pages/` — HomePage, Dashboard, CIV, ManageAdvisors, CreateAdvisor, EditAdvisor, AdvisorProfile, AdvisorPanel, CallbackForm, ReferralForm, WillForm, LegalPage, Login
+- `client/src/lib/` — `themeUtils.ts`, `businessCard.ts`, `dailyQuotes.ts`, `financialCalendar.ts`, `queryClient.ts`
+- `client/src/components/BrandFooter.tsx` — single-row footer shared by admin panel, sub-panel, public profile
 
 ## UI Conventions
-- **No emojis anywhere in the UI.** All icons must be Lucide React icons (X, Check, AlertTriangle, CalendarDays, Coffee, etc.). The single exception is canvas-rendered images (e.g. downloadable business card) and printable HTML reports — those use plain text labels like "Tel", "Email", "Note:" instead of emoji glyphs.
-- Warning/alert messages use `AlertTriangle` icon paired with descriptive text.
-- Close buttons use `X` icon with `aria-label="Close"`.
-- Checkmarks (password rules, completion states) use `Check` icon, not Unicode "✓".
-- Lead form follow-up paragraphs (Will request, Callback, Referral) avoid "yesterday/today" phrasing — use future-conditional ("If something were to happen tomorrow…") to keep tone supportive without alarming.
-- Ordinal labels for repeating items (referrals 1–20) use word form for First–Tenth, then numeric with proper suffix logic (11th–13th, 21st, etc.).
+- **No emojis anywhere in UI.** Lucide React icons only (`X`, `Check`, `AlertTriangle`, `CalendarDays`, etc.). Exceptions: canvas-rendered images (business card) and printable HTML reports use plain text labels ("Tel", "Email", "Note:").
+- Warning/alert: `AlertTriangle` + descriptive text. Close buttons: `X` icon with `aria-label="Close"`. Checkmarks: `Check` icon, not Unicode "✓".
+- Lead form follow-ups use future-conditional ("If something were to happen tomorrow…") — never alarming.
+- Ordinal labels for repeating items: word form First–Tenth, then numeric with proper suffix (11th–13th, 21st, etc.).
 
-## Legal Pages
-- `/privacy-policy` and `/terms` rendered by `client/src/pages/LegalPage.tsx` (POPIA-compliant, last updated 27 April 2026, includes 90-day Lead Protection Commitment).
-- Privacy notice line above submit on all three lead forms (`CallbackForm`, `ReferralForm`, `WillForm`) — required for POPIA-compliant data collection.
-- Privacy + Terms footer links on `AdvisorProfile` (public profile), `AdvisorPanel` (advisor sub-control panel), and master admin `Login`.
-- Downloadable contact card image (canvas-rendered in `AdvisorProfile.tsx`) carries footer text `advisoryconnect.pro/privacy-policy` baked into the PNG.
+## Legal
+- `/privacy-policy` and `/terms` from `LegalPage.tsx` — POPIA-compliant, last updated 27 April 2026, includes 90-day Lead Protection Commitment.
+- Privacy notice above submit on all lead forms.
+- Privacy + Terms footer links on AdvisorProfile, AdvisorPanel, master Login.
+- Canvas-rendered business cards bake `advisoryconnect.pro/privacy-policy` into the footer.
