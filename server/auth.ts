@@ -3,6 +3,9 @@ import type { Request, Response, NextFunction } from "express";
 const PUBLIC_API_ROUTES = [
   "/api/advisors/slug/",
   "/api/advisor-auth/",
+  "/api/advisor/login",
+  "/api/advisor/session",
+  "/api/advisor/logout",
   "/api/referral",
   "/api/callback",
   "/api/demo-emails",
@@ -50,6 +53,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   if ((req.session as any)?.authenticated) {
+    return next();
+  }
+
+  // Task #24 — advisor sessions reach the lead endpoints; route handlers then
+  // scope the response to their own advisorId via canAccessAdvisor/canAccessLead.
+  // Strictly scoped to /api/emails* so an advisor session cannot reach
+  // admin-only routes like /api/dashboard/*, /api/advisors CRUD, exports, etc.
+  if (
+    typeof (req.session as any)?.advisorId === "number" &&
+    req.path.startsWith("/api/emails")
+  ) {
     return next();
   }
 

@@ -50,9 +50,18 @@ const otpStore = new Map<string, { code: string; expires: number }>();
 async function canAccessAdvisor(req: import("express").Request, advisorId: number): Promise<boolean> {
   const session = req.session as any;
   if (session?.authenticated) return true;
+  // Task #24 — canonical advisor session contract: session.advisorId is set
+  // at login time and is the primary identity. Slug-keyed flags
+  // (advisor_${slug}) are kept for back-compat with legacy session cookies
+  // still in circulation and the slug-scoped /api/advisors/:slug/* routes.
+  if (session?.advisorId === advisorId) return true;
   const advisor = await storage.getAdvisor(advisorId);
   if (!advisor) return false;
-  if (advisor.isDemo) return true;
+  // Demo advisors are intentionally publicly browsable for sales walk-throughs,
+  // but we still require a session signal — visiting the demo profile sets
+  // session[`advisor_${slug}`] via /api/advisor-auth/:slug/session below. That
+  // way anonymous direct-API hits to demo lead data are still rejected.
+  if (advisor.isDemo && !!session?.[`advisor_${advisor.profileSlug}`]) return true;
   return !!session?.[`advisor_${advisor.profileSlug}`];
 }
 
@@ -498,11 +507,21 @@ export async function registerRoutes(
   });
 
   app.get("/api/emails", async (req, res) => {
-    if (!(req.session as any)?.authenticated) {
-      return res.status(401).json({ message: "Unauthorized" });
+    // Task #24 — admin sees all leads (master CIV); an authenticated advisor
+    // sees only their own leads. Anonymous → 401, no PII disclosure.
+    const session = req.session as any;
+    if (session?.authenticated) {
+      const emails = await storage.getEmails();
+      return res.json(emails);
     }
-    const emails = await storage.getEmails();
-    res.json(emails);
+    if (typeof session?.advisorId === "number") {
+      const advisor = await storage.getAdvisor(session.advisorId);
+      const leads = await storage.getEmailsByAdvisor(session.advisorId);
+      // Mirror the admin shape (`advisorName` joined in) so the same UI works.
+      const name = advisor?.name ?? "";
+      return res.json(leads.map(l => ({ ...l, advisorName: name })));
+    }
+    return res.status(401).json({ message: "Unauthorized" });
   });
 
   // Admin-only CSV export of all leads
@@ -682,9 +701,8 @@ export async function registerRoutes(
   });
 
   app.patch("/api/emails/:id/grade", async (req, res) => {
-    if (!(req.session as any)?.authenticated) {
-      return res.status(403).json({ message: "Grade can only be changed by an administrator." });
-    }
+    // Task #24 — admin OR the owning advisor may grade. canAccessLead enforces
+    // the ownership check (returns true for admin session or matching advisor).
     if (!await canAccessLead(req, Number(req.params.id))) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -1324,6 +1342,9 @@ export async function registerRoutes(
     } else {
       return res.status(400).json({ message: "Setup session expired. Please go back and start again." });
     }
+    // Task #24 — set canonical session.advisorId so newly-verified advisors
+    // can hit /api/emails* immediately without an extra login round-trip.
+    (req.session as any).advisorId = advisor.id;
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
@@ -1456,12 +1477,81 @@ export async function registerRoutes(
       return res.status(401).json({ message: "Email not verified. Please complete the verification step.", needsVerification: true });
     }
     audit("success", advisor.id);
+    // Task #24 — set the canonical session.advisorId alongside the legacy
+    // slug-keyed flag so both the new middleware and existing handlers work.
+    (req.session as any).advisorId = advisor.id;
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
 
   app.post("/api/advisor-auth/:slug/logout", async (req, res) => {
     (req.session as any)[`advisor_${req.params.slug}`] = false;
+    if ((req.session as any).advisorId) delete (req.session as any).advisorId;
+    res.json({ authenticated: false });
+  });
+
+  // Task #24 — canonical advisor auth surface (slug-less, identifies advisor
+  // by email). Thin alias around the slug-scoped flow above so docs/tooling
+  // can use a stable URL while legacy callers continue to work.
+  app.post("/api/advisor/login", advisorLoginLimiter, async (req, res) => {
+    const { email, password } = req.body;
+    const ipAddress = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || null;
+    const userAgent = req.headers["user-agent"]?.slice(0, 500) || null;
+    const audit = (outcome: string, advisorId: number | null, slug: string | null) => storage.recordLoginAudit({
+      role: "advisor",
+      advisorId,
+      emailAttempted: typeof email === "string" ? email.slice(0, 200) : null,
+      slug,
+      outcome,
+      ipAddress,
+      userAgent,
+    });
+    if (!email || !password) {
+      audit("missing_credentials", null, null);
+      return res.status(400).json({ message: "Email and password required" });
+    }
+    const all = await storage.getAdvisors();
+    const advisor = all.find(a => a.email?.toLowerCase() === String(email).toLowerCase());
+    if (!advisor) {
+      audit("invalid_email", null, null);
+      return res.status(401).json({ message: "Incorrect email or password." });
+    }
+    if (!advisor.advisorPasswordHash) {
+      audit("not_setup", advisor.id, advisor.profileSlug);
+      return res.status(401).json({ message: "Account not set up yet.", needsSetup: true });
+    }
+    const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
+    if (!valid) {
+      audit("invalid_password", advisor.id, advisor.profileSlug);
+      return res.status(401).json({ message: "Incorrect email or password." });
+    }
+    if (!advisor.advisorEmailVerified) {
+      audit("unverified", advisor.id, advisor.profileSlug);
+      return res.status(401).json({ message: "Email not verified.", needsVerification: true });
+    }
+    audit("success", advisor.id, advisor.profileSlug);
+    (req.session as any).advisorId = advisor.id;
+    (req.session as any)[`advisor_${advisor.profileSlug}`] = true;
+    res.json({ authenticated: true, slug: advisor.profileSlug });
+  });
+
+  app.get("/api/advisor/session", async (req, res) => {
+    res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+    const advisorId = (req.session as any)?.advisorId;
+    if (typeof advisorId !== "number") return res.json({ authenticated: false });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.json({ authenticated: false });
+    res.json({ authenticated: true, advisorId, slug: advisor.profileSlug });
+  });
+
+  app.post("/api/advisor/logout", async (req, res) => {
+    const session = req.session as any;
+    const advisorId = session?.advisorId;
+    if (advisorId) {
+      const advisor = await storage.getAdvisor(advisorId);
+      if (advisor?.profileSlug) session[`advisor_${advisor.profileSlug}`] = false;
+      delete session.advisorId;
+    }
     res.json({ authenticated: false });
   });
 
@@ -1469,6 +1559,11 @@ export async function registerRoutes(
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (advisor?.isDemo) {
+      // Auto-establish a demo session so subsequent /api/emails etc requests
+      // carry real session evidence and pass canAccessAdvisor — no more
+      // unconditional isDemo bypass at the helper level.
+      (req.session as any)[`advisor_${req.params.slug}`] = true;
+      (req.session as any).advisorId = advisor.id;
       return res.json({ authenticated: true, isDemo: true });
     }
     const authenticated = !!(req.session as any)?.[`advisor_${req.params.slug}`];
@@ -1479,8 +1574,7 @@ export async function registerRoutes(
     const slug = req.params.slug;
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated || !!advisor.isDemo;
-    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
+    if (!(await canAccessAdvisor(req, advisor.id))) return res.status(401).json({ message: "Unauthorized" });
     const allEmails = await storage.getEmailsByAdvisor(advisor.id);
     res.json(allEmails);
   });
@@ -1489,8 +1583,7 @@ export async function registerRoutes(
     const slug = req.params.slug;
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    const isAuthenticated = !!(req.session as any)?.[`advisor_${slug}`] || !!(req.session as any)?.authenticated || !!advisor.isDemo;
-    if (!isAuthenticated) return res.status(401).json({ message: "Unauthorized" });
+    if (!(await canAccessAdvisor(req, advisor.id))) return res.status(401).json({ message: "Unauthorized" });
     const advisorStats = await storage.getAdvisorStats(advisor.id);
 
     // Enrich profile attribution with friendly labels.
