@@ -45,7 +45,14 @@ export async function sendEmail(
   subject: string,
   html: string,
   from?: string,
-  opts?: { wrap?: boolean; previewText?: string }
+  opts?: {
+    wrap?: boolean;
+    previewText?: string;
+    // Task #44 — public-profile Scan Documents tool forwards client uploads
+    // as SendGrid attachments. `content` MUST be base64-encoded bytes.
+    attachments?: Array<{ filename: string; content: string; type?: string; disposition?: string }>;
+    replyTo?: string;
+  }
 ) {
   if (!apiKey) {
     throw new Error("SendGrid API key not configured");
@@ -61,13 +68,21 @@ export async function sendEmail(
   const shouldWrap = (opts?.wrap ?? true) && !looksLikeFullDoc;
   const finalHtml = shouldWrap ? brandedEmail(html, { previewText: opts?.previewText }) : html;
 
-  const msg = {
+  const msg: any = {
     to: recipients,
     from: from || FROM_EMAIL,
-    replyTo: REPLY_TO_EMAIL,
+    replyTo: opts?.replyTo || REPLY_TO_EMAIL,
     subject,
     html: finalHtml,
   };
+  if (opts?.attachments && opts.attachments.length > 0) {
+    msg.attachments = opts.attachments.map(a => ({
+      filename: a.filename,
+      content: a.content,
+      type: a.type || "application/octet-stream",
+      disposition: a.disposition || "attachment",
+    }));
+  }
 
   await sgMail.send(msg);
 }

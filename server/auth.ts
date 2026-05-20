@@ -10,6 +10,7 @@ const PUBLIC_API_ROUTES = [
   "/api/callback",
   "/api/demo-emails",
   "/api/will-request",
+  "/api/scan-document/",
   "/api/webhook/",
   "/api/stats/access",
   "/api/auth/login",

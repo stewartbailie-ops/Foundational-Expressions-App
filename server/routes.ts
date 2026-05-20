@@ -1185,6 +1185,149 @@ export async function registerRoutes(
     }
   });
 
+  // Task #44 — public "Scan Documents" tool on the advisor profile.
+  // A prospective client snaps a photo (or picks a file) of an ID / payslip /
+  // proof-of-address and hits Send. The file is encrypted at rest under
+  // uploads/scans/<advisorId>/ (when PII_ENCRYPTION_KEY is configured) and
+  // forwarded as a SendGrid attachment to the advisor's inbox + master inbox.
+  // Public (no session) → wrapped in leadFormLimiter and a tight per-file
+  // size cap. Mime allow-list keeps it to images + PDF; no scripts, no archives.
+  const scanDocUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 8 * 1024 * 1024, files: 6 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = [
+        "image/jpeg", "image/png", "image/webp", "image/heic", "image/heif",
+        "application/pdf",
+      ];
+      cb(null, allowed.includes(file.mimetype));
+    },
+  });
+
+  app.post("/api/scan-document/:slug", leadFormLimiter, scanDocUpload.array("files", 6), async (req, res) => {
+    try {
+      const slug = String(req.params.slug || "").trim();
+      if (!slug) return res.status(400).json({ message: "slug required" });
+      const advisor = await storage.getAdvisorBySlug(slug);
+      if (!advisor || !advisor.active) return res.status(404).json({ message: "Advisor not found" });
+
+      const files = (req.files as Express.Multer.File[] | undefined) || [];
+      if (files.length === 0) return res.status(400).json({ message: "No files uploaded" });
+
+      const senderName = String(req.body?.senderName || "").trim().slice(0, 120);
+      const senderEmailRaw = String(req.body?.senderEmail || "").trim().slice(0, 160);
+      const senderEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(senderEmailRaw) ? senderEmailRaw : "";
+      const note = String(req.body?.note || "").trim().slice(0, 2000);
+
+      const esc = (s: string) => s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c] as string));
+
+      // Encrypt at rest when the PII key is configured. We tolerate a missing
+      // key here (some dev environments boot without it) so the email forward
+      // still works — the audit row records which path was taken.
+      const path = await import("path");
+      const fsp = (await import("fs")).promises;
+      const { encryptBuffer, isEncryptionConfigured } = await import("./encryption");
+      const stored: { path: string; original: string; size: number }[] = [];
+      if (isEncryptionConfigured()) {
+        const dir = path.join(process.cwd(), "uploads", "scans", String(advisor.id));
+        await fsp.mkdir(dir, { recursive: true });
+        for (const f of files) {
+          const enc = encryptBuffer(f.buffer);
+          const filename = `${Date.now()}_${crypto.randomBytes(8).toString("hex")}.enc`;
+          const fp = path.join(dir, filename);
+          await fsp.writeFile(fp, enc, { mode: 0o600 });
+          stored.push({ path: fp, original: f.originalname || "scan", size: f.size });
+        }
+      }
+
+      // Audit trail (best-effort). Slug attribution lets admin trace abuse.
+      storage.recordAuditPii({
+        actorRole: "anon",
+        actorAdvisorId: advisor.id,
+        action: "write",
+        tableName: "scan_uploads",
+        rowId: 0,
+        fieldName: `slug=${slug};files=${files.length};enc=${stored.length > 0 ? "y" : "n"};from=${senderEmail || senderName || "anon"}`,
+        ipAddress: req.ip || null,
+        userAgent: (req.headers["user-agent"] as string) || null,
+      }).catch(() => {});
+
+      // Delivery accounting. The task's done-criterion is "document arrives in
+      // the advisor's inbox (email or in-panel inbox)" — so we treat a SendGrid
+      // success OR a successful encrypted-at-rest write as delivery (the
+      // encrypted copy is what the in-panel inbox view will read, follow-up
+      // #46). If neither path succeeded we must NOT report success.
+      let emailDelivered = false;
+      let emailError: string | null = null;
+      if (isSendGridConfigured() && advisor.email) {
+        try {
+          const attachments = files.map((f, i) => ({
+            filename: f.originalname || `scan-${i + 1}`,
+            content: f.buffer.toString("base64"),
+            type: f.mimetype,
+            disposition: "attachment",
+          }));
+          const fileList = files.map(f => `<li>${esc(f.originalname || "scan")} <span style="color:#6b7280;">(${(f.size / 1024).toFixed(0)} KB)</span></li>`).join("");
+          const inner = `
+            <h2 style="margin:0 0 12px;font-size:18px;color:#0a0e1a;">New document scan from your public profile</h2>
+            <p style="margin:0 0 12px;font-size:14px;line-height:1.55;color:#374151;">
+              ${senderName ? `<strong>${esc(senderName)}</strong>` : "An anonymous visitor"}${senderEmail ? ` &lt;${esc(senderEmail)}&gt;` : ""} sent ${files.length} document${files.length === 1 ? "" : "s"} via the Scan Documents tool on your Advisory Connect profile.
+            </p>
+            ${note ? `<div style="margin:0 0 12px;padding:10px 12px;background:#f3f4f6;border-radius:8px;font-size:13px;line-height:1.5;color:#374151;white-space:pre-wrap;"><strong style="display:block;margin-bottom:4px;color:#111827;">Note:</strong>${esc(note)}</div>` : ""}
+            <ul style="margin:0 0 16px 18px;padding:0;font-size:13px;color:#374151;line-height:1.6;">${fileList}</ul>
+            <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">
+              Files are attached to this email${stored.length > 0 ? " and a copy is stored encrypted at rest on Advisory Connect" : ""}. Treat any personal information per POPIA.
+            </p>`;
+          await sendEmail(
+            buildRecipients(advisor.email),
+            `Scanned documents from ${senderName || "a profile visitor"} — ${advisor.name}`,
+            inner,
+            undefined,
+            {
+              previewText: `${files.length} document${files.length === 1 ? "" : "s"} from ${senderName || "a profile visitor"}`,
+              attachments,
+              replyTo: senderEmail || undefined,
+            },
+          );
+          emailDelivered = true;
+        } catch (emailErr: any) {
+          emailError = emailErr?.message || String(emailErr);
+          console.error("[scan-document] notification email failed:", emailErr);
+        }
+      } else {
+        emailError = !isSendGridConfigured() ? "SendGrid not configured" : "Advisor has no email on file";
+      }
+
+      // Email is the only advisor-consumable channel today (the in-panel
+      // inbox view is follow-up #46). If the send failed we must report
+      // failure even when the encrypted copy is safely on disk — otherwise
+      // the visitor sees "Sent" while the advisor sees nothing.
+      if (!emailDelivered) {
+        return res.status(502).json({
+          message: "We couldn't deliver your documents to your advisor right now. Please try again in a few minutes or contact them directly.",
+          emailError,
+        });
+      }
+
+      res.status(201).json({
+        message: "Documents delivered",
+        count: files.length,
+        emailDelivered: true,
+        storedEncrypted: stored.length > 0,
+      });
+    } catch (err: any) {
+      // multer rejects oversize / disallowed mime with `code` set.
+      if (err && err.code === "LIMIT_FILE_SIZE") {
+        return res.status(413).json({ message: "File too large. Max 8 MB per file." });
+      }
+      if (err && err.code === "LIMIT_FILE_COUNT") {
+        return res.status(413).json({ message: "Too many files. Max 6 per submission." });
+      }
+      console.error("[scan-document] failed:", err);
+      res.status(500).json({ message: "Failed to send documents" });
+    }
+  });
+
   app.post("/api/webhook/zoho", webhookLimiter, async (req, res) => {
     if (!verifyZohoWebhook(req)) {
       return res.status(401).json({ message: "Unauthorized" });

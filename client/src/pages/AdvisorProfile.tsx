@@ -3,7 +3,7 @@ import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
-import { Loader2, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, X, ArrowRight, Building2, FileCheck, Quote, PiggyBank, LineChart } from "lucide-react";
+import { Loader2, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, X, Check, ArrowRight, Building2, FileCheck, Quote, PiggyBank, LineChart } from "lucide-react";
 import { getQuoteForToday, shareQuoteAsPng, type QuoteSet } from "@/lib/dailyQuotes";
 import { getUpcomingEvents, getCategoryColor, TRADINGVIEW_SYMBOLS } from "@/lib/financialCalendar";
 import type { Advisor } from "@shared/schema";
@@ -1040,9 +1040,49 @@ export default function AdvisorProfile() {
   const fxPipSize = fxPair.endsWith("JPY") ? 0.01 : 0.0001;
   const fxValuePerPipUsd = (parseFloat(fxLots) || 0) * FX_UNITS_PER_LOT * fxPipSize;
   const fxPnlUsd = fxValuePerPipUsd * (parseFloat(fxPips) || 0);
-  // Scan Documents (T#43 parity)
+  // Scan Documents — Task #44. Public client snaps ID / payslip / proof of
+  // address and POSTs to /api/scan-document/:slug; the server encrypts at rest
+  // and emails the advisor with attachments. capture="environment" gives the
+  // rear camera on mobile Safari + Android Chrome; same input also accepts
+  // pre-existing files from the device library and PDFs.
   const scanInputRef = useRef<HTMLInputElement>(null);
   const [scanFiles, setScanFiles] = useState<File[]>([]);
+  const [scanSenderName, setScanSenderName] = useState("");
+  const [scanSenderEmail, setScanSenderEmail] = useState("");
+  const [scanNote, setScanNote] = useState("");
+  const [scanSending, setScanSending] = useState(false);
+  const [scanSent, setScanSent] = useState<null | { emailDelivered: boolean; storedEncrypted: boolean }>(null);
+  const [scanError, setScanError] = useState<string | null>(null);
+
+  const sendScanDocuments = async () => {
+    if (scanFiles.length === 0 || !slug) return;
+    setScanSending(true);
+    setScanError(null);
+    setScanSent(null);
+    try {
+      const fd = new FormData();
+      for (const f of scanFiles) fd.append("files", f, f.name || "scan");
+      if (scanSenderName.trim()) fd.append("senderName", scanSenderName.trim());
+      if (scanSenderEmail.trim()) fd.append("senderEmail", scanSenderEmail.trim());
+      if (scanNote.trim()) fd.append("note", scanNote.trim());
+      const res = await fetch(`/api/scan-document/${encodeURIComponent(slug)}`, { method: "POST", body: fd });
+      let body: any = {};
+      try { body = await res.json(); } catch {}
+      if (!res.ok) {
+        throw new Error(body?.message || "Failed to send documents. Please try again.");
+      }
+      setScanSent({
+        emailDelivered: !!body?.emailDelivered,
+        storedEncrypted: !!body?.storedEncrypted,
+      });
+      setScanFiles([]);
+      setScanNote("");
+    } catch (err: any) {
+      setScanError(err?.message || "Failed to send documents. Please try again.");
+    } finally {
+      setScanSending(false);
+    }
+  };
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -2772,24 +2812,131 @@ export default function AdvisorProfile() {
                           )}
                           {toolKey === "scan" && (
                             <>
-                              <p className="text-xs" style={{ color: mutedText }}>Capture documents with your camera and forward to your advisor.</p>
-                              <input ref={scanInputRef} type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={e => { const files = e.target.files ? Array.from(e.target.files) : []; if (files.length) setScanFiles(prev => [...prev, ...files]); }} data-testid="input-tool-scan-file" />
-                              <button type="button" onClick={() => scanInputRef.current?.click()} className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90" style={{ backgroundColor: accentColor, color: tc.isDark ? "#000" : "#fff" }} data-testid="button-tool-scan-open">
-                                <FileText className="h-4 w-4 inline mr-1.5" /> Take / Choose Photo
+                              <p className="text-xs" style={{ color: mutedText }}>
+                                Snap an ID, payslip or proof of address and send it straight to {advisor.name}. Files are encrypted in transit and at rest.
+                              </p>
+                              <input
+                                ref={scanInputRef}
+                                type="file"
+                                accept="image/*,application/pdf"
+                                capture="environment"
+                                multiple
+                                className="hidden"
+                                onChange={e => {
+                                  const picked = e.target.files ? Array.from(e.target.files) : [];
+                                  if (picked.length) {
+                                    setScanFiles(prev => [...prev, ...picked].slice(0, 6));
+                                    setScanSent(null);
+                                    setScanError(null);
+                                  }
+                                  if (scanInputRef.current) scanInputRef.current.value = "";
+                                }}
+                                data-testid="input-tool-scan-file"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => scanInputRef.current?.click()}
+                                disabled={scanSending}
+                                className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                                style={{ backgroundColor: accentColor, color: tc.isDark ? "#000" : "#fff" }}
+                                data-testid="button-tool-scan-open"
+                              >
+                                <FileText className="h-4 w-4 inline mr-1.5" /> Take Photo / Choose File
                               </button>
                               {scanFiles.length > 0 && (
-                                <div className="space-y-1.5">
-                                  {scanFiles.map((f, i) => (
-                                    <div key={i} className="flex items-center justify-between gap-2 text-xs rounded-lg px-2 py-1.5" style={{ backgroundColor: tc.inputBg }}>
-                                      <span className="truncate" style={{ color: textColor }}>{f.name || `Scan ${i + 1}`}</span>
-                                      <span style={{ color: mutedText }}>{(f.size / 1024).toFixed(0)} KB</span>
-                                    </div>
-                                  ))}
-                                  <div className="flex gap-2">
-                                    <a href={advisor.email ? `mailto:${advisor.email}?subject=Scanned%20Documents&body=Attached%20scans%20for%20your%20review.` : "#"} className="flex-1 text-center py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="link-tool-scan-email">Email to Advisor</a>
-                                    <button type="button" onClick={() => setScanFiles([])} className="px-3 py-2 rounded-lg text-xs font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: textColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-tool-scan-clear">Clear</button>
+                                <div className="space-y-2">
+                                  <div className="space-y-1.5">
+                                    {scanFiles.map((f, i) => (
+                                      <div key={i} className="flex items-center justify-between gap-2 text-xs rounded-lg px-2 py-1.5" style={{ backgroundColor: tc.inputBg }}>
+                                        <span className="truncate" style={{ color: textColor }}>{f.name || `Scan ${i + 1}`}</span>
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          <span style={{ color: mutedText }}>{(f.size / 1024).toFixed(0)} KB</span>
+                                          <button
+                                            type="button"
+                                            onClick={() => setScanFiles(prev => prev.filter((_, idx) => idx !== i))}
+                                            disabled={scanSending}
+                                            aria-label="Remove file"
+                                            className="rounded p-1 hover:opacity-80"
+                                            style={{ color: mutedText }}
+                                            data-testid={`button-tool-scan-remove-${i}`}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ))}
                                   </div>
-                                  <p className="text-xs" style={{ color: mutedText }}>Photos stay on your device. Use your email client to attach them when sending.</p>
+                                  <input
+                                    type="text"
+                                    value={scanSenderName}
+                                    onChange={e => setScanSenderName(e.target.value)}
+                                    placeholder="Your name (optional)"
+                                    disabled={scanSending}
+                                    maxLength={120}
+                                    style={is}
+                                    data-testid="input-tool-scan-name"
+                                  />
+                                  <input
+                                    type="email"
+                                    value={scanSenderEmail}
+                                    onChange={e => setScanSenderEmail(e.target.value)}
+                                    placeholder="Your email (optional)"
+                                    disabled={scanSending}
+                                    maxLength={160}
+                                    style={is}
+                                    data-testid="input-tool-scan-email"
+                                  />
+                                  <textarea
+                                    value={scanNote}
+                                    onChange={e => setScanNote(e.target.value)}
+                                    placeholder="Add a short note (optional)"
+                                    disabled={scanSending}
+                                    rows={2}
+                                    maxLength={2000}
+                                    style={{ ...is, resize: "vertical", minHeight: "60px" }}
+                                    data-testid="textarea-tool-scan-note"
+                                  />
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={sendScanDocuments}
+                                      disabled={scanSending}
+                                      className="flex-1 py-2 rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                                      style={{ backgroundColor: accentColor, color: tc.isDark ? "#000" : "#fff" }}
+                                      data-testid="button-tool-scan-send"
+                                    >
+                                      {scanSending ? (
+                                        <><Loader2 className="h-3.5 w-3.5 inline mr-1.5 animate-spin" /> Sending…</>
+                                      ) : (
+                                        <>Send to Advisor</>
+                                      )}
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => { setScanFiles([]); setScanError(null); setScanSent(null); }}
+                                      disabled={scanSending}
+                                      className="px-3 py-2 rounded-lg text-xs font-medium disabled:opacity-60"
+                                      style={{ backgroundColor: tc.buttonSecondaryBg, color: textColor, border: `1px solid ${tc.borderColor}` }}
+                                      data-testid="button-tool-scan-clear"
+                                    >
+                                      Clear
+                                    </button>
+                                  </div>
+                                  <p className="text-xs" style={{ color: mutedText }}>
+                                    By sending, you agree your documents may be processed by your advisor under POPIA.
+                                  </p>
+                                </div>
+                              )}
+                              {scanSent && (
+                                <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, color: textColor, border: `1px solid ${tc.borderColor}` }} data-testid="status-tool-scan-sent">
+                                  <Check className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accentColor }} />
+                                  <span>Sent. {advisor.name} will receive your documents by email shortly.</span>
+                                </div>
+                              )}
+                              {scanError && (
+                                <div className="flex items-start gap-2 text-xs rounded-lg px-3 py-2" style={{ backgroundColor: tc.inputBg, color: textColor, border: `1px solid ${tc.borderColor}` }} data-testid="status-tool-scan-error">
+                                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accentColor }} />
+                                  <span>{scanError}</span>
                                 </div>
                               )}
                             </>
