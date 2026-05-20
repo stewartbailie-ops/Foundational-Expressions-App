@@ -182,6 +182,27 @@ process.on("uncaughtException", (err) => {
 
 (async () => {
   await runStartupMigrations();
+  // Task #25 — Encryption self-test. If the key is configured, prove a
+  // round-trip works at boot so a misconfigured key fails loudly here
+  // (before any client tries to write PII), not silently later. If the key
+  // is NOT configured we log a warning — encryption-dependent endpoints
+  // return 503 until the operator sets PII_ENCRYPTION_KEY.
+  const { selfTest, keyStatus } = await import("./encryption");
+  const ks = keyStatus();
+  if (ks === "invalid") {
+    console.error("[startup] PII_ENCRYPTION_KEY is SET but INVALID (wrong length or not base64). Refusing to start — fix the secret or unset it. See replit.md 'POPIA / PII Encryption'.");
+    process.exit(1);
+  }
+  if (ks === "valid") {
+    const r = selfTest();
+    if (!r.ok) {
+      console.error("[startup] PII encryption self-test FAILED:", r.error);
+      process.exit(1);
+    }
+    console.log("[startup] PII encryption self-test passed");
+  } else {
+    console.warn("[startup] PII_ENCRYPTION_KEY not set — /api/clients endpoints will 503 until configured. See replit.md 'POPIA / PII Encryption'.");
+  }
   await registerRoutes(httpServer, app);
   registerOgImageRoute(app);
 

@@ -67,6 +67,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // Task #25 — advisor sessions reach /api/clients* (their own client data
+  // and documents). Handlers enforce per-advisor isolation by passing
+  // session.advisorId into every storage call. Admin sessions already
+  // passed the authenticated check above.
+  if (
+    typeof (req.session as any)?.advisorId === "number" &&
+    req.path.startsWith("/api/clients")
+  ) {
+    return next();
+  }
+
   return res.status(401).json({ message: "Unauthorized" });
 }
 

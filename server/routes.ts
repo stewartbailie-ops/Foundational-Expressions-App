@@ -14,6 +14,46 @@ const advisorLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, stand
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many OTP attempts. Please try again in 15 minutes." } });
 const otpSendLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification emails sent. Please try again in an hour." } });
 
+// Task #25 — per-IP rate limits on public endpoints. Lead-form limits are
+// intentionally generous (a sole advisor demoing live in a meeting might
+// submit two test referrals back-to-back), but tight enough that a script
+// hammering /api/callback hits a 429 well before it can fill the DB. Profile
+// + stats lookups are higher because every page view fires them. Webhook
+// endpoint is its own bucket — providers retry, but never at high volume.
+// Audit hook logs each block to audit_pii so admin can spot abuse patterns.
+const auditRateLimitBlock = (req: import("express").Request, bucket: string) => {
+  storage.recordAuditPii({
+    actorRole: "anon",
+    actorAdvisorId: null,
+    action: "rate_limit_block",
+    tableName: bucket,
+    rowId: 0,
+    fieldName: null,
+    ipAddress: req.ip || null,
+    userAgent: (req.headers["user-agent"] as string) || null,
+  }).catch(() => {});
+};
+const leadFormLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, max: 20, standardHeaders: true, legacyHeaders: false,
+  message: { message: "Too many submissions from this IP. Please try again later." },
+  handler: (req, res, _next, opts) => { auditRateLimitBlock(req, "lead_form"); res.status(opts.statusCode).json(opts.message); },
+});
+const publicReadLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 120, standardHeaders: true, legacyHeaders: false,
+  message: { message: "Too many requests. Please slow down." },
+  handler: (req, res, _next, opts) => { auditRateLimitBlock(req, "public_read"); res.status(opts.statusCode).json(opts.message); },
+});
+const statsAccessLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 60, standardHeaders: true, legacyHeaders: false,
+  message: { message: "Too many requests." },
+  handler: (req, res, _next, opts) => { auditRateLimitBlock(req, "stats_access"); res.status(opts.statusCode).json(opts.message); },
+});
+const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000, max: 30, standardHeaders: true, legacyHeaders: false,
+  message: { message: "Webhook rate exceeded." },
+  handler: (req, res, _next, opts) => { auditRateLimitBlock(req, "webhook"); res.status(opts.statusCode).json(opts.message); },
+});
+
 const safeUrlField = z
   .string()
   .nullable()
@@ -375,7 +415,7 @@ export async function registerRoutes(
     res.json(counts);
   });
 
-  app.get("/api/advisors/slug/:slug", async (req, res) => {
+  app.get("/api/advisors/slug/:slug", publicReadLimiter, async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     res.json(toPublicAdvisor(advisor));
@@ -754,7 +794,7 @@ export async function registerRoutes(
     res.json({ message: "Deleted" });
   });
 
-  app.post("/api/referral", async (req, res) => {
+  app.post("/api/referral", leadFormLimiter, async (req, res) => {
     try {
       const schema = z.object({
         advisorId: z.number(),
@@ -877,7 +917,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/callback", async (req, res) => {
+  app.post("/api/callback", leadFormLimiter, async (req, res) => {
     try {
       const schema = z.object({
         advisorId: z.number(),
@@ -1001,7 +1041,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/will-request", async (req, res) => {
+  app.post("/api/will-request", leadFormLimiter, async (req, res) => {
     try {
       const schema = z.object({
         advisorId: z.number(),
@@ -1128,7 +1168,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/webhook/zoho", async (req, res) => {
+  app.post("/api/webhook/zoho", webhookLimiter, async (req, res) => {
     if (!verifyZohoWebhook(req)) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -1183,7 +1223,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/webhook/inbound-email", async (req, res) => {
+  app.post("/api/webhook/inbound-email", webhookLimiter, async (req, res) => {
     if (!verifySendGridWebhook(req)) {
       return res.status(401).json({ message: "Unauthorized" });
     }
@@ -1231,7 +1271,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/stats/access", async (req, res) => {
+  app.post("/api/stats/access", statsAccessLimiter, async (req, res) => {
     const { advisorId, slug } = req.body;
     // S7: encode the viewed slug into eventType so the server can later split
     // Primary vs Secondary view counts WITHOUT a schema change. Sanitise the
@@ -1847,6 +1887,236 @@ export async function registerRoutes(
     } catch {
       res.status(500).json({ message: "Failed to fetch feed", items: [] });
     }
+  });
+
+  // ──────────────────────────────────────────────────────────────────────
+  // Task #25 — Client / PII / Audit endpoints.
+  // Per-advisor isolation: every handler resolves the effective advisorId
+  // from the session (admin must supply ?advisorId=, advisor sessions use
+  // their own). Storage methods then enforce `WHERE advisor_id = ?` at the
+  // SQL layer — even if a route is missed in code review, an advisor cannot
+  // read another advisor's clients.
+  const { encryptBuffer, decryptBuffer, isEncryptionConfigured } = await import("./encryption");
+  const path = await import("path");
+  const fs = await import("fs");
+  const fsp = fs.promises;
+  const CLIENTS_UPLOAD_ROOT = path.join(process.cwd(), "uploads", "clients");
+  await fsp.mkdir(CLIENTS_UPLOAD_ROOT, { recursive: true });
+  const docUpload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+  });
+
+  function sessionRole(req: import("express").Request): "admin" | "advisor" | null {
+    const s = req.session as any;
+    if (s?.authenticated) return "admin";
+    if (typeof s?.advisorId === "number") return "advisor";
+    return null;
+  }
+
+  // Resolve effective advisorId scope for a client request.
+  // - Admin sessions may pass ?advisorId= (or body.advisorId) to scope.
+  // - Advisor sessions are pinned to their own advisorId; ignore overrides.
+  function effectiveAdvisorId(req: import("express").Request): number | null {
+    const role = sessionRole(req);
+    if (!role) return null;
+    if (role === "advisor") return (req.session as any).advisorId as number;
+    const raw = (req.query.advisorId ?? req.body?.advisorId);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  function auditCtx(req: import("express").Request) {
+    return {
+      actorRole: sessionRole(req) || "anon",
+      actorAdvisorId: (req.session as any)?.advisorId ?? null,
+      ipAddress: req.ip || null,
+      userAgent: (req.headers["user-agent"] as string) || null,
+    };
+  }
+
+  // List clients for the calling advisor (admin must scope with ?advisorId=).
+  app.get("/api/clients", async (req, res) => {
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    let rows;
+    try {
+      rows = await storage.listClients(advisorId);
+    } catch (err: any) {
+      // DecryptError = bad/rotated key. Surface as 500 rather than blanking PII.
+      console.error("[clients] list decrypt failed:", err?.message);
+      return res.status(500).json({ message: "Failed to read client data (decrypt error)" });
+    }
+    // audit_pii: record the read at the list level (one row per call, not per record)
+    storage.recordAuditPii({ ...auditCtx(req), action: "read", tableName: "clients", rowId: 0, fieldName: "list" });
+    res.json(rows);
+  });
+
+  app.get("/api/clients/:id", async (req, res) => {
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const id = Number(req.params.id);
+    let row;
+    try {
+      row = await storage.getClient(advisorId, id);
+    } catch (err: any) {
+      console.error("[clients] get decrypt failed:", err?.message);
+      return res.status(500).json({ message: "Failed to read client data (decrypt error)" });
+    }
+    if (!row) return res.status(404).json({ message: "Not found" });
+    storage.recordAuditPii({ ...auditCtx(req), action: "read", tableName: "clients", rowId: id, fieldName: "row" });
+    res.json(row);
+  });
+
+  app.post("/api/clients", async (req, res) => {
+    if (!isEncryptionConfigured()) {
+      return res.status(503).json({ message: "PII encryption key not configured. See server logs." });
+    }
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const schema = z.object({
+      name: z.string().min(1),
+      email: z.string().email().nullable().optional(),
+      phone: z.string().nullable().optional(),
+      notes: z.string().nullable().optional(),
+      sourceLeadId: z.number().nullable().optional(),
+      idNumber: z.string().nullable().optional(),
+      bankAccount: z.string().nullable().optional(),
+      bankBranch: z.string().nullable().optional(),
+      taxNumber: z.string().nullable().optional(),
+      consentText: z.string().optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    const data = parsed.data;
+    const created = await storage.createClient(advisorId, data as any);
+    storage.recordAuditPii({ ...auditCtx(req), action: "write", tableName: "clients", rowId: created.id, fieldName: "create" });
+    if (data.consentText) {
+      await storage.recordConsent({
+        clientId: created.id, advisorId,
+        consentText: data.consentText,
+        ipAddress: req.ip || null,
+        userAgent: (req.headers["user-agent"] as string) || null,
+      });
+    }
+    res.status(201).json(created);
+  });
+
+  app.patch("/api/clients/:id", async (req, res) => {
+    if (!isEncryptionConfigured()) {
+      return res.status(503).json({ message: "PII encryption key not configured. See server logs." });
+    }
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const id = Number(req.params.id);
+    const updated = await storage.updateClient(advisorId, id, req.body || {});
+    if (!updated) return res.status(404).json({ message: "Not found" });
+    storage.recordAuditPii({ ...auditCtx(req), action: "write", tableName: "clients", rowId: id, fieldName: "update" });
+    res.json(updated);
+  });
+
+  // Right-to-erasure (POPIA s.24). Admin-only. Wipes encrypted columns,
+  // deletes encrypted document files on disk, marks the row as erased.
+  // The audit trail in audit_pii is intentionally retained — POPIA Reg 4
+  // permits keeping anonymised processing records.
+  app.post("/api/clients/:id/erase", async (req, res) => {
+    if (sessionRole(req) !== "admin") return res.status(401).json({ message: "Admin only" });
+    const id = Number(req.params.id);
+    const targetAdvisorId = Number(req.query.advisorId || req.body?.advisorId);
+    if (!Number.isFinite(targetAdvisorId)) return res.status(400).json({ message: "advisorId required" });
+    // Wipe document files first so a half-erased state doesn't leave files behind.
+    // We tolerate ENOENT (file already gone) but FAIL the erase on any other
+    // unlink error so the operator notices instead of getting a false success.
+    const docs = await storage.listClientDocuments(targetAdvisorId, id);
+    const unlinkFailures: string[] = [];
+    for (const d of docs) {
+      try { await fsp.unlink(d.encryptedPath); }
+      catch (err: any) {
+        if (err?.code !== "ENOENT") { unlinkFailures.push(`doc#${d.id}: ${err?.code || err?.message}`); continue; }
+      }
+      await storage.markDocumentErased(targetAdvisorId, d.id);
+    }
+    if (unlinkFailures.length > 0) {
+      storage.recordAuditPii({ ...auditCtx(req), action: "erase_partial", tableName: "clients", rowId: id, fieldName: unlinkFailures.join(",") });
+      return res.status(500).json({ message: "Partial erase — file unlink failed", failures: unlinkFailures });
+    }
+    const ok = await storage.eraseClient(targetAdvisorId, id, "admin");
+    if (!ok) return res.status(404).json({ message: "Not found or already erased" });
+    storage.recordAuditPii({ ...auditCtx(req), action: "erase", tableName: "clients", rowId: id, fieldName: "right-to-erasure" });
+    res.json({ message: "Erased", id });
+  });
+
+  // Encrypted document upload. Bytes encrypted in memory before touching
+  // disk; no plaintext file is ever written. Storage path is namespaced by
+  // advisorId so a directory listing leak still doesn't cross advisors.
+  app.post("/api/clients/:id/documents", docUpload.single("file"), async (req, res) => {
+    if (!isEncryptionConfigured()) return res.status(503).json({ message: "PII encryption key not configured." });
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const clientId = Number(req.params.id);
+    const client = await storage.getClient(advisorId, clientId);
+    if (!client) return res.status(404).json({ message: "Client not found" });
+    if (!req.file) return res.status(400).json({ message: "file required" });
+    const advisorDir = path.join(CLIENTS_UPLOAD_ROOT, String(advisorId));
+    await fsp.mkdir(advisorDir, { recursive: true });
+    const filename = `${Date.now()}_${crypto.randomBytes(8).toString("hex")}.enc`;
+    const encPath = path.join(advisorDir, filename);
+    const encrypted = encryptBuffer(req.file.buffer);
+    await fsp.writeFile(encPath, encrypted, { mode: 0o600 });
+    const doc = await storage.createClientDocument({
+      clientId, advisorId,
+      originalFilename: req.file.originalname,
+      mimeType: req.file.mimetype,
+      encryptedPath: encPath,
+      sizeBytes: req.file.size,
+    });
+    storage.recordAuditPii({ ...auditCtx(req), action: "write", tableName: "client_documents", rowId: doc.id, fieldName: "upload" });
+    res.status(201).json({ id: doc.id, originalFilename: doc.originalFilename, sizeBytes: doc.sizeBytes });
+  });
+
+  app.get("/api/clients/:clientId/documents", async (req, res) => {
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const rows = await storage.listClientDocuments(advisorId, Number(req.params.clientId));
+    res.json(rows.map(r => ({ id: r.id, originalFilename: r.originalFilename, mimeType: r.mimeType, sizeBytes: r.sizeBytes, createdAt: r.createdAt })));
+  });
+
+  app.get("/api/clients/documents/:id/download", async (req, res) => {
+    if (!isEncryptionConfigured()) return res.status(503).json({ message: "PII encryption key not configured." });
+    const advisorId = effectiveAdvisorId(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const id = Number(req.params.id);
+    const doc = await storage.getClientDocument(advisorId, id);
+    if (!doc || doc.erasedAt) return res.status(404).json({ message: "Not found" });
+    let plaintext: Buffer;
+    try {
+      const blob = await fsp.readFile(doc.encryptedPath);
+      plaintext = decryptBuffer(blob);
+    } catch (err) {
+      console.error("[clients] document decrypt failed:", (err as Error).message);
+      return res.status(500).json({ message: "Failed to read document" });
+    }
+    storage.recordAuditPii({ ...auditCtx(req), action: "read", tableName: "client_documents", rowId: id, fieldName: "download" });
+    res.setHeader("Content-Type", doc.mimeType);
+    res.setHeader("Content-Disposition", `attachment; filename="${doc.originalFilename.replace(/"/g, "")}"`);
+    res.send(plaintext);
+  });
+
+  // Admin-only audit-trail read.
+  app.get("/api/audit-pii", async (req, res) => {
+    if (sessionRole(req) !== "admin") return res.status(401).json({ message: "Admin only" });
+    const tableName = typeof req.query.tableName === "string" ? req.query.tableName : undefined;
+    const rowId = req.query.rowId ? Number(req.query.rowId) : undefined;
+    const limit = req.query.limit ? Number(req.query.limit) : undefined;
+    const rows = await storage.listAuditPii({ tableName, rowId, limit });
+    res.json(rows);
   });
 
   return httpServer;

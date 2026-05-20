@@ -643,6 +643,102 @@ export const loginAudit = pgTable("login_audit", {
 export type LoginAudit = typeof loginAudit.$inferSelect;
 export type InsertLoginAudit = typeof loginAudit.$inferInsert;
 
+// Task #25 — PII / Client tables.
+// `clients` holds promoted-from-lead client records. Identity fields are
+// stored in plaintext for advisor day-to-day use; "special personal
+// information" under POPIA (idNumber, bank details, tax number) is stored
+// AES-256-GCM encrypted via server/encryption.ts. The plaintext value never
+// hits disk. Per-advisor isolation is enforced at the storage layer — every
+// client query takes `advisorId` as a required parameter.
+export const clients = pgTable("clients", {
+  id: serial("id").primaryKey(),
+  advisorId: integer("advisor_id").notNull(),
+  // Optional pointer back to the source lead in `emails` (when promoted).
+  sourceLeadId: integer("source_lead_id"),
+  name: text("name").notNull(),
+  email: text("email"),
+  phone: text("phone"),
+  // Encrypted PII columns. Storage methods encrypt on write + decrypt on read.
+  // Wire format: v1:<iv>:<ct>:<tag> (see server/encryption.ts).
+  idNumberEnc: text("id_number_enc"),
+  bankAccountEnc: text("bank_account_enc"),
+  bankBranchEnc: text("bank_branch_enc"),
+  taxNumberEnc: text("tax_number_enc"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  // Right-to-erasure: set when erased; preserved as a tombstone for audit.
+  erasedAt: timestamp("erased_at"),
+  erasedBy: text("erased_by"),
+});
+export type Client = typeof clients.$inferSelect;
+export const insertClientSchema = createInsertSchema(clients).omit({
+  id: true,
+  createdAt: true,
+  erasedAt: true,
+  erasedBy: true,
+  idNumberEnc: true,
+  bankAccountEnc: true,
+  bankBranchEnc: true,
+  taxNumberEnc: true,
+}).extend({
+  // Callers pass plaintext; storage layer encrypts before INSERT.
+  idNumber: z.string().optional().nullable(),
+  bankAccount: z.string().optional().nullable(),
+  bankBranch: z.string().optional().nullable(),
+  taxNumber: z.string().optional().nullable(),
+});
+export type InsertClient = z.infer<typeof insertClientSchema>;
+
+// Append-only audit table for every read/write/erase of PII rows. Postgres
+// rules in server/migrations.ts reject UPDATE/DELETE so the trail is
+// tamper-evident. Indexed on (table_name, row_id) for per-record lookup.
+export const auditPii = pgTable("audit_pii", {
+  id: serial("id").primaryKey(),
+  actorRole: text("actor_role").notNull(), // 'admin' | 'advisor'
+  actorAdvisorId: integer("actor_advisor_id"),
+  action: text("action").notNull(), // 'read' | 'write' | 'erase'
+  tableName: text("table_name").notNull(),
+  rowId: integer("row_id").notNull(),
+  fieldName: text("field_name"),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type AuditPii = typeof auditPii.$inferSelect;
+export type InsertAuditPii = typeof auditPii.$inferInsert;
+
+// POPIA consent capture. One row per consent grant; never updated. Captures
+// the exact consent text the user agreed to so we have a defensible record
+// of WHAT they consented to, not just THAT they consented.
+export const clientConsent = pgTable("client_consent", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  advisorId: integer("advisor_id").notNull(),
+  consentText: text("consent_text").notNull(),
+  consentedAt: timestamp("consented_at").defaultNow().notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+});
+export type ClientConsent = typeof clientConsent.$inferSelect;
+export type InsertClientConsent = typeof clientConsent.$inferInsert;
+
+// Document upload metadata. Actual file bytes live on disk under
+// /uploads/clients/<advisorId>/<random>.enc — never publicly served.
+// Fetch requires advisor session + ownership check.
+export const clientDocuments = pgTable("client_documents", {
+  id: serial("id").primaryKey(),
+  clientId: integer("client_id").notNull(),
+  advisorId: integer("advisor_id").notNull(),
+  originalFilename: text("original_filename").notNull(),
+  mimeType: text("mime_type").notNull(),
+  encryptedPath: text("encrypted_path").notNull(),
+  sizeBytes: integer("size_bytes").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  erasedAt: timestamp("erased_at"),
+});
+export type ClientDocument = typeof clientDocuments.$inferSelect;
+export type InsertClientDocument = typeof clientDocuments.$inferInsert;
+
 export const stats = pgTable("stats", {
   id: serial("id").primaryKey(),
   advisorId: integer("advisor_id"),

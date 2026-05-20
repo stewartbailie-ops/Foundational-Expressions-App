@@ -56,6 +56,41 @@ Switched `.replit` `[deployment].deploymentTarget` from `autoscale` to `vm` (Res
 - **Session table is provisioned by our own migration**, NOT by `connect-pg-simple`'s `createTableIfMissing` option. That option reads `node_modules/connect-pg-simple/table.sql` at runtime, which esbuild does not include in `dist/index.cjs` — production then crashes with `ENOENT: ... open '/dist/table.sql'` on first login. `runStartupMigrations()` runs the same `CREATE TABLE IF NOT EXISTS "session" ...` schema verbatim from `connect-pg-simple/table.sql` and `server/index.ts` sets `createTableIfMissing: false` on the store. Do NOT flip this back — it will break login in prod.
 - The `pg-connection-string` "SECURITY WARNING" about sslmode `prefer`/`require`/`verify-ca` being treated as `verify-full` is **deprecation noise** about a future v3.0.0 change. Source of `pg-connection-string@2.10.0` confirms the current behaviour still sets `rejectUnauthorized: false` for those modes (lines 109 + 117 of node_modules/pg-connection-string/index.js). `server/db.ts` left untouched — do NOT add `ssl: { rejectUnauthorized: false }` as a "fix"; it's a no-op masquerading as one and was rejected in code review.
 
+## POPIA / PII Encryption (Task #25, May 2026)
+At-rest encryption + audit trail for "special personal information" (POPIA s.26). Foundation laid for the My Clients feature; the UI itself arrives in a later task.
+
+**Architecture**
+- `server/encryption.ts` — AES-256-GCM helper. Key loaded from `PII_ENCRYPTION_KEY` secret (32-byte base64, generate with `openssl rand -base64 32`). Wire format: `v1:<iv>:<ct>:<tag>` for strings; `[iv(12)][tag(16)][ct]` raw bytes for files. Round-trip self-test runs at startup — a misconfigured key fails the boot, never silently corrupts writes.
+- **Tables (additive migrations in `server/migrations.ts`)**:
+  - `clients` — plaintext name/email/phone; `id_number_enc`, `bank_account_enc`, `bank_branch_enc`, `tax_number_enc` are AES-256-GCM ciphertext. Plaintext never hits disk. `erased_at` / `erased_by` are the right-to-erasure tombstone.
+  - `audit_pii` — append-only via Postgres rules (`audit_pii_no_update`, `audit_pii_no_delete` rewrite UPDATE/DELETE to NOTHING). Records who/what/when/IP/UA for every PII read, write, erase, and rate-limit block.
+  - `client_consent` — one row per consent grant, captures the exact consent text the user agreed to (not just a boolean).
+  - `client_documents` — metadata only; bytes live on disk encrypted under `uploads/clients/<advisorId>/<random>.enc` (`chmod 0600`, never publicly served).
+- **Per-advisor isolation enforced at storage layer**, not just in routes. `listClients`, `getClient`, `updateClient`, `eraseClient` all take `advisorId` and `WHERE advisor_id = ?` it into the SQL — even a forgotten auth check in a future route handler cannot leak across advisors.
+- **Rate limits on public endpoints** (`/api/callback`, `/api/referral`, `/api/will-request`, `/api/advisors/slug/:slug`, `/api/webhook/*`, `/api/stats/access`). 429 blocks log a row to `audit_pii` so admin can spot abuse patterns. Per-IP, in-memory buckets via `express-rate-limit` (same store as the existing login limiters).
+- **Right-to-erasure** — admin-only `POST /api/clients/:id/erase?advisorId=…` wipes encrypted columns, unlinks document files on disk, marks the row with `erased_at`. Audit history is retained (POPIA Reg 4 permits anonymised processing records).
+- **API surface** — `/api/clients` CRUD + `/api/clients/:id/documents` (upload + list) + `/api/clients/documents/:id/download` + `/api/clients/:id/erase` + `/api/audit-pii` (admin read).
+
+**Key-management runbook (operational)**
+1. **Generation**: `openssl rand -base64 32` → set as the `PII_ENCRYPTION_KEY` secret. Never commit. Never log.
+2. **Backup (mandatory before any real client PII is stored)**:
+   - Write the base64 string to two physical sealed envelopes.
+   - One held by Stewart (offsite), one in the Advisory Connect business safe.
+   - Each envelope also carries the date generated and a checksum (`echo -n "<key>" | shasum -a 256`).
+3. **Recovery dry-run (run BEFORE storing real PII)**:
+   - In a sandbox Repl, set `PII_ENCRYPTION_KEY` to the test key.
+   - `POST /api/clients` with `idNumber: "TEST-9001"`. Confirm the row in `psql` shows `id_number_enc` ciphertext only.
+   - Restart the app with the SAME key from the sealed-envelope backup. `GET /api/clients/:id` must return `idNumber: "TEST-9001"`.
+   - If the round-trip fails, the backup is wrong — re-generate and re-seal before going live. Document the date of the dry-run below.
+4. **Rotation**:
+   - Generate a new key. **Do not** delete the old key until every encrypted row is re-written.
+   - Add a temporary `PII_ENCRYPTION_KEY_OLD` secret. Build a one-off rotation script that reads each `*_enc` column with the old key, re-encrypts with the new key, writes back. Run inside a transaction. After verifying counts match, delete the old secret and update the sealed envelopes.
+5. **Breach procedure**: if the key is suspected compromised — assume all encrypted columns are exposed. Notify the Information Regulator within 72 h (POPIA s.22). Rotate immediately. Force-erase any client who requests it.
+
+**Dry-run log**: pending — run the recovery dry-run and record the date here before flipping My Clients to real data.
+
+**Loss of `PII_ENCRYPTION_KEY` = permanent loss of all encrypted columns.** No recovery is possible without the key. The sealed-envelope backup is not optional.
+
 ## Known Auth Gap (raised by code review, not yet fixed)
 `/api/emails` GET, `/api/emails/:id/grade`, `/api/emails/:id/status`, `/api/emails/:id/open`, `DELETE /api/emails/:id` are currently unprotected. CIV is admin-session-gated at the page level but the data endpoints aren't, so leads are technically world-readable via direct API. AdvisorPanel.tsx (`/advisor/:slug`) also calls the PATCH/DELETE endpoints, so locking them down requires building advisor-session auth (separate task). New CSV export endpoint IS admin-protected.
 

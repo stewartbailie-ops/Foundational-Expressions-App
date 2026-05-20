@@ -133,4 +133,93 @@ export async function runStartupMigrations() {
     `CREATE INDEX IF NOT EXISTS "IDX_login_audit_advisor" ON "login_audit" ("advisor_id");`
   ));
   console.log("[migrations] login_audit table verified");
+
+  // Task #25 — PII / Client tables.
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "clients" (
+      "id" serial PRIMARY KEY,
+      "advisor_id" integer NOT NULL,
+      "source_lead_id" integer,
+      "name" text NOT NULL,
+      "email" text,
+      "phone" text,
+      "id_number_enc" text,
+      "bank_account_enc" text,
+      "bank_branch_enc" text,
+      "tax_number_enc" text,
+      "notes" text,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "erased_at" timestamp,
+      "erased_by" text
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_clients_advisor" ON "clients" ("advisor_id");`
+  ));
+
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "audit_pii" (
+      "id" serial PRIMARY KEY,
+      "actor_role" text NOT NULL,
+      "actor_advisor_id" integer,
+      "action" text NOT NULL,
+      "table_name" text NOT NULL,
+      "row_id" integer NOT NULL,
+      "field_name" text,
+      "ip_address" text,
+      "user_agent" text,
+      "created_at" timestamp DEFAULT now() NOT NULL
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_audit_pii_row" ON "audit_pii" ("table_name", "row_id");`
+  ));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_audit_pii_created" ON "audit_pii" ("created_at");`
+  ));
+  // Append-only enforcement: Postgres rules that turn UPDATE / DELETE on
+  // audit_pii into no-ops. Belt-and-braces with the storage-layer guard so
+  // even a SQL-injected mutation cannot rewrite the audit trail. CREATE OR
+  // REPLACE so re-runs are idempotent.
+  await db.execute(sql.raw(`
+    CREATE OR REPLACE RULE "audit_pii_no_update" AS
+      ON UPDATE TO "audit_pii" DO INSTEAD NOTHING;
+  `));
+  await db.execute(sql.raw(`
+    CREATE OR REPLACE RULE "audit_pii_no_delete" AS
+      ON DELETE TO "audit_pii" DO INSTEAD NOTHING;
+  `));
+
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "client_consent" (
+      "id" serial PRIMARY KEY,
+      "client_id" integer NOT NULL,
+      "advisor_id" integer NOT NULL,
+      "consent_text" text NOT NULL,
+      "consented_at" timestamp DEFAULT now() NOT NULL,
+      "ip_address" text,
+      "user_agent" text
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_client_consent_client" ON "client_consent" ("client_id");`
+  ));
+
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "client_documents" (
+      "id" serial PRIMARY KEY,
+      "client_id" integer NOT NULL,
+      "advisor_id" integer NOT NULL,
+      "original_filename" text NOT NULL,
+      "mime_type" text NOT NULL,
+      "encrypted_path" text NOT NULL,
+      "size_bytes" integer NOT NULL,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "erased_at" timestamp
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_client_documents_client" ON "client_documents" ("client_id");`
+  ));
+  console.log("[migrations] PII tables verified");
 }

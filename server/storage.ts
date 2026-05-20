@@ -1,6 +1,7 @@
 import { db } from "./db";
-import { advisors, advisorProfiles, emails, stats, loginAudit, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat, type InsertLoginAudit } from "@shared/schema";
-import { eq, desc, sql, count } from "drizzle-orm";
+import { advisors, advisorProfiles, emails, stats, loginAudit, clients, auditPii, clientConsent, clientDocuments, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat, type InsertLoginAudit, type Client, type InsertClient, type AuditPii, type InsertAuditPii, type ClientConsent, type InsertClientConsent, type ClientDocument, type InsertClientDocument } from "@shared/schema";
+import { eq, desc, sql, count, and, isNull } from "drizzle-orm";
+import { encryptString, decryptString } from "./encryption";
 
 export interface IStorage {
   getAdvisors(): Promise<Advisor[]>;
@@ -58,6 +59,66 @@ export interface IStorage {
   recordStat(stat: InsertStat): Promise<Stat>;
   // Task #24 — login audit. Fire-and-forget from login routes.
   recordLoginAudit(entry: InsertLoginAudit): Promise<void>;
+
+  // Task #25 — Client / PII methods. Every method is advisorId-scoped: passing
+  // a different advisorId than the row's owner returns undefined / refuses to
+  // mutate. Plaintext PII fields (idNumber, bankAccount, bankBranch, taxNumber)
+  // are encrypted on write and decrypted on read by these methods — callers
+  // never see the *_enc columns directly.
+  listClients(advisorId: number): Promise<ClientWithPlaintext[]>;
+  getClient(advisorId: number, id: number): Promise<ClientWithPlaintext | undefined>;
+  createClient(advisorId: number, data: InsertClient & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null }): Promise<ClientWithPlaintext>;
+  updateClient(advisorId: number, id: number, data: Partial<InsertClient> & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null }): Promise<ClientWithPlaintext | undefined>;
+  eraseClient(advisorId: number, id: number, erasedBy: string): Promise<boolean>;
+
+  recordAuditPii(entry: InsertAuditPii): Promise<void>;
+  listAuditPii(opts?: { tableName?: string; rowId?: number; limit?: number }): Promise<AuditPii[]>;
+
+  recordConsent(entry: InsertClientConsent): Promise<ClientConsent>;
+  listConsentForClient(advisorId: number, clientId: number): Promise<ClientConsent[]>;
+
+  createClientDocument(entry: InsertClientDocument): Promise<ClientDocument>;
+  getClientDocument(advisorId: number, id: number): Promise<ClientDocument | undefined>;
+  listClientDocuments(advisorId: number, clientId: number): Promise<ClientDocument[]>;
+  markDocumentErased(advisorId: number, id: number): Promise<void>;
+}
+
+// Client row with decrypted PII fields surfaced as plaintext. Returned by
+// every storage method that reads a client — callers should treat these
+// fields as sensitive (never log, never serialize to a public payload).
+export interface ClientWithPlaintext extends Omit<Client, "idNumberEnc" | "bankAccountEnc" | "bankBranchEnc" | "taxNumberEnc"> {
+  idNumber: string | null;
+  bankAccount: string | null;
+  bankBranch: string | null;
+  taxNumber: string | null;
+}
+
+// Decrypt or throw. We deliberately do NOT swallow decrypt errors to null —
+// returning null on a failed decrypt would silently hide PII after a key
+// rotation or key-mismatch incident (the row looks "blank" instead of
+// broken). Callers see a thrown DecryptError and surface a 500 so the
+// operator notices immediately.
+export class DecryptError extends Error {
+  constructor(msg: string) { super(msg); this.name = "DecryptError"; }
+}
+function decryptOrThrow(blob: string | null | undefined): string | null {
+  if (!blob) return null;
+  try {
+    return decryptString(blob);
+  } catch (err) {
+    throw new DecryptError(`[storage] PII decrypt failed: ${(err as Error).message}`);
+  }
+}
+
+function toPlaintext(row: Client): ClientWithPlaintext {
+  const { idNumberEnc, bankAccountEnc, bankBranchEnc, taxNumberEnc, ...rest } = row;
+  return {
+    ...rest,
+    idNumber: decryptOrThrow(idNumberEnc),
+    bankAccount: decryptOrThrow(bankAccountEnc),
+    bankBranch: decryptOrThrow(bankBranchEnc),
+    taxNumber: decryptOrThrow(taxNumberEnc),
+  };
 }
 
 export class DatabaseStorage implements IStorage {
@@ -606,6 +667,175 @@ export class DatabaseStorage implements IStorage {
     } catch (err) {
       console.error("[login_audit] insert failed:", err);
     }
+  }
+
+  // ── Task #25: Clients ────────────────────────────────────────────────────
+  // Per-advisor isolation enforced HERE at the storage layer, not in routes.
+  // Every read/write is `WHERE advisor_id = $advisorId AND id = $id`, so even
+  // a route handler that forgets its auth check cannot leak across advisors.
+  async listClients(advisorId: number): Promise<ClientWithPlaintext[]> {
+    const rows = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.advisorId, advisorId), isNull(clients.erasedAt)))
+      .orderBy(desc(clients.createdAt));
+    return rows.map(toPlaintext);
+  }
+
+  async getClient(advisorId: number, id: number): Promise<ClientWithPlaintext | undefined> {
+    const [row] = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId)));
+    return row ? toPlaintext(row) : undefined;
+  }
+
+  async createClient(advisorId: number, data: any): Promise<ClientWithPlaintext> {
+    const insertRow: any = {
+      advisorId,
+      sourceLeadId: data.sourceLeadId ?? null,
+      name: data.name,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      notes: data.notes ?? null,
+      idNumberEnc: data.idNumber ? encryptString(data.idNumber) : null,
+      bankAccountEnc: data.bankAccount ? encryptString(data.bankAccount) : null,
+      bankBranchEnc: data.bankBranch ? encryptString(data.bankBranch) : null,
+      taxNumberEnc: data.taxNumber ? encryptString(data.taxNumber) : null,
+    };
+    const [created] = await db.insert(clients).values(insertRow).returning();
+    return toPlaintext(created);
+  }
+
+  async updateClient(advisorId: number, id: number, data: any): Promise<ClientWithPlaintext | undefined> {
+    const existing = await db
+      .select()
+      .from(clients)
+      .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId)));
+    if (existing.length === 0) return undefined;
+    const patch: any = {};
+    if (data.name !== undefined) patch.name = data.name;
+    if (data.email !== undefined) patch.email = data.email;
+    if (data.phone !== undefined) patch.phone = data.phone;
+    if (data.notes !== undefined) patch.notes = data.notes;
+    // For encrypted fields: undefined = leave alone, null/'' = clear, value = re-encrypt.
+    if (data.idNumber !== undefined) patch.idNumberEnc = data.idNumber ? encryptString(data.idNumber) : null;
+    if (data.bankAccount !== undefined) patch.bankAccountEnc = data.bankAccount ? encryptString(data.bankAccount) : null;
+    if (data.bankBranch !== undefined) patch.bankBranchEnc = data.bankBranch ? encryptString(data.bankBranch) : null;
+    if (data.taxNumber !== undefined) patch.taxNumberEnc = data.taxNumber ? encryptString(data.taxNumber) : null;
+    const [updated] = await db
+      .update(clients)
+      .set(patch)
+      .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId)))
+      .returning();
+    return updated ? toPlaintext(updated) : undefined;
+  }
+
+  // Right-to-erasure: nukes encrypted PII columns, marks the row as erased,
+  // wipes the document files on disk (caller's responsibility — we just mark
+  // the document rows). The shell row + erased_at tombstone stays so the
+  // audit trail in audit_pii continues to resolve `row_id` lookups.
+  async eraseClient(advisorId: number, id: number, erasedBy: string): Promise<boolean> {
+    const [erased] = await db
+      .update(clients)
+      .set({
+        name: "[ERASED]",
+        email: null,
+        phone: null,
+        notes: null,
+        idNumberEnc: null,
+        bankAccountEnc: null,
+        bankBranchEnc: null,
+        taxNumberEnc: null,
+        erasedAt: new Date(),
+        erasedBy,
+      })
+      .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId), isNull(clients.erasedAt)))
+      .returning();
+    return !!erased;
+  }
+
+  // ── Task #25: Audit (append-only) ────────────────────────────────────────
+  async recordAuditPii(entry: InsertAuditPii): Promise<void> {
+    try {
+      await db.insert(auditPii).values(entry);
+    } catch (err) {
+      console.error("[audit_pii] insert failed:", err);
+    }
+  }
+
+  async listAuditPii(opts: { tableName?: string; rowId?: number; limit?: number } = {}): Promise<AuditPii[]> {
+    const limit = Math.min(opts.limit ?? 200, 1000);
+    const where: any[] = [];
+    if (opts.tableName) where.push(eq(auditPii.tableName, opts.tableName));
+    if (opts.rowId !== undefined) where.push(eq(auditPii.rowId, opts.rowId));
+    const q = db.select().from(auditPii).orderBy(desc(auditPii.createdAt)).limit(limit);
+    if (where.length === 0) return q;
+    return q.where(where.length === 1 ? where[0] : and(...where));
+  }
+
+  // ── Task #25: Consent ────────────────────────────────────────────────────
+  // Same ownership invariant: only allow a consent row for a client the
+  // supplied advisorId actually owns.
+  async recordConsent(entry: InsertClientConsent): Promise<ClientConsent> {
+    const [parent] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, entry.clientId), eq(clients.advisorId, entry.advisorId)));
+    if (!parent) throw new Error("[storage] recordConsent: client not owned by advisor");
+    const [row] = await db.insert(clientConsent).values(entry).returning();
+    return row;
+  }
+
+  async listConsentForClient(advisorId: number, clientId: number): Promise<ClientConsent[]> {
+    return db
+      .select()
+      .from(clientConsent)
+      .where(and(eq(clientConsent.clientId, clientId), eq(clientConsent.advisorId, advisorId)))
+      .orderBy(desc(clientConsent.consentedAt));
+  }
+
+  // ── Task #25: Client documents ───────────────────────────────────────────
+  // Ownership invariant enforced HERE: we verify the parent client row belongs
+  // to the supplied advisorId before inserting the document. Same belt-and-
+  // braces pattern as the clients methods — a route-handler oversight cannot
+  // attach a document to a foreign advisor's client.
+  async createClientDocument(entry: InsertClientDocument): Promise<ClientDocument> {
+    const [parent] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.id, entry.clientId), eq(clients.advisorId, entry.advisorId)));
+    if (!parent) throw new Error("[storage] createClientDocument: client not owned by advisor");
+    const [row] = await db.insert(clientDocuments).values(entry).returning();
+    return row;
+  }
+
+  async getClientDocument(advisorId: number, id: number): Promise<ClientDocument | undefined> {
+    const [row] = await db
+      .select()
+      .from(clientDocuments)
+      .where(and(eq(clientDocuments.id, id), eq(clientDocuments.advisorId, advisorId)));
+    return row;
+  }
+
+  async listClientDocuments(advisorId: number, clientId: number): Promise<ClientDocument[]> {
+    return db
+      .select()
+      .from(clientDocuments)
+      .where(and(
+        eq(clientDocuments.clientId, clientId),
+        eq(clientDocuments.advisorId, advisorId),
+        isNull(clientDocuments.erasedAt),
+      ))
+      .orderBy(desc(clientDocuments.createdAt));
+  }
+
+  // Advisor-scoped to keep the storage-layer isolation invariant.
+  async markDocumentErased(advisorId: number, id: number): Promise<void> {
+    await db
+      .update(clientDocuments)
+      .set({ erasedAt: new Date() })
+      .where(and(eq(clientDocuments.id, id), eq(clientDocuments.advisorId, advisorId)));
   }
 }
 
