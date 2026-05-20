@@ -234,7 +234,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAdvisor(advisor: InsertAdvisor): Promise<Advisor> {
-    const [created] = await db.insert(advisors).values(advisor).returning();
+    // Every new advisor gets a 14-day trial by default. Task #26 invariant:
+    // trial_ends_at MUST be non-null on every row so the trial-expiry email
+    // sweep (findTrialsExpiringSoon) can reason about expiry, and the gating
+    // helpers (isPremiumActive / isBasicOrBetter) never hit the legacy-null
+    // grandfather branch for fresh accounts. Caller can still override.
+    const withTrial: InsertAdvisor = {
+      ...advisor,
+      trialEndsAt: (advisor as any).trialEndsAt ?? new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
+    } as InsertAdvisor;
+    const [created] = await db.insert(advisors).values(withTrial).returning();
     return created;
   }
 

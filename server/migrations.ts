@@ -91,6 +91,12 @@ export async function runStartupMigrations() {
   await db.execute(sql.raw(
     `UPDATE advisors SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL`
   ));
+  // Set the DB-level default so future advisor rows automatically get a
+  // 14-day trial even if a caller forgets to supply trial_ends_at. Belt +
+  // braces with the createAdvisor() override in server/storage.ts.
+  await db.execute(sql.raw(
+    `ALTER TABLE advisors ALTER COLUMN trial_ends_at SET DEFAULT (NOW() + INTERVAL '14 days')`
+  ));
   await db.execute(sql.raw(
     `CREATE INDEX IF NOT EXISTS "IDX_advisors_paystack_customer" ON "advisors" ("paystack_customer_code");`
   ));

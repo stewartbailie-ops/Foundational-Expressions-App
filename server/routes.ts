@@ -2157,7 +2157,7 @@ export async function registerRoutes(
       const result = await initializeTransaction({
         email: advisor.email,
         tier: tier as "basic" | "premium",
-        callbackUrl: `${origin}/${advisor.profileSlug}?tab=billing&billing=success`,
+        callbackUrl: `${origin}/advisor/${advisor.profileSlug}?tab=billing&billing=success`,
         metadata: { advisorId: advisor.id, slug: advisor.profileSlug },
       });
       res.json({ authorizationUrl: result.authorizationUrl, reference: result.reference });
