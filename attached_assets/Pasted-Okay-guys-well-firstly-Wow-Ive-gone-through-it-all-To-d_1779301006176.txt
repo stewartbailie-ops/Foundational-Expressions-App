@@ -1,0 +1,156 @@
+Okay guys, well firstly!!! Wow!!! - Ive gone through it all!!! To date this has to have been our most solid push and I couldn’t be more proud!! Looking at the build plan we sent to Zeeman, we have absolutely cooked!! Big well done to Friday for her code cooking skills!! & Claude having to patiently deal with me as we pushed through the registrations & Chris's notes 🤣😂
+
+Stew to-do; 
+	1. $25 developer account registration!! NB (Stew to-do tonight)
+	2. Upgrade Claude (22/05 - Check Cash-flow - Pro Max Plan) (Stew to-do tonight) Not done, planned for 22nd (Maybe sooner given our progress)
+	3. DNS records on advisoryconnect.pro (SPF/DKIM/DMARC) — still highest priority - Not done (Ask for help, what to-do?)
+	4. Foundational Expressions (Erica's project) - Stew chat with Friday - Possibly add another $100 to Friday <3
+	5. Day-log - Stew chat with Claude (Add his $100 and get cracking 21/05)
+	6. Move notes (At the bottom off primary listing once sent to Friday & Claude) 
+	7. Second physical backup of PII encryption key - Saved onto external flash disk (Complete)
+	8. Confirm May 31st prep meeting with Zeeman (At his private Residence) - Confirmed! (Stew is a green light!)
+	9. Confirm June 2nd format (online/in-person) - Confirmed! (In Person, Stew mad stressing already 😂🤣)
+
+Discuss with team; 
+	1. Please can you re-add the Pension Fund Calculator & Capital Gains Calculators Back onto the profiles & Control Panel (Even if they are not 100% perfect) - We just want to show them they "In production" - As per Zeeman's new request (Sorry for the back and forth) - Added to the Control Panel and options for the Contact Cards please <3 
+	2. Make the secondary profile un-delete able - Complete (See attached request for quick fix wording)
+	3. Upgrade Scan documents link (Discuss with team) - In Progress (Confirm the name of the App/API suggested and plan implement?)  
+	4. We were thinking we clean up and delete all the old leads and referrals in the CIV, delete the Demo profile? - Discuss with team (Zeeman confirmed/requested) To blow people away/surprise them with all the changes we have been making - they not following them anymore, they see them all for the first time in the presentation)
+	5. Play Store TWA Submission - Generate the Trusted Web Activity wrapper using PWABuilder (advisoryconnect.pro manifest is already clean). Outstanding checklist: assetlinks.json domain verification file, Play Developer account ($25), app screenshots, Privacy Policy URL (already live) - In Progress (Is this even an option? - Not as complete, but to say "Look! Our Application is sitting with Google Play? Or have the App In A Trusted Web Wrapper State?) - Chat with team (This is a big one for my partner, linked to the damn widget!! 😂🤣)
+
+COMPLETED TODAY — May 20, 2026
+Stewart (non-build):
+	• 20 background pattern images uploaded, 8 selected, registry updated - 8 Selected & Registry updated - In Progress - Not available under "Edit Profile" Yet (See attached)
+	• Background pattern explorer (mock-up sandbox + 8 pattern components) - In Progress 
+Friday (confirmed in code):
+	• Task #25 — PII encryption (server/encryption.ts) - Confirm this is done?  
+	• Task #26 — Paystack subscriptions (server/paystack.ts, server/premium.ts, use-premium.ts) - Complete
+	• Task #28 — Digital Business Card (client/src/lib/businessCard.ts — portrait + square, share dialog, theme colours) - In Progress - The work done on the Digital Business Cards today is nothing short of incredible!!! - Question to team, when the theme is changed, the business card doesn’t change (Are we going to keep it this way? - I'm happy to-do so) - Please see attached examples, the Business Cards aren't generating with the QR codes? And in addition (Requested from Zeeman) The Business Cards aren't generating the advisors initials header/picture (See example) We had this on previous versions, can we build it back in? 
+	• Task #29 — Public Profile Feature Suite — all 5 columns confirmed in schematics both advisors and advisor profiles tables: - In progress (See below notes)
+		○ Show Trading View - In Progress, built in and showing on cards once toggled - But information is not showing/indicating? (This function also needs to be added to the advisors master Control Panel please? - Not just as an option to add to their contact card - Similar to the daily financial facts images) 
+		○ Show Daily Quotes - This is awesome! - In progress, showing and carrying over, but please add a share option? As a PNG or similar to the daily financial facts? (In addition, the selection colours are not carrying over correctly) - (This function also needs to be added to the advisors master Control Panel please? - Not just as an option to add to their contact card - Similar to the daily financial facts images) 
+		○ Show Compound Calculator - In progress - please see tools summary below with what tools are needed where below
+		○ Show retirement Calculator - In progress - please see tools summary below with what tools are needed where below
+		○ Show Financial Calendar - In progress - please see tools summary below with what tools are needed where below
+	• Workspace fix (Task #40) - Unclear on what task this is
+	
+Tools summary; what tools are showing where and what tools need to be added
+Contact Cards; (Tools that need to be added marked with Blue below)
+	1. SA Tax Calculator 
+	2. Exchange Rate Calculator
+	3. Compound interest Calculator 
+	4. Vehicle & Asset Calculator 
+	5. Bond / Home-loan Calculator 
+	6. Emergency Fund Calculator 
+	7. Life Cover Needs Calculator 
+	8. Debit Pay Off Calculators 
+	9. Standard Calculator (Needs to be added here)
+	10. Forex Calculator (Needs to be added here)
+	11. Financial Calander (Needs to be added here)
+	12. Scan Documents (Needs to be added here)
+	13. Compound Calculator (Needs to be added here)
+	14. Retirement Calculator (Needs to be added here)
+
+Advisor Control Panel (Tools that need to be added marked with Blue below)
+	1. Exchange Rate Calculator
+	2. SA Tax Calculator 
+	3. Compound interest Calculator
+	4. Standard Calculator 
+	5. Forex Calculator 
+	6. Vehicle & Asset Calculator 
+	7. Financial Calander 
+	8. Scan Documents 
+	9. Bond / Home-loan Calculator (Needs to be added here)
+	10. Emergency Fund Calculator (Needs to be added here)
+	11. Life Cover Needs Calculator (Needs to be added here)
+	12. Debit Pay Off Calculator (Needs to be added here)
+	13. Compound Calculator (Needs to be added here)
+	14. Retirement Calculator (Needs to be added here)
+	15. Financial Media (Can stay as is)
+
+Cross-reference vs Week 1 sprint goals (16–22 May):
+Task	Goal	Status
+#22 Polish Batch	Calculator removal	Not confirmed in this session - Stew Confirm complete/in progress with Friday
+#23 Grader Gap Fields	Enhanced grader	Not confirmed in this session - Complete
+#24 Auth + Lead Lockdown	Security	Not confirmed in this session - Stew Confirm complete/in progress with Friday 
+#25 PII Encryption	AES-256 + audit	- Stew Confirm complete/in progress with Friday
+#26 Paystack Subscriptions	Payment infra	- Complete
+#27 Background Patterns	Pattern explorer	- In Progress
+#28 Digital Business Card	Share/download	- In Progress
+#29 Public Profile Suite	5 new widgets	- In Progress
+
+Primary goals / Targets - Build Notes; (Run security agent once targets hit)
+	1. Profile button cleanup (Image generator) - Stew illustrate - Explain the share to socials goal here (Digital Business Card Auto-generated Per-profile) - Confirm? (Auto generates that image per Chris example - Stew send example image) 
+	2. Build subscription service (PayStack) - Complete (Awaiting Confirmation - 7 Days) - Run Tests? 
+		○ Paystack business registration — fully completed, MSA signed - Complete
+		○ Paystack plans created — Basic PLN_wmc2ce7g2u7wvv2 (R299/mo) + Premium PLN_7zkp55hp03ofmnk (R499/mo) - Complete
+		○ All 4 Paystack secrets delivered to Friday - Complete
+		○ 2FA enabled on Paystack - Complete
+		○ PII encryption key generated + stored in OneNote - Complete
+	3. Auth gap on lead endpoints — /api/emails GET/grade/status/open/DELETE unprotected. Bigger task, needs advisor-session auth design first (Large fix) - Unclear, Stew Confirm status with Friday 
+	4. Performance 58 --> 80+ Lighthouse mobile (font self-hosting, lazy-loading, cache headers, JS trim). Bigger session of its own (Large fix) - Unclear, Stew Confirm status with Friday 
+	5. ID Assigned (Linked to contact number / ID?) - a soft-warn approach is friendliest — when a lead is submitted with a phone number or ID that already exists for that advisor, flag it as a likely duplicate rather than hard-blocking. Advisors can then decide whether it's genuinely the same person or a coincidence. Hard-blocking risks losing real leads from family members sharing a number - Unclear, Stew Confirm status with Friday 
+	6. Bare/www --> app. 301 redirects — finishes the SEO consolidation we started (Large fix) - Unclear, Stew Confirm status with Friday 
+	7. Investigate mystery e4282ae... branch — to stop it re-merging old code into main (low priority, probably an old laptop checkout - Small fix) - Unclear, Stew Confirm status with Friday 
+	8. Heavy work needed on the upload profile picture (Profile edit card) - Focus the cropping function (Not currently working) - Unclear, Stew Confirm status with Friday 
+	9. Remove duplicate forex API call (Forex Exchange Rates) - Unclear, Stew Confirm status with Friday 
+	10. Email DNS Authentication (Admin/DNS — Stewart action) Set up SPF, DKIM, and DMARC records on advisoryconnect.pro to prevent email spoofing and ensure SendGrid emails land in inboxes rather than spam. (High priority - 24/48 Hrs)  -Unclear, Stew Confirm status with Friday 
+	11. CSP Production Monitoring - Add a CSP report-uri or report-to directive to the Helmet config so any legitimate content blocked in production is logged and visible rather than silently failing. - Unclear, Stew Confirm status with Friday 
+	12. Localisation Review - Audit all user-facing wording across the app — dropdowns, form labels, button text, error messages — and confirm SA English consistency ahead of final deployment. (Afrikaans & Zulu translations need to be checked/confirmed through-out.) - In Progress - Not complete 
+	13. Neaten up and re-size wording for "Save to home page" Under Profile settings - In Progress - Not complete  
+	14. Add a Link to "My Email" (Under My Platforms) - Discuss options here (Limitations) -  In Progress - Not complete (Added to contact card - Needed on Advisors Control Panels?)
+	15. Additional elements/options to Implement: (Zeeman's mail & WhatsApp's) Build In Now: -  In Progress - Not complete  
+		a. Trading Charts - This exists for free via TradingView embeds - they have a free widget that displays any ticker, JSE included, with full interactive charts. Advisors could choose which instruments to show: JSE All Share, ZAR/USD, gold price, a favourite ETF. Very high value, very low build cost using embeds. - In Progress (As per above notes)
+		b. Daily Famous Quotes; (Easy win.) Static array of 365 quotes sorted by day-of-year, zero API needed. My add: let the advisor toggle between general inspirational vs investment/finance quotes (Buffett, Munger, Graham, etc.) - Reinforce their brand better. - In Progress (As per above notes)
+		c. Financial Calculators on the public profile - In Progress (As per above notes) 
+			§ Compound interest calculator
+			§ Retirement savings calculator ("How much do I need to retire?")
+		d. Financial Calendar - SA fintech, key dates - This could live in two places: on the public profile as a "What's coming up" widget, AND in the advisor panel as personal compliance/appointment tracking. Build into current Calander & re-name. - Awesome!!! Looks amazing - Added to the contact cards - Needs to be added to the Advisors Control Panel aswell please 
+			§ SARB Monetary Policy Committee (interest rate decisions)
+			§ SARS tax deadlines (provisional tax, assessment, RA contribution cutoff)
+			§ JSE company results dates
+			§ Budget Speech
+			§ FAIS CPD deadlines5. 
+	16. Gaps for Grader feed-back links: - Please add the below as options for when completing/filling out leads - (Add the parameters to the Registry, Grader & Temperature) - Confirm if the below added feedback feeds into the registry parameters (Hot, Warm, Cold) & Grading (Gold, Bronze & Silver)
+	Request call back link; - Complete and added
+		○ Add "How did you find me?" As a drop-down / source attribution field (organic, social, referral) - Complete and added
+		○ Add "Estimated net worth / savings bracket" (only income) As a drop-down - Complete and added
+		○ Add "What's your biggest financial concern right now?" As an open text field - Complete and added
+		○ Add "Are you currently working with a financial advisor?" (existing client vs. new) As an open text field - Complete and added
+	Refer Friends & Family;  - Complete and added
+		○ Add "Why are you referring them?" As an open text field  - Complete and added
+	Claim Your Free Will;  - Complete and added
+		○ Add "Do you already have a Will?" As a drop-down (Yes/No)  - Complete and added
+		○ Add "What is the estimated value of your estate?" As a drop-down  - Complete and added
+
+Discuss Options with team: Zeeman special request e-mail sent (Priority Shift Needed)
+	1. Discuss the Astute online (Single user - Multiple users) - Need state & bank details (Stew reach out to Vergil, draft mail - Need bank details/NDA signed - Build in skeleton (Demo?) - Popi OTP Signed Dummy? - Maybe just far enough that the Advisor can pull an Astute (In progress)
+	2. Upload and store that client's policy documents (Both ways)  "Book of Life" - [Latest Will & Testimony | Medical Aid Details | Short term insurance | Long term insurance | Life Cover | Risk Cover | Corporate Benefits | Investments | Savings accounts] - Discuss Options with team 
+	3. Risk Profile Quiz (Per document sent from Zeeman) - Discuss Options with team  - Stew to send document to Friday
+		○ 6-8 questions, visitor gets a risk score (Conservative / Moderate / Aggressive)
+		○ Score is included with their lead submission
+		○ Advisor immediately knows the quality and nature of the lead
+		○ This is used by every major SA fund house (Advisors know exactly what it is)
+		○ Huge competitive differentiator
+	4. Daily Game of the Day; Gives visitors a reason to return to the advisor's profile every day, which is genuinely rare for a financial platform. (Add a high-score somewhere maybe?) - Discuss Options with team  9Whats the easiest to build?)
+		○ Sudoku - Best choice to start. Library exists, seed-based (same puzzle everyone gets on Monday, different on Tuesday), no server cost
+		○ Wordle-style daily word - Actually better than crossword. Lower complexity, massive cultural familiarity right now
+		○ Daily Finance Trivia - question (finance/investment themed) would be incredible here — same "sticky daily" mechanic but reinforces the advisor's expertise. "Which SA company became the first to list on the JSE in 1887?" One question, reveal at midnight.
+
+Think blown away by visuals & features - Think demo where we want to be in a month from the presentation - Fun stuff, Impressive stuff, Impressive features, build Hype, the App being "Alive" (Endless possibilities!) - Guys we like 90% here already <3 (Finer details not so important - Doesn’t need to be 100% correct)
+
+	___________________________________________________________________________________________________________________________________________________________
+	
+	
+	Leave till after the presentation: (Stew to move to another section after reporting this to team)
+		1. Documentation & Handover Package 
+		2. Shift all subscription Debits over to Company Account
+		3. Before launch - Switch back to reserved VM (Discuss costs / Upkeep)
+		4. Arrange Company Contact Number [082/084/072 - 2666328 C-O-N-N-E-C-T]
+		5. White Collared Approach (Structured Proposal) - Can negate our advisor codes/Astute Issues (Stew explain) - Stew discuss proposal with Zeeman (Prior to 2nd June)
+		6. Optimization for users at launch; Confirm (After Presentation) - DL That program that was suggested 
+			a. Blue Asset (80 Users) 
+			b. Envestpro (120 Users) 
+			c. Discovery [Darion] - (350 Users) 
+			d. Sanlam [Stan Leur | Jacques] - (100 Users) 
+			e. Liberty Agency - (350 Users)
