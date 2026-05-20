@@ -108,4 +108,29 @@ export async function runStartupMigrations() {
     `CREATE INDEX IF NOT EXISTS "IDX_session_expire" ON "session" ("expire");`
   ));
   console.log("[migrations] session table verified");
+
+  // Task #24 — login audit table. Records every admin + advisor login attempt
+  // with IP + user-agent so we can spot brute-force activity and feed the
+  // PII-audit work that follows. Created via CREATE TABLE IF NOT EXISTS rather
+  // than ALTER (new table, no risk of column conflicts).
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "login_audit" (
+      "id" serial PRIMARY KEY,
+      "role" text NOT NULL,
+      "advisor_id" integer,
+      "email_attempted" text,
+      "slug" text,
+      "outcome" text NOT NULL,
+      "ip_address" text,
+      "user_agent" text,
+      "created_at" timestamp DEFAULT now() NOT NULL
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_login_audit_created" ON "login_audit" ("created_at");`
+  ));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_login_audit_advisor" ON "login_audit" ("advisor_id");`
+  ));
+  console.log("[migrations] login_audit table verified");
 }

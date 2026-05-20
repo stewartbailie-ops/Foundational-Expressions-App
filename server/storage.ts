@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { advisors, advisorProfiles, emails, stats, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat } from "@shared/schema";
+import { advisors, advisorProfiles, emails, stats, loginAudit, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat, type InsertLoginAudit } from "@shared/schema";
 import { eq, desc, sql, count } from "drizzle-orm";
 
 export interface IStorage {
@@ -56,6 +56,8 @@ export interface IStorage {
   // chronological order so the chart can render directly.
   getAdvisorViewSeries(advisorId: number, primarySlug: string, secondarySlugs: string[], days: number): Promise<{ name: string; primary: number; secondary: number }[]>;
   recordStat(stat: InsertStat): Promise<Stat>;
+  // Task #24 — login audit. Fire-and-forget from login routes.
+  recordLoginAudit(entry: InsertLoginAudit): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -594,6 +596,16 @@ export class DatabaseStorage implements IStorage {
   async recordStat(stat: InsertStat): Promise<Stat> {
     const [created] = await db.insert(stats).values(stat).returning();
     return created;
+  }
+
+  // Task #24 — login audit. Swallows errors so a logging failure never blocks
+  // an actual login response from going out.
+  async recordLoginAudit(entry: InsertLoginAudit): Promise<void> {
+    try {
+      await db.insert(loginAudit).values(entry);
+    } catch (err) {
+      console.error("[login_audit] insert failed:", err);
+    }
   }
 }
 

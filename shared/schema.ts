@@ -623,6 +623,26 @@ function parseIncomeToNumber(income?: string | null): number {
   return last[2] ? value * 1000 : value;
 }
 
+// Task #24 — Login audit log. Records every admin + advisor login attempt
+// (success and failure) with IP and user-agent. Feeds the PII-audit work that
+// follows. Kept as a single table with a nullable advisorId — admin logins
+// store advisorId=null + role='admin'; advisor logins store advisorId + role.
+// Outcome is 'success' | 'invalid_password' | 'invalid_email' | 'unverified'
+// | 'not_setup' so we can spot brute-force attempts vs misconfigured accounts.
+export const loginAudit = pgTable("login_audit", {
+  id: serial("id").primaryKey(),
+  role: text("role").notNull(),
+  advisorId: integer("advisor_id"),
+  emailAttempted: text("email_attempted"),
+  slug: text("slug"),
+  outcome: text("outcome").notNull(),
+  ipAddress: text("ip_address"),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+export type LoginAudit = typeof loginAudit.$inferSelect;
+export type InsertLoginAudit = typeof loginAudit.$inferInsert;
+
 export const stats = pgTable("stats", {
   id: serial("id").primaryKey(),
   advisorId: integer("advisor_id"),

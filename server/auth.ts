@@ -55,3 +55,17 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
 
   return res.status(401).json({ message: "Unauthorized" });
 }
+
+// Task #24 — Advisor-session middleware. Resolves the slug from the request
+// (param or path) and rejects when no advisor session is present for it.
+// Admin sessions bypass (admin can act on any advisor's behalf), preserving
+// existing CIV behaviour. The middleware deliberately returns a generic 401
+// with no advisor metadata to avoid disclosing slug existence.
+export function requireAdvisorAuth(slugParam: string = "slug") {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if ((req.session as any)?.authenticated) return next();
+    const slug = (req.params as any)?.[slugParam];
+    if (slug && (req.session as any)?.[`advisor_${slug}`]) return next();
+    return res.status(401).json({ message: "Unauthorized" });
+  };
+}

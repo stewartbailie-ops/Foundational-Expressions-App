@@ -259,17 +259,32 @@ export async function registerRoutes(
 
   app.post("/api/auth/login", loginLimiter, async (req, res) => {
     const { email, password } = req.body;
+    // Task #24 — capture IP + UA once for audit rows regardless of outcome.
+    const ipAddress = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || null;
+    const userAgent = req.headers["user-agent"]?.slice(0, 500) || null;
+    const audit = (outcome: string) => storage.recordLoginAudit({
+      role: "admin",
+      advisorId: null,
+      emailAttempted: typeof email === "string" ? email.slice(0, 200) : null,
+      slug: null,
+      outcome,
+      ipAddress,
+      userAgent,
+    });
     const adminPassword = process.env.ADMIN_PASSWORD;
     if (!adminPassword) {
       return res.status(500).json({ message: "Admin password not configured" });
     }
     const adminEmail = (process.env.ADMIN_EMAIL || "info@advisoryconnect.pro").toLowerCase().trim();
     if (!email || email.toLowerCase().trim() !== adminEmail) {
+      audit("invalid_email");
       return res.status(401).json({ message: "Invalid email or password" });
     }
     if (password !== adminPassword) {
+      audit("invalid_password");
       return res.status(401).json({ message: "Invalid email or password" });
     }
+    audit("success");
     (req.session as any).authenticated = true;
     req.session.save((err) => {
       if (err) {
@@ -635,16 +650,14 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
     }
     const data: any = parsed.data;
-    // Targeted fence: "Manual Entry" leads come from the advisor's own panel
-    // ("Add Lead Manually" button). Anyone hitting /api/emails anonymously is
-    // either using legacy callback/referral flows (other types) or attempting
-    // to spoof an advisor-curated lead. Require an advisor or admin session
-    // for the manual flow specifically. The broader /api/emails authz lockdown
-    // is tracked separately and does not need to block this small fence.
-    if (typeof data.type === "string" && data.type.toLowerCase().includes("manual")) {
-      if (!(await canAccessAdvisor(req, data.advisorId))) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
+    // Task #24 — full lockdown: every POST /api/emails write requires either
+    // an admin session or an advisor session that owns `data.advisorId`.
+    // Public lead submissions flow through the dedicated /api/callback,
+    // /api/referral, /api/will-request endpoints — never this one. The only
+    // in-product caller is AdvisorPanel's "Add Lead Manually" button, which
+    // carries the advisor session.
+    if (!(await canAccessAdvisor(req, data.advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
     }
     const result = calculateLeadGrade({
       age: data.clientAge,
@@ -1404,20 +1417,45 @@ export async function registerRoutes(
   // Standard login: email + password
   app.post("/api/advisor-auth/:slug/login", advisorLoginLimiter, async (req, res) => {
     const { email, password } = req.body;
-    if (!email || !password) return res.status(400).json({ message: "Email and password required" });
+    // Task #24 — capture IP + UA for audit regardless of outcome.
+    const ipAddress = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || null;
+    const userAgent = req.headers["user-agent"]?.slice(0, 500) || null;
+    const audit = (outcome: string, advisorId: number | null) => storage.recordLoginAudit({
+      role: "advisor",
+      advisorId,
+      emailAttempted: typeof email === "string" ? email.slice(0, 200) : null,
+      slug: req.params.slug,
+      outcome,
+      ipAddress,
+      userAgent,
+    });
+    if (!email || !password) {
+      audit("missing_credentials", null);
+      return res.status(400).json({ message: "Email and password required" });
+    }
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
-    if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor) {
+      audit("invalid_email", null);
+      return res.status(404).json({ message: "Advisor not found" });
+    }
     if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
+      audit("invalid_email", advisor.id);
       return res.status(401).json({ message: "Incorrect email or password." });
     }
     if (!advisor.advisorPasswordHash) {
+      audit("not_setup", advisor.id);
       return res.status(401).json({ message: "Account not set up yet.", needsSetup: true });
     }
     const valid = await bcrypt.compare(password, advisor.advisorPasswordHash);
-    if (!valid) return res.status(401).json({ message: "Incorrect email or password." });
+    if (!valid) {
+      audit("invalid_password", advisor.id);
+      return res.status(401).json({ message: "Incorrect email or password." });
+    }
     if (!advisor.advisorEmailVerified) {
+      audit("unverified", advisor.id);
       return res.status(401).json({ message: "Email not verified. Please complete the verification step.", needsVerification: true });
     }
+    audit("success", advisor.id);
     (req.session as any)[`advisor_${req.params.slug}`] = true;
     res.json({ authenticated: true });
   });
