@@ -253,6 +253,17 @@ export class DatabaseStorage implements IStorage {
         lastViewedAt: emails.lastViewedAt,
         archivedAt: emails.archivedAt,
         duplicateOfId: emails.duplicateOfId,
+        // Task #23 — grader gap fields. Must be selected here so CIV's typed
+        // list includes them; otherwise the (Email & { advisorName }) row shape
+        // is missing the new columns and TypeScript rejects the .map() result.
+        howFound: emails.howFound,
+        netWorthBracket: emails.netWorthBracket,
+        biggestConcern: emails.biggestConcern,
+        hasAdvisor: emails.hasAdvisor,
+        existingAdvisorName: emails.existingAdvisorName,
+        referralReason: emails.referralReason,
+        hasWill: emails.hasWill,
+        estateValueBracket: emails.estateValueBracket,
         advisorName: advisors.name,
       })
       .from(emails)

@@ -1822,6 +1822,20 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                           the neighbouring cell. */}
                       {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} full />}
                       {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
+                      {/* Task #23 — gap fields. Each row only renders when populated. */}
+                      {(lead as any).howFound && <Row label="Found Via" value={(lead as any).howFound} tc={tc} />}
+                      {(lead as any).netWorthBracket && <Row label="Net Worth" value={(lead as any).netWorthBracket} tc={tc} />}
+                      {(lead as any).hasAdvisor != null && (
+                        <Row
+                          label="Existing Advisor"
+                          value={(lead as any).hasAdvisor ? ((lead as any).existingAdvisorName || "Yes") : "No"}
+                          tc={tc}
+                        />
+                      )}
+                      {(lead as any).hasWill != null && <Row label="Has Will" value={(lead as any).hasWill ? "Yes" : "No"} tc={tc} />}
+                      {(lead as any).estateValueBracket && <Row label="Estate Value" value={(lead as any).estateValueBracket} tc={tc} />}
+                      {(lead as any).biggestConcern && <Row label="Biggest Concern" value={(lead as any).biggestConcern} tc={tc} full />}
+                      {(lead as any).referralReason && <Row label="Why Referred" value={(lead as any).referralReason} tc={tc} full />}
                     </div>
 
                     {/* Referrer */}

@@ -393,6 +393,24 @@ export const emails = pgTable("emails", {
   // id so the registry expand row can surface a non-blocking "Possible duplicate"
   // flag. Never blocks submission — advisor decides merge vs treat-as-new.
   duplicateOfId: integer("duplicate_of_id"),
+  // Task #23 — Grader gap fields (Chris's 15 May meeting). All nullable, additive.
+  // Callback form: how the prospect found the advisor (organic/social/referral/other).
+  howFound: text("how_found"),
+  // Callback form / Will form: net-worth bracket — feeds Income scoring as a floor
+  // (high-net-worth retirees with low monthly income should still grade Gold).
+  netWorthBracket: text("net_worth_bracket"),
+  // Callback form: open text — biggest financial concern (feeds services keyword bonus).
+  biggestConcern: text("biggest_concern"),
+  // Callback form: yes/no — does the prospect currently work with another FA.
+  hasAdvisor: boolean("has_advisor"),
+  // Callback form: optional follow-up name if hasAdvisor === true.
+  existingAdvisorName: text("existing_advisor_name"),
+  // Referral form: open text — why the referrer is recommending this person.
+  referralReason: text("referral_reason"),
+  // Will form: yes/no — does the prospect already have a Will.
+  hasWill: boolean("has_will"),
+  // Will form: bracket — estimated estate value (drives Will temperature axis).
+  estateValueBracket: text("estate_value_bracket"),
 });
 
 export const insertEmailSchema = createInsertSchema(emails).omit({
@@ -426,6 +444,12 @@ export interface GraderInput {
   property?: boolean | null;
   servicesRequested?: string | null;
   type?: string | null; // "Call Back" | "Referral" | "Will Request"
+  // Task #23 — gap fields. All optional so existing call-sites keep working.
+  netWorthBracket?: string | null;
+  biggestConcern?: string | null;
+  hasAdvisor?: boolean | null;
+  hasWill?: boolean | null;
+  estateValueBracket?: string | null;
 }
 
 export interface GradeBreakdown {
@@ -444,15 +468,29 @@ export interface GraderResult {
 }
 
 export function calculateLeadGrade(input: GraderInput): GraderResult {
-  // ── Income: 0-35 pts ──
+  // ── Income / Wealth: 0-35 pts ──
+  // Monthly income is the primary signal, but net-worth bracket can override
+  // when supplied (a retiree with R10m saved and R20k monthly income is still
+  // a Gold-tier client). We take the higher of the two contributions so the
+  // category caps cleanly at 35 instead of double-counting.
   const incomeNum = parseIncomeToNumber(input.income);
-  let incomePts = 0;
-  if (incomeNum >= 100000) incomePts = 35;
-  else if (incomeNum >= 75000) incomePts = 30;
-  else if (incomeNum >= 50000) incomePts = 25;
-  else if (incomeNum >= 35000) incomePts = 20;
-  else if (incomeNum >= 20000) incomePts = 12;
-  else if (incomeNum >= 10000) incomePts = 6;
+  let monthlyIncomePts = 0;
+  if (incomeNum >= 100000) monthlyIncomePts = 35;
+  else if (incomeNum >= 75000) monthlyIncomePts = 30;
+  else if (incomeNum >= 50000) monthlyIncomePts = 25;
+  else if (incomeNum >= 35000) monthlyIncomePts = 20;
+  else if (incomeNum >= 20000) monthlyIncomePts = 12;
+  else if (incomeNum >= 10000) monthlyIncomePts = 6;
+
+  const netWorthNum = parseNetWorthToNumber(input.netWorthBracket);
+  let netWorthPts = 0;
+  if (netWorthNum >= 20_000_000) netWorthPts = 35;
+  else if (netWorthNum >= 5_000_000) netWorthPts = 28;
+  else if (netWorthNum >= 1_000_000) netWorthPts = 20;
+  else if (netWorthNum >= 250_000) netWorthPts = 10;
+  else if (netWorthNum > 0) netWorthPts = 3;
+
+  let incomePts = Math.max(monthlyIncomePts, netWorthPts);
 
   // ── Age: 0-20 pts (FA sweet-spot: 35-55, working life: 28-65) ──
   // Guard against null, 0, and bogus negative ages — only score real positive ages.
@@ -482,6 +520,16 @@ export function calculateLeadGrade(input: GraderInput): GraderResult {
       servicesPts = Math.min(15, servicesPts + 3);
     }
   }
+  // Task #23 — "biggest concern" open text feeds the same services keyword
+  // bonus. A prospect who writes "worried about retirement & tax" is signalling
+  // demand even if they ticked zero service boxes.
+  if (input.biggestConcern) {
+    const concern = input.biggestConcern.toLowerCase();
+    const concernKeywords = ["retir", "tax", "estate", "will", "invest", "insur", "debt", "medical", "cover", "save"];
+    if (concernKeywords.some(k => concern.includes(k))) {
+      servicesPts = Math.min(15, servicesPts + 3);
+    }
+  }
 
   // ── Source quality: 0-10 pts (intent signal embedded in submission type) ──
   let sourcePts = 5;
@@ -504,12 +552,21 @@ export function calculateLeadGrade(input: GraderInput): GraderResult {
   let temperature: TemperatureType = "Cold";
   if (type.includes("callback") || type.includes("call back")) {
     temperature = "Hot";
+    // Task #23 — a prospect who already has an FA is fishing for a second
+    // opinion, not switching tomorrow. Demote Hot → Warm so the advisor
+    // prioritises genuinely un-advised calls first.
+    if (input.hasAdvisor === true) temperature = "Warm";
   } else if (type.includes("will")) {
     temperature = "Warm";
+    // Task #23 — no existing Will + sizeable estate = urgent (intestate risk).
+    // High estate value alone is enough to bump Will requests to Hot.
+    const estateNum = parseNetWorthToNumber(input.estateValueBracket);
+    if (input.hasWill === false && estateNum >= 5_000_000) temperature = "Hot";
+    else if (estateNum >= 20_000_000) temperature = "Hot";
   } else if (type.includes("referral") || type.includes("manual")) {
     // Referrals + Manual Entries: warm if they came in with rich client data,
     // cold if minimal — the advisor either knows the prospect or doesn't yet.
-    if (incomeNum > 0 || input.age) temperature = "Warm";
+    if (incomeNum > 0 || input.age || netWorthNum > 0) temperature = "Warm";
   }
 
   return {
@@ -530,6 +587,26 @@ export function calculateLeadGrade(input: GraderInput): GraderResult {
 // lead object still works. Prefer calculateLeadGrade() in new code.
 export function autoGradeClient(age?: number | null, income?: string | null, _industry?: string | null): GradeType {
   return calculateLeadGrade({ age, income }).grade;
+}
+
+// Task #23 — parse net-worth / estate-value brackets like "R1m-R5m", "R20m+",
+// "<R250k". Returns the upper bound in rand so the grader can compare cleanly.
+function parseNetWorthToNumber(bracket?: string | null): number {
+  if (!bracket) return 0;
+  const normalized = bracket.toLowerCase().replace(/,/g, "").trim();
+  // Match every "<number>[k|m]" token; use the LAST (upper bound of range or "+" anchor).
+  const matches = [...normalized.matchAll(/(\d+(?:\.\d+)?)\s*([km])?/g)];
+  if (matches.length === 0) return 0;
+  const last = matches[matches.length - 1];
+  const value = parseFloat(last[1]);
+  const multiplied = last[2] === "m" ? value * 1_000_000 : last[2] === "k" ? value * 1_000 : value;
+  // Task #23 fix — "Under R250k" / "<R250k" means the client is BELOW the
+  // stated figure, so the upper-bound semantics flips. Return just under the
+  // bound so it lands in the lowest scoring tier instead of inflating to the
+  // bracket's ceiling.
+  const isUnder = /^(under|less than|<)/.test(normalized);
+  if (isUnder) return Math.max(0, multiplied - 1);
+  return multiplied;
 }
 
 function parseIncomeToNumber(income?: string | null): number {

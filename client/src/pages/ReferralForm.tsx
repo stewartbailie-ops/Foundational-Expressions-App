@@ -67,6 +67,8 @@ interface ReferralEntry {
   relationship: string;
   preferredContactTime: string;
   selectedServices: string[];
+  // Task #23 — per-referral open text: "why are you referring them?"
+  referralReason: string;
   confirmedOver18: boolean;
 }
 
@@ -86,6 +88,7 @@ function emptyReferral(): ReferralEntry {
     relationship: "",
     preferredContactTime: "",
     selectedServices: [],
+    referralReason: "",
     confirmedOver18: false,
   };
 }
@@ -202,6 +205,7 @@ export default function ReferralForm() {
           referrerEmail: referrerEmail,
           referrerPhone: referrerPhone || undefined,
           referrerRelation: ref.relationship || undefined,
+          referralReason: ref.referralReason.trim() || undefined,
           source: `referral-form-${slug}`,
           sourceProfileSlug: slug || undefined,
           recaptchaToken: recaptchaToken ?? undefined,
@@ -593,6 +597,21 @@ export default function ReferralForm() {
                   ))}
                 </select>
               </div>
+            </div>
+
+            {/* Task #23 — why-referring open text. Sits above the services
+                checklist so referrers explain in their own words before
+                picking from the canned list. */}
+            <div>
+              <label style={labelStyle}>Why are you referring them?</label>
+              <textarea
+                value={ref.referralReason}
+                onChange={(e) => updateReferral(index, "referralReason", e.target.value)}
+                placeholder="e.g. Just had a baby, needs life cover. Or: recently changed jobs, wants advice on pension."
+                rows={3}
+                style={{ ...inputStyle, resize: "none" as const }}
+                data-testid={`input-referral-reason-${index}`}
+              />
             </div>
 
             {allServices.length > 0 && (

@@ -661,6 +661,68 @@ export default function CIV() {
                               </div>
                             )}
 
+                            {/* Task #23 — gap fields. Compact grid for the
+                                short ones, separate blocks for the open-text
+                                fields so they don't get truncated. Each block
+                                only renders when populated, so legacy leads
+                                still show their lean shape. */}
+                            {(
+                              (email as any).howFound ||
+                              (email as any).netWorthBracket ||
+                              (email as any).hasAdvisor != null ||
+                              (email as any).hasWill != null ||
+                              (email as any).estateValueBracket
+                            ) && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" data-testid={`gap-fields-${email.id}`}>
+                                {(email as any).howFound && (
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block mb-0.5">How They Found You</span>
+                                    <span className="font-medium" data-testid={`text-how-found-${email.id}`}>{(email as any).howFound}</span>
+                                  </div>
+                                )}
+                                {(email as any).netWorthBracket && (
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block mb-0.5">Net Worth / Savings</span>
+                                    <span className="font-medium" data-testid={`text-net-worth-${email.id}`}>{(email as any).netWorthBracket}</span>
+                                  </div>
+                                )}
+                                {(email as any).hasAdvisor != null && (
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block mb-0.5">Existing Advisor</span>
+                                    <span className="font-medium" data-testid={`text-has-advisor-${email.id}`}>
+                                      {(email as any).hasAdvisor ? ((email as any).existingAdvisorName || "Yes") : "No"}
+                                    </span>
+                                  </div>
+                                )}
+                                {(email as any).hasWill != null && (
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block mb-0.5">Has Will</span>
+                                    <span className="font-medium" data-testid={`text-has-will-${email.id}`}>{(email as any).hasWill ? "Yes" : "No"}</span>
+                                  </div>
+                                )}
+                                {(email as any).estateValueBracket && (
+                                  <div>
+                                    <span className="text-muted-foreground text-xs block mb-0.5">Estate Value</span>
+                                    <span className="font-medium" data-testid={`text-estate-value-${email.id}`}>{(email as any).estateValueBracket}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {(email as any).biggestConcern && (
+                              <div>
+                                <span className="text-muted-foreground text-xs block mb-1">Biggest Financial Concern</span>
+                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-biggest-concern-${email.id}`}>{(email as any).biggestConcern}</p>
+                              </div>
+                            )}
+
+                            {(email as any).referralReason && (
+                              <div>
+                                <span className="text-muted-foreground text-xs block mb-1">Why Referred</span>
+                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-referral-reason-${email.id}`}>{(email as any).referralReason}</p>
+                              </div>
+                            )}
+
                             {(email.referrerName || email.referrerEmail) && (
                               <div className="bg-background rounded-lg p-3 border">
                                 <span className="text-muted-foreground text-xs block mb-1.5">Referred By</span>

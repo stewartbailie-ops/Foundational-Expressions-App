@@ -25,6 +25,15 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
 const EMAILS_COLUMNS: [string, string][] = [
   // W1 T9: soft-warn duplicate lead detection. Nullable; points at prior lead id.
   ["duplicate_of_id", "integer"],
+  // Task #23 — grader gap fields from Chris's 15 May meeting. All nullable.
+  ["how_found",             "text"],
+  ["net_worth_bracket",     "text"],
+  ["biggest_concern",       "text"],
+  ["has_advisor",           "boolean"],
+  ["existing_advisor_name", "text"],
+  ["referral_reason",       "text"],
+  ["has_will",              "boolean"],
+  ["estate_value_bracket",  "text"],
 ];
 
 type ExistsRow = { exists: boolean | null };

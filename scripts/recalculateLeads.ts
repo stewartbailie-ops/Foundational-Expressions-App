@@ -26,6 +26,13 @@ async function main() {
       property: email.clientProperty,
       servicesRequested: email.servicesRequested,
       type: email.type,
+      // Task #23 — re-grade with gap fields so historic leads benefit from the
+      // richer scoring as soon as advisors backfill or new leads come in.
+      netWorthBracket: (email as any).netWorthBracket,
+      biggestConcern: (email as any).biggestConcern,
+      hasAdvisor: (email as any).hasAdvisor,
+      hasWill: (email as any).hasWill,
+      estateValueBracket: (email as any).estateValueBracket,
     });
 
     const breakdownJson = JSON.stringify(result.breakdown);

@@ -43,6 +43,23 @@ const INDUSTRIES = [
   "Other",
 ];
 
+// Task #23 — Chris's gap-field options from the 15 May meeting.
+const HOW_FOUND_OPTIONS = [
+  "Google / Search",
+  "Social Media",
+  "Friend / Family Referral",
+  "Existing Client",
+  "Other",
+];
+
+const NET_WORTH_BRACKETS = [
+  "Under R250k",
+  "R250k - R1m",
+  "R1m - R5m",
+  "R5m - R20m",
+  "R20m+",
+];
+
 export default function CallbackForm() {
   const [, profileParams] = useRoute("/profile/:slug/request-callback");
   const [, directParams] = useRoute("/:slug/request-callback");
@@ -68,6 +85,12 @@ export default function CallbackForm() {
     preferredContactTime: "",
     selectedServices: [] as string[],
     confirmOver18: false,
+    // Task #23 — gap fields.
+    howFound: "",
+    netWorthBracket: "",
+    biggestConcern: "",
+    hasAdvisor: false,
+    existingAdvisorName: "",
   });
 
   const [submitted, setSubmitted] = useState(false);
@@ -196,6 +219,13 @@ export default function CallbackForm() {
       clientProperty: formData.property,
       preferredContactTime: formData.preferredContactTime,
       servicesRequested: formData.selectedServices.join(", "),
+      howFound: formData.howFound || undefined,
+      netWorthBracket: formData.netWorthBracket || undefined,
+      biggestConcern: formData.biggestConcern.trim() || undefined,
+      hasAdvisor: formData.hasAdvisor,
+      existingAdvisorName: formData.hasAdvisor && formData.existingAdvisorName.trim()
+        ? formData.existingAdvisorName.trim()
+        : undefined,
       source: "callback-form",
       sourceProfileSlug: slug || undefined,
       recaptchaToken: recaptchaToken ?? undefined,
@@ -385,6 +415,83 @@ export default function CallbackForm() {
                 </label>
               ))}
             </div>
+          </div>
+
+          {/* Task #23 — Gap fields card. Sits between client-profile + services
+              so it reads as "tell us more about your situation" before the
+              service checkboxes. All optional — same input/select/labelStyle. */}
+          <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label style={labelStyle}>How did you find me?</label>
+                <select
+                  value={formData.howFound}
+                  onChange={(e) => update("howFound", e.target.value)}
+                  style={selectStyle}
+                  data-testid="select-how-found"
+                >
+                  <option value="" style={optionStyle}>Select source</option>
+                  {HOW_FOUND_OPTIONS.map((o) => (
+                    <option key={o} value={o} style={optionStyle}>{o}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label style={labelStyle}>Estimated savings / net worth</label>
+                <select
+                  value={formData.netWorthBracket}
+                  onChange={(e) => update("netWorthBracket", e.target.value)}
+                  style={selectStyle}
+                  data-testid="select-net-worth"
+                >
+                  <option value="" style={optionStyle}>Select bracket</option>
+                  {NET_WORTH_BRACKETS.map((o) => (
+                    <option key={o} value={o} style={optionStyle}>{o}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>What's your biggest financial concern right now?</label>
+              <textarea
+                value={formData.biggestConcern}
+                onChange={(e) => update("biggestConcern", e.target.value)}
+                placeholder="e.g. Building retirement savings, sorting out estate, reducing tax…"
+                rows={3}
+                style={{ ...inputStyle, resize: "none" as const }}
+                data-testid="input-biggest-concern"
+              />
+            </div>
+
+            <label
+              className="flex items-center gap-2 cursor-pointer"
+              style={{ color: textColor }}
+              data-testid="toggle-has-advisor"
+            >
+              <input
+                type="checkbox"
+                checked={formData.hasAdvisor}
+                onChange={(e) => update("hasAdvisor", e.target.checked)}
+                className="w-4 h-4 rounded"
+                data-testid="checkbox-has-advisor"
+              />
+              <span className="text-xs">I currently work with another financial advisor</span>
+            </label>
+
+            {formData.hasAdvisor && (
+              <div>
+                <label style={labelStyle}>Current advisor / firm name (optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. John Doe, ABC Wealth"
+                  value={formData.existingAdvisorName}
+                  onChange={(e) => update("existingAdvisorName", e.target.value)}
+                  style={inputStyle}
+                  data-testid="input-existing-advisor-name"
+                />
+              </div>
+            )}
           </div>
 
           <div className="rounded-xl p-5 space-y-4" style={{ backgroundColor: cardBg }}>

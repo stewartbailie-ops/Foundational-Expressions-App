@@ -746,6 +746,8 @@ export async function registerRoutes(
         message: z.string().optional(),
         source: z.string().optional(),
         sourceProfileSlug: z.string().optional(),
+        // Task #23 — per-referral "why are you referring them?" open text.
+        referralReason: z.string().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -798,6 +800,7 @@ export async function registerRoutes(
         referrerEmail: data.referrerEmail,
         referrerPhone: data.referrerPhone,
         referrerRelation: data.referrerRelation,
+        referralReason: data.referralReason,
         source: data.source,
         sourceProfileSlug: data.sourceProfileSlug,
       });
@@ -862,6 +865,12 @@ export async function registerRoutes(
         message: z.string().optional(),
         source: z.string().optional(),
         sourceProfileSlug: z.string().optional(),
+        // Task #23 — callback gap fields. All optional; feed grader + registry.
+        howFound: z.string().optional(),
+        netWorthBracket: z.string().optional(),
+        biggestConcern: z.string().optional(),
+        hasAdvisor: z.boolean().optional(),
+        existingAdvisorName: z.string().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -887,6 +896,9 @@ export async function registerRoutes(
         property: data.clientProperty,
         servicesRequested: data.servicesRequested,
         type: "Call Back",
+        netWorthBracket: data.netWorthBracket,
+        biggestConcern: data.biggestConcern,
+        hasAdvisor: data.hasAdvisor,
       });
 
       const email = await storage.createEmail({
@@ -910,6 +922,11 @@ export async function registerRoutes(
         clientProperty: data.clientProperty,
         preferredContactTime: data.preferredContactTime,
         servicesRequested: data.servicesRequested,
+        howFound: data.howFound,
+        netWorthBracket: data.netWorthBracket,
+        biggestConcern: data.biggestConcern,
+        hasAdvisor: data.hasAdvisor,
+        existingAdvisorName: data.existingAdvisorName,
         source: data.source,
         sourceProfileSlug: data.sourceProfileSlug,
       });
@@ -969,6 +986,11 @@ export async function registerRoutes(
         address: z.string().optional(),
         source: z.string().optional(),
         sourceProfileSlug: z.string().optional(),
+        // Task #23 — will-form gap fields.
+        hasWill: z.boolean().optional(),
+        estateValueBracket: z.string().optional(),
+        incomeRange: z.string().optional(),
+        age: z.number().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -1004,10 +1026,14 @@ export async function registerRoutes(
         ? !/^0$|^none$|^no$/i.test(data.numberOfChildren.trim())
         : null;
       const result = calculateLeadGrade({
+        age: data.age,
+        income: data.incomeRange,
         married,
         children,
         servicesRequested: "Estate Planning, Will",
         type: "Will Request",
+        hasWill: data.hasWill,
+        estateValueBracket: data.estateValueBracket,
       });
 
       const email = await storage.createEmail({
@@ -1021,9 +1047,13 @@ export async function registerRoutes(
         gradeBreakdown: JSON.stringify(result.breakdown),
         subject: `Complimentary Will Request from ${data.fullName}`,
         body: details,
+        clientAge: data.age,
+        clientIncome: data.incomeRange,
         clientPhone: data.phone,
         clientMarried: married,
         clientChildren: children,
+        hasWill: data.hasWill,
+        estateValueBracket: data.estateValueBracket,
         source: data.source || "will-form",
         sourceProfileSlug: data.sourceProfileSlug,
       });

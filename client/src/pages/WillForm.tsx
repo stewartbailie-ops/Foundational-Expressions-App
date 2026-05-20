@@ -21,6 +21,16 @@ const INCOME_RANGES = [
   "R100k+",
 ];
 
+// Task #23 — estate value brackets drive will-form temperature in the grader.
+const ESTATE_VALUE_BRACKETS = [
+  "Under R500k",
+  "R500k - R2m",
+  "R2m - R5m",
+  "R5m - R20m",
+  "R20m+",
+  "Unsure",
+];
+
 export default function WillForm() {
   const [, profileParams] = useRoute("/profile/:slug/claim-will");
   const [, directParams] = useRoute("/:slug/claim-will");
@@ -43,6 +53,9 @@ export default function WillForm() {
   const [hasChildren, setHasChildren] = useState(false);
   const [childrenDetails, setChildrenDetails] = useState("");
   const [incomeRange, setIncomeRange] = useState("");
+  // Task #23 — gap fields.
+  const [hasWill, setHasWill] = useState(false);
+  const [estateValueBracket, setEstateValueBracket] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
@@ -66,6 +79,8 @@ export default function WillForm() {
         numberOfChildren: hasChildren ? "1+" : "0",
         childrenDetails: hasChildren ? (childrenDetails || undefined) : undefined,
         incomeRange: incomeRange || undefined,
+        hasWill,
+        estateValueBracket: estateValueBracket || undefined,
         source: `claim-will/${slug}`,
         sourceProfileSlug: slug || undefined,
         recaptchaToken: recaptchaToken ?? undefined,
@@ -257,20 +272,53 @@ export default function WillForm() {
             />
           </div>
 
-          <div>
-            <label style={labelStyle}>Income Range</label>
-            <select
-              value={incomeRange}
-              onChange={e => setIncomeRange(e.target.value)}
-              style={selectStyle}
-              data-testid="select-will-income"
-            >
-              <option value="" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.mutedText }}>Select income range</option>
-              {INCOME_RANGES.map(r => (
-                <option key={r} value={r} style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.textColor }}>{r}</option>
-              ))}
-            </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label style={labelStyle}>Income Range</label>
+              <select
+                value={incomeRange}
+                onChange={e => setIncomeRange(e.target.value)}
+                style={selectStyle}
+                data-testid="select-will-income"
+              >
+                <option value="" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.mutedText }}>Select income range</option>
+                {INCOME_RANGES.map(r => (
+                  <option key={r} value={r} style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.textColor }}>{r}</option>
+                ))}
+              </select>
+            </div>
+            {/* Task #23 — estate value drives Will-form temperature (Hot when
+                large estate + no existing Will). Optional but high-signal. */}
+            <div>
+              <label style={labelStyle}>Estimated estate value</label>
+              <select
+                value={estateValueBracket}
+                onChange={e => setEstateValueBracket(e.target.value)}
+                style={selectStyle}
+                data-testid="select-will-estate-value"
+              >
+                <option value="" style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.mutedText }}>Select bracket</option>
+                {ESTATE_VALUE_BRACKETS.map(b => (
+                  <option key={b} value={b} style={{ backgroundColor: tc.isDark ? "#1a1a1a" : "#fff", color: tc.textColor }}>{b}</option>
+                ))}
+              </select>
+            </div>
           </div>
+
+          {/* Task #23 — existing Will y/n. Drives temperature alongside estate value. */}
+          <label
+            className="flex items-center gap-2 cursor-pointer"
+            style={{ color: tc.textColor }}
+            data-testid="checkbox-will-has-will"
+          >
+            <input
+              type="checkbox"
+              checked={hasWill}
+              onChange={e => setHasWill(e.target.checked)}
+              className="w-4 h-4 rounded"
+            />
+            <span className="text-xs">I already have a Will (this is an update / review)</span>
+          </label>
         </div>
 
         <div className="rounded-2xl p-4 space-y-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
