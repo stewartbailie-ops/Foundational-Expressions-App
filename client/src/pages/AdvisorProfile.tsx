@@ -8,6 +8,7 @@ import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BrandFooter } from "@/components/BrandFooter";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
+import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
 import { ForexWidget } from "@/components/ForexWidget";
@@ -640,6 +641,11 @@ export default function AdvisorProfile() {
   const [inDevFinancial, setInDevFinancial] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  // Task #28 — business-card share dialog state
+  const [cardDialogOpen, setCardDialogOpen] = useState(false);
+  const [cardVariant, setCardVariant] = useState<CardVariant>("portrait");
+  const [cardBusy, setCardBusy] = useState<"share" | "download" | null>(null);
+  const [cardStatus, setCardStatus] = useState<string | null>(null);
   const [showInstallHint, setShowInstallHint] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [openTool, setOpenTool] = useState<string | null>(null);
@@ -867,7 +873,33 @@ export default function AdvisorProfile() {
     URL.revokeObjectURL(url);
   };
 
-  const handleDownloadBusinessCard = () => {
+  // Task #28 — open the share-card dialog (Portrait/Square × Share/Download).
+  // The previous direct-download flow is retained below as a fallback but is no
+  // longer wired to a button: the dialog calls shareOrDownloadCard() directly.
+  const handleOpenShareCard = () => {
+    setCardStatus(null);
+    setCardBusy(null);
+    setCardDialogOpen(true);
+  };
+
+  const handleShareCardAction = async (mode: "share" | "download") => {
+    if (cardBusy) return;
+    setCardBusy(mode);
+    setCardStatus(null);
+    try {
+      const result = await shareOrDownloadCard({ advisor, variant: cardVariant, mode });
+      if (result === "shared") setCardStatus("Shared.");
+      else if (result === "downloaded") setCardStatus(mode === "share" ? "Sharing unavailable — downloaded instead." : "Downloaded.");
+    } catch (e) {
+      console.error("[business-card] render failed", e);
+      setCardStatus("Couldn't generate the card. Please try again.");
+    } finally {
+      setCardBusy(null);
+    }
+  };
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleDownloadBusinessCardLegacy = () => {
     const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor);
     const W = 400, H = 800, SCALE = 2;
     const PHOTO_H = 440;
@@ -1287,7 +1319,7 @@ export default function AdvisorProfile() {
               >
                 <Share2 className="h-3.5 w-3.5 flex-shrink-0" />{shareCopied ? t.linkCopied : t.shareProfile}
               </button>
-              <button onClick={handleDownloadBusinessCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-business-card">
+              <button onClick={handleOpenShareCard} className={btnBase} style={{ backgroundColor: tc.buttonSecondaryBg, color: accentColor, border: `1px solid ${tc.borderColor}` }} data-testid="button-save-business-card">
                 <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />{t.saveCard}
               </button>
             </div>
@@ -1303,6 +1335,118 @@ export default function AdvisorProfile() {
               <svg viewBox="0 0 24 24" className="h-3 w-3 flex-shrink-0 opacity-60" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
             </button>
           </div>
+
+          {/* Task #28 — Share Card dialog: Portrait / Square × Share / Download */}
+          {cardDialogOpen && (
+            <div
+              className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-4"
+              style={{ backgroundColor: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)" }}
+              onClick={() => !cardBusy && setCardDialogOpen(false)}
+              data-testid="dialog-share-card"
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 40 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="w-full max-w-[22rem] sm:max-w-sm rounded-2xl p-4 sm:p-5 space-y-4"
+                style={{ backgroundColor: cardBg, border: `1px solid ${tc.borderColor}` }}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="font-semibold text-sm" style={{ color: tc.textColor }}>Share your business card</div>
+                  <button
+                    onClick={() => !cardBusy && setCardDialogOpen(false)}
+                    style={{ color: mutedText }}
+                    className="leading-none shrink-0 disabled:opacity-40"
+                    aria-label="Close"
+                    disabled={!!cardBusy}
+                    data-testid="button-card-close"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Variant picker */}
+                <div className="space-y-2">
+                  <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: mutedText }}>Size</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(["portrait", "square"] as CardVariant[]).map((v) => {
+                      const selected = cardVariant === v;
+                      return (
+                        <button
+                          key={v}
+                          onClick={() => setCardVariant(v)}
+                          disabled={!!cardBusy}
+                          className="rounded-lg px-2 py-3 text-left transition-all disabled:opacity-50"
+                          style={{
+                            backgroundColor: selected ? `${accentColor}1a` : tc.buttonSecondaryBg,
+                            border: `1px solid ${selected ? accentColor : tc.borderColor}`,
+                            color: tc.textColor,
+                          }}
+                          data-testid={`button-card-variant-${v}`}
+                        >
+                          {/* Visual aspect-ratio preview */}
+                          <div
+                            className="mx-auto mb-2 rounded-md"
+                            style={{
+                              width: v === "portrait" ? 28 : 40,
+                              height: 40,
+                              background: `linear-gradient(160deg, ${getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor).from}, ${getInitialsBadgeColors(advisor.theme || "blue", advisor.themeColor).to})`,
+                              border: `1px solid ${tc.borderColor}`,
+                            }}
+                          />
+                          <div className="text-xs font-semibold capitalize">{v}</div>
+                          <div className="text-[10px]" style={{ color: mutedText }}>
+                            {v === "portrait" ? "1080×1920 · Stories" : "1080×1080 · Feed"}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-2">
+                  {canShareCardNatively() && (
+                    <button
+                      onClick={() => handleShareCardAction("share")}
+                      disabled={!!cardBusy}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                      style={{ backgroundColor: accentColor, color: tc.buttonText }}
+                      data-testid="button-card-share"
+                    >
+                      {cardBusy === "share"
+                        ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Preparing…</>
+                        : <><Share2 className="h-3.5 w-3.5" />Share card</>}
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleShareCardAction("download")}
+                    disabled={!!cardBusy}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                    style={{
+                      backgroundColor: canShareCardNatively() ? tc.buttonSecondaryBg : accentColor,
+                      color: canShareCardNatively() ? accentColor : tc.buttonText,
+                      border: canShareCardNatively() ? `1px solid ${tc.borderColor}` : "none",
+                    }}
+                    data-testid="button-card-download"
+                  >
+                    {cardBusy === "download"
+                      ? <><Loader2 className="h-3.5 w-3.5 animate-spin" />Rendering…</>
+                      : <><Download className="h-3.5 w-3.5" />Download PNG</>}
+                  </button>
+                  {cardStatus && (
+                    <div className="text-[11px] text-center" style={{ color: mutedText }} data-testid="text-card-status">{cardStatus}</div>
+                  )}
+                  {!canShareCardNatively() && (
+                    <div className="text-[10px] text-center leading-relaxed" style={{ color: mutedText }}>
+                      Tip: open this page on a mobile device for one-tap sharing to WhatsApp, Instagram, or LinkedIn.
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
 
           {/* iOS Add to Home Screen modal */}
           {showInstallHint && (

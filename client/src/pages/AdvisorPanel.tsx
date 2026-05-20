@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2 } from "lucide-react";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
@@ -27,6 +27,7 @@ import { NewsHero } from "@/components/NewsHero";
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
+import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
@@ -2541,6 +2542,118 @@ function downloadProfileImagePng(opts: { name: string; title: string; theme: str
   }
 }
 
+function ShareAssetsCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [busy, setBusy] = useState<{ variant: CardVariant; mode: "share" | "download" } | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const canShare = canShareCardNatively();
+
+  const run = async (variant: CardVariant, mode: "share" | "download") => {
+    if (busy) return;
+    setBusy({ variant, mode });
+    setStatus(null);
+    try {
+      const result = await shareOrDownloadCard({ advisor, variant, mode });
+      if (result === "shared") setStatus("Shared.");
+      else if (result === "downloaded") setStatus(mode === "share" ? "Sharing unavailable — downloaded instead." : "Downloaded.");
+    } catch (e) {
+      console.error("[share-assets] render failed", e);
+      setStatus("Couldn't generate the card. Please try again.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const variants: { key: CardVariant; title: string; dims: string; sub: string; aspect: { w: number; h: number } }[] = [
+    { key: "portrait", title: "Portrait", dims: "1080 × 1920", sub: "Stories · WhatsApp Status · Reels cover", aspect: { w: 48, h: 84 } },
+    { key: "square",   title: "Square",   dims: "1080 × 1080", sub: "Instagram / LinkedIn feed posts",         aspect: { w: 70, h: 70 } },
+  ];
+
+  const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", (advisor as any).themeColor);
+
+  return (
+    <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-share-assets">
+      <div className="flex items-center gap-2">
+        <CreditCard className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Share Assets — Digital Business Card</h3>
+      </div>
+      <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
+        Auto-generated PNG with your photo, theme, contact details, QR code and profile link. Use it on WhatsApp, Instagram, LinkedIn or in email signatures. Footer carries <span className="font-medium">advisoryconnect.pro/privacy-policy</span> baked into the image.
+      </p>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {variants.map((v) => {
+          const isBusy = busy?.variant === v.key;
+          return (
+            <div
+              key={v.key}
+              className="rounded-lg p-3 flex flex-col gap-3"
+              style={{ backgroundColor: tc.buttonSecondaryBg, border: `1px solid ${tc.borderColor}` }}
+              data-testid={`card-share-asset-${v.key}`}
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="rounded-md shrink-0"
+                  style={{
+                    width: v.aspect.w,
+                    height: v.aspect.h,
+                    background: `linear-gradient(160deg, ${from}, ${to})`,
+                    border: `1px solid ${tc.borderColor}`,
+                  }}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{v.title}</div>
+                  <div className="text-[11px]" style={{ color: tc.mutedText }}>{v.dims}</div>
+                  <div className="text-[11px] mt-0.5" style={{ color: tc.mutedText }}>{v.sub}</div>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                {canShare && (
+                  <button
+                    onClick={() => run(v.key, "share")}
+                    disabled={!!busy}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                    style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                    data-testid={`button-share-asset-share-${v.key}`}
+                  >
+                    {isBusy && busy?.mode === "share"
+                      ? <><Loader2 className="h-3 w-3 animate-spin" />Preparing…</>
+                      : <><Share2 className="h-3 w-3" />Share</>}
+                  </button>
+                )}
+                <button
+                  onClick={() => run(v.key, "download")}
+                  disabled={!!busy}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-semibold transition-opacity hover:opacity-90 disabled:opacity-60"
+                  style={{
+                    backgroundColor: canShare ? "transparent" : tc.accentColor,
+                    color: canShare ? tc.accentColor : tc.buttonText,
+                    border: canShare ? `1px solid ${tc.borderColor}` : "none",
+                  }}
+                  data-testid={`button-share-asset-download-${v.key}`}
+                >
+                  {isBusy && busy?.mode === "download"
+                    ? <><Loader2 className="h-3 w-3 animate-spin" />Rendering…</>
+                    : <><Download className="h-3 w-3" />Download</>}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {status && (
+        <div className="text-[11px]" style={{ color: tc.mutedText }} data-testid="text-share-assets-status">{status}</div>
+      )}
+      {!canShare && (
+        <div className="text-[10px] leading-relaxed" style={{ color: tc.mutedText }}>
+          Native share isn't available in this browser. Open the panel on a mobile device for one-tap sharing.
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -2987,6 +3100,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           </button>
         </div>
       </div>
+
+      {/* Task #28 — Share Assets: Digital Business Card (Portrait + Square) */}
+      <ShareAssetsCard advisor={advisor} tc={tc} />
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between">
