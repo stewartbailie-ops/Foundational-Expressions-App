@@ -71,6 +71,42 @@ export async function runStartupMigrations() {
   }
   console.log("[migrations] advisors columns verified");
 
+  // Task #26 — Paystack subscription columns. All nullable / safely-defaulted so
+  // existing advisor rows continue to behave as "trial" until a checkout completes.
+  const BILLING_COLUMNS: [string, string][] = [
+    ["subscription_status",           "text DEFAULT 'trialing'"],
+    ["trial_ends_at",                 "timestamp"],
+    ["paystack_customer_code",        "text"],
+    ["paystack_subscription_code",    "text"],
+    ["paystack_email_token",          "text"],
+    ["trial_expiry_email_sent_at",    "timestamp"],
+  ];
+  for (const [col, def] of BILLING_COLUMNS) {
+    await db.execute(
+      sql.raw(`ALTER TABLE advisors ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    );
+  }
+  // Backfill: existing advisors without a trial_ends_at get 14 days from their createdAt.
+  // Idempotent — only touches rows where the column is NULL.
+  await db.execute(sql.raw(
+    `UPDATE advisors SET trial_ends_at = created_at + INTERVAL '14 days' WHERE trial_ends_at IS NULL`
+  ));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_advisors_paystack_customer" ON "advisors" ("paystack_customer_code");`
+  ));
+  // Task #26 webhook idempotency. Paystack guarantees a unique `id` per event;
+  // we insert it as PK before processing, so a replay (or out-of-order delivery
+  // of an event we've already seen) becomes a no-op via unique-violation.
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "paystack_webhook_events" (
+      "event_id" text PRIMARY KEY,
+      "event_name" text NOT NULL,
+      "advisor_id" integer,
+      "processed_at" timestamp DEFAULT now() NOT NULL
+    );
+  `));
+  console.log("[migrations] advisors billing columns verified");
+
   for (const [col, def] of EMAILS_COLUMNS) {
     await db.execute(
       sql.raw(`ALTER TABLE emails ADD COLUMN IF NOT EXISTS ${col} ${def}`)

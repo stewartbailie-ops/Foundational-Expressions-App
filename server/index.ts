@@ -338,6 +338,47 @@ ${imageTag}
       log(`serving on port ${port}`);
       // Demo leads are now top-up only (admin-triggered via the Top Up button).
       // No auto-seed on startup/restart/republish.
+
+      // Task #26 — Trial-expiry email cron. Runs once at startup (catches any
+      // missed during a downtime window) then daily via setInterval. Reserved VM
+      // is single-instance so this won't double-fire across replicas. We use
+      // setInterval rather than node-cron to avoid a new dep — the cadence is
+      // forgiving (daily, ±a few hours doesn't matter for a 2-day-ahead nudge).
+      const runTrialExpiryCron = async () => {
+        try {
+          const { sendTrialExpiryEmail, isSendGridConfigured } = await import("./sendgrid");
+          if (!isSendGridConfigured()) {
+            console.warn("[trial-cron] SendGrid not configured — skipping trial-expiry sweep.");
+            return;
+          }
+          const due = await storage.findTrialsExpiringSoon(2);
+          if (due.length === 0) return;
+          console.log(`[trial-cron] ${due.length} advisor(s) due for trial-expiry email`);
+          for (const advisor of due) {
+            if (!advisor.email) continue;
+            try {
+              const daysLeft = advisor.trialEndsAt
+                ? Math.max(1, Math.ceil((new Date(advisor.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+                : 2;
+              await sendTrialExpiryEmail({
+                to: advisor.email,
+                name: advisor.name,
+                daysLeft,
+                upgradeUrl: `https://app.advisoryconnect.pro/${advisor.profileSlug}?tab=billing`,
+              });
+              await storage.updateAdvisor(advisor.id, { trialExpiryEmailSentAt: new Date() } as any);
+              console.log(`[trial-cron] sent trial-expiry email to ${advisor.email}`);
+            } catch (err) {
+              console.error(`[trial-cron] failed for advisor ${advisor.id}:`, (err as Error).message);
+            }
+          }
+        } catch (err) {
+          console.error("[trial-cron] sweep failed:", (err as Error).message);
+        }
+      };
+      // First sweep 30s after boot (lets DB connections settle), then every 24h.
+      setTimeout(runTrialExpiryCron, 30_000);
+      setInterval(runTrialExpiryCron, 24 * 60 * 60 * 1000);
     },
   );
 })();

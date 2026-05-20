@@ -21,6 +21,8 @@ const PUBLIC_API_ROUTES = [
   "/api/forex/",
   "/api/csp-report",
   "/api/manifest",
+  // Task #26 — Paystack webhook. No session; signature verified in handler.
+  "/api/webhook/paystack",
   "/uploads/",
 ];
 
@@ -74,6 +76,16 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (
     typeof (req.session as any)?.advisorId === "number" &&
     req.path.startsWith("/api/clients")
+  ) {
+    return next();
+  }
+
+  // Task #26 — advisor sessions reach /api/billing/* (checkout, status, cancel,
+  // manage). Handlers scope every read/write to session.advisorId so an advisor
+  // session cannot touch another advisor's subscription.
+  if (
+    typeof (req.session as any)?.advisorId === "number" &&
+    req.path.startsWith("/api/billing")
   ) {
     return next();
   }

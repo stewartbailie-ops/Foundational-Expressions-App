@@ -80,3 +80,34 @@ export function buildRecipients(...extras: (string | null | undefined)[]): strin
 export function isSendGridConfigured(): boolean {
   return !!apiKey;
 }
+
+// Task #26 — trial-expiry nudge. Sent 2 days before trialEndsAt so the advisor
+// can either add a card (Basic / Premium) or simply let the trial lapse without
+// being charged. Copy is supportive, not alarmist — Stewart's brand voice.
+export async function sendTrialExpiryEmail(args: {
+  to: string;
+  name: string;
+  daysLeft: number;
+  upgradeUrl: string;
+}): Promise<void> {
+  const inner = `
+    <h2 style="margin:0 0 12px;font-size:20px;color:#0a0e1a;">Your trial ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}</h2>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#374151;">Hi ${args.name},</p>
+    <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#374151;">
+      Just a heads-up: your 14-day free trial of Advisory Connect ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}.
+      No card on file, so nothing will be charged automatically — but your profile will switch to read-only and new lead forms will stop accepting submissions when the trial lapses.
+    </p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#374151;">
+      To keep your profile live, pick a plan below. Basic keeps everything you've been using; Premium adds advanced analytics, practice management, and white-label business cards.
+    </p>
+    <p style="margin:0 0 20px;">
+      <a href="${args.upgradeUrl}" style="display:inline-block;background:#0a0e1a;color:#ffffff;padding:12px 22px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Choose a plan</a>
+    </p>
+    <p style="margin:0;font-size:13px;line-height:1.5;color:#6b7280;">
+      Questions? Just reply to this email — it goes straight to ${REPLY_TO_EMAIL}.
+    </p>
+  `;
+  await sendEmail(args.to, `Your Advisory Connect trial ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}`, inner, undefined, {
+    previewText: `Pick a plan to keep your profile live — Basic R299/mo or Premium R499/mo.`,
+  });
+}

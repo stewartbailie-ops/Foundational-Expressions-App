@@ -2109,6 +2109,254 @@ export async function registerRoutes(
     res.send(plaintext);
   });
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // Task #26 — Paystack subscriptions. PIVOT from Stripe (SA onboarding gap).
+  // All /api/billing/* routes require an advisor session (enforced by
+  // requireAuth middleware allow-list). Each handler scopes to session.advisorId
+  // so an advisor session cannot read or mutate another advisor's billing.
+  // The webhook is public; signature verified inline.
+  // ───────────────────────────────────────────────────────────────────────────
+
+  // Current advisor's billing snapshot — used by the Upgrade page to decide
+  // which CTAs to show (start trial vs. switch tier vs. manage subscription).
+  app.get("/api/billing/status", async (req, res) => {
+    const advisorId = (req.session as any)?.advisorId;
+    if (typeof advisorId !== "number") return res.status(401).json({ message: "Unauthorized" });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.status(404).json({ message: "Not found" });
+    const { isPremiumActive, isBasicOrBetter } = await import("@shared/schema");
+    res.json({
+      tier: advisor.subscriptionTier ?? "trial",
+      status: advisor.subscriptionStatus ?? "trialing",
+      trialEndsAt: advisor.trialEndsAt,
+      hasSubscription: !!advisor.paystackSubscriptionCode,
+      premiumActive: isPremiumActive(advisor),
+      basicOrBetter: isBasicOrBetter(advisor),
+      paystackConfigured: !!process.env.PAYSTACK_SECRET_KEY,
+    });
+  });
+
+  // Initialize a Paystack hosted checkout. Returns the URL the client should
+  // redirect to. Paystack auto-creates a subscription on first successful
+  // charge (driven by the plan code) — we don't need a separate "create
+  // subscription" call.
+  app.post("/api/billing/checkout", async (req, res) => {
+    const advisorId = (req.session as any)?.advisorId;
+    if (typeof advisorId !== "number") return res.status(401).json({ message: "Unauthorized" });
+    const tier = String(req.body?.tier || "");
+    if (tier !== "basic" && tier !== "premium") {
+      return res.status(400).json({ message: "tier must be 'basic' or 'premium'" });
+    }
+    const { initializeTransaction, isPaystackConfigured } = await import("./paystack");
+    if (!isPaystackConfigured()) return res.status(503).json({ message: "Billing is not configured yet. Please contact support." });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.status(404).json({ message: "Not found" });
+    if (!advisor.email) return res.status(400).json({ message: "Advisor email is required for checkout" });
+    const origin = `${req.protocol}://${req.headers.host}`;
+    try {
+      const result = await initializeTransaction({
+        email: advisor.email,
+        tier: tier as "basic" | "premium",
+        callbackUrl: `${origin}/${advisor.profileSlug}?tab=billing&billing=success`,
+        metadata: { advisorId: advisor.id, slug: advisor.profileSlug },
+      });
+      res.json({ authorizationUrl: result.authorizationUrl, reference: result.reference });
+    } catch (err) {
+      console.error("[billing] checkout init failed:", (err as Error).message);
+      res.status(502).json({ message: "Could not start checkout. Please try again." });
+    }
+  });
+
+  // Cancel the current subscription. Paystack requires the subscription code +
+  // email token (we stored both at webhook time).
+  app.post("/api/billing/cancel", async (req, res) => {
+    const advisorId = (req.session as any)?.advisorId;
+    if (typeof advisorId !== "number") return res.status(401).json({ message: "Unauthorized" });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor) return res.status(404).json({ message: "Not found" });
+    if (!advisor.paystackSubscriptionCode || !advisor.paystackEmailToken) {
+      return res.status(400).json({ message: "No active subscription to cancel." });
+    }
+    const { disableSubscription } = await import("./paystack");
+    try {
+      await disableSubscription({ code: advisor.paystackSubscriptionCode, token: advisor.paystackEmailToken });
+      // Don't optimistically update the row — the subscription.disable webhook
+      // will land within seconds and flip status to "cancelled" idempotently.
+      // This avoids drift if Paystack actually rejected the disable call.
+      res.json({ ok: true });
+    } catch (err) {
+      console.error("[billing] cancel failed:", (err as Error).message);
+      res.status(502).json({ message: "Could not cancel. Please try again or email support." });
+    }
+  });
+
+  // Manage-subscription link (Paystack's closest analog to Stripe's Customer
+  // Portal). Issues a one-time URL where the advisor can update card details +
+  // view invoice history. Returns 400 if the advisor has no subscription yet.
+  app.get("/api/billing/manage-link", async (req, res) => {
+    const advisorId = (req.session as any)?.advisorId;
+    if (typeof advisorId !== "number") return res.status(401).json({ message: "Unauthorized" });
+    const advisor = await storage.getAdvisor(advisorId);
+    if (!advisor?.paystackSubscriptionCode) return res.status(400).json({ message: "No subscription yet." });
+    const { getManageSubscriptionLink } = await import("./paystack");
+    const link = await getManageSubscriptionLink(advisor.paystackSubscriptionCode);
+    if (!link) return res.status(502).json({ message: "Could not generate management link." });
+    res.json({ link });
+  });
+
+  // Paystack webhook. PUBLIC route (allow-listed in server/auth.ts). Verifies
+  // HMAC-SHA512 of the raw body against x-paystack-signature, then routes the
+  // event. Every handler is idempotent — Paystack may retry, and we ignore
+  // duplicates by checking the current advisor row before writing.
+  app.post("/api/webhook/paystack", webhookLimiter, async (req, res) => {
+    const { verifyWebhookSignature, tierForPlanCode } = await import("./paystack");
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const sig = req.header("x-paystack-signature");
+    const raw = (req as any).rawBody;
+    if (!raw || !verifyWebhookSignature(raw, sig)) {
+      console.warn("[paystack-webhook] bad signature");
+      return res.status(401).json({ message: "Bad signature" });
+    }
+    const event = req.body as { event?: string; data?: any; id?: string };
+    const eventName = event?.event || "unknown";
+    const data = event?.data || {};
+    // Paystack events carry a unique top-level `id`. Some older payload shapes
+    // put it inside data.id; we try both, then fall back to a hash of the raw
+    // body so dedupe still works even on a payload without an id field.
+    const crypto = await import("crypto");
+    const eventId: string = String(
+      event?.id ||
+      data?.id ||
+      crypto.createHash("sha256").update(raw as Buffer).digest("hex")
+    );
+
+    // Resolve the target advisor. Resolution order:
+    //   1) metadata.advisorId — set at checkout-init time, server-controlled.
+    //      This is the ONLY trusted source for first-time activation, before
+    //      the customer row links back to our advisor row.
+    //   2) paystack_customer_code — set by us on prior webhooks; unique-indexed.
+    //   3) (intentionally NO email fallback — advisor email is not unique, and
+    //      an email-based lookup could apply an event to the wrong advisor.)
+    const metadataAdvisorId: number | undefined = (() => {
+      const raw = data?.metadata?.advisorId ?? data?.metadata?.advisor_id;
+      const n = typeof raw === "string" ? parseInt(raw, 10) : raw;
+      return typeof n === "number" && Number.isFinite(n) ? n : undefined;
+    })();
+    const customerCode: string | undefined = data?.customer?.customer_code;
+    let advisor = metadataAdvisorId
+      ? await storage.getAdvisor(metadataAdvisorId)
+      : undefined;
+    if (!advisor && customerCode) {
+      advisor = await storage.findAdvisorByPaystackCustomerCode(customerCode);
+    }
+    if (!advisor) {
+      console.warn(`[paystack-webhook] no advisor for event=${eventName} id=${eventId}`);
+      // 200 — Paystack retrying won't change the outcome. Already logged.
+      return res.status(200).json({ ok: true, ignored: "unknown advisor" });
+    }
+
+    // Idempotency: insert event_id first. ON CONFLICT DO NOTHING gives us a
+    // 0-row insert (rowCount === 0) on a replay. We then short-circuit with
+    // 200 so Paystack stops retrying.
+    try {
+      const ins: any = await db.execute(sql`
+        INSERT INTO paystack_webhook_events (event_id, event_name, advisor_id)
+        VALUES (${eventId}, ${eventName}, ${advisor.id})
+        ON CONFLICT (event_id) DO NOTHING
+        RETURNING event_id
+      `);
+      const inserted = Array.isArray(ins?.rows) ? ins.rows.length : (ins?.rowCount ?? 0);
+      if (!inserted) {
+        console.log(`[paystack-webhook] replay ignored event=${eventName} id=${eventId} advisor=${advisor.id}`);
+        return res.status(200).json({ ok: true, replay: true });
+      }
+    } catch (err) {
+      // Transient DB failure — let Paystack retry.
+      console.error(`[paystack-webhook] idempotency insert failed event=${eventName}:`, (err as Error).message);
+      return res.status(500).json({ message: "Transient error, please retry" });
+    }
+
+    const updates: Partial<import("@shared/schema").InsertAdvisor> = {};
+    if (customerCode && !advisor.paystackCustomerCode) updates.paystackCustomerCode = customerCode;
+
+    let recognised = true;
+    switch (eventName) {
+      case "charge.success": {
+        // First successful charge or recurring renewal. Treat as "active".
+        // For first-time activation, tier is in metadata.tier or via plan code.
+        const planCode: string | undefined = data?.plan?.plan_code || data?.plan_object?.plan_code;
+        const metaTier: string | undefined = data?.metadata?.tier;
+        const resolvedTier = (metaTier === "basic" || metaTier === "premium")
+          ? metaTier
+          : tierForPlanCode(planCode);
+        if (resolvedTier) updates.subscriptionTier = resolvedTier;
+        // Don't clobber a more recent cancellation with a stale charge success.
+        // (We've already deduped by event id; this guards against true out-of-order
+        // delivery of two distinct events.)
+        if (advisor.subscriptionStatus !== "cancelled") {
+          updates.subscriptionStatus = "active";
+        }
+        break;
+      }
+      case "subscription.create": {
+        if (data?.subscription_code) updates.paystackSubscriptionCode = data.subscription_code;
+        if (data?.email_token) updates.paystackEmailToken = data.email_token;
+        const planCode: string | undefined = data?.plan?.plan_code;
+        const resolvedTier = tierForPlanCode(planCode);
+        if (resolvedTier) updates.subscriptionTier = resolvedTier;
+        if (advisor.subscriptionStatus !== "cancelled") {
+          updates.subscriptionStatus = "active";
+        }
+        break;
+      }
+      case "subscription.disable":
+      case "subscription.not_renew": {
+        updates.subscriptionStatus = "cancelled";
+        // Tier intentionally NOT downgraded immediately — advisor keeps access
+        // through the paid-up period.
+        break;
+      }
+      case "invoice.payment_failed": {
+        // Only flip to past_due from an active-ish state; don't resurrect a
+        // cancelled subscription.
+        if (advisor.subscriptionStatus !== "cancelled") {
+          updates.subscriptionStatus = "past_due";
+        }
+        break;
+      }
+      case "invoice.create":
+      case "invoice.update": {
+        // No-op for tier state; useful for future invoice history surfacing.
+        break;
+      }
+      default: {
+        recognised = false;
+        console.log(`[paystack-webhook] unhandled event=${eventName} id=${eventId} advisor=${advisor.id}`);
+        break;
+      }
+    }
+
+    try {
+      if (Object.keys(updates).length > 0) {
+        await storage.updateAdvisor(advisor.id, updates as any);
+        console.log(`[paystack-webhook] event=${eventName} id=${eventId} advisor=${advisor.id} updates=${Object.keys(updates).join(",")}`);
+      }
+      res.status(200).json({ ok: true, recognised });
+    } catch (err) {
+      // Transient failure during the actual update. Roll back the dedupe row
+      // so a Paystack retry can re-attempt the update — otherwise the event
+      // is permanently lost.
+      console.error(`[paystack-webhook] update failed event=${eventName} id=${eventId}:`, (err as Error).message);
+      try {
+        await db.execute(sql`DELETE FROM paystack_webhook_events WHERE event_id = ${eventId}`);
+      } catch (rollbackErr) {
+        console.error(`[paystack-webhook] dedupe rollback failed event=${eventName} id=${eventId}:`, (rollbackErr as Error).message);
+      }
+      res.status(500).json({ message: "Transient error, please retry" });
+    }
+  });
+
   // Admin-only audit-trail read.
   app.get("/api/audit-pii", async (req, res) => {
     if (sessionRole(req) !== "admin") return res.status(401).json({ message: "Admin only" });

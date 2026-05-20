@@ -91,6 +91,36 @@ At-rest encryption + audit trail for "special personal information" (POPIA s.26)
 
 **Loss of `PII_ENCRYPTION_KEY` = permanent loss of all encrypted columns.** No recovery is possible without the key. The sealed-envelope backup is not optional.
 
+## Paystack Subscriptions (Task #26, May 2026)
+Recurring billing for the R299 Basic / R499 Premium tiers with a 14-day free trial. **PIVOT from Stripe** mid-task — Stripe does not yet onboard South African businesses, so we switched to Paystack (SA-native, Stripe-owned since Oct 2024, ZAR-first). Same business logic, schema, and UI as the original Stripe spec; only the SDK + webhook format changed.
+
+**Required secrets** (request via the secrets flow, never embed):
+- `PAYSTACK_SECRET_KEY` — server-side API key (`sk_test_…` / `sk_live_…`)
+- `PAYSTACK_PUBLIC_KEY` — reserved for future client-side inline checkout (currently unused; hosted redirect flow only)
+- `PAYSTACK_PLAN_BASIC` — plan code from the Paystack dashboard for R299/mo
+- `PAYSTACK_PLAN_PREMIUM` — plan code for R499/mo
+
+**Architecture**
+- `server/paystack.ts` — plain `fetch` against `api.paystack.co` (no SDK dep). Helpers: `initializeTransaction`, `disableSubscription`, `getManageSubscriptionLink`, `verifyWebhookSignature`, `tierForPlanCode`. Webhook signature is HMAC-SHA512 of the raw body with `PAYSTACK_SECRET_KEY`, compared in constant time against the `x-paystack-signature` header. Raw body is captured by the existing `express.json({ verify })` hook in `server/index.ts`.
+- **DB columns** (additive migrations in `server/migrations.ts`): `subscription_status` (text, default `trialing`), `trial_ends_at` (timestamp), `paystack_customer_code`, `paystack_subscription_code`, `paystack_email_token`, `trial_expiry_email_sent_at`. Backfill sets `trial_ends_at = created_at + 14 days` for any pre-existing advisor row.
+- **Source of truth**: `advisors.subscriptionTier` ∈ `trial` / `basic` / `premium`; `subscriptionStatus` ∈ `trialing` / `active` / `cancelled` / `past_due`. Webhook is the only writer for `subscriptionTier` post-checkout (server never trusts client-supplied tier).
+- **Tier-split logic**: `isPremiumActive(advisor)` / `isBasicOrBetter(advisor)` in `shared/schema.ts` — both server and client import these so a single rule decides feature access. Trial = full Premium access until `trialEndsAt` passes.
+- **API surface**:
+  - `GET /api/billing/status` — current tier / status / trial countdown / configured flag.
+  - `POST /api/billing/checkout` `{ tier }` — returns `{ authorizationUrl }` for redirect to Paystack hosted checkout.
+  - `POST /api/billing/cancel` — calls Paystack `/subscription/disable`; tier downgrade waits for the `subscription.disable` webhook (no optimistic write).
+  - `GET /api/billing/manage-link` — one-time URL where the advisor updates card / views invoices (Paystack's closest analog to Stripe's Customer Portal).
+  - `POST /api/webhook/paystack` — **public**, signature-verified, idempotent. Handles `charge.success`, `subscription.create`, `subscription.disable`, `subscription.not_renew`, `invoice.payment_failed`. Returns 200 even on handler errors so Paystack doesn't retry a poison event indefinitely.
+- **Auth**: `/api/billing/*` is allow-listed for advisor sessions in `server/auth.ts` (same pattern as `/api/clients/*`). The webhook is in `PUBLIC_API_ROUTES`.
+- **Trial-expiry email**: daily `setInterval` in `server/index.ts` finds advisors whose trial ends in ≤2 days and who haven't been emailed yet, sends via `sendTrialExpiryEmail` (SendGrid, branded shell), marks `trial_expiry_email_sent_at`. First sweep 30s after boot. Safe on the Reserved VM (single instance, no double-fire risk).
+
+**Tier split** (agreed Stewart + Friday + Claude, 16 May 2026):
+- **Basic R299/mo** — 1 public profile · all 4 lead forms with rich grader fields · lead registry with grade + temperature · all themes + patterns · QR + share link + My Email · Daily Quotes · TradingView (1 instrument) · basic analytics · standard digital business card (footer baked in — viral loop) · 14-day trial.
+- **Premium R499/mo** — everything in Basic plus: secondary profile · full grader breakdown + advanced analytics dashboard · image pattern presets · Editor's article · Compound + Retirement calculators · Financial Calendar · Fund Fact Sheets · Smartie Box · Risk Profile Quiz · TradingView multi-instrument · multi-format business cards with optional footer removal (white-label) · My Clients (POPIA-encrypted vault, Book of Life, birthdays — ships with Task #25) · Weekly Brief (flagged coming soon) · Meeting Recording (flagged coming soon) · Priority support (24hr Mon–Fri vs 72hr).
+- **Why split this way**: business card stays in Basic to preserve the viral growth loop; rich grader fields stay in Basic so every advisor captures quality leads; full insights + practice management + white-label feel are the genuine Premium upsell.
+
+**Stewart's KYC reminder**: certified IDs, CIPC reg, and Standard Bank docs were sent in chat (May 2026) and need to be uploaded to Paystack's onboarding flow before the live keys can issue. Test-mode keys can be set immediately for the checkout walkthrough.
+
 ## Known Auth Gap (raised by code review, not yet fixed)
 `/api/emails` GET, `/api/emails/:id/grade`, `/api/emails/:id/status`, `/api/emails/:id/open`, `DELETE /api/emails/:id` are currently unprotected. CIV is admin-session-gated at the page level but the data endpoints aren't, so leads are technically world-readable via direct API. AdvisorPanel.tsx (`/advisor/:slug`) also calls the PATCH/DELETE endpoints, so locking them down requires building advisor-session auth (separate task). New CSV export endpoint IS admin-protected.
 

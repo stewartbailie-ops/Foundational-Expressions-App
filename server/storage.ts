@@ -71,6 +71,11 @@ export interface IStorage {
   updateClient(advisorId: number, id: number, data: Partial<InsertClient> & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null }): Promise<ClientWithPlaintext | undefined>;
   eraseClient(advisorId: number, id: number, erasedBy: string): Promise<boolean>;
 
+  // Task #26 — Paystack subscription lookups.
+  findAdvisorByPaystackCustomerCode(code: string): Promise<Advisor | undefined>;
+  findAdvisorByEmail(email: string): Promise<Advisor | undefined>;
+  findTrialsExpiringSoon(daysAhead: number): Promise<Advisor[]>;
+
   recordAuditPii(entry: InsertAuditPii): Promise<void>;
   listAuditPii(opts?: { tableName?: string; rowId?: number; limit?: number }): Promise<AuditPii[]>;
 
@@ -836,6 +841,32 @@ export class DatabaseStorage implements IStorage {
       .update(clientDocuments)
       .set({ erasedAt: new Date() })
       .where(and(eq(clientDocuments.id, id), eq(clientDocuments.advisorId, advisorId)));
+  }
+
+  // Task #26 — Paystack subscription helpers.
+  async findAdvisorByPaystackCustomerCode(code: string): Promise<Advisor | undefined> {
+    const [row] = await db.select().from(advisors).where(eq(advisors.paystackCustomerCode, code));
+    return row;
+  }
+
+  async findAdvisorByEmail(email: string): Promise<Advisor | undefined> {
+    const [row] = await db.select().from(advisors).where(eq(advisors.email, email));
+    return row;
+  }
+
+  // Advisors whose trial ends within `daysAhead` and who have not yet been
+  // emailed. Used by the daily trial-expiry cron in server/index.ts.
+  async findTrialsExpiringSoon(daysAhead: number): Promise<Advisor[]> {
+    const cutoff = new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000);
+    return db.select().from(advisors).where(sql`
+      ${advisors.subscriptionTier} = 'trial'
+      AND ${advisors.subscriptionStatus} = 'trialing'
+      AND ${advisors.trialEndsAt} IS NOT NULL
+      AND ${advisors.trialEndsAt} <= ${cutoff}
+      AND ${advisors.trialEndsAt} > NOW()
+      AND ${advisors.trialExpiryEmailSentAt} IS NULL
+      AND ${advisors.active} = true
+    `);
   }
 }
 

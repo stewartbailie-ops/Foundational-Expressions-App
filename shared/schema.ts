@@ -169,6 +169,15 @@ export const advisors = pgTable("advisors", {
   faisAgreementUrl: text("fais_agreement_url"),
   tosAcceptedAt: timestamp("tos_accepted_at"),
   subscriptionTier: text("subscription_tier").default("trial"),
+  // Task #26 — Paystack subscriptions (PIVOT from Stripe: SA not yet supported by Stripe).
+  // All five columns nullable until the advisor completes a Paystack checkout.
+  // See replit.md "Paystack Subscriptions (Task #26)" for the full flow + key rotation runbook.
+  subscriptionStatus: text("subscription_status").default("trialing"),
+  trialEndsAt: timestamp("trial_ends_at"),
+  paystackCustomerCode: text("paystack_customer_code"),
+  paystackSubscriptionCode: text("paystack_subscription_code"),
+  paystackEmailToken: text("paystack_email_token"),
+  trialExpiryEmailSentAt: timestamp("trial_expiry_email_sent_at"),
   panelTheme: text("panel_theme").default("blue"),
   panelThemeColor: text("panel_theme_color").default("#4a8db5"),
   panelBackgroundStyle: integer("panel_background_style").default(1),
@@ -179,11 +188,65 @@ export const advisors = pgTable("advisors", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Task #26 — tier split agreed Stewart + Friday + Claude, 16 May 2026.
+// Full feature lists live in replit.md. Keep `value` stable — webhooks + DB rows reference it.
 export const SUBSCRIPTION_TIERS = [
-  { value: "trial", label: "Trial", description: "One month free — explore all features with no commitment.", price: "R0.00" },
-  { value: "standard", label: "Standard", description: "Full access for active financial advisors.", price: "R199.99/mo" },
-  { value: "premium", label: "Premium", description: "Standard plus priority support and advanced analytics.", price: "R499.99/mo" },
+  { value: "trial",   label: "Free Trial", description: "14 days free — full Premium access, no card required.", price: "R0" },
+  { value: "basic",   label: "Basic",      description: "One profile, all lead capture, analytics, business card.", price: "R299/mo" },
+  { value: "premium", label: "Premium",    description: "Everything in Basic plus secondary profile, advanced analytics, practice management, white-label business cards.", price: "R499/mo" },
 ] as const;
+
+export type SubscriptionTier = typeof SUBSCRIPTION_TIERS[number]["value"];
+
+// Server + client share this list to gate Premium-only features. Keep in sync
+// with replit.md tier-split section. Used by requirePremium / usePremium.
+export const PREMIUM_FEATURES = [
+  "secondary_profile",
+  "advanced_analytics",
+  "grader_breakdown_panel",
+  "image_pattern_presets",
+  "editors_article",
+  "compound_calculator",
+  "retirement_calculator",
+  "financial_calendar",
+  "fund_fact_sheets",
+  "smartie_box",
+  "risk_profile_quiz",
+  "tradingview_multi",
+  "multi_format_business_cards",
+  "white_label_business_card",
+  "my_clients",
+  "weekly_brief",
+  "meeting_recording",
+  "priority_support",
+] as const;
+export type PremiumFeature = typeof PREMIUM_FEATURES[number];
+
+export function isPremiumActive(advisor: { subscriptionTier?: string | null; subscriptionStatus?: string | null; trialEndsAt?: Date | string | null }): boolean {
+  const tier = advisor.subscriptionTier ?? "trial";
+  const status = advisor.subscriptionStatus ?? "trialing";
+  // Active premium subscription
+  if (tier === "premium" && (status === "active" || status === "trialing")) return true;
+  // Trial = full Premium access until trialEndsAt passes
+  if (tier === "trial" && status === "trialing") {
+    if (!advisor.trialEndsAt) return true; // legacy advisors without trialEndsAt — grandfathered
+    const ends = advisor.trialEndsAt instanceof Date ? advisor.trialEndsAt : new Date(advisor.trialEndsAt);
+    return ends.getTime() > Date.now();
+  }
+  return false;
+}
+
+export function isBasicOrBetter(advisor: { subscriptionTier?: string | null; subscriptionStatus?: string | null; trialEndsAt?: Date | string | null }): boolean {
+  const tier = advisor.subscriptionTier ?? "trial";
+  const status = advisor.subscriptionStatus ?? "trialing";
+  if ((tier === "basic" || tier === "premium") && (status === "active" || status === "trialing")) return true;
+  if (tier === "trial" && status === "trialing") {
+    if (!advisor.trialEndsAt) return true;
+    const ends = advisor.trialEndsAt instanceof Date ? advisor.trialEndsAt : new Date(advisor.trialEndsAt);
+    return ends.getTime() > Date.now();
+  }
+  return false;
+}
 
 export const insertAdvisorSchema = createInsertSchema(advisors).omit({
   id: true,

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useRoute, useLocation } from "wouter";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus } from "lucide-react";
@@ -6943,13 +6943,232 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   );
 }
 
+// Task #26 — Billing tab. Shows current tier, trial countdown, and Basic /
+// Premium cards with Paystack hosted-checkout CTAs. Cancel + Manage flows
+// surface only when there's an active Paystack subscription. Themed via tc.*
+// so it matches the advisor's panel theme.
+type BillingStatus = {
+  tier: "trial" | "basic" | "premium";
+  status: "trialing" | "active" | "cancelled" | "past_due";
+  trialEndsAt: string | null;
+  hasSubscription: boolean;
+  premiumActive: boolean;
+  basicOrBetter: boolean;
+  paystackConfigured: boolean;
+};
+
+function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const { data: status, isLoading } = useQuery<BillingStatus>({
+    queryKey: ["/api/billing/status"],
+  });
+
+  const [busyTier, setBusyTier] = useState<"basic" | "premium" | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("billing") === "success") {
+      toast({ title: "Welcome to Advisory Connect", description: "Your subscription is being activated — this usually takes a few seconds." });
+      // Strip the query param so a refresh doesn't re-fire the toast.
+      const url = new URL(window.location.href);
+      url.searchParams.delete("billing");
+      window.history.replaceState({}, "", url.toString());
+      // Refetch a few times to catch the webhook landing.
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 2000);
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 8000);
+    }
+  }, [toast, qc]);
+
+  const startCheckout = async (tier: "basic" | "premium") => {
+    setBusyTier(tier);
+    try {
+      const res = await apiRequest("POST", "/api/billing/checkout", { tier });
+      const json = await res.json();
+      if (json.authorizationUrl) {
+        window.location.href = json.authorizationUrl;
+      } else {
+        toast({ title: "Could not start checkout", description: json.message || "Please try again.", variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Could not start checkout", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setBusyTier(null);
+    }
+  };
+
+  const cancelSubscription = async () => {
+    if (!confirm("Cancel your subscription? You'll keep access until the end of the current billing period.")) return;
+    setCancelling(true);
+    try {
+      await apiRequest("POST", "/api/billing/cancel", {});
+      toast({ title: "Cancellation submitted", description: "Your subscription will not renew." });
+      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 1500);
+    } catch (err: any) {
+      toast({ title: "Could not cancel", description: err?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const openManageLink = async () => {
+    try {
+      const res = await apiRequest("GET", "/api/billing/manage-link");
+      const json = await res.json();
+      if (json.link) window.open(json.link, "_blank", "noopener");
+    } catch (err: any) {
+      toast({ title: "Could not open management link", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+  };
+
+  if (isLoading || !status) {
+    return <div className="py-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} /></div>;
+  }
+
+  const daysLeftInTrial = status.trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(status.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
+    : null;
+
+  const tierLabel = status.tier === "premium" ? "Premium" : status.tier === "basic" ? "Basic" : "Free Trial";
+  const statusLabel = status.status === "active" ? "Active"
+    : status.status === "trialing" ? "Trial"
+    : status.status === "past_due" ? "Payment failed"
+    : status.status === "cancelled" ? "Cancelled" : status.status;
+
+  const PlanCard = ({ tier, price, blurb, features }: { tier: "basic" | "premium"; price: string; blurb: string; features: string[] }) => {
+    const current = status.tier === tier && (status.status === "active" || status.status === "trialing");
+    const label = tier === "premium" ? "Premium" : "Basic";
+    return (
+      <div className="rounded-2xl p-5 border" style={{ backgroundColor: tc.cardBg, borderColor: current ? tc.accentColor + "88" : tc.borderColor }}>
+        <div className="flex items-baseline justify-between mb-2">
+          <div className="text-lg font-semibold" style={{ color: tc.textColor }}>{label}</div>
+          <div className="text-xl font-bold" style={{ color: tc.accentColor }}>{price}</div>
+        </div>
+        <div className="text-xs mb-3" style={{ color: tc.mutedText }}>{blurb}</div>
+        <ul className="text-xs space-y-1.5 mb-4" style={{ color: tc.textColor }}>
+          {features.map((f, i) => (
+            <li key={i} className="flex gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: tc.accentColor }} /><span>{f}</span></li>
+          ))}
+        </ul>
+        <button
+          onClick={() => startCheckout(tier)}
+          disabled={busyTier !== null || current || !status.paystackConfigured}
+          className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50"
+          style={{ backgroundColor: tc.accentColor, color: tc.bgColor }}
+          data-testid={`button-billing-upgrade-${tier}`}
+        >
+          {busyTier === tier ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : current ? "Current plan" : status.hasSubscription ? `Switch to ${label}` : `Choose ${label}`}
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-5" data-testid="tab-billing">
+      <div className="rounded-2xl p-5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs uppercase tracking-wider" style={{ color: tc.mutedText }}>Current plan</div>
+          <div className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.accentColor + "22", color: tc.accentColor }}>{statusLabel}</div>
+        </div>
+        <div className="text-2xl font-bold" style={{ color: tc.textColor }}>{tierLabel}</div>
+        {status.tier === "trial" && daysLeftInTrial !== null && (
+          <div className="mt-2 text-sm" style={{ color: tc.mutedText }}>
+            {daysLeftInTrial > 0
+              ? <>You have <span style={{ color: tc.accentColor, fontWeight: 600 }}>{daysLeftInTrial} day{daysLeftInTrial === 1 ? "" : "s"}</span> left on your free trial.</>
+              : <>Your trial has ended — pick a plan below to keep your profile live.</>}
+          </div>
+        )}
+        {status.status === "past_due" && (
+          <div className="mt-2 text-sm flex gap-2 items-start" style={{ color: "#dc2626" }}>
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>Your last payment failed. Update your card via Manage subscription to keep your access.</span>
+          </div>
+        )}
+      </div>
+
+      {!status.paystackConfigured && (
+        <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: tc.cardBg, border: `1px dashed ${tc.borderColor}`, color: tc.mutedText }}>
+          <div className="flex gap-2 items-start"><AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: tc.accentColor }} /><span>Billing isn't fully configured yet. You can browse the plans below; checkout will go live once payment keys are in place.</span></div>
+        </div>
+      )}
+
+      <div className="grid gap-4">
+        <PlanCard
+          tier="basic"
+          price="R299/mo"
+          blurb="Everything you need to capture and grade leads."
+          features={[
+            "One public profile",
+            "All 4 lead capture forms with rich grader fields",
+            "Lead registry with grade + temperature on every row",
+            "All themes, patterns, QR + share link",
+            "Standard digital business card",
+            "Basic analytics (lead count + profile views)",
+            "14-day free trial",
+          ]}
+        />
+        <PlanCard
+          tier="premium"
+          price="R499/mo"
+          blurb="Everything in Basic, plus practice management + white-label feel."
+          features={[
+            "Secondary profile (un-deletable)",
+            "Full grader breakdown + advanced analytics dashboard",
+            "Compound Interest + Retirement calculators",
+            "Image pattern presets, Editor's article, Smartie Box",
+            "Risk Profile Quiz + TradingView multi-instrument",
+            "Multi-format business cards with optional footer removal",
+            "My Clients (POPIA-encrypted vault, Book of Life, birthdays)",
+            "Priority support (24hr Mon–Fri)",
+          ]}
+        />
+      </div>
+
+      {status.hasSubscription && (
+        <div className="rounded-2xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Manage your subscription</div>
+          <div className="flex gap-2">
+            <button
+              onClick={openManageLink}
+              className="flex-1 py-2 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80"
+              style={{ borderColor: tc.borderColor, color: tc.textColor }}
+              data-testid="button-billing-manage"
+            >
+              <ExternalLink className="h-3.5 w-3.5 inline mr-1.5" />
+              Manage on Paystack
+            </button>
+            <button
+              onClick={cancelSubscription}
+              disabled={cancelling || status.status === "cancelled"}
+              className="flex-1 py-2 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 disabled:opacity-50"
+              style={{ borderColor: tc.borderColor, color: tc.textColor }}
+              data-testid="button-billing-cancel"
+            >
+              {cancelling ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : status.status === "cancelled" ? "Cancelled" : "Cancel subscription"}
+            </button>
+          </div>
+          <div className="text-xs" style={{ color: tc.mutedText }}>Card updates and invoice history live on Paystack. Cancelling keeps your access through the end of the current billing period.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdvisorPanel() {
   const [, params] = useRoute("/advisor/:slug");
   const [, navigate] = useLocation();
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "billing" | "settings">(() => {
+    // Task #26 — deep-link from trial-expiry email and Paystack post-checkout redirect.
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("tab") === "billing") return "billing";
+    }
+    return "home";
+  });
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -7060,6 +7279,7 @@ export default function AdvisorPanel() {
     { key: "home" as const, label: "Home", icon: Home },
     { key: "registry" as const, label: "Registry", icon: Inbox },
     { key: "clients" as const, label: "My Clients", icon: Users },
+    { key: "billing" as const, label: "Billing", icon: CreditCard },
   ];
 
   return (
@@ -7143,6 +7363,7 @@ export default function AdvisorPanel() {
           {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
           {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} />}
+          {activeTab === "billing" && <BillingTab advisor={advisor} tc={tc} />}
           {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
         </div>
       </div>
