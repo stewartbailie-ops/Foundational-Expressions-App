@@ -6,7 +6,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2 } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank } from "lucide-react";
+import { TradingViewSection, DailyQuoteSection, CompoundCalcSection, RetirementCalcSection, FinancialCalendarSection } from "./AdvisorProfile";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
 import { BrandFooter } from "@/components/BrandFooter";
@@ -3365,7 +3366,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Quote set:</p>
             <div className="flex gap-2">
               {[{ k: "general", l: "General Inspiration" }, { k: "investment", l: "Investment / Finance" }].map(opt => (
-                <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.accentColor : tc.inputBg, color: dailyQuotesSet === opt.k ? "#fff" : tc.textColor, border: `1px solid ${tc.borderColor}` }} data-testid={`btn-quoteset-${opt.k}`}>{opt.l}</button>
+                <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.buttonBg : tc.inputBg, color: dailyQuotesSet === opt.k ? tc.buttonText : tc.textColor, border: `1px solid ${dailyQuotesSet === opt.k ? tc.buttonBg : tc.borderColor}` }} data-testid={`btn-quoteset-${opt.k}`}>{opt.l}</button>
               ))}
             </div>
           </div>
@@ -4285,7 +4286,7 @@ function AdditionalProfileForm({
               <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Quote set:</p>
               <div className="flex gap-2">
                 {[{ k: "general", l: "General" }, { k: "investment", l: "Investment" }].map(opt => (
-                  <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-2 py-1 rounded-md text-[11px] font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.accentColor : tc.inputBg, color: dailyQuotesSet === opt.k ? "#fff" : tc.textColor, border: `1px solid ${tc.borderColor}` }} data-testid={`btn-secondary-quoteset-${opt.k}`}>{opt.l}</button>
+                  <button key={opt.k} type="button" onClick={() => setDailyQuotesSet(opt.k)} className="px-2 py-1 rounded-md text-[11px] font-medium" style={{ backgroundColor: dailyQuotesSet === opt.k ? tc.buttonBg : tc.inputBg, color: dailyQuotesSet === opt.k ? tc.buttonText : tc.textColor, border: `1px solid ${dailyQuotesSet === opt.k ? tc.buttonBg : tc.borderColor}` }} data-testid={`btn-secondary-quoteset-${opt.k}`}>{opt.l}</button>
                 ))}
               </div>
             </div>
@@ -5079,7 +5080,7 @@ function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false, pubtv: false, pubdq: false, pubcc: false, pubret: false, pubcal: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Toolbox ordering — M5(a): aligned with public profile financial tools order
@@ -5087,7 +5088,10 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   // a tool in the panel the matching section appears in the same place on their
   // public profile. Storage key bumped to _v2 to force a one-time refresh past
   // the legacy ["std","tax","ci","er","forex",…] layout cached on existing devices.
-  const DEFAULT_TOOL_ORDER = ["tax", "er", "ci", "vehicle", "std", "forex", "scan", "cal", "media"];
+  // Task #42: append the 5 public-profile widgets (Live Markets, Daily Quotes,
+  // Compound Calc, Retirement Calc, Financial Calendar) so advisors can also
+  // use them directly from the panel.
+  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "vehicle", "std", "forex", "scan", "cal", "media"];
   const [organizing, setOrganizing] = useState(false);
   const [toolOrder, setToolOrder] = useState<string[]>(() => {
     try {
@@ -5533,6 +5537,68 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
           <GripVertical className="h-3 w-3" />
           {organizing ? "Done" : "Organise"}
         </button>
+      </div>
+
+      {/* ─── Public-Profile Widgets (Task #42) ─── */}
+
+      {/* Live Markets (TradingView) */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pubtv")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pubtv" icon={<LineChart className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Live Markets" subtitle="Same TradingView chart that appears on your public profile." />
+        </div>
+        {openSections.pubtv && (
+          <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <TradingViewSection tc={tc} advisor={advisor} />
+          </div>
+        )}
+      </div>
+
+      {/* Daily Quote */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pubdq")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pubdq" icon={<Quote className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Daily Quote" subtitle="Today's quote — tap Share to send as a branded PNG." />
+        </div>
+        {openSections.pubdq && (
+          <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <DailyQuoteSection tc={tc} advisor={advisor} />
+          </div>
+        )}
+      </div>
+
+      {/* Compound Interest (public widget) */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pubcc")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pubcc" icon={<Calculator className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Compound Interest (Profile Widget)" subtitle="Quick compound calc with growth chart — mirrors the public profile." />
+        </div>
+        {openSections.pubcc && (
+          <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <CompoundCalcSection tc={tc} />
+          </div>
+        )}
+      </div>
+
+      {/* Retirement Savings */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pubret")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pubret" icon={<PiggyBank className="h-4 w-4" style={{ color: tc.accentColor }} />} title="Retirement Savings" subtitle="Project a retirement pot and check against a target income." />
+        </div>
+        {openSections.pubret && (
+          <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <RetirementCalcSection tc={tc} />
+          </div>
+        )}
+      </div>
+
+      {/* Financial Calendar (public widget) */}
+      <div className="rounded-xl overflow-hidden" style={sectionStyle("pubcal")}>
+        <div className="p-4">
+          <SectionHeader sectionKey="pubcal" icon={<CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />} title="What's Coming Up" subtitle="Next 6 SA financial events — SARB, SARS, Budget, JSE & FAIS." />
+        </div>
+        {openSections.pubcal && (
+          <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <FinancialCalendarSection tc={tc} />
+          </div>
+        )}
       </div>
 
       {/* Standard Calculator */}

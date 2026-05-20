@@ -149,3 +149,120 @@ export function getQuoteForToday(set: QuoteSet, date: Date = new Date()): Quote 
   const arr = set === "investment" ? INVESTMENT_YEAR : GENERAL_YEAR;
   return arr[dayIndex % arr.length];
 }
+
+// Render the Quote-of-the-Day to a PNG and share via Web Share API (or fall back
+// to download). Mirrors the Daily Financial Facts share UX — square card, brand
+// footer baked with advisoryconnect.pro/privacy-policy.
+export async function shareQuoteAsPng(opts: {
+  quote: Quote;
+  set: QuoteSet;
+  advisorName?: string;
+}): Promise<"shared" | "downloaded" | "cancelled"> {
+  const { quote, set, advisorName } = opts;
+  const W = 1080, H = 1080;
+  const canvas = document.createElement("canvas");
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D unavailable");
+
+  // Background — corporate black gradient.
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, "#0b0b0b");
+  bg.addColorStop(1, "#1f1f1f");
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+  // Accent bar (top).
+  ctx.fillStyle = "#d4af37"; // gold
+  ctx.fillRect(64, 88, 80, 6);
+
+  // Eyebrow.
+  ctx.fillStyle = "#d4af37";
+  ctx.font = "600 22px Inter, Arial, sans-serif";
+  ctx.textBaseline = "top";
+  ctx.fillText(set === "investment" ? "INVESTMENT WISDOM" : "QUOTE OF THE DAY", 64, 120);
+
+  // Big opening quote glyph.
+  ctx.fillStyle = "rgba(212,175,55,0.18)";
+  ctx.font = "bold 320px Georgia, serif";
+  ctx.textBaseline = "top";
+  ctx.fillText("\u201C", 60, 160);
+
+  // Word-wrap the quote text.
+  const maxW = W - 128;
+  const fontSize = quote.text.length > 220 ? 36 : quote.text.length > 140 ? 42 : 48;
+  ctx.fillStyle = "#ffffff";
+  ctx.font = `500 ${fontSize}px Georgia, serif`;
+  const words = quote.text.split(/\s+/);
+  const lines: string[] = [];
+  let cur = "";
+  for (const w of words) {
+    const trial = cur ? `${cur} ${w}` : w;
+    if (ctx.measureText(trial).width > maxW && cur) { lines.push(cur); cur = w; }
+    else cur = trial;
+  }
+  if (cur) lines.push(cur);
+  const lineH = Math.round(fontSize * 1.35);
+  const blockH = lines.length * lineH;
+  const startY = Math.max(280, (H - blockH) / 2 - 60);
+  ctx.textBaseline = "top";
+  lines.forEach((ln, i) => {
+    const prefix = i === 0 ? "\u201C" : "";
+    const suffix = i === lines.length - 1 ? "\u201D" : "";
+    ctx.fillText(prefix + ln + suffix, 64, startY + i * lineH);
+  });
+
+  // Author.
+  ctx.fillStyle = "#d4af37";
+  ctx.font = "600 32px Inter, Arial, sans-serif";
+  ctx.fillText(`— ${quote.author}`, 64, startY + blockH + 32);
+
+  // Optional advisor attribution.
+  if (advisorName) {
+    ctx.fillStyle = "rgba(255,255,255,0.55)";
+    ctx.font = "500 22px Inter, Arial, sans-serif";
+    ctx.fillText(`Shared by ${advisorName}`, 64, startY + blockH + 90);
+  }
+
+  // Footer.
+  ctx.fillStyle = "#0a0a0a";
+  ctx.fillRect(0, H - 96, W, 96);
+  ctx.fillStyle = "rgba(212,175,55,0.9)";
+  ctx.fillRect(0, H - 96, W, 2);
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 22px Inter, Arial, sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "left";
+  ctx.fillText("Powered by Advisory Connect", 64, H - 56);
+  ctx.fillStyle = "rgba(255,255,255,0.55)";
+  ctx.font = "500 18px Inter, Arial, sans-serif";
+  ctx.textAlign = "right";
+  ctx.fillText("advisoryconnect.pro/privacy-policy", W - 64, H - 56);
+  ctx.textAlign = "left";
+
+  const blob = await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error("encode failed")), "image/png", 0.95);
+  });
+  const filename = `quote-of-the-day-${new Date().toISOString().slice(0, 10)}.png`;
+  const file = new File([blob], filename, { type: "image/png" });
+
+  const nav = navigator as any;
+  if (
+    typeof nav !== "undefined" &&
+    typeof nav.canShare === "function" &&
+    nav.canShare({ files: [file] }) &&
+    typeof nav.share === "function"
+  ) {
+    try {
+      await nav.share({ files: [file], title: "Quote of the Day", text: `"${quote.text}" — ${quote.author}` });
+      return "shared";
+    } catch (e: any) {
+      if (e?.name === "AbortError") return "cancelled";
+    }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
+}

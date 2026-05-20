@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { QRCodeSVG } from "qrcode.react";
 import { Loader2, AlertCircle, ChevronDown, ChevronUp, Linkedin, Globe, Phone, Users, Calculator, Clock, Mail, Facebook, Instagram, Youtube, FileText, BookOpen, TrendingUp, Lightbulb, Video, Download, Share2, CreditCard, Smartphone, MapPin, ExternalLink, Rss, Eye, CalendarDays, X, ArrowRight, Building2, FileCheck, Quote, PiggyBank, LineChart } from "lucide-react";
-import { getQuoteForToday, type QuoteSet } from "@/lib/dailyQuotes";
+import { getQuoteForToday, shareQuoteAsPng, type QuoteSet } from "@/lib/dailyQuotes";
 import { getUpcomingEvents, getCategoryColor, TRADINGVIEW_SYMBOLS } from "@/lib/financialCalendar";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
@@ -628,18 +628,33 @@ function EmergencyContactsSection({ tc, accentColor, mutedText, t }: {
 // public profile's styling. Hooks live inside each component so the parent
 // sectionMap stays a pure value map.
 
-function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
+export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
   const symbolsCsv = (advisor as any).tradingViewSymbols as string | null;
   const symbols = (symbolsCsv && symbolsCsv.trim()
     ? symbolsCsv.split(",").map(s => s.trim()).filter(Boolean)
     : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"]
   ).slice(0, 8);
-  const widgetId = useMemo(() => `tv-widget-${advisor.id}-${Math.random().toString(36).slice(2, 7)}`, [advisor.id]);
+  const hostRef = useRef<HTMLDivElement>(null);
 
+  // TradingView's loader script walks up from the <script> tag looking for
+  // an element with class "tradingview-widget-container" and paints into a
+  // child ".tradingview-widget-container__widget". The original mount was a
+  // bare <div id> with no wrapper class, so the loader silently no-op'd.
+  // Re-mount whenever symbols or theme change. StrictMode-safe because we
+  // clear the host element before appending.
   useEffect(() => {
-    const container = document.getElementById(widgetId);
-    if (!container) return;
-    container.innerHTML = "";
+    const host = hostRef.current;
+    if (!host) return;
+    host.innerHTML = "";
+    const container = document.createElement("div");
+    container.className = "tradingview-widget-container";
+    container.style.width = "100%";
+    container.style.height = "400px";
+    const widget = document.createElement("div");
+    widget.className = "tradingview-widget-container__widget";
+    widget.style.width = "100%";
+    widget.style.height = "100%";
+    container.appendChild(widget);
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js";
     script.async = true;
@@ -648,10 +663,10 @@ function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeCol
       symbols: symbols.map(s => [s.split(":").pop() || s, s + "|1D"]),
       chartOnly: false,
       width: "100%",
-      height: 400,
+      height: "100%",
       locale: "en",
       colorTheme: tc.isDark ? "dark" : "light",
-      autosize: false,
+      autosize: true,
       showVolume: false,
       showMA: false,
       hideDateRanges: false,
@@ -669,7 +684,9 @@ function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeCol
       dateRanges: ["1d|1", "1m|30", "3m|60", "12m|1D", "60m|1W", "all|1M"],
     });
     container.appendChild(script);
-  }, [widgetId, symbolsCsv, tc.isDark]);
+    host.appendChild(container);
+    return () => { host.innerHTML = ""; };
+  }, [symbolsCsv, tc.isDark]);
 
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-tradingview">
@@ -680,7 +697,7 @@ function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeCol
       <p className="text-xs" style={{ color: tc.mutedText }}>
         Live chart data via TradingView. Tracking {symbols.length} instrument{symbols.length === 1 ? "" : "s"}.
       </p>
-      <div id={widgetId} style={{ minHeight: 400 }} />
+      <div ref={hostRef} style={{ minHeight: 400, width: "100%" }} />
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>
         Powered by TradingView · Prices for illustration only, not investment advice.
       </p>
@@ -688,14 +705,36 @@ function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getThemeCol
   );
 }
 
-function DailyQuoteSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
+export function DailyQuoteSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColors>; advisor: Advisor }) {
   const set = (((advisor as any).dailyQuotesSet as QuoteSet) || "general");
   const q = useMemo(() => getQuoteForToday(set), [set]);
+  const [sharing, setSharing] = useState(false);
+  const handleShare = async () => {
+    if (sharing) return;
+    setSharing(true);
+    try { await shareQuoteAsPng({ quote: q, set, advisorName: advisor.name }); }
+    catch (e) { console.error("[quote-share] failed", e); }
+    finally { setSharing(false); }
+  };
   return (
     <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-dailyquote">
-      <div className="flex items-center gap-2">
-        <Quote className="h-4 w-4" style={{ color: tc.accentColor }} />
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Quote of the Day</h3>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <Quote className="h-4 w-4" style={{ color: tc.accentColor }} />
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Quote of the Day</h3>
+        </div>
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={sharing}
+          aria-label="Share quote as image"
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium disabled:opacity-50"
+          style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+          data-testid="button-share-quote"
+        >
+          {sharing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Share2 className="h-3 w-3" />}
+          {sharing ? "Sharing…" : "Share"}
+        </button>
       </div>
       <blockquote className="text-sm leading-relaxed italic" style={{ color: tc.textColor }} data-testid="text-quote-text">
         "{q.text}"
@@ -705,7 +744,7 @@ function DailyQuoteSection({ tc, advisor }: { tc: ReturnType<typeof getThemeColo
   );
 }
 
-function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+export function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const [principal, setPrincipal] = useState("10000");
   const [monthly, setMonthly] = useState("1000");
   const [rate, setRate] = useState("9");
@@ -777,7 +816,7 @@ function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) 
   );
 }
 
-function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+export function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const [currentAge, setCurrentAge] = useState("35");
   const [retireAge, setRetireAge] = useState("65");
   const [savings, setSavings] = useState("250000");
@@ -849,7 +888,7 @@ function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }
   );
 }
 
-function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+export function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const events = useMemo(() => getUpcomingEvents(6), []);
   return (
     <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-financialcalendar">
