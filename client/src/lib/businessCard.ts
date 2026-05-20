@@ -33,12 +33,28 @@ function loadImage(src: string, withCors = true): Promise<HTMLImageElement | nul
 
 function svgStringToImage(svg: string): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
-    const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+    // Ensure the SVG carries an xmlns — without it, Safari/iOS refuse to
+    // decode the image and silently fire `onerror`, leaving the QR off the
+    // canvas. renderToStaticMarkup does not always include it.
+    let normalised = svg;
+    if (!/\sxmlns\s*=/.test(normalised)) {
+      normalised = normalised.replace(/<svg\b/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    // Use a base64 data URL rather than a blob URL. Blob URLs created in one
+    // microtask and revoked after `onload` have caused intermittent QR drops
+    // in production builds; data URLs are fully self-contained and decode
+    // synchronously from the Image's perspective.
+    const dataUrl = `data:image/svg+xml;base64,${typeof window !== "undefined" && window.btoa
+      ? window.btoa(unescape(encodeURIComponent(normalised)))
+      : ""}`;
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
-    img.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
-    img.src = url;
+    img.onload = () => resolve(img);
+    img.onerror = () => {
+      // eslint-disable-next-line no-console
+      console.error("[businessCard] QR SVG failed to decode");
+      resolve(null);
+    };
+    img.src = dataUrl;
   });
 }
 
@@ -90,11 +106,27 @@ function drawInitialsBlock(ctx: CanvasRenderingContext2D, x: number, y: number, 
   grad.addColorStop(1, to);
   ctx.fillStyle = grad;
   ctx.fillRect(x, y, w, h);
+  // Subtle highlight shim across the top — matches the on-profile badge look.
+  const shim = ctx.createLinearGradient(x, y, x, y + h / 2);
+  shim.addColorStop(0, "rgba(255,255,255,0.18)");
+  shim.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = shim;
+  ctx.fillRect(x, y, w, h / 2);
+  // Initials — must be visibly white. Old opacity of 0.22 rendered as a
+  // ghost on the downloaded PNGs; reference design (Chris Zeeman) shows
+  // clearly legible white letters.
+  const letters = ((initials[0] || "") + (initials[1] || "")) || "AC";
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillStyle = "rgba(255,255,255,0.22)";
-  const fontSize = Math.min(w, h) * 0.55;
-  ctx.font = `bold ${fontSize}px Georgia, serif`;
-  ctx.fillText(((initials[0] || "") + (initials[1] || "")) || "AC", x + w / 2, y + h / 2);
+  const fontSize = Math.min(w, h) * 0.45;
+  ctx.font = `bold ${fontSize}px Georgia, "Times New Roman", serif`;
+  ctx.shadowColor = "rgba(0,0,0,0.25)";
+  ctx.shadowBlur = Math.round(fontSize * 0.08);
+  ctx.shadowOffsetY = Math.round(fontSize * 0.04);
+  ctx.fillStyle = "rgba(255,255,255,0.95)";
+  ctx.fillText(letters, x + w / 2, y + h / 2);
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 function drawFooter(ctx: CanvasRenderingContext2D, W: number, H: number, logoImg: HTMLImageElement | null) {
