@@ -14,6 +14,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import type { Advisor } from "@shared/schema";
+import { AdminImageCropper } from "@/components/AdminImageCropper";
 
 export default function EditAdvisor() {
   const [, params] = useRoute("/edit/:id");
@@ -40,6 +41,7 @@ export default function EditAdvisor() {
   const [selectedIndividual, setSelectedIndividual] = useState<string[]>([]);
   const [selectedCorporate, setSelectedCorporate] = useState<string[]>([]);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
@@ -69,13 +71,29 @@ export default function EditAdvisor() {
   const bioText = bioOption === "custom" ? customBio : BIO_OPTIONS[bioOption] || "";
   const themeInitialsBg = theme === "pink" ? "bg-pink-800 text-pink-100" : theme === "blue" ? "bg-blue-800 text-blue-100" : "bg-neutral-800 text-white";
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setCropperSrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropConfirm = async (dataUrl: string) => {
+    setCropperSrc(null);
     setUploading(true);
     try {
+      const [header, b64] = dataUrl.split(",");
+      const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: formData });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
@@ -140,6 +158,14 @@ export default function EditAdvisor() {
   const isValid = name.trim() !== "" && email.trim() !== "";
 
   return (
+    <>
+    {cropperSrc && (
+      <AdminImageCropper
+        src={cropperSrc}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropperSrc(null)}
+      />
+    )}
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
         <Link href="/manage" className="hover:text-foreground flex items-center gap-1 transition-colors" data-testid="link-back-manage">
@@ -337,6 +363,7 @@ export default function EditAdvisor() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

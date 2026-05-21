@@ -9,6 +9,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TITLE_OPTIONS, SUBSCRIPTION_TIERS } from "@shared/schema";
+import { AdminImageCropper } from "@/components/AdminImageCropper";
 
 function InitialsPreview({ name, size = 64 }: { name: string; size?: number }) {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -67,6 +68,7 @@ export default function CreateAdvisor() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState<string>(TITLE_OPTIONS[3]);
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
+  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [contactNumber, setContactNumber] = useState("");
   const [uploading, setUploading] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
@@ -91,13 +93,29 @@ export default function CreateAdvisor() {
     ? name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
     : "";
 
-  const handlePicUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePicUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") setCropperSrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
+
+  const handleCropConfirm = async (dataUrl: string) => {
+    setCropperSrc(null);
     setUploading(true);
     try {
+      const [header, b64] = dataUrl.split(",");
+      const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
+      const bytes = atob(b64);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      const blob = new Blob([arr], { type: mime });
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/profile-pic", { method: "POST", body: fd });
       if (!res.ok) throw new Error("Upload failed");
       const data = await res.json();
@@ -193,6 +211,14 @@ export default function CreateAdvisor() {
   };
 
   return (
+    <>
+    {cropperSrc && (
+      <AdminImageCropper
+        src={cropperSrc}
+        onConfirm={handleCropConfirm}
+        onCancel={() => setCropperSrc(null)}
+      />
+    )}
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-16">
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
         <Link href="/manage" className="hover:text-foreground flex items-center gap-1 transition-colors" data-testid="link-back-manage">
@@ -567,6 +593,7 @@ export default function CreateAdvisor() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 

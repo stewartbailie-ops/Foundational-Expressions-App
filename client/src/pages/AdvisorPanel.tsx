@@ -7,6 +7,7 @@ import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank } from "lucide-react";
+import Cropper, { type Area as CropArea } from "react-easy-crop";
 import { TradingViewSection, DailyQuoteSection, CompoundCalcSection, RetirementCalcSection, FinancialCalendarSection } from "./AdvisorProfile";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
@@ -2256,118 +2257,106 @@ function InitialsBadgeSvg({ initials, theme, size, id }: { initials: string; the
   );
 }
 
+// Task #30 — rebuilt on react-easy-crop. The previous hand-rolled cropper
+// shipped touch handlers that React's passive-listener default silently
+// blocked, so advisors on mobile (and some desktop browsers) couldn't drag
+// to reframe. react-easy-crop attaches non-passive listeners directly to
+// the DOM node and handles drag, pinch-zoom and wheel-zoom out of the box.
+// Filters (brightness/contrast/saturation/posterize) are retained and
+// applied post-crop via canvas so the cropped output still picks them up.
 function ImageCropper({ src, onConfirm, onCancel, tc }: {
   src: string; onConfirm: (dataUrl: string) => void; onCancel: () => void; tc: ReturnType<typeof getThemeColors>;
 }) {
   const CONTAINER = 280;
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [naturalSize, setNaturalSize] = useState({ w: 1, h: 1 });
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
   const [saturation, setSaturation] = useState(100);
   const [posterize, setPosterize] = useState(0);
-  const imgRef = useRef<HTMLImageElement>(null);
-  const isDraggingRef = useRef(false);
-  const dragStartRef = useRef({ x: 0, y: 0 });
-  const offsetRef = useRef({ x: 0, y: 0 });
-  const zoomRef = useRef(1);
+  const [busy, setBusy] = useState(false);
 
-  const initScale = naturalSize.w > 0 ? Math.max(CONTAINER / naturalSize.w, CONTAINER / naturalSize.h) : 1;
-  const displayW = naturalSize.w * initScale * zoom;
-  const displayH = naturalSize.h * initScale * zoom;
-
-  const clampOffset = (ox: number, oy: number, z: number) => {
-    const dw = naturalSize.w * initScale * z;
-    const dh = naturalSize.h * initScale * z;
-    const maxX = Math.max(0, dw / 2 - CONTAINER / 2);
-    const maxY = Math.max(0, dh / 2 - CONTAINER / 2);
-    return { x: Math.max(-maxX, Math.min(maxX, ox)), y: Math.max(-maxY, Math.min(maxY, oy)) };
+  const onCropComplete = (_area: CropArea, areaPixels: CropArea) => {
+    setCroppedAreaPixels(areaPixels);
   };
 
-  const startDrag = (clientX: number, clientY: number) => {
-    isDraggingRef.current = true;
-    dragStartRef.current = { x: clientX - offsetRef.current.x, y: clientY - offsetRef.current.y };
-  };
-  const moveDrag = (clientX: number, clientY: number) => {
-    if (!isDraggingRef.current) return;
-    const raw = { x: clientX - dragStartRef.current.x, y: clientY - dragStartRef.current.y };
-    const clamped = clampOffset(raw.x, raw.y, zoomRef.current);
-    offsetRef.current = clamped;
-    setOffset(clamped);
-  };
-  const endDrag = () => { isDraggingRef.current = false; };
-
-  const handleZoomChange = (z: number) => {
-    const ratio = z / Math.max(zoomRef.current, 0.001);
-    const scaledX = offsetRef.current.x * ratio;
-    const scaledY = offsetRef.current.y * ratio;
-    const clamped = clampOffset(scaledX, scaledY, z);
-    zoomRef.current = z;
-    setZoom(z);
-    offsetRef.current = clamped;
-    setOffset(clamped);
-  };
-
-  const handleConfirm = () => {
-    if (!imgRef.current) return;
-    const canvas = document.createElement("canvas");
-    const OUT = 400;
-    canvas.width = OUT; canvas.height = OUT;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    const scale = initScale * zoom;
-    const imgLeft = CONTAINER / 2 - displayW / 2 + offset.x;
-    const imgTop = CONTAINER / 2 - displayH / 2 + offset.y;
-    const sx = (0 - imgLeft) / scale;
-    const sy = (0 - imgTop) / scale;
-    const sw = CONTAINER / scale;
-    const sh = CONTAINER / scale;
-    ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
-    ctx.drawImage(imgRef.current, sx, sy, sw, sh, 0, 0, OUT, OUT);
-    ctx.filter = "none";
-    if (posterize > 0) {
-      const levels = posterize;
-      const imageData = ctx.getImageData(0, 0, OUT, OUT);
-      const d = imageData.data;
-      for (let i = 0; i < d.length; i += 4) {
-        d[i]   = Math.round(d[i]   / 255 * levels) / levels * 255;
-        d[i+1] = Math.round(d[i+1] / 255 * levels) / levels * 255;
-        d[i+2] = Math.round(d[i+2] / 255 * levels) / levels * 255;
+  const handleConfirm = async () => {
+    if (!croppedAreaPixels) return;
+    setBusy(true);
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.crossOrigin = "anonymous";
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = src;
+      });
+      const OUT = 400;
+      const canvas = document.createElement("canvas");
+      canvas.width = OUT; canvas.height = OUT;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
+      ctx.drawImage(
+        img,
+        croppedAreaPixels.x, croppedAreaPixels.y, croppedAreaPixels.width, croppedAreaPixels.height,
+        0, 0, OUT, OUT,
+      );
+      ctx.filter = "none";
+      if (posterize > 0) {
+        const levels = posterize;
+        const imageData = ctx.getImageData(0, 0, OUT, OUT);
+        const d = imageData.data;
+        for (let i = 0; i < d.length; i += 4) {
+          d[i]   = Math.round(d[i]   / 255 * levels) / levels * 255;
+          d[i+1] = Math.round(d[i+1] / 255 * levels) / levels * 255;
+          d[i+2] = Math.round(d[i+2] / 255 * levels) / levels * 255;
+        }
+        ctx.putImageData(imageData, 0, 0);
       }
-      ctx.putImageData(imageData, 0, 0);
+      onConfirm(canvas.toDataURL("image/jpeg", 0.92));
+    } finally {
+      setBusy(false);
     }
-    onConfirm(canvas.toDataURL("image/jpeg", 0.92));
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.82)" }}>
       <div className="rounded-2xl p-5 space-y-4 w-full max-w-xs" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.textColor }}>Crop Profile Picture</h3>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Drag to reposition · use slider to zoom in or out</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>Drag to reposition · pinch or use slider to zoom</p>
         <div
-          className="relative overflow-hidden mx-auto select-none"
-          style={{ width: CONTAINER, height: CONTAINER, borderRadius: "50%", border: `3px solid ${tc.accentColor}`, cursor: isDraggingRef.current ? "grabbing" : "grab", touchAction: "none", boxShadow: `0 0 0 4px ${tc.cardBg}, 0 0 0 6px ${tc.accentColor}40` }}
-          onMouseDown={e => { e.preventDefault(); startDrag(e.clientX, e.clientY); }}
-          onMouseMove={e => { e.preventDefault(); moveDrag(e.clientX, e.clientY); }}
-          onMouseUp={endDrag} onMouseLeave={endDrag}
-          onTouchStart={e => { e.preventDefault(); startDrag(e.touches[0].clientX, e.touches[0].clientY); }}
-          onTouchMove={e => { e.preventDefault(); moveDrag(e.touches[0].clientX, e.touches[0].clientY); }}
-          onTouchEnd={endDrag}
+          className="relative mx-auto"
+          style={{
+            width: CONTAINER, height: CONTAINER,
+            borderRadius: "50%",
+            overflow: "hidden",
+            border: `3px solid ${tc.accentColor}`,
+            boxShadow: `0 0 0 4px ${tc.cardBg}, 0 0 0 6px ${tc.accentColor}40`,
+            backgroundColor: "#000",
+          }}
+          data-testid="image-cropper-area"
         >
-          <img
-            ref={imgRef}
-            src={src}
-            onLoad={() => { if (imgRef.current) setNaturalSize({ w: imgRef.current.naturalWidth, h: imgRef.current.naturalHeight }); }}
+          <Cropper
+            image={src}
+            crop={crop}
+            zoom={zoom}
+            aspect={1}
+            cropShape="round"
+            showGrid={false}
+            minZoom={1}
+            maxZoom={4}
+            zoomSpeed={0.5}
+            objectFit="cover"
+            onCropChange={setCrop}
+            onZoomChange={setZoom}
+            onCropComplete={onCropComplete}
             style={{
-              position: "absolute", width: displayW, height: displayH,
-              left: CONTAINER / 2 - displayW / 2 + offset.x,
-              top: CONTAINER / 2 - displayH / 2 + offset.y,
-              userSelect: "none", pointerEvents: "none",
-              filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`,
+              containerStyle: { width: "100%", height: "100%", position: "absolute", backgroundColor: "#000" },
+              mediaStyle: { filter: `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)` },
+              cropAreaStyle: { border: "none", boxShadow: "none", color: "rgba(0,0,0,0.4)" },
             }}
-            alt="crop"
-            draggable={false}
           />
         </div>
         <div className="space-y-1">
@@ -2376,8 +2365,9 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{Math.round(zoom * 100)}%</span>
           </div>
           <input type="range" min={1} max={4} step={0.02} value={zoom}
-            onChange={e => handleZoomChange(parseFloat(e.target.value))}
+            onChange={e => setZoom(parseFloat(e.target.value))}
             className="w-full accent-current" style={{ accentColor: tc.accentColor }}
+            data-testid="input-cropper-zoom"
           />
         </div>
         <div className="space-y-2" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: 10 }}>
@@ -2414,12 +2404,15 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
           )}
         </div>
         <div className="flex gap-2 pt-1">
-          <button onClick={onCancel} className="flex-1 py-2.5 rounded-xl text-xs font-medium"
-            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+          <button onClick={onCancel} disabled={busy} className="flex-1 py-2.5 rounded-xl text-xs font-medium"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}
+            data-testid="button-cropper-cancel">
             Cancel
           </button>
-          <button onClick={handleConfirm} className="flex-1 py-2.5 rounded-xl text-xs font-semibold"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+          <button onClick={handleConfirm} disabled={busy || !croppedAreaPixels} className="flex-1 py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, opacity: busy || !croppedAreaPixels ? 0.6 : 1 }}
+            data-testid="button-cropper-apply">
+            {busy && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Apply & Save
           </button>
         </div>
