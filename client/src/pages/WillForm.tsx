@@ -6,6 +6,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 
 function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -89,6 +90,9 @@ export default function WillForm() {
     onSuccess: () => setSubmitted(true),
     onError: () => { recaptchaRef.current?.reset(); setRecaptchaToken(null); },
   });
+
+  // Task #31 — soft-warn duplicate lookup.
+  const duplicate = useDuplicateLeadCheck(advisor?.id, phone, email);
 
   const needsCaptcha = !recaptchaFailed && !!import.meta.env.VITE_RECAPTCHA_SITE_KEY;
   const canSubmit = firstName.trim().length > 0 && surname.trim().length > 0 && confirmed && !submitMutation.isPending && (!needsCaptcha || !!recaptchaToken);
@@ -416,6 +420,8 @@ export default function WillForm() {
             />
           </div>
         )}
+
+        <DuplicateLeadNotice duplicate={duplicate} testId="notice-duplicate-will" />
 
         {submitMutation.isError && (
           <div className="rounded-xl p-3 text-xs text-red-400 flex items-center gap-2" style={{ backgroundColor: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)" }}>

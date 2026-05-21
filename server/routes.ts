@@ -421,6 +421,42 @@ export async function registerRoutes(
     res.json(counts);
   });
 
+  // Task #31 — soft-warn duplicate pre-check. Lets the lead forms + Add-Lead
+  // modal show an inline "this contact is already on file" notice before
+  // submit. Uses the same `findDuplicateLead` storage helper that powers the
+  // post-submit `duplicate_of_id` flag, so detection rules stay in one place.
+  // newId=0 because there is no current lead yet; the helper excludes that id.
+  // Response is intentionally minimal — only fields the client needs to render
+  // the notice — so this endpoint can stay public/unauthenticated.
+  app.get("/api/leads/check-duplicate", publicReadLimiter, async (req, res) => {
+    const advisorId = Number(req.query.advisorId);
+    const phone = typeof req.query.phone === "string" ? req.query.phone : "";
+    const email = typeof req.query.email === "string" ? req.query.email : "";
+    if (!Number.isFinite(advisorId) || advisorId <= 0) return res.json({ duplicate: false });
+    if (!phone.trim() && !email.trim()) return res.json({ duplicate: false });
+    try {
+      const dup = await storage.findDuplicateLead(advisorId, 0, phone, email);
+      if (!dup) return res.json({ duplicate: false });
+      // Privacy gate: a public/unauthenticated caller would otherwise be able
+      // to probe (advisorId, phone/email) pairs and read back the existing
+      // lead's name/id — a user-enumeration vector. So only the boolean is
+      // returned to the public; the advisor (or admin) who actually owns the
+      // lead gets the full metadata needed to render a useful inline notice.
+      const canSeeDetails = await canAccessAdvisor(req, advisorId);
+      if (!canSeeDetails) return res.json({ duplicate: true });
+      res.json({
+        duplicate: true,
+        id: dup.id,
+        name: dup.senderName,
+        type: dup.type,
+        receivedAt: dup.receivedAt,
+      });
+    } catch (err) {
+      console.warn("[check-duplicate]", err);
+      res.json({ duplicate: false });
+    }
+  });
+
   app.get("/api/advisors/slug/:slug", publicReadLimiter, async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });

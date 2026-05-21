@@ -7,6 +7,14 @@ import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
+import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
+
+// Task #31 — per-row duplicate notice. Wrapped in a child component so the
+// hook call obeys rules-of-hooks even though the parent renders the list.
+function ReferralDuplicateRow({ advisorId, phone, email, index }: { advisorId: number | undefined; phone: string; email: string; index: number }) {
+  const dup = useDuplicateLeadCheck(advisorId, phone, email);
+  return <DuplicateLeadNotice duplicate={dup} testId={`notice-duplicate-referral-${index}`} />;
+}
 
 function getInitials(name: string): string {
   return name
@@ -498,6 +506,8 @@ export default function ReferralForm() {
                 />
               </div>
             </div>
+
+            <ReferralDuplicateRow advisorId={advisor?.id} phone={ref.phone} email={ref.email} index={index} />
 
             <div className="grid grid-cols-2 gap-3">
               <div>

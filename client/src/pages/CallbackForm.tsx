@@ -6,6 +6,7 @@ import ReCAPTCHA from "react-google-recaptcha";
 import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
+import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 
 function getInitials(name: string): string {
   return name
@@ -113,6 +114,10 @@ export default function CallbackForm() {
     onSuccess: () => setSubmitted(true),
     onError: () => { recaptchaRef.current?.reset(); setRecaptchaToken(null); },
   });
+
+  // Task #31 — soft-warn duplicate lookup. Must be declared before the
+  // loading/error early-returns to satisfy rules-of-hooks.
+  const duplicate = useDuplicateLeadCheck(advisor?.id, formData.phone, formData.email);
 
   if (isLoading) {
     return (
@@ -566,6 +571,8 @@ export default function CallbackForm() {
               />
             </div>
           )}
+
+          <DuplicateLeadNotice duplicate={duplicate} testId="notice-duplicate-callback" />
 
           {mutation.isError && (
             <div className="text-red-400 text-sm text-center" data-testid="text-error">

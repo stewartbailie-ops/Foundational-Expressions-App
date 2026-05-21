@@ -30,6 +30,7 @@ import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
+import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
@@ -1254,6 +1255,9 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
     "R60k - R75k", "R75k - R100k", "R100k+",
   ];
 
+  // Task #31 — soft-warn duplicate lookup for the Add Lead modal.
+  const addLeadDuplicate = useDuplicateLeadCheck(advisor?.id, newLead.clientPhone, newLead.senderEmail);
+
   const createLeadMutation = useMutation({
     mutationFn: async () => {
       const services = newLead.selectedServices
@@ -2067,6 +2071,8 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                   />
                 </div>
               </div>
+
+              <DuplicateLeadNotice duplicate={addLeadDuplicate} testId="notice-duplicate-add-lead" />
 
               {createLeadMutation.isError && (
                 <div className="text-xs flex items-start gap-2 rounded-lg p-2.5" style={{ backgroundColor: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.25)" }}>

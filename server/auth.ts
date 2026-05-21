@@ -10,6 +10,10 @@ const PUBLIC_API_ROUTES = [
   "/api/callback",
   "/api/demo-emails",
   "/api/will-request",
+  // Task #31 — duplicate-lead pre-check used by public lead forms (and the
+  // authenticated advisor Add-Lead modal). Read-only, rate-limited; returns
+  // only the existing lead id + name + type so the client can show a warning.
+  "/api/leads/check-duplicate",
   "/api/scan-document/",
   "/api/webhook/",
   "/api/stats/access",
