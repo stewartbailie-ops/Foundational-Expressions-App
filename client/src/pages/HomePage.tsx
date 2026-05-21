@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
-import { LayoutDashboard, Inbox, Users, ArrowRight, Mail, MousePointerClick, Send, Award } from "lucide-react";
+import { LayoutDashboard, Inbox, Users, ArrowRight, Mail, MousePointerClick, Send, Award, AlertTriangle, Loader2 } from "lucide-react";
 
 const GLASS_BG = "rgba(255,255,255,0.06)";
 const GLASS_BORDER = "rgba(255,255,255,0.10)";
@@ -93,6 +93,35 @@ function DonutTooltip({ active, payload }: any) {
 
 export default function HomePage() {
   const [days, setDays] = useState(7);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipeConfirm, setWipeConfirm] = useState("");
+  const [wiping, setWiping] = useState(false);
+  const [wipeResult, setWipeResult] = useState<null | { ok: boolean; message: string; details?: any }>(null);
+  const qc = useQueryClient();
+
+  async function runWipe() {
+    setWiping(true);
+    setWipeResult(null);
+    try {
+      const r = await fetch("/api/admin/fresh-start", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: "WIPE EVERYTHING" }),
+      });
+      const data = await r.json();
+      if (!r.ok) {
+        setWipeResult({ ok: false, message: data.message || "Wipe failed" });
+      } else {
+        setWipeResult({ ok: true, message: "Fresh start complete.", details: data });
+        await qc.invalidateQueries();
+      }
+    } catch (err) {
+      setWipeResult({ ok: false, message: (err as Error).message });
+    } finally {
+      setWiping(false);
+    }
+  }
 
   const { data: stats } = useQuery<{
     totalEmails: number;
@@ -310,6 +339,125 @@ export default function HomePage() {
           </Link>
         ))}
       </motion.div>
+
+      {/* Danger zone — fresh-start wipe (admin only, this whole page is admin-gated) */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.62, duration: 0.4 }}
+        className="rounded-xl p-5"
+        style={{ backgroundColor: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)", color: "#fff" }}
+      >
+        <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: "#fca5a5" }} />
+          <div className="flex-1">
+            <div className="text-base font-semibold">Fresh Start</div>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Permanently removes every advisor, secondary profile, lead, referral, callback, will request and page-view stat. Your admin login is unaffected. A backup snapshot is saved on the server before anything is deleted.
+            </p>
+          </div>
+          <button
+            onClick={() => { setWipeOpen(true); setWipeConfirm(""); setWipeResult(null); }}
+            data-testid="button-open-fresh-start"
+            className="shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: "rgba(220,38,38,0.85)", color: "#fff" }}
+          >
+            Reset to Fresh Start
+          </button>
+        </div>
+      </motion.div>
+
+      {wipeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ backgroundColor: "rgba(0,0,0,0.7)" }}
+          onClick={() => !wiping && setWipeOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl p-6 space-y-4"
+            style={{ backgroundColor: "#0a0a0a", border: "1px solid rgba(220,38,38,0.3)", color: "#fff" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" style={{ color: "#fca5a5" }} />
+              <h3 className="text-lg font-semibold">Confirm Fresh Start</h3>
+            </div>
+
+            {!wipeResult && (
+              <>
+                <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
+                  This deletes <span className="font-semibold text-white">every</span> advisor, profile, lead, referral, callback, will request and stat. This cannot be undone from the UI (a server-side backup is created automatically).
+                </p>
+                <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
+                  Type <code className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>WIPE EVERYTHING</code> to confirm:
+                </p>
+                <input
+                  type="text"
+                  value={wipeConfirm}
+                  onChange={(e) => setWipeConfirm(e.target.value)}
+                  disabled={wiping}
+                  autoFocus
+                  data-testid="input-fresh-start-confirm"
+                  className="w-full px-3 py-2 rounded-lg text-sm"
+                  style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff" }}
+                />
+                <div className="flex gap-2 justify-end pt-2">
+                  <button
+                    onClick={() => setWipeOpen(false)}
+                    disabled={wiping}
+                    data-testid="button-cancel-fresh-start"
+                    className="px-4 py-2 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#fff" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={runWipe}
+                    disabled={wiping || wipeConfirm !== "WIPE EVERYTHING"}
+                    data-testid="button-confirm-fresh-start"
+                    className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: "rgba(220,38,38,0.85)", color: "#fff" }}
+                  >
+                    {wiping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {wiping ? "Wiping…" : "Wipe Now"}
+                  </button>
+                </div>
+              </>
+            )}
+
+            {wipeResult && (
+              <div className="space-y-3" data-testid="text-fresh-start-result">
+                <p className={`text-sm font-medium ${wipeResult.ok ? "text-emerald-300" : "text-red-300"}`}>
+                  {wipeResult.message}
+                </p>
+                {wipeResult.ok && wipeResult.details && (
+                  <div className="text-xs space-y-1" style={{ color: "rgba(255,255,255,0.65)" }}>
+                    {Object.entries(wipeResult.details.backupCounts as Record<string, number>).map(([t, n]) => (
+                      <div key={t} className="flex justify-between">
+                        <span className="opacity-70">{t}</span>
+                        <span>{n} removed</span>
+                      </div>
+                    ))}
+                    <div className="pt-2 mt-2 border-t border-white/10 opacity-60">
+                      Backup: {wipeResult.details.backupDir}
+                    </div>
+                  </div>
+                )}
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => { setWipeOpen(false); setWipeResult(null); setWipeConfirm(""); }}
+                    data-testid="button-close-fresh-start"
+                    className="px-4 py-2 rounded-lg text-xs font-medium"
+                    style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#fff" }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
     </div>
   );

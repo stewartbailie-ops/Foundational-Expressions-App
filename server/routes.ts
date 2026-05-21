@@ -2599,5 +2599,105 @@ export async function registerRoutes(
     res.json(rows);
   });
 
+  // Task #54 — Admin-only fresh-start wipe. Same transactional logic as
+  // scripts/freshStart.ts, exposed here so Stewart can trigger from the
+  // control panel without shell access. Requires admin session AND the
+  // exact confirm phrase in the body so a stray click can't fire it.
+  app.post("/api/admin/fresh-start", async (req, res) => {
+    if (sessionRole(req) !== "admin") return res.status(401).json({ message: "Admin only" });
+    if (req.body?.confirm !== "WIPE EVERYTHING") {
+      return res.status(400).json({ message: "Missing confirm phrase" });
+    }
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const { pool } = await import("./db");
+
+    const TABLES = ["advisors","advisor_profiles","emails","stats","clients","client_consent","client_documents","audit_pii"];
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const dir = path.resolve(".local", "backups", `fresh-start-${stamp}`);
+    await fs.mkdir(dir, { recursive: true });
+
+    const backupCounts: Record<string, number> = {};
+    for (const t of TABLES) {
+      const { rows } = await pool.query(`SELECT * FROM ${t}`);
+      backupCounts[t] = rows.length;
+      await fs.writeFile(path.join(dir, `${t}.json`), JSON.stringify(rows, null, 2));
+    }
+
+    const client = await pool.connect();
+    const deleted: { sql: string; rowCount: number }[] = [];
+    try {
+      await client.query("BEGIN");
+      await client.query(`DROP RULE IF EXISTS audit_pii_no_update ON audit_pii`);
+      await client.query(`DROP RULE IF EXISTS audit_pii_no_delete ON audit_pii`);
+      const order = [
+        `DELETE FROM client_documents`,
+        `DELETE FROM client_consent`,
+        `DELETE FROM audit_pii`,
+        `DELETE FROM clients`,
+        `DELETE FROM emails`,
+        `DELETE FROM stats WHERE event_type IN ('email_received','referral_sent') OR event_type LIKE 'app_access%'`,
+        `DELETE FROM advisor_profiles`,
+        `DELETE FROM advisors`,
+      ];
+      for (const sql of order) {
+        const r = await client.query(sql);
+        deleted.push({ sql, rowCount: r.rowCount ?? 0 });
+      }
+      await client.query(`CREATE RULE audit_pii_no_update AS ON UPDATE TO audit_pii DO INSTEAD NOTHING`);
+      await client.query(`CREATE RULE audit_pii_no_delete AS ON DELETE TO audit_pii DO INSTEAD NOTHING`);
+      await client.query("COMMIT");
+    } catch (err) {
+      await client.query("ROLLBACK");
+      client.release();
+      console.error("[fresh-start] rollback:", err);
+      return res.status(500).json({ message: "Wipe failed — rolled back, nothing changed", error: (err as Error).message });
+    }
+    client.release();
+
+    // Best-effort disk cleanup. Errors logged, do not roll back the DB wipe.
+    const diskResults: Record<string, { removed: number; errors: string[] }> = {};
+    for (const d of ["uploads/clients", "uploads/scans"]) {
+      const r = { removed: 0, errors: [] as string[] };
+      try {
+        const entries = await fs.readdir(path.resolve(d)).catch(() => [] as string[]);
+        for (const e of entries) {
+          try {
+            await fs.rm(path.resolve(d, e), { recursive: true, force: true });
+            r.removed++;
+          } catch (err) { r.errors.push(`${e}: ${(err as Error).message}`); }
+        }
+      } catch (err) { r.errors.push((err as Error).message); }
+      diskResults[d] = r;
+    }
+
+    const finalCounts: Record<string, number> = {};
+    for (const t of TABLES) {
+      const { rows } = await pool.query(`SELECT COUNT(*)::int AS n FROM ${t}`);
+      finalCounts[t] = rows[0].n;
+    }
+
+    const manifest = [
+      `Fresh-start wipe (admin panel trigger)`,
+      `Triggered: ${new Date().toISOString()}`,
+      ``,
+      `Backup counts:`,
+      ...TABLES.map((t) => `  ${t}: ${backupCounts[t]}`),
+      ``,
+      `Delete results:`,
+      ...deleted.map((d) => `  ${d.sql}  ->  ${d.rowCount}`),
+      ``,
+      `Post-wipe verification:`,
+      ...TABLES.map((t) => `  ${t}: ${finalCounts[t]} ${finalCounts[t] === 0 ? "OK" : "FAIL"}`),
+      ``,
+      `Disk cleanup:`,
+      ...Object.entries(diskResults).map(([d, r]) => `  ${d}: removed ${r.removed}, errors ${r.errors.length}`),
+    ].join("\n");
+    await fs.writeFile(path.join(dir, "manifest.txt"), manifest);
+
+    console.log(`[fresh-start] admin wipe complete. Backup at ${dir}`);
+    res.json({ ok: true, backupCounts, deleted, finalCounts, diskResults, backupDir: dir });
+  });
+
   return httpServer;
 }
