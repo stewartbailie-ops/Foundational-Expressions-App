@@ -707,6 +707,11 @@ export async function registerRoutes(
       property: data.clientProperty,
       servicesRequested: data.servicesRequested,
       type: data.type,
+      netWorthBracket: data.netWorthBracket,
+      biggestConcern: data.biggestConcern,
+      hasAdvisor: data.hasAdvisor,
+      hasWill: data.hasWill,
+      estateValueBracket: data.estateValueBracket,
     });
     data.grade = result.grade;
     data.leadScore = result.score;
@@ -744,6 +749,11 @@ export async function registerRoutes(
       property: data.clientProperty,
       servicesRequested: data.servicesRequested,
       type: data.type,
+      netWorthBracket: data.netWorthBracket,
+      biggestConcern: data.biggestConcern,
+      hasAdvisor: data.hasAdvisor,
+      hasWill: data.hasWill,
+      estateValueBracket: data.estateValueBracket,
     });
     data.grade = result.grade;
     data.leadScore = result.score;
