@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank, RotateCw } from "lucide-react";
 import Cropper, { type Area as CropArea } from "react-easy-crop";
 import { TradingViewSection, DailyQuoteSection, CompoundCalcSection, RetirementCalcSection, FinancialCalendarSection } from "./AdvisorProfile";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
@@ -2270,6 +2270,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
   const CONTAINER = 280;
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropArea | null>(null);
   const [brightness, setBrightness] = useState(100);
   const [contrast, setContrast] = useState(100);
@@ -2292,6 +2293,18 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
         i.onerror = reject;
         i.src = src;
       });
+      const rad = (rotation * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      const bboxW = img.width * cos + img.height * sin;
+      const bboxH = img.width * sin + img.height * cos;
+      const work = document.createElement("canvas");
+      work.width = bboxW; work.height = bboxH;
+      const wctx = work.getContext("2d");
+      if (!wctx) return;
+      wctx.translate(bboxW / 2, bboxH / 2);
+      wctx.rotate(rad);
+      wctx.drawImage(img, -img.width / 2, -img.height / 2);
       const OUT = 400;
       const canvas = document.createElement("canvas");
       canvas.width = OUT; canvas.height = OUT;
@@ -2299,7 +2312,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
       if (!ctx) return;
       ctx.filter = `brightness(${brightness}%) contrast(${contrast}%) saturate(${saturation}%)`;
       ctx.drawImage(
-        img,
+        work,
         croppedAreaPixels.x, croppedAreaPixels.y, croppedAreaPixels.width, croppedAreaPixels.height,
         0, 0, OUT, OUT,
       );
@@ -2342,6 +2355,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             image={src}
             crop={crop}
             zoom={zoom}
+            rotation={rotation}
             aspect={1}
             cropShape="round"
             showGrid={false}
@@ -2351,6 +2365,7 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             objectFit="cover"
             onCropChange={setCrop}
             onZoomChange={setZoom}
+            onRotationChange={setRotation}
             onCropComplete={onCropComplete}
             style={{
               containerStyle: { width: "100%", height: "100%", position: "absolute", backgroundColor: "#000" },
@@ -2368,6 +2383,29 @@ function ImageCropper({ src, onConfirm, onCancel, tc }: {
             onChange={e => setZoom(parseFloat(e.target.value))}
             className="w-full accent-current" style={{ accentColor: tc.accentColor }}
             data-testid="input-cropper-zoom"
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="text-xs" style={{ color: tc.mutedText }}>Rotation</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{rotation}°</span>
+              <button
+                type="button"
+                onClick={() => setRotation(r => (r + 90) % 360)}
+                className="inline-flex items-center justify-center h-6 w-6 rounded"
+                style={{ border: `1px solid ${tc.borderColor}`, color: tc.mutedText, backgroundColor: tc.inputBg }}
+                aria-label="Rotate 90 degrees"
+                data-testid="button-cropper-rotate-90"
+              >
+                <RotateCw className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <input type="range" min={0} max={360} step={1} value={rotation}
+            onChange={e => setRotation(parseInt(e.target.value, 10))}
+            className="w-full" style={{ accentColor: tc.accentColor }}
+            data-testid="input-cropper-rotation"
           />
         </div>
         <div className="space-y-2" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: 10 }}>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCw } from "lucide-react";
 
 export function AdminImageCropper({
   src,
@@ -15,6 +15,7 @@ export function AdminImageCropper({
   const CONTAINER = 320;
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
+  const [rotation, setRotation] = useState(0);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,6 +30,19 @@ export function AdminImageCropper({
         i.onerror = reject;
         i.src = src;
       });
+      const rad = (rotation * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      const bboxW = img.width * cos + img.height * sin;
+      const bboxH = img.width * sin + img.height * cos;
+      const work = document.createElement("canvas");
+      work.width = bboxW;
+      work.height = bboxH;
+      const wctx = work.getContext("2d");
+      if (!wctx) return;
+      wctx.translate(bboxW / 2, bboxH / 2);
+      wctx.rotate(rad);
+      wctx.drawImage(img, -img.width / 2, -img.height / 2);
       const OUT = 400;
       const canvas = document.createElement("canvas");
       canvas.width = OUT;
@@ -36,7 +50,7 @@ export function AdminImageCropper({
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       ctx.drawImage(
-        img,
+        work,
         croppedAreaPixels.x,
         croppedAreaPixels.y,
         croppedAreaPixels.width,
@@ -72,6 +86,7 @@ export function AdminImageCropper({
             image={src}
             crop={crop}
             zoom={zoom}
+            rotation={rotation}
             aspect={1}
             cropShape="round"
             showGrid={false}
@@ -81,6 +96,7 @@ export function AdminImageCropper({
             objectFit="cover"
             onCropChange={setCrop}
             onZoomChange={setZoom}
+            onRotationChange={setRotation}
             onCropComplete={(_, p) => setCroppedAreaPixels(p)}
           />
         </div>
@@ -98,6 +114,33 @@ export function AdminImageCropper({
             onChange={(e) => setZoom(parseFloat(e.target.value))}
             className="w-full"
             data-testid="input-admin-cropper-zoom"
+          />
+        </div>
+        <div className="space-y-1">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-muted-foreground">Rotation</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-medium">{rotation}°</span>
+              <button
+                type="button"
+                onClick={() => setRotation((r) => (r + 90) % 360)}
+                className="inline-flex items-center justify-center h-6 w-6 rounded border border-border hover:bg-muted"
+                aria-label="Rotate 90 degrees"
+                data-testid="button-admin-cropper-rotate-90"
+              >
+                <RotateCw className="h-3 w-3" />
+              </button>
+            </div>
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            step={1}
+            value={rotation}
+            onChange={(e) => setRotation(parseInt(e.target.value, 10))}
+            className="w-full"
+            data-testid="input-admin-cropper-rotation"
           />
         </div>
         <div className="flex gap-2 pt-1">
