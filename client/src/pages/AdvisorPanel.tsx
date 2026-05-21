@@ -2766,8 +2766,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolTax, setShowToolTax] = useState((advisor as any).showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((advisor as any).showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((advisor as any).showToolCompound !== false);
-  const [showToolPension, setShowToolPension] = useState((advisor as any).showToolPension !== false);
-  const [showToolCgt, setShowToolCgt] = useState((advisor as any).showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((advisor as any).showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((advisor as any).showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((advisor as any).showToolLatte !== false);
@@ -2868,8 +2866,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolTax,
         showToolExchange,
         showToolCompound,
-        showToolPension,
-        showToolCgt,
         showToolVehicle,
         showToolReality,
         showToolLatte,
@@ -3419,8 +3415,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
               { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
               { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
               { label: "Compound Interest Calculator", value: showToolCompound, set: setShowToolCompound },
-              { label: "Pension Fund Calculator", value: showToolPension, set: setShowToolPension },
-              { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
               { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
               { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
@@ -3810,8 +3804,6 @@ function AdditionalProfileForm({
   const [showToolTax, setShowToolTax] = useState((existingProfile as any)?.showToolTax !== false);
   const [showToolExchange, setShowToolExchange] = useState((existingProfile as any)?.showToolExchange !== false);
   const [showToolCompound, setShowToolCompound] = useState((existingProfile as any)?.showToolCompound !== false);
-  const [showToolPension, setShowToolPension] = useState((existingProfile as any)?.showToolPension !== false);
-  const [showToolCgt, setShowToolCgt] = useState((existingProfile as any)?.showToolCgt !== false);
   const [showToolVehicle, setShowToolVehicle] = useState((existingProfile as any)?.showToolVehicle !== false);
   const [showToolReality, setShowToolReality] = useState((existingProfile as any)?.showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((existingProfile as any)?.showToolLatte !== false);
@@ -3910,8 +3902,6 @@ function AdditionalProfileForm({
         showToolTax,
         showToolExchange,
         showToolCompound,
-        showToolPension,
-        showToolCgt,
         showToolVehicle,
         showToolReality,
         showToolLatte,
@@ -4345,8 +4335,6 @@ function AdditionalProfileForm({
                 { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
                 { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
                 { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
-                { label: "Pension Fund Calculator", value: showToolPension, set: setShowToolPension },
-                { label: "Capital Gains Tax Calculator", value: showToolCgt, set: setShowToolCgt },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
                 { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
                 { label: "Emergency Fund Calculator", value: showToolEmergency, set: setShowToolEmergency },
@@ -5129,18 +5117,19 @@ function VehicleCalcPanel({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
 
-  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, pension: false, cgt: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false, bond: false, emergency: false, lifecover: false, debt: false, myemail: false, pubtv: false, pubdq: false, pubcc: false, pubret: false, pubcal: false });
+  const [openSections, setOpenSections] = useState({ std: false, tax: false, ci: false, er: false, forex: false, scan: false, cal: false, media: false, vehicle: false, bond: false, emergency: false, lifecover: false, debt: false, myemail: false, pubtv: false, pubdq: false, pubcc: false, pubret: false, pubcal: false });
   const toggleSection = (key: keyof typeof openSections) => setOpenSections(p => ({ ...p, [key]: !p[key] }));
 
   // Toolbox ordering — M5(a): aligned with public profile financial tools order
   // (tax, exchange, compound, vehicle …) so when an advisor toggles
   // a tool in the panel the matching section appears in the same place on their
   // public profile. Storage key bumped to _v3 (T#43) so existing advisors pick
-  // up the new pension/cgt/bond/emergency/lifecover/debt/myemail entries
-  // (T#43) plus pubtv/pubdq/pubcc/pubret/pubcal (T#42 — Live Markets, Daily
-  // Quotes, Compound, Retirement, Financial Calendar) rather than having them
-  // silently filtered out of their saved order.
-  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "pension", "cgt", "vehicle", "bond", "emergency", "lifecover", "debt", "std", "forex", "scan", "myemail", "cal", "media"];
+  // up the new bond/emergency/lifecover/debt/myemail entries (T#43) plus
+  // pubtv/pubdq/pubcc/pubret/pubcal (T#42 — Live Markets, Daily Quotes,
+  // Compound, Retirement, Financial Calendar) rather than having them silently
+  // filtered out of their saved order. (Pension/CGT removed in W1 T1; the
+  // ordering migration safely drops any saved "pension"/"cgt" entries.)
+  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "vehicle", "bond", "emergency", "lifecover", "debt", "std", "forex", "scan", "myemail", "cal", "media"];
   const [organizing, setOrganizing] = useState(false);
   const [toolOrder, setToolOrder] = useState<string[]>(() => {
     try {
@@ -5296,21 +5285,8 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   const [ciMonthly, setCiMonthly] = useState("500");
   const [ciFreq, setCiFreq] = useState("12");
 
-  // T#43: Pension Fund Calculator (advisor-side parity). T#45: polish.
-  const [penBalance, setPenBalance] = useState("250000");
-  const [penMonthly, setPenMonthly] = useState("3000");
-  const [penRate, setPenRate] = useState("9");
-  const [penYears, setPenYears] = useState("25");
-  const [penInflation, setPenInflation] = useState("6");
-  const [penAnnualIncome, setPenAnnualIncome] = useState("600000");
-  const [penShowReal, setPenShowReal] = useState(false);
-  // T#43: Capital Gains Tax Calculator (advisor-side parity). T#45: polish.
-  const [cgtSalePrice, setCgtSalePrice] = useState("3000000");
-  const [cgtCostBase, setCgtCostBase] = useState("1500000");
-  const [cgtImprovements, setCgtImprovements] = useState("0");
-  const [cgtIncome, setCgtIncome] = useState("450000");
-  const [cgtAssetType, setCgtAssetType] = useState<"individual" | "special-trust" | "other-trust" | "company">("individual");
-  const [cgtPrimaryResidence, setCgtPrimaryResidence] = useState(false);
+  // Pension + CGT calculators removed pre-presentation (Task #22 W1 T1).
+  // DB columns retained per additive-only convention but no longer read.
   // T#43: Bond / Home Loan
   const [bondAmount, setBondAmount] = useState("1500000");
   const [bondRate, setBondRate] = useState("11.75");
@@ -6243,133 +6219,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         )}
       </div>
 
-      {/* Pension Fund Calculator — T#43 restore, T#45 polish */}
-      {(() => {
-        const P = parseFloat(penBalance) || 0;
-        const PMT = parseFloat(penMonthly) || 0;
-        const r = (parseFloat(penRate) || 0) / 100;
-        const t = parseFloat(penYears) || 0;
-        const i = (parseFloat(penInflation) || 0) / 100;
-        const n = 12;
-        const finalNominal = r > 0
-          ? P * Math.pow(1 + r / n, n * t) + PMT * ((Math.pow(1 + r / n, n * t) - 1) / (r / n))
-          : P + PMT * 12 * t;
-        const contrib = P + PMT * 12 * t;
-        const finalReal = i > 0 && t > 0 ? finalNominal / Math.pow(1 + i, t) : finalNominal;
-        const finalVal = penShowReal ? finalReal : finalNominal;
-        const incomeForCap = parseFloat(penAnnualIncome) || 0;
-        const annualContrib = PMT * 12;
-        const s11fCap = Math.min(350000, 0.275 * incomeForCap);
-        const overCap = annualContrib > s11fCap && s11fCap > 0;
-        return (
-          <div className="rounded-xl overflow-hidden" style={sectionStyle("pension")}>
-            <div className="p-4">
-              <SectionHeader sectionKey="pension" title="Pension Fund Calculator" subtitle="Project retirement balance from current pot plus monthly contributions." />
-            </div>
-            {openSections.pension && (
-              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-                <div className="pt-3 grid grid-cols-2 gap-2">
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Current Balance (R)</label><input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Monthly Contribution (R)</label><input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Annual Growth (%)</label><input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Years to Retirement</label><input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Inflation (%)</label><input type="number" value={penInflation} onChange={e => setPenInflation(e.target.value)} step="0.1" className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Annual Taxable Income (R)</label><input type="number" value={penAnnualIncome} onChange={e => setPenAnnualIncome(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                </div>
-                <label className="flex items-center gap-2 text-xs cursor-pointer" style={ls}>
-                  <input type="checkbox" checked={penShowReal} onChange={e => setPenShowReal(e.target.checked)} />
-                  <span>Show in today's money (inflation-adjusted)</span>
-                </label>
-                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-                  <ResultRow label="Total Contributions" value={ZAR(contrib)} />
-                  <ResultRow label="Growth Earned" value={ZAR(finalVal - contrib)} accent />
-                  <ResultRow label={`Projected Balance in ${penYears} yrs${penShowReal ? " (real)" : " (nominal)"}`} value={ZAR(finalVal)} accent />
-                  <ResultRow label={penShowReal ? "Nominal equivalent" : "Today's-money equivalent"} value={ZAR(penShowReal ? finalNominal : finalReal)} />
-                  <ResultRow label="Annual Contribution vs s11F cap" value={`${ZAR(annualContrib)} / ${ZAR(s11fCap)}`} />
-                </div>
-                {overCap && (
-                  <p className="text-xs flex items-start gap-1.5" style={{ color: tc.accentColor }}>
-                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                    <span>Contributions exceed the s11F deductible cap (27.5% of taxable income, max R350 000/yr). Excess carries forward but isn't deductible this year.</span>
-                  </p>
-                )}
-                <p className="text-xs" style={ls}>Illustrative projection only. Excludes fees, fund-specific charges, Reg 28 asset-class limits and pre/post-retirement tax. Not financial advice — discuss with your advisor for a regulated plan.</p>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Capital Gains Tax Calculator — T#43 restore, T#45 polish */}
-      {(() => {
-        const base = (parseFloat(cgtCostBase) || 0) + (parseFloat(cgtImprovements) || 0);
-        const grossGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - base);
-        const isPerson = cgtAssetType === "individual" || cgtAssetType === "special-trust";
-        const primaryEligible = cgtPrimaryResidence && isPerson;
-        const primaryExclusion = primaryEligible ? Math.min(grossGain, 2000000) : 0;
-        const gain = Math.max(0, grossGain - primaryExclusion);
-        const annualExclusion = isPerson ? 40000 : 0;
-        const inclusionRate = isPerson ? 0.40 : 0.80;
-        const taxableAdd = Math.max(0, gain - annualExclusion) * inclusionRate;
-        const annual = parseFloat(cgtIncome) || 0;
-        const taxFor = (a: number) => {
-          let g = 0;
-          for (const b of TAX_BRACKETS) { if (a >= b.min) g = b.base + (Math.min(a, b.max) - b.min) * b.rate; }
-          return Math.max(0, g - 17235);
-        };
-        let liability = 0;
-        if (cgtAssetType === "company") liability = taxableAdd * 0.27;
-        else if (cgtAssetType === "other-trust") liability = taxableAdd * 0.45;
-        else liability = Math.max(0, taxFor(annual + taxableAdd) - taxFor(annual));
-        const netProceeds = (parseFloat(cgtSalePrice) || 0) - base - liability;
-        return (
-          <div className="rounded-xl overflow-hidden" style={sectionStyle("cgt")}>
-            <div className="p-4">
-              <SectionHeader sectionKey="cgt" title="Capital Gains Tax Calculator" subtitle="SA CGT estimate on an asset disposal (2024/25 rules)." />
-            </div>
-            {openSections.cgt && (
-              <div className="px-4 pb-4 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-                <div className="pt-3 grid grid-cols-2 gap-2">
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Sale Price (R)</label><input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Cost Base (R)</label><input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Improvements (R)</label><input type="number" value={cgtImprovements} onChange={e => setCgtImprovements(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="space-y-1"><label className="text-xs" style={ls}>Other Annual Taxable Income (R)</label><input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} /></div>
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-xs" style={ls}>Taxpayer Type</label>
-                    <select
-                      value={cgtAssetType}
-                      onChange={e => {
-                        const v = e.target.value;
-                        if (v === "individual" || v === "special-trust" || v === "other-trust" || v === "company") setCgtAssetType(v);
-                      }}
-                      className="w-full px-3 py-2 rounded-lg text-sm outline-none"
-                      style={is}
-                    >
-                      <option value="individual">Individual (40% inclusion)</option>
-                      <option value="special-trust">Special Trust (40% inclusion)</option>
-                      <option value="other-trust">Other Trust (80% inclusion, flat 45%)</option>
-                      <option value="company">Company (80% inclusion, flat 27%)</option>
-                    </select>
-                  </div>
-                </div>
-                <label className={`flex items-center gap-2 text-xs ${isPerson ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`} style={ls}>
-                  <input type="checkbox" checked={cgtPrimaryResidence} disabled={!isPerson} onChange={e => setCgtPrimaryResidence(e.target.checked)} />
-                  <span>Primary residence — apply R2 000 000 exclusion{!isPerson && " (natural persons / special trusts only)"}</span>
-                </label>
-                <div className="rounded-lg p-3" style={{ backgroundColor: tc.inputBg }}>
-                  <ResultRow label="Gross Capital Gain" value={ZAR(grossGain)} />
-                  {primaryEligible && <ResultRow label="Primary-Residence Exclusion" value={`− ${ZAR(primaryExclusion)}`} />}
-                  {isPerson && <ResultRow label="Annual Exclusion" value={`− ${ZAR(annualExclusion)}`} />}
-                  <ResultRow label={`Taxable Gain (${Math.round(inclusionRate * 100)}% inclusion)`} value={ZAR(taxableAdd)} />
-                  <ResultRow label="Est. CGT Liability" value={ZAR(liability)} accent />
-                  <ResultRow label="Net Proceeds After CGT" value={ZAR(netProceeds)} accent />
-                </div>
-                <p className="text-xs" style={ls}>Illustrative estimate only. Excludes foreign-currency base-cost rules, time-apportionment for pre-Oct 2001 assets, retirement-fund interactions and roll-over relief. Not tax advice — confirm with a registered tax practitioner.</p>
-              </div>
-            )}
-          </div>
-        );
-      })()}
+      {/* Pension + CGT calculators removed pre-presentation (Task #22 W1 T1). */}
 
       {/* Bond / Home Loan — T#43 parity */}
       {(() => {

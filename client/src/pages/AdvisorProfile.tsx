@@ -993,21 +993,9 @@ export default function AdvisorProfile() {
   const [dpDebt, setDpDebt] = useState("150000");
   const [dpRate, setDpRate] = useState("20");
   const [dpPayment, setDpPayment] = useState("3000");
-  // Pension Fund Calculator (T#43 restore, T#45 polish)
-  const [penBalance, setPenBalance] = useState("250000");
-  const [penMonthly, setPenMonthly] = useState("3000");
-  const [penRate, setPenRate] = useState("9");
-  const [penYears, setPenYears] = useState("25");
-  const [penInflation, setPenInflation] = useState("6");
-  const [penAnnualIncome, setPenAnnualIncome] = useState("600000");
-  const [penShowReal, setPenShowReal] = useState(false);
-  // Capital Gains Tax Calculator (T#43 restore, T#45 polish)
-  const [cgtSalePrice, setCgtSalePrice] = useState("3000000");
-  const [cgtCostBase, setCgtCostBase] = useState("1500000");
-  const [cgtImprovements, setCgtImprovements] = useState("0");
-  const [cgtIncome, setCgtIncome] = useState("450000");
-  const [cgtAssetType, setCgtAssetType] = useState<"individual" | "special-trust" | "other-trust" | "company">("individual");
-  const [cgtPrimaryResidence, setCgtPrimaryResidence] = useState(false);
+  // Pension + CGT calculators removed pre-presentation (Task #22 W1 T1) —
+  // accuracy concerns on edge cases. DB columns show_tool_pension /
+  // show_tool_cgt retained per additive-only convention but no longer read.
   // Standard Calculator (T#43 parity)
   const [stdDisplay, setStdDisplay] = useState("0");
   const [stdPrev, setStdPrev] = useState<string | null>(null);
@@ -2234,56 +2222,10 @@ export default function AdvisorProfile() {
                 (advisor as any).showToolEmergency !== false && "emergency",
                 (advisor as any).showToolLifeCover !== false && "lifecover",
                 (advisor as any).showToolDebt !== false && "debt",
-                (advisor as any).showToolPension !== false && "pension",
-                (advisor as any).showToolCgt !== false && "cgt",
                 "standard",
                 "forex",
                 "scan",
               ].filter(Boolean) as string[];
-
-              // Pension Fund projection (T#45: real-vs-nominal + s11F cap awareness)
-              const penP = parseFloat(penBalance) || 0;
-              const penPmt = parseFloat(penMonthly) || 0;
-              const penR = (parseFloat(penRate) || 0) / 100;
-              const penT = parseFloat(penYears) || 0;
-              const penI = (parseFloat(penInflation) || 0) / 100;
-              const penN = 12;
-              const penFinalNominal = penR > 0
-                ? penP * Math.pow(1 + penR / penN, penN * penT) + penPmt * ((Math.pow(1 + penR / penN, penN * penT) - 1) / (penR / penN))
-                : penP + penPmt * 12 * penT;
-              const penContrib = penP + penPmt * 12 * penT;
-              const penFinalReal = penI > 0 && penT > 0 ? penFinalNominal / Math.pow(1 + penI, penT) : penFinalNominal;
-              const penFinal = penShowReal ? penFinalReal : penFinalNominal;
-              const penInterest = penFinal - penContrib;
-              // s11F cap: contributions deductible up to 27.5% of taxable income, capped at R350 000/yr
-              const penIncomeForCap = parseFloat(penAnnualIncome) || 0;
-              const penAnnualContrib = penPmt * 12;
-              const penS11fCap = Math.min(350000, 0.275 * penIncomeForCap);
-              const penOverCap = penAnnualContrib > penS11fCap && penS11fCap > 0;
-
-              // Capital Gains Tax (T#45: asset type, primary residence, improvements)
-              const cgtBase = (parseFloat(cgtCostBase) || 0) + (parseFloat(cgtImprovements) || 0);
-              const cgtGrossGain = Math.max(0, (parseFloat(cgtSalePrice) || 0) - cgtBase);
-              const cgtIsPerson = cgtAssetType === "individual" || cgtAssetType === "special-trust";
-              // Primary-residence exclusion only available to natural persons / special trusts
-              const cgtPrimaryEligible = cgtPrimaryResidence && cgtIsPerson;
-              const cgtPrimaryExclusion = cgtPrimaryEligible ? Math.min(cgtGrossGain, 2000000) : 0;
-              const cgtGain = Math.max(0, cgtGrossGain - cgtPrimaryExclusion);
-              const cgtAnnualExclusion = cgtIsPerson ? 40000 : 0;
-              const cgtInclusionRate = cgtIsPerson ? 0.40 : 0.80;
-              const cgtTaxable = Math.max(0, cgtGain - cgtAnnualExclusion) * cgtInclusionRate;
-              const cgtAnnual = parseFloat(cgtIncome) || 0;
-              const taxFor = (annual: number) => {
-                let g = 0;
-                for (const b of TAX_BRACKETS) { if (annual >= b.min) g = b.base + (Math.min(annual, b.max) - b.min) * b.rate; }
-                return Math.max(0, g - 17235);
-              };
-              let cgtLiability = 0;
-              if (cgtAssetType === "company") cgtLiability = cgtTaxable * 0.27;
-              else if (cgtAssetType === "other-trust") cgtLiability = cgtTaxable * 0.45;
-              else cgtLiability = Math.max(0, taxFor(cgtAnnual + cgtTaxable) - taxFor(cgtAnnual));
-              const cgtNetProceeds = (parseFloat(cgtSalePrice) || 0) - cgtBase - cgtLiability;
-              const cgtInclusionLabel = `Taxable Gain (${Math.round(cgtInclusionRate * 100)}% inclusion)`;
 
               // Vehicle finance calc
               const vehP = (parseFloat(vehPrice) || 0) - (parseFloat(vehDeposit) || 0);
@@ -2349,8 +2291,6 @@ export default function AdvisorProfile() {
                           {toolKey === "emergency" && <><Calculator className="h-3.5 w-3.5" /> Emergency Fund</>}
                           {toolKey === "lifecover" && <><Calculator className="h-3.5 w-3.5" /> Life Cover Needs</>}
                           {toolKey === "debt" && <><Calculator className="h-3.5 w-3.5" /> Debt Payoff</>}
-                          {toolKey === "pension" && <><TrendingUp className="h-3.5 w-3.5" /> Pension Fund</>}
-                          {toolKey === "cgt" && <><Calculator className="h-3.5 w-3.5" /> Capital Gains Tax</>}
                           {toolKey === "standard" && <><Calculator className="h-3.5 w-3.5" /> Standard Calculator</>}
                           {toolKey === "forex" && <><Calculator className="h-3.5 w-3.5" /> Forex Calculator</>}
                           {toolKey === "scan" && <><FileText className="h-3.5 w-3.5" /> Scan Documents</>}
@@ -2631,122 +2571,6 @@ export default function AdvisorProfile() {
                                   <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Assumes fixed rate and consistent monthly payment. Actual results may vary.</p>
                                 </div>
                               )}
-                            </>
-                          )}
-                          {toolKey === "pension" && (
-                            <>
-                              <p className="text-xs" style={{ color: mutedText }}>Project a retirement / pension fund value from current balance plus monthly contributions.</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Current Balance (R)</label>
-                                  <input type="number" value={penBalance} onChange={e => setPenBalance(e.target.value)} style={is} data-testid="input-tool-pen-balance" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Monthly Contribution (R)</label>
-                                  <input type="number" value={penMonthly} onChange={e => setPenMonthly(e.target.value)} style={is} data-testid="input-tool-pen-monthly" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Annual Growth (%)</label>
-                                  <input type="number" value={penRate} onChange={e => setPenRate(e.target.value)} step="0.1" style={is} data-testid="input-tool-pen-rate" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Years to Retirement</label>
-                                  <input type="number" value={penYears} onChange={e => setPenYears(e.target.value)} style={is} data-testid="input-tool-pen-years" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Inflation (%)</label>
-                                  <input type="number" value={penInflation} onChange={e => setPenInflation(e.target.value)} step="0.1" style={is} data-testid="input-tool-pen-inflation" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Annual Taxable Income (R)</label>
-                                  <input type="number" value={penAnnualIncome} onChange={e => setPenAnnualIncome(e.target.value)} style={is} data-testid="input-tool-pen-income" />
-                                </div>
-                              </div>
-                              <label className="flex items-center gap-2 text-xs cursor-pointer" style={{ color: mutedText }}>
-                                <input type="checkbox" checked={penShowReal} onChange={e => setPenShowReal(e.target.checked)} data-testid="toggle-tool-pen-real" />
-                                <span>Show in today's money (inflation-adjusted)</span>
-                              </label>
-                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
-                                {[
-                                  { label: "Total Contributions", val: `R ${penContrib.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
-                                  { label: "Growth Earned", val: `R ${penInterest.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
-                                  { label: `Projected Balance in ${penYears} yrs${penShowReal ? " (real)" : " (nominal)"}`, val: `R ${penFinal.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
-                                  { label: penShowReal ? "Nominal equivalent" : "Today's-money equivalent", val: `R ${(penShowReal ? penFinalNominal : penFinalReal).toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
-                                  { label: "Annual Contribution vs s11F cap", val: `R ${penAnnualContrib.toLocaleString("en-ZA", { maximumFractionDigits: 0 })} / R ${penS11fCap.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
-                                ].map(({ label, val, accent }) => (
-                                  <div key={label} className="flex justify-between text-xs">
-                                    <span style={{ color: mutedText }}>{label}</span>
-                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
-                                  </div>
-                                ))}
-                                {penOverCap && (
-                                  <p className="text-xs flex items-start gap-1.5 pt-1" style={{ color: accentColor, borderTop: `1px solid ${tc.borderColor}` }}>
-                                    <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-                                    <span>Contributions exceed the s11F deductible cap (27.5% of taxable income, max R350 000/yr). Excess carries forward but isn't deductible this year.</span>
-                                  </p>
-                                )}
-                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Illustrative projection only. Excludes fees, fund-specific charges, Reg 28 asset-class limits and pre/post-retirement tax. Not financial advice — discuss with your advisor for a regulated plan.</p>
-                              </div>
-                            </>
-                          )}
-                          {toolKey === "cgt" && (
-                            <>
-                              <p className="text-xs" style={{ color: mutedText }}>Estimate SA Capital Gains Tax on an asset disposal (2024/25 rules).</p>
-                              <div className="grid grid-cols-2 gap-2">
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Sale Price (R)</label>
-                                  <input type="number" value={cgtSalePrice} onChange={e => setCgtSalePrice(e.target.value)} style={is} data-testid="input-tool-cgt-sale" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Cost Base (R)</label>
-                                  <input type="number" value={cgtCostBase} onChange={e => setCgtCostBase(e.target.value)} style={is} data-testid="input-tool-cgt-cost" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Improvements (R)</label>
-                                  <input type="number" value={cgtImprovements} onChange={e => setCgtImprovements(e.target.value)} style={is} data-testid="input-tool-cgt-improvements" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Other Annual Taxable Income (R)</label>
-                                  <input type="number" value={cgtIncome} onChange={e => setCgtIncome(e.target.value)} style={is} data-testid="input-tool-cgt-income" />
-                                </div>
-                                <div className="col-span-2 space-y-1">
-                                  <label className="text-xs" style={{ color: mutedText }}>Taxpayer Type</label>
-                                  <select
-                                    value={cgtAssetType}
-                                    onChange={e => {
-                                      const v = e.target.value;
-                                      if (v === "individual" || v === "special-trust" || v === "other-trust" || v === "company") setCgtAssetType(v);
-                                    }}
-                                    style={is}
-                                    data-testid="select-tool-cgt-type"
-                                  >
-                                    <option value="individual">Individual (40% inclusion)</option>
-                                    <option value="special-trust">Special Trust (40% inclusion)</option>
-                                    <option value="other-trust">Other Trust (80% inclusion, flat 45%)</option>
-                                    <option value="company">Company (80% inclusion, flat 27%)</option>
-                                  </select>
-                                </div>
-                              </div>
-                              <label className={`flex items-center gap-2 text-xs ${cgtIsPerson ? "cursor-pointer" : "opacity-50 cursor-not-allowed"}`} style={{ color: mutedText }}>
-                                <input type="checkbox" checked={cgtPrimaryResidence} disabled={!cgtIsPerson} onChange={e => setCgtPrimaryResidence(e.target.checked)} data-testid="toggle-tool-cgt-primary" />
-                                <span>Primary residence — apply R2 000 000 exclusion{!cgtIsPerson && " (natural persons / special trusts only)"}</span>
-                              </label>
-                              <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg }}>
-                                {[
-                                  { label: "Gross Capital Gain", val: `R ${cgtGrossGain.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
-                                  ...(cgtPrimaryEligible ? [{ label: "Primary-Residence Exclusion", val: `− R ${cgtPrimaryExclusion.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` }] : []),
-                                  ...(cgtIsPerson ? [{ label: "Annual Exclusion", val: `− R ${cgtAnnualExclusion.toLocaleString("en-ZA")}` }] : []),
-                                  { label: cgtInclusionLabel, val: `R ${cgtTaxable.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}` },
-                                  { label: "Est. CGT Liability", val: `R ${cgtLiability.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
-                                  { label: "Net Proceeds After CGT", val: `R ${cgtNetProceeds.toLocaleString("en-ZA", { maximumFractionDigits: 0 })}`, accent: true },
-                                ].map(({ label, val, accent }) => (
-                                  <div key={label} className="flex justify-between text-xs">
-                                    <span style={{ color: mutedText }}>{label}</span>
-                                    <span className="font-semibold" style={{ color: accent ? accentColor : textColor }}>{val}</span>
-                                  </div>
-                                ))}
-                                <p className="text-xs pt-1" style={{ color: mutedText, borderTop: `1px solid ${tc.borderColor}` }}>Illustrative estimate only. Excludes foreign-currency base-cost rules, time-apportionment for pre-Oct 2001 assets, retirement-fund interactions and roll-over relief. Not tax advice — confirm with a registered tax practitioner.</p>
-                              </div>
                             </>
                           )}
                           {toolKey === "standard" && (
