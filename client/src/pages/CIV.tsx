@@ -10,35 +10,17 @@ import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useState, Fragment } from "react";
 import { format } from "date-fns";
+import type { Email } from "@shared/schema";
 
-type EmailRow = {
-  id: number;
-  advisorId: number;
-  senderName: string;
-  senderEmail: string;
-  type: string;
-  grade: string | null;
-  leadStatus: string | null;
-  subject: string | null;
-  body: string | null;
-  clientAge: number | null;
-  clientIncome: string | null;
-  clientIndustry: string | null;
-  clientPhone: string | null;
-  clientMarried: boolean | null;
-  clientChildren: boolean | null;
-  clientVehicle: boolean | null;
-  clientProperty: boolean | null;
-  preferredContactTime: string | null;
-  servicesRequested: string | null;
-  referrerName: string | null;
-  referrerEmail: string | null;
-  referrerPhone: string | null;
-  referrerRelation: string | null;
-  source: string | null;
-  leadScore: number | null;
-  leadTemperature: string | null;
-  gradeBreakdown: string | null;
+// Mirrors the server `Email` row plus the joined `advisorName` from the
+// `/api/emails` registry endpoint. Timestamps arrive as ISO strings over
+// the wire, so we override the Date-typed columns here. Keeping this in
+// sync with `shared/schema.ts` means TypeScript catches missing fields
+// the next time a column is added or renamed.
+type EmailRow = Omit<
+  Email,
+  "receivedAt" | "lastOpenedAt" | "firstViewedAt" | "lastViewedAt" | "archivedAt"
+> & {
   receivedAt: string;
   lastOpenedAt: string | null;
   firstViewedAt: string | null;
@@ -667,59 +649,59 @@ export default function CIV() {
                                 only renders when populated, so legacy leads
                                 still show their lean shape. */}
                             {(
-                              (email as any).howFound ||
-                              (email as any).netWorthBracket ||
-                              (email as any).hasAdvisor != null ||
-                              (email as any).hasWill != null ||
-                              (email as any).estateValueBracket
+                              email.howFound ||
+                              email.netWorthBracket ||
+                              email.hasAdvisor != null ||
+                              email.hasWill != null ||
+                              email.estateValueBracket
                             ) && (
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm" data-testid={`gap-fields-${email.id}`}>
-                                {(email as any).howFound && (
+                                {email.howFound && (
                                   <div>
                                     <span className="text-muted-foreground text-xs block mb-0.5">How They Found You</span>
-                                    <span className="font-medium" data-testid={`text-how-found-${email.id}`}>{(email as any).howFound}</span>
+                                    <span className="font-medium" data-testid={`text-how-found-${email.id}`}>{email.howFound}</span>
                                   </div>
                                 )}
-                                {(email as any).netWorthBracket && (
+                                {email.netWorthBracket && (
                                   <div>
                                     <span className="text-muted-foreground text-xs block mb-0.5">Net Worth / Savings</span>
-                                    <span className="font-medium" data-testid={`text-net-worth-${email.id}`}>{(email as any).netWorthBracket}</span>
+                                    <span className="font-medium" data-testid={`text-net-worth-${email.id}`}>{email.netWorthBracket}</span>
                                   </div>
                                 )}
-                                {(email as any).hasAdvisor != null && (
+                                {email.hasAdvisor != null && (
                                   <div>
                                     <span className="text-muted-foreground text-xs block mb-0.5">Existing Advisor</span>
                                     <span className="font-medium" data-testid={`text-has-advisor-${email.id}`}>
-                                      {(email as any).hasAdvisor ? ((email as any).existingAdvisorName || "Yes") : "No"}
+                                      {email.hasAdvisor ? (email.existingAdvisorName || "Yes") : "No"}
                                     </span>
                                   </div>
                                 )}
-                                {(email as any).hasWill != null && (
+                                {email.hasWill != null && (
                                   <div>
                                     <span className="text-muted-foreground text-xs block mb-0.5">Has Will</span>
-                                    <span className="font-medium" data-testid={`text-has-will-${email.id}`}>{(email as any).hasWill ? "Yes" : "No"}</span>
+                                    <span className="font-medium" data-testid={`text-has-will-${email.id}`}>{email.hasWill ? "Yes" : "No"}</span>
                                   </div>
                                 )}
-                                {(email as any).estateValueBracket && (
+                                {email.estateValueBracket && (
                                   <div>
                                     <span className="text-muted-foreground text-xs block mb-0.5">Estate Value</span>
-                                    <span className="font-medium" data-testid={`text-estate-value-${email.id}`}>{(email as any).estateValueBracket}</span>
+                                    <span className="font-medium" data-testid={`text-estate-value-${email.id}`}>{email.estateValueBracket}</span>
                                   </div>
                                 )}
                               </div>
                             )}
 
-                            {(email as any).biggestConcern && (
+                            {email.biggestConcern && (
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-1">Biggest Financial Concern</span>
-                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-biggest-concern-${email.id}`}>{(email as any).biggestConcern}</p>
+                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-biggest-concern-${email.id}`}>{email.biggestConcern}</p>
                               </div>
                             )}
 
-                            {(email as any).referralReason && (
+                            {email.referralReason && (
                               <div>
                                 <span className="text-muted-foreground text-xs block mb-1">Why Referred</span>
-                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-referral-reason-${email.id}`}>{(email as any).referralReason}</p>
+                                <p className="text-sm bg-background rounded-lg p-3 border" data-testid={`text-referral-reason-${email.id}`}>{email.referralReason}</p>
                               </div>
                             )}
 
@@ -757,12 +739,12 @@ export default function CIV() {
                             {/* W1 T9: soft-warn duplicate flag. Non-blocking — just surfaces
                                 that this lead's phone/email matches a prior lead for the same
                                 advisor. Advisor decides merge vs treat as new. */}
-                            {(email as any).duplicateOfId && (
+                            {email.duplicateOfId && (
                               <div className="rounded-lg p-2.5 border border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20 flex items-start gap-2" data-testid={`dup-flag-${email.id}`}>
                                 <AlertTriangle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
                                 <div className="text-xs text-amber-900 dark:text-amber-200">
                                   <span className="font-semibold">Possible duplicate.</span>{" "}
-                                  Matches an earlier lead (#{(email as any).duplicateOfId}) for this advisor on phone or email.
+                                  Matches an earlier lead (#{email.duplicateOfId}) for this advisor on phone or email.
                                 </div>
                               </div>
                             )}

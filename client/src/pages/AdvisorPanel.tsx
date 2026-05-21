@@ -1827,19 +1827,19 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                       {lead.preferredContactTime && <Row label="Contact Time" value={lead.preferredContactTime} tc={tc} full />}
                       {lead.servicesRequested && <Row label="Services" value={lead.servicesRequested} tc={tc} full />}
                       {/* Task #23 — gap fields. Each row only renders when populated. */}
-                      {(lead as any).howFound && <Row label="Found Via" value={(lead as any).howFound} tc={tc} />}
-                      {(lead as any).netWorthBracket && <Row label="Net Worth" value={(lead as any).netWorthBracket} tc={tc} />}
-                      {(lead as any).hasAdvisor != null && (
+                      {lead.howFound && <Row label="Found Via" value={lead.howFound} tc={tc} />}
+                      {lead.netWorthBracket && <Row label="Net Worth" value={lead.netWorthBracket} tc={tc} />}
+                      {lead.hasAdvisor != null && (
                         <Row
                           label="Existing Advisor"
-                          value={(lead as any).hasAdvisor ? ((lead as any).existingAdvisorName || "Yes") : "No"}
+                          value={lead.hasAdvisor ? (lead.existingAdvisorName || "Yes") : "No"}
                           tc={tc}
                         />
                       )}
-                      {(lead as any).hasWill != null && <Row label="Has Will" value={(lead as any).hasWill ? "Yes" : "No"} tc={tc} />}
-                      {(lead as any).estateValueBracket && <Row label="Estate Value" value={(lead as any).estateValueBracket} tc={tc} />}
-                      {(lead as any).biggestConcern && <Row label="Biggest Concern" value={(lead as any).biggestConcern} tc={tc} full />}
-                      {(lead as any).referralReason && <Row label="Why Referred" value={(lead as any).referralReason} tc={tc} full />}
+                      {lead.hasWill != null && <Row label="Has Will" value={lead.hasWill ? "Yes" : "No"} tc={tc} />}
+                      {lead.estateValueBracket && <Row label="Estate Value" value={lead.estateValueBracket} tc={tc} />}
+                      {lead.biggestConcern && <Row label="Biggest Concern" value={lead.biggestConcern} tc={tc} full />}
+                      {lead.referralReason && <Row label="Why Referred" value={lead.referralReason} tc={tc} full />}
                     </div>
 
                     {/* Referrer */}
