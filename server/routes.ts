@@ -373,9 +373,20 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded or invalid file type" });
     }
-    const base64 = req.file.buffer.toString("base64");
-    const url = `data:${req.file.mimetype};base64,${base64}`;
-    res.json({ url });
+    const fs = await import("fs/promises");
+    const path = await import("path");
+    const crypto = await import("crypto");
+    const extByMime: Record<string, string> = {
+      "image/jpeg": ".jpg",
+      "image/png": ".png",
+      "image/webp": ".webp",
+    };
+    const ext = extByMime[req.file.mimetype] ?? ".jpg";
+    const dir = path.join("uploads", "profile");
+    await fs.mkdir(dir, { recursive: true });
+    const filename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
+    await fs.writeFile(path.join(dir, filename), req.file.buffer);
+    res.json({ url: `/uploads/profile/${filename}` });
   });
 
   app.post("/api/upload/fais", pdfUpload.single("file"), async (req, res) => {
