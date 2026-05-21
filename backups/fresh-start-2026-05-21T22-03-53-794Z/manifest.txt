@@ -1,0 +1,18 @@
+Fresh-start backup
+Generated: 2026-05-21T22:03:54.225Z
+Mode: DRY-RUN
+
+Row counts at backup time:
+  advisors: 1
+  advisor_profiles: 0
+  emails: 0
+  stats: 9
+  clients: 0
+  client_consent: 0
+  client_documents: 0
+  audit_pii: 0
+
+Restoration hint: each CSV is a straight SELECT * dump of the table at
+backup time. To re-insert, write a one-off script that reads the CSV and
+INSERTs row-by-row in the dependency order: advisors -> advisor_profiles
+-> emails / stats / clients -> client_consent / client_documents / audit_pii.
