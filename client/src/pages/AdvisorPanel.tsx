@@ -7895,7 +7895,7 @@ type BillingStatus = {
 function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: status, isLoading, error, refetch } = useQuery<BillingStatus>({
+  const { data: rawStatus, isLoading, error, refetch } = useQuery<BillingStatus>({
     queryKey: ["/api/billing/status"],
     retry: 1,
   });
@@ -7961,7 +7961,7 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   if (isLoading) {
     return <div className="py-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} /></div>;
   }
-  if (error || !status) {
+  if (error || !rawStatus) {
     return (
       <div className="rounded-xl p-5 text-sm space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }} data-testid="billing-error">
         <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#dc2626" }} /><span>Could not load your billing status. Your session may have expired.</span></div>
@@ -7971,19 +7971,17 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   }
 
   // Safe defaults — legacy advisors created before Task #26 may have null/missing
-  // billing columns. Treat anything unrecognised as a fresh trial so the plan
-  // tiles always render rather than crashing the tab.
-  const safeStatus = {
-    tier: (status.tier ?? "trial") as BillingStatus["tier"],
-    status: (status.status ?? "trialing") as BillingStatus["status"],
-    trialEndsAt: status.trialEndsAt ?? null,
-    hasSubscription: !!status.hasSubscription,
-    premiumActive: !!status.premiumActive,
-    basicOrBetter: !!status.basicOrBetter,
-    paystackConfigured: !!status.paystackConfigured,
+  // billing columns. Coalesce to a fresh-trial shape so the plan tiles always
+  // render rather than crashing on a partial payload.
+  const status: BillingStatus = {
+    tier: (rawStatus.tier ?? "trial") as BillingStatus["tier"],
+    status: (rawStatus.status ?? "trialing") as BillingStatus["status"],
+    trialEndsAt: rawStatus.trialEndsAt ?? null,
+    hasSubscription: !!rawStatus.hasSubscription,
+    premiumActive: !!rawStatus.premiumActive,
+    basicOrBetter: !!rawStatus.basicOrBetter,
+    paystackConfigured: !!rawStatus.paystackConfigured,
   };
-  // Reassign so the rest of the render uses safe defaults without touching downstream code.
-  status = safeStatus as typeof status;
 
   const daysLeftInTrial = status.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(status.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
