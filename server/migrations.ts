@@ -16,6 +16,7 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["show_tool_emergency",      "boolean NOT NULL DEFAULT true"],
   ["show_tool_life_cover",     "boolean NOT NULL DEFAULT true"],
   ["show_tool_debt",           "boolean NOT NULL DEFAULT true"],
+  ["rotate_interactive_tools", "boolean NOT NULL DEFAULT false"],
   // W1 T3: My Email platform toggle. Opt-in default — advisors must enable it.
   ["show_my_email",            "boolean NOT NULL DEFAULT false"],
   // Task #29 — Public Profile Feature Suite (Week 2).

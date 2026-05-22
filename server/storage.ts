@@ -204,6 +204,7 @@ export class DatabaseStorage implements IStorage {
       showToolLifeCover: (profile.profile as any).showToolLifeCover,
       showToolDebt: (profile.profile as any).showToolDebt,
       showInteractive: (profile.profile as any).showInteractive,
+      rotateInteractiveTools: (profile.profile as any).rotateInteractiveTools,
       showShowpieceSqueeze: (profile.profile as any).showShowpieceSqueeze,
       showShowpieceTaxBite: (profile.profile as any).showShowpieceTaxBite,
       showShowpieceInflation: (profile.profile as any).showShowpieceInflation,
