@@ -1,0 +1,191 @@
+Advisory Connect — Development Backlog - Completed (Build Sessions 19-22/05) 
+	1. Clean up and delete all the old leads and referrals in the CIV, delete the Demo profile - Complete (Added function)
+	2. Second physical backup of PII encryption key - Complete (Including a full Zip back-up)
+	3. Upgrade Claude (22/05 - Check Cash-flow - Pro Max Plan) - Complete
+	4. $25 developer account registration - Complete
+	5. Confirm May 31st prep meeting with Zeeman (At his private Residence) - Confirmed
+	6. Confirm June 2nd format (online/in-person) - Confirmed
+	7. Make the secondary profile un-delete able - Complete
+	8. Auth gap on lead endpoints — /api/emails GET/grade/status/open/DELETE unprotected. Bigger task, needs advisor-session auth design first (Large fix) - Complete
+	9. ID Assigned (Linked to contact number / ID?) - a soft-warn approach is friendliest — when a lead is submitted with a phone number or ID that already exists for that advisor, flag it as a likely duplicate rather than hard-blocking. - Complete
+	10. Entire Control Panel & Profile Edit Elements, Tools & Placement restructure & Re-build (As per the attached PDF layout) - Complete 
+	11. Investigate mystery e4282ae... branch — to stop it re-merging old code into main (low priority, probably an old laptop checkout - Small fix) - Complete
+	12. Heavy work needed on the upload profile picture (Profile edit card) - Focus the cropping function (Not currently working) - Complete
+	13. Show Daily Quotes (Added under the Control Panel Tool-box - With a selection) - Complete 
+	14. CSP Production Monitoring - Add a CSP report-uri or report-to directive to the Helmet config so any legitimate content blocked in production is logged and visible rather than silently failing. - Complete 
+	15. Task #22 Polish Batch (Calculator removal) - Pension + CGT calculators stripped from AdvisorProfile.tsx and AdvisorPanel.tsx. DB columns retained per additive-only rule. Architect review passed. Committed in checkpoint 481c2031. - Complete
+	16. Profile pictures are not loading on the current test profile I have created - Complete 
+	17. Task #24 Auth + Lead Lockdown - All /api/emails* routes now gated: GET requires session (admin sees all, advisor sees own); grade/status/open/DELETE all enforce canAccessLead; CSV export admin-only. Anonymous → 401, zero PII disclosure. - Complete
+	18. Task #25 PII Encryption - server/encryption.ts runs AES-256-GCM via PII_ENCRYPTION_KEY. Tables clients, audit_pii, client_consent, client_documents all live in schema. Full CRUD + erase + audit + document upload/download wired at /api/clients/* and /api/audit-pii. Self-test runs at boot. Reminder: sealed-envelope key backup + recovery dry-run are still listed as "pending" in replit.md — must happen before storing real client PII - Complete
+	19. Task #26 — Paystack subscriptions (server/paystack.ts, server/premium.ts, use-premium.ts) - Complete
+	• Add a Link to "My Email" (Under My Platforms) - Discuss options here (Limitations) - Complete
+	20. Profile button cleanup (Image generator) - Stew illustrate - Explain the share to socials goal here (Digital Business Card Auto-generated Per-profile) - Complete
+	21. Financial Calendar - SA fintech, key dates - This could live in two places: on the public profile as a "What's coming up" widget, AND in the advisor panel as personal compliance/appointment tracking. Build into current Calander & re-name - Complete (Updates per the re-structure)
+		○ SARB Monetary Policy Committee (interest rate decisions)
+		○ SARS tax deadlines (provisional tax, assessment, RA contribution cutoff)
+		○ JSE company results dates
+		○ Budget Speech
+		○ FAIS CPD deadlines5. 
+	22. Build subscription service (PayStack) - Complete (Awaiting Confirmation - 7 Days)
+		○ Paystack business registration — fully completed, MSA signed - Complete
+		○ Paystack plans created — Basic PLN_wmc2ce7g2u7wvv2 (R299/mo) + Premium PLN_7zkp55hp03ofmnk (R499/mo) - Complete
+		○ All 4 Paystack secrets delivered to Friday - Complete
+		○ 2FA enabled on Paystack - Complete
+		○ PII encryption key generated + stored in OneNote - Complete
+	23. Gaps for Grader feed-back links: - Please add the below as options for when completing/filling out leads - (Add the parameters to the Registry, Grader & Temperature) - Complete
+	Request call back link; - Complete and added
+		○ Add "How did you find me?" As a drop-down / source attribution field (organic, social, referral) - Complete and added
+		○ Add "Estimated net worth / savings bracket" (only income) As a drop-down - Complete and added
+		○ Add "What's your biggest financial concern right now?" As an open text field - Complete and added
+		○ Add "Are you currently working with a financial advisor?" (existing client vs. new) As an open text field - Complete and added
+	Refer Friends & Family;  - Complete and added
+		○ Add "Why are you referring them?" As an open text field  - Complete and added
+	Claim Your Free Will;  - Complete and added
+		○ Add "Do you already have a Will?" As a drop-down (Yes/No)  - Complete and added
+		○ Add "What is the estimated value of your estate?" As a drop-down  - Complete and added
+	
+NEW STRUCTURE/LAYOUT - Complete
+	What tools are showing where and what tools need to be added - Group & sort out Toggles etc  (What are displays / What are tools / What are Drop-downs / What are Widgets)
+	1. Elements marked in red below display when new profiles are created - Complete
+	2. The Calander & What's Coming marked below need to be combined into one display (Both sides) - Complete
+	3. The items in blue below are currently missing from the layout - Complete
+	4. The below need name changes - Complete
+	5. The items in pink below can be removed entirely (Please send thoughts) - Complete
+	6. The below tools or displays needs to be fixed/updated - Complete
+	7. With the interactive financial tools, we have toggles to display on the Control Panel drop-down & the Edit Profile option (I propose, the toggle stays on the edit profile option only) - And the Control Panel Dropdown just displays the Interactive Financial Tool as it currently is (No toggle needed here) - Complete
+	8. Under the "My Profiles - Edit" Section; The primary and secondary profiles under "edit" need to be identical - Complete
+	9. Under the "My Profiles - Edit" Section; Can we work on the "Section Order" - Need to discuss options here - Complete
+	
+	Advisor Control Panel (Proposed new layout - Restructure) - "My Profiles" - Stays As is) - Complete
+	Tool-box  (As a dropdown) (All calculators) - Complete
+		• Standard Calculator - Complete
+		• Exchange Rate Calculator - Complete
+		• SA Tax Calculator - Complete
+		• Compound interest Calculator - Complete
+		• Forex Calculator - Complete
+		• Vehicle & Asset Calculator - Complete
+		• Bond / Home-loan Calculator - Complete
+		• Retirement Savings Calculator - Complete
+		• Emergency Fund Calculator - Complete
+		• Life Cover Needs Calculator - Complete
+		• Debit Pay Off Calculator - Complete
+	
+	My Platforms (As a dropdown)
+		• My Liberty - Complete
+		• My Stanlib - Complete
+		• My SigningHub - Complete
+		• Scan Documents (This tool need to be updated) - Name change to "My Documents" - Complete
+		• Financial Media (Currently as an option, under the Toolbox - What is this for? Maybe old function - Is this the option driving the Live news feeds?) - Complete
+	
+	My Displays (As a new dropdown entirely) - Toggles for what the advisor would like to display on their Control Panel Home or not?) - With possibly a sort function, so they can move what they would like to display before others and so on?
+		• Live News Feed #1 (Display) Currently shows when new profile created - Complete
+		• Live News Feed #2 (Display) - Complete
+		• Live Exchange rates (Display) - Complete
+		• Live Markets - Complete
+		• Daily Quotes - Complete
+		• Financial Facts of the day (Display) - Complete
+		• Financial Calander (Combine What's Coming Up?) - What's Coming Up Display (Combine with Calander?) - Complete
+		• Client Birthday/Re-views (Display) Currently shows when new profile created - Complete
+		• My Stats (Display) Currently shows when new profile created - Complete
+		• Emergency Contacts (Display) - Complete
+	
+	Interactive Financial Tools  (As a dropdown) - Then each as their own drop-down
+		• The Real Money Squeeze - Complete
+		• The Tax Bite - Complete
+		• Inflation Eats Your Million - Complete
+		• The Cost Of Waiting - Complete
+		• 30 year Reality Check - Complete
+		• The Latte Millionaire - Complete
+	
+	____________________________________________________________________________________________________________________
+	
+	Profile Edit/Page Elements (Public Facing)
+	
+	Can remain exactly as is; (Headers/Sections) - As toggles etc - Complete
+		· Header 
+		· Profile Picture 
+		· Header Image
+		· Share Asset 
+		· Intro & Bio 
+		· Individual Services 
+		· Corporate Services 
+		· Social Links 
+		· Contact Details 
+		· Admin Notes (My Profile Notes) - Complete
+		· Theme - Complete
+		· Section Order - Complete
+		· Background Pattern - Complete
+	
+	Profile Elements (As a new drop-down?) - Name Change 
+		· QR Code - Complete
+		· Call Back Link - Complete
+		· Refer Friends Link - Complete
+		· Complimentary Will Link - Complete
+	
+	Profile Displays (As a new drop-down?) - Name Change  
+		· Live News Feed #1 - Complete
+		· Live News Feed #2 - Complete
+		· Live Exchange rates - Complete
+		· Live Markets (Trading View) - Complete
+		· Financial Facts of the day - Complete
+		· Daily Quote (Needs to be toggle - Then selection) - Complete
+		· Financial Calander  - (Combine with What's coming up) - Fix name
+		· Emergency Contacts - Complete
+		· Scan Documents (Needs to be added - Or maybe not added?) - Complete
+	
+	Interactive Financial Tools (As it currently is)
+		· The Real Money Squeeze - Complete
+		· The Tax Bite - Complete
+		· Inflation Eats Your Million - Complete
+		· The Cost Of Waiting - Complete
+		· 30 year Reality Check - Complete
+		· The Latte Millionaire - Complete
+	
+	Financial Tools (As it currently is? - As a toggle)
+		· Standard Calculator (Needs to be added / Carried over) - Complete
+		· Exchange Rate Calculator - Complete
+		· Compound Interest Calculator - Complete
+		· Forex Calculator (Needs to be added / Carried over) - Complete
+		· Retirement Savings Calculator 
+		· SA Tax Calculator - Complete
+		· Vehicle & Asset Calculator - Complete
+		· Bond / Home-loan Calculator - Complete
+		· Emergency Fund Calculator - Complete
+		· Life Cover Needs Calculator - Complete
+		· Debit Pay Off Calculator - Complete
+	
+	Remove from edit entirely - Complete
+		1. My Liberty (Remove entirely) - Complete
+		· My Stanlib (Remove entirely) - Complete
+		· My Signing Hub (Remove entirely) - Complete
+		· My E-mail (Remove entirely) - Complete
+	
+Discuss with team; 
+	1. Remove duplicate forex API call (Forex Exchange Rates) - Need to confirm complete
+	2. Play Store TWA Submission - Generate the Trusted Web Activity wrapper using PWABuilder (advisoryconnect.pro manifest is already clean). Outstanding checklist: assetlinks.json domain verification file, Play Developer account ($25), app screenshots, Privacy Policy URL (already live) - In Progress (Stew Actioning)
+	3. Build in Dummy Function (Presentation Purposes/working towards) - Astute online (Single user - Multiple users - Associated Organisation) - Build in skeleton (Demo) - Popi OTP Signed Dummy Function? - Maybe just far enough that the Advisor can pull an Astute
+	4. Build in Dummy Function (Presentation Purposes/working towards) -  "Book of Life" - Shared Code (ICE - Access to all NB document? - Upload and store that client's policy documents (Both ways) - [Latest Will & Testimony | Medical Aid Details | Insurance Details | Life Cover | Risk Cover]
+	5. Risk Profile Quiz (Per document sent from Zeeman) - [Discuss Options with team  - Stew to send document]
+		○ 6-8 questions, visitor gets a risk score (Conservative / Moderate / Aggressive)
+		○ Score is included with their lead submission
+		○ Advisor immediately knows the quality and nature of the lead
+		○ This is used by every major SA fund house (Advisors know exactly what it is)
+		○ Huge competitive differentiator
+	6. Game of the Day; Gives visitors a reason to return to the advisor's profile every day, which is genuinely rare for a financial platform. (Add a high-score somewhere maybe?) - Focus Sudoku Only for now
+		○ Sudoku - Best choice to start. Library exists, seed-based (same puzzle everyone gets on Monday, different on Tuesday), no server cost
+		○ Wordle-style daily word - Actually better than crossword. Lower complexity, massive cultural familiarity right now
+		○ Daily Finance Trivia - question (finance/investment themed) would be incredible here — same "sticky daily" mechanic but reinforces the advisor's expertise. "Which SA company became the first to list on the JSE in 1887?" One question, reveal at midnight.
+		
+Current Build Session 22-23/05:
+	• Show Trading View - In Progress, built in and showing on cards once toggled - Partially showing (Needs work)
+	• 20 background pattern images uploaded, 8 selected, registry updated - 8 Selected & Registry updated - In Progress - Not available under "Edit Profile" 
+	• Task #28 — Digital Business Card (client/src/lib/businessCard.ts — portrait + square, share dialog, theme colours) - In Progress (Initials Copying onto card - Incorrect location)
+	• Background pattern explorer (mock-up sandbox + 8 pattern components) - In Progress / Not done
+	• Neaten up and re-size wording for "Save to home page" Under Profile settings - In Progress - Not complete 
+	• The billing Tab is not loading now? - In Progress (Still not working)
+	• Please fix the wording on the subscription billing breakdowns - Remove wording (un-deletable) + white-label feel - In Progress - Not complete 
+	• DNS records on advisoryconnect.pro (SPF/DKIM/DMARC) — In Progress / Not done (Stew Action!)
+	• My Documents (My Platforms) — Camera only. Edit Profile version has camera + file upload. These should match - file upload needs to be added to the ScanDocumentsCard component. - In Progress - Not complete 
+	• My Email - Currently just a mailto: link. A richer version (lead inbox view or compose shortcut) can come later. - In Progress - Not complete 
+	• Media Links - Missing the live MoneyWeb articles feed from the old Financial Media section. Can be added back to MediaLinksCard as a collapsible section. - In Progress - Not complete 
+	• Localisation Translation Review - Audit all user-facing wording across the app — dropdowns, form labels, button text, error messages — and confirm SA English consistency ahead of final deployment. (Afrikaans & Zulu translations need to be checked/confirmed through-out.) - In Progress - Not complete 
