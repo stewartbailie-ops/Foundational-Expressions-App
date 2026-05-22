@@ -6368,6 +6368,128 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   );
 }
 
+function getEasterCalc(year: number) {
+  const a = year % 19, b = Math.floor(year / 100), c = year % 100;
+  const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
+  const g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  const i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7;
+  const m = Math.floor((a + 11 * h + 22 * l) / 451);
+  return new Date(year, Math.floor((h + l - 7 * m + 114) / 31) - 1, ((h + l - 7 * m + 114) % 31) + 1);
+}
+function getSAHolidaysCalc(year: number): Record<string, string> {
+  const easter = getEasterCalc(year);
+  const gf = new Date(easter); gf.setDate(easter.getDate() - 2);
+  const fd = new Date(easter); fd.setDate(easter.getDate() + 1);
+  const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  return {
+    [`${year}-01-01`]: "New Year's Day", [`${year}-03-21`]: "Human Rights Day",
+    [fmt(gf)]: "Good Friday", [fmt(fd)]: "Family Day", [`${year}-04-27`]: "Freedom Day",
+    [`${year}-05-01`]: "Workers' Day", [`${year}-06-16`]: "Youth Day",
+    [`${year}-08-09`]: "National Women's Day", [`${year}-09-24`]: "Heritage Day",
+    [`${year}-12-16`]: "Day of Reconciliation", [`${year}-12-25`]: "Christmas Day", [`${year}-12-26`]: "Day of Goodwill",
+  };
+}
+const CAL_MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const CAL_DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
+
+function FullCalendarCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const today = new Date();
+  const [calYear, setCalYear] = useState(today.getFullYear());
+  const [calMonth, setCalMonth] = useState(today.getMonth());
+  const saHolidays = getSAHolidaysCalc(calYear);
+  const calFirstDay = new Date(calYear, calMonth, 1).getDay();
+  const calDaysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const calPrevMonth = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); };
+  const calNextMonth = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); };
+  const holidaysThisMonth = Object.entries(saHolidays).filter(([k]) => k.startsWith(`${calYear}-${String(calMonth+1).padStart(2,'0')}`));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <button type="button" onClick={calPrevMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>
+          <ChevronDown className="h-4 w-4 rotate-90" />
+        </button>
+        <p className="text-sm font-semibold" style={{ color: tc.textColor }}>{CAL_MONTH_NAMES[calMonth]} {calYear}</p>
+        <button type="button" onClick={calNextMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>
+          <ChevronDown className="h-4 w-4 -rotate-90" />
+        </button>
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {CAL_DAY_NAMES.map(d => (
+          <div key={d} className="text-center text-xs font-medium py-1" style={{ color: d === "Su" || d === "Sa" ? tc.accentColor : tc.mutedText }}>{d}</div>
+        ))}
+      </div>
+      <div className="grid grid-cols-7 gap-0.5">
+        {Array.from({ length: calFirstDay }, (_, i) => <div key={`e-${i}`} />)}
+        {Array.from({ length: calDaysInMonth }, (_, i) => {
+          const day = i + 1;
+          const dateKey = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+          const isToday = dateKey === todayKey;
+          const holiday = saHolidays[dateKey];
+          const dow = (calFirstDay + i) % 7;
+          const isWeekend = dow === 0 || dow === 6;
+          return (
+            <div key={day} title={holiday || ""} className="relative text-center text-xs py-1.5 rounded-md cursor-default" style={{
+              backgroundColor: isToday ? tc.accentColor : holiday ? tc.buttonSecondaryBg : "transparent",
+              color: isToday ? tc.buttonText : holiday ? tc.accentColor : isWeekend ? tc.accentColor : tc.textColor,
+              fontWeight: isToday || holiday ? 700 : isWeekend ? 500 : 400,
+            }}>
+              {day}
+              {holiday && <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full" style={{ backgroundColor: tc.accentColor }} />}
+            </div>
+          );
+        })}
+      </div>
+      {holidaysThisMonth.length > 0 && (
+        <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+          <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>Public Holidays This Month</p>
+          {holidaysThisMonth.sort(([a],[b]) => a.localeCompare(b)).map(([dateKey, name]) => {
+            const day = parseInt(dateKey.split("-")[2]);
+            return (
+              <div key={dateKey} className="flex items-center justify-between">
+                <span className="text-xs" style={{ color: tc.textColor }}>{name}</span>
+                <span className="text-xs font-medium" style={{ color: tc.mutedText }}>{day} {CAL_MONTH_NAMES[calMonth].slice(0,3)}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>SA Financial Events 2026</p>
+        {SA_FINANCIAL_EVENTS_2026.slice().sort((a, b) => a.date.localeCompare(b.date)).map((ev, idx) => {
+          const d = new Date(ev.date);
+          const isPast = d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          const colour = getCategoryColor(ev.category);
+          return (
+            <div key={`${ev.date}-${idx}`} className="flex items-start gap-2 py-1" style={{ opacity: isPast ? 0.45 : 1 }}>
+              <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full mt-0.5" style={{ backgroundColor: `${colour}22`, color: colour, minWidth: 44, textAlign: "center" }}>{ev.category}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs" style={{ color: tc.textColor }}>{ev.title}</p>
+                {ev.detail && <p className="text-[10px]" style={{ color: tc.mutedText }}>{ev.detail}</p>}
+              </div>
+              <span className="text-[10px] font-medium whitespace-nowrap" style={{ color: tc.mutedText }}>{d.getDate()} {CAL_MONTH_NAMES[d.getMonth()].slice(0,3)}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>All SA Public Holidays {calYear}</p>
+        {Object.entries(saHolidays).sort(([a],[b]) => a.localeCompare(b)).map(([dateKey, name]) => {
+          const [y, mo, d] = dateKey.split("-").map(Number);
+          const isPast = new Date(y, mo-1, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+          return (
+            <div key={dateKey} className="flex items-center justify-between" style={{ opacity: isPast ? 0.45 : 1 }}>
+              <span className="text-xs" style={{ color: tc.textColor }}>{name}</span>
+              <span className="text-xs font-medium" style={{ color: tc.mutedText }}>{d} {CAL_MONTH_NAMES[mo-1].slice(0,3)}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function ScanDocumentsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -6524,9 +6646,9 @@ function DisplaysTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   const ls = { color: tc.mutedText };
 
   const sections: Array<{ key: string; title: string; subtitle: string; content: React.ReactNode }> = [
-    { key: "tv",  title: "Live Markets",       subtitle: "Real-time JSE & global market data.",                      content: <TradingViewSection tc={tc} advisor={advisor} /> },
-    { key: "dq",  title: "Daily Quote",        subtitle: "Inspirational financial quote, updated daily.",             content: <DailyQuoteSection tc={tc} advisor={advisor} /> },
-    { key: "cal", title: "Financial Calendar", subtitle: "SA public holidays, SARB MPC, SARS & JSE dates.",           content: <FinancialCalendarSection tc={tc} /> },
+    { key: "tv",  title: "Live Markets",       subtitle: "Real-time JSE & global market data.",             content: <TradingViewSection tc={tc} advisor={advisor} /> },
+    { key: "dq",  title: "Daily Quote",        subtitle: "Inspirational financial quote, updated daily.",   content: <DailyQuoteSection tc={tc} advisor={advisor} /> },
+    { key: "cal", title: "Financial Calendar", subtitle: "SA public holidays, SARB MPC, SARS & JSE dates.", content: <FullCalendarCard tc={tc} /> },
   ];
 
   return (
@@ -6545,11 +6667,12 @@ function DisplaysTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
               <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${open[s.key] ? "rotate-180" : ""}`} style={ls} />
             </button>
           </div>
-          {open[s.key] && (
-            <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+          {/* Always mounted so TradingView script initialises immediately — collapsed via overflow+maxHeight */}
+          <div style={{ overflow: "hidden", maxHeight: open[s.key] ? "9999px" : "0px", borderTop: open[s.key] ? `1px solid ${tc.borderColor}` : undefined }}>
+            <div className="px-4 pb-4 pt-3">
               {s.content}
             </div>
-          )}
+          </div>
         </div>
       ))}
     </div>
