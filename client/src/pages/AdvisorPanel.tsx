@@ -704,7 +704,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
   // M5(b): added "interactive" — 4th accordion card on the home tab exposing the
   // 6 interactive showpiece toggles (Squeeze / Tax Bite / Inflation / Waiting /
   // Reality / Latte) so the advisor can flip them without opening Profiles.
-  const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | "interactive" | null>(null);
+  const [expanded, setExpanded] = useState<"profiles" | "toolbox" | "platforms" | "displays" | "interactive" | null>(null);
 
   const { data: advisorStats } = useQuery<{
     totalLeads: number; totalReferrals: number; totalCallbacks: number; totalWillRequests: number;
@@ -757,10 +757,11 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
     .sort((a, b) => HOME_GRADE_ORDER.indexOf(a.grade) - HOME_GRADE_ORDER.indexOf(b.grade));
 
   const sections = [
-    { key: "profiles" as const,    label: "Profiles",         desc: "Edit your contact card & additional profiles", icon: Layers,     accent: "#3B82F6" },
-    { key: "toolbox" as const,     label: "Toolbox",          desc: "Calculators, calendars & quick tools",         icon: Calculator, accent: "#10B981" },
-    { key: "platforms" as const,   label: "Platforms",        desc: "Manage your provider platform links",          icon: Globe,      accent: "#8B5CF6" },
-    { key: "interactive" as const, label: "Interactive Tools", desc: "Showpieces — Squeeze, Tax Bite, Inflation, Waiting, Reality, Latte", icon: Zap, accent: "#F59E0B" },
+    { key: "profiles" as const,    label: "Profiles",                    desc: "Edit your contact card & additional profiles",           icon: Layers,     accent: "#3B82F6" },
+    { key: "toolbox" as const,     label: "Toolbox",                     desc: "All financial calculators",                              icon: Calculator, accent: "#10B981" },
+    { key: "platforms" as const,   label: "My Platforms",                desc: "Platforms, documents, media & email",                   icon: Globe,      accent: "#8B5CF6" },
+    { key: "displays" as const,    label: "My Displays",                 desc: "Live markets, daily quotes & financial calendar",        icon: Eye,        accent: "#EC4899" },
+    { key: "interactive" as const, label: "Interactive Financial Tools", desc: "Squeeze, Tax Bite, Inflation, Waiting, Reality, Latte", icon: Zap,        accent: "#F59E0B" },
   ];
 
   return (
@@ -809,7 +810,8 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                 <div className="p-4 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
                   {s.key === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
                   {s.key === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
-                  {s.key === "platforms" && <PlatformsTab tc={tc} />}
+                  {s.key === "platforms" && <PlatformsTab advisor={advisor} tc={tc} />}
+                  {s.key === "displays" && <DisplaysTab advisor={advisor} tc={tc} />}
                   {s.key === "interactive" && <InteractiveToolsTab advisor={advisor} tc={tc} />}
                 </div>
               )}
@@ -5127,36 +5129,31 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   // up the new bond/emergency/lifecover/debt/myemail entries (T#43) plus
   // pubtv/pubdq/pubcc/pubret/pubcal (T#42 — Live Markets, Daily Quotes,
   // Compound, Retirement, Financial Calendar) rather than having them silently
-  // filtered out of their saved order. (Pension/CGT removed in W1 T1; the
-  // ordering migration safely drops any saved "pension"/"cgt" entries.)
-  const DEFAULT_TOOL_ORDER = ["pubtv", "pubdq", "pubcc", "pubret", "pubcal", "tax", "er", "ci", "vehicle", "bond", "emergency", "lifecover", "debt", "std", "forex", "scan", "myemail", "cal", "media"];
+  // Restructure (May 2026): Toolbox is now calculators-only. Displays (TradingView,
+  // Daily Quote, Financial Calendar), scan, media and myemail moved to My Displays
+  // and My Platforms dropdowns. Storage key bumped to _v4; migration drops the
+  // moved keys automatically via the allowed-set filter.
+  const DEFAULT_TOOL_ORDER = ["std", "er", "tax", "ci", "forex", "vehicle", "bond", "pubret", "emergency", "lifecover", "debt"];
   const [organizing, setOrganizing] = useState(false);
   const [toolOrder, setToolOrder] = useState<string[]>(() => {
     try {
-      // Prefer the new key. If absent, perform a one-time, lossless migration
-      // from the legacy key: keep any items the advisor reordered, drop any
-      // unknown IDs, then append any defaults they don't have so new tools
-      // don't get hidden. Only the migration writes the new key — keeps the
-      // legacy key untouched until next reorder, in case of rollback.
-      const v3 = localStorage.getItem("advisorToolboxOrder_v3");
-      if (v3) {
+      const v4 = localStorage.getItem("advisorToolboxOrder_v4");
+      if (v4) {
         const allowed = new Set(DEFAULT_TOOL_ORDER);
-        const parsed: string[] = JSON.parse(v3);
+        const parsed: string[] = JSON.parse(v4);
         const cleaned = parsed.filter(k => allowed.has(k));
         const merged = [...cleaned];
         for (const k of DEFAULT_TOOL_ORDER) if (!merged.includes(k)) merged.push(k);
         return merged;
       }
-      const v2 = localStorage.getItem("advisorToolboxOrder_v2");
-      const v1 = localStorage.getItem("advisorToolboxOrder");
-      const source = v2 || v1;
-      if (source) {
+      // Migrate from any older key — strip moved items, append new ones.
+      const legacy = localStorage.getItem("advisorToolboxOrder_v3") || localStorage.getItem("advisorToolboxOrder_v2") || localStorage.getItem("advisorToolboxOrder");
+      if (legacy) {
         const allowed = new Set(DEFAULT_TOOL_ORDER);
-        const legacy: string[] = JSON.parse(source);
-        const cleaned = legacy.filter(k => allowed.has(k));
+        const cleaned = (JSON.parse(legacy) as string[]).filter(k => allowed.has(k));
         const merged = [...cleaned];
         for (const k of DEFAULT_TOOL_ORDER) if (!merged.includes(k)) merged.push(k);
-        localStorage.setItem("advisorToolboxOrder_v3", JSON.stringify(merged));
+        localStorage.setItem("advisorToolboxOrder_v4", JSON.stringify(merged));
         return merged;
       }
       return DEFAULT_TOOL_ORDER;
@@ -5170,7 +5167,7 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
       const swapIdx = idx + dir;
       if (swapIdx < 0 || swapIdx >= next.length) return prev;
       [next[idx], next[swapIdx]] = [next[swapIdx], next[idx]];
-      localStorage.setItem("advisorToolboxOrder_v3", JSON.stringify(next));
+      localStorage.setItem("advisorToolboxOrder_v4", JSON.stringify(next));
       return next;
     });
   };
@@ -5558,9 +5555,10 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     </div>
   );
 
-  const sectionStyle = (key: string) => ({
-    ...cs, order: toolOrder.includes(key) ? toolOrder.indexOf(key) : 999
-  });
+  const sectionStyle = (key: string) => {
+    const inOrder = toolOrder.includes(key);
+    return { ...cs, order: inOrder ? toolOrder.indexOf(key) : 999, ...(inOrder ? {} : { display: "none" }) };
+  };
 
   const SectionHeader = ({ sectionKey, title, subtitle }: { sectionKey: keyof typeof openSections; icon?: React.ReactNode; title: string; subtitle: string }) => (
     <div className="flex items-center gap-2">
@@ -6370,13 +6368,205 @@ function ToolboxTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   );
 }
 
+function ScanDocumentsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const scanCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [scanStream, setScanStream] = useState<MediaStream | null>(null);
+  const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanPhase, setScanPhase] = useState<"idle" | "streaming" | "captured">("idle");
+
+  const startScan = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      setScanStream(stream);
+      setScanPhase("streaming");
+      setTimeout(() => { if (videoRef.current) { videoRef.current.srcObject = stream; videoRef.current.play(); } }, 50);
+    } catch { }
+  };
+  const captureScan = () => {
+    if (!videoRef.current || !scanCanvasRef.current) return;
+    const v = videoRef.current;
+    const c = scanCanvasRef.current;
+    c.width = v.videoWidth || 1280; c.height = v.videoHeight || 720;
+    const ctx = c.getContext("2d");
+    if (ctx) { ctx.drawImage(v, 0, 0); setScanImage(c.toDataURL("image/png")); }
+    scanStream?.getTracks().forEach(t => t.stop());
+    setScanStream(null);
+    setScanPhase("captured");
+  };
+  const downloadScan = () => {
+    if (!scanImage) return;
+    const a = document.createElement("a"); a.href = scanImage; a.download = `scan-${Date.now()}.png`; a.click();
+  };
+  const shareScan = async () => {
+    if (!scanImage) return;
+    if (navigator.share && navigator.canShare?.({ files: [] })) {
+      const res = await fetch(scanImage); const blob = await res.blob();
+      const file = new File([blob], `scan-${Date.now()}.png`, { type: "image/png" });
+      try { await navigator.share({ files: [file], title: "Scanned Document" }); return; } catch { }
+    }
+    downloadScan();
+  };
+
+  return (
+    <div className="space-y-3">
+      <canvas ref={scanCanvasRef} style={{ display: "none" }} />
+      {scanPhase === "idle" && (
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+            <Camera className="h-8 w-8" style={{ color: tc.accentColor }} />
+          </div>
+          <p className="text-xs text-center leading-relaxed" style={{ color: tc.mutedText }}>Point your camera at a document to capture it — works best in good lighting.</p>
+          <button type="button" onClick={startScan}
+            className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+            <Camera className="h-4 w-4" /> Open Camera
+          </button>
+        </div>
+      )}
+      {scanPhase === "streaming" && (
+        <div className="space-y-3">
+          <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+            <video ref={videoRef} autoPlay playsInline muted className="w-full" style={{ display: "block", maxHeight: "300px", objectFit: "cover", background: "#000" }} />
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={() => { scanStream?.getTracks().forEach(t => t.stop()); setScanStream(null); setScanPhase("idle"); }}
+              className="flex-1 py-2.5 rounded-xl text-xs font-medium" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+              Cancel
+            </button>
+            <button type="button" onClick={captureScan}
+              className="flex-1 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2"
+              style={{ backgroundColor: tc.accentColor, color: tc.isDark ? "#000" : "#fff" }}>
+              <Camera className="h-4 w-4" /> Capture
+            </button>
+          </div>
+        </div>
+      )}
+      {scanPhase === "captured" && scanImage && (
+        <div className="space-y-3">
+          <div className="rounded-xl overflow-hidden" style={{ border: `2px solid ${tc.accentColor}` }}>
+            <img src={scanImage} alt="Captured document" className="w-full" style={{ display: "block", maxHeight: "300px", objectFit: "contain", background: "#000" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={downloadScan}
+              className="py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}>
+              <Download className="h-3.5 w-3.5" /> Download
+            </button>
+            <button type="button" onClick={shareScan}
+              className="py-2.5 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.accentColor}` }}>
+              <ExternalLink className="h-3.5 w-3.5" /> Share
+            </button>
+          </div>
+          <button type="button" onClick={() => { setScanImage(null); setScanPhase("idle"); }}
+            className="w-full py-2.5 rounded-xl text-xs font-medium"
+            style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>
+            Scan Another
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MediaLinksCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [newsUrl, setNewsUrl] = useState((advisor as any).financialsNewsUrl || "");
+  const [factsUrl, setFactsUrl] = useState((advisor as any).financialsFunFactsUrl || "");
+  const [videosUrl, setVideosUrl] = useState((advisor as any).financialsVideosUrl || "");
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiRequest("PATCH", `/api/advisors/${advisor.id}`, {
+        financialsNewsUrl: newsUrl || null,
+        financialsFunFactsUrl: factsUrl || null,
+        financialsVideosUrl: videosUrl || null,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const is = { backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` };
+  const ls = { color: tc.mutedText };
+
+  return (
+    <div className="space-y-3">
+      <p className="text-xs leading-relaxed" style={ls}>Set media links — these populate your public profile and can be copied and shared to socials.</p>
+      {[
+        { label: "Latest Financial News", val: newsUrl, set: setNewsUrl },
+        { label: "Daily Financial Facts", val: factsUrl, set: setFactsUrl },
+        { label: "Financial Tutorial Videos", val: videosUrl, set: setVideosUrl },
+      ].map(({ label, val, set }) => (
+        <div key={label} className="space-y-1">
+          <label className="text-xs font-medium" style={ls}>{label}</label>
+          <input type="url" value={val} onChange={e => set(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={is} />
+        </div>
+      ))}
+      <button onClick={handleSave} disabled={saving}
+        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium hover:opacity-70"
+        style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+        {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : saved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
+        {saved ? "Saved!" : "Save Links"}
+      </button>
+    </div>
+  );
+}
+
+function DisplaysTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({ tv: false, dq: false, cal: false });
+  const toggle = (key: string) => setOpen(p => ({ ...p, [key]: !p[key] }));
+  const ls = { color: tc.mutedText };
+
+  const sections: Array<{ key: string; title: string; subtitle: string; content: React.ReactNode }> = [
+    { key: "tv",  title: "Live Markets",       subtitle: "Real-time JSE & global market data.",                      content: <TradingViewSection tc={tc} advisor={advisor} /> },
+    { key: "dq",  title: "Daily Quote",        subtitle: "Inspirational financial quote, updated daily.",             content: <DailyQuoteSection tc={tc} advisor={advisor} /> },
+    { key: "cal", title: "Financial Calendar", subtitle: "SA public holidays, SARB MPC, SARS & JSE dates.",           content: <FinancialCalendarSection tc={tc} /> },
+  ];
+
+  return (
+    <div className="flex flex-col gap-3 pb-6">
+      <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <p className="text-xs leading-relaxed" style={ls}>Your live market widget, daily quote and financial calendar — as they appear on your public profile.</p>
+      </div>
+      {sections.map(s => (
+        <div key={s.key} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="p-4">
+            <button type="button" onClick={() => toggle(s.key)} className="w-full flex items-center justify-between text-left">
+              <div>
+                <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{s.title}</h3>
+                <p className="text-xs mt-0.5" style={ls}>{s.subtitle}</p>
+              </div>
+              <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${open[s.key] ? "rotate-180" : ""}`} style={ls} />
+            </button>
+          </div>
+          {open[s.key] && (
+            <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              {s.content}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 const PLATFORM_ICON_MAP: Record<string, any> = {
   liberty: Building2,
   stanlib: TrendingUp,
   signinghub: FileCheck,
 };
 
-function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+function PlatformsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
+  const [open, setOpen] = useState<Record<string, boolean>>({ scan: false, email: false, media: false, platforms: false });
+  const toggle = (key: string) => setOpen(p => ({ ...p, [key]: !p[key] }));
+  const ls = { color: tc.mutedText };
+
   const platforms = PLATFORMS_META.map(p => ({
     key: p.key,
     name: p.name,
@@ -6386,43 +6576,102 @@ function PlatformsTab({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
     Icon: PLATFORM_ICON_MAP[p.key],
   }));
 
+  const sections: Array<{ key: string; title: string; subtitle: string; content: React.ReactNode }> = [
+    {
+      key: "scan",
+      title: "My Documents",
+      subtitle: "Scan, capture and share documents using your camera.",
+      content: <ScanDocumentsCard tc={tc} />,
+    },
+    {
+      key: "email",
+      title: "My Email",
+      subtitle: `Compose to ${advisor.email || "your inbox"}.`,
+      content: (
+        <div className="space-y-3">
+          <p className="text-xs leading-relaxed" style={ls}>One-tap shortcut to compose to your own primary email — handy when you need to forward something to yourself.</p>
+          <a
+            href={advisor.email ? `mailto:${advisor.email}` : "#"}
+            className="w-full block text-center py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
+            style={{ backgroundColor: tc.accentColor, color: tc.isDark ? "#000" : "#fff" }}>
+            <Mail className="h-4 w-4 inline mr-1.5" /> Open Email to {advisor.email || "—"}
+          </a>
+        </div>
+      ),
+    },
+    {
+      key: "media",
+      title: "Media Links",
+      subtitle: "Financial news, facts and video links for your profile.",
+      content: <MediaLinksCard advisor={advisor} tc={tc} />,
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-          Quick-access links to your key financial platforms. These open in a new browser tab.
-        </p>
-      </div>
-      {platforms.map(p => (
-        <a
-          key={p.key}
-          href={p.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block rounded-xl p-5 transition-opacity hover:opacity-90 active:scale-95"
-          style={{ backgroundColor: tc.cardBg, border: `2px solid ${tc.borderColor}` }}
-          data-testid={`link-platform-${p.key}`}
-        >
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
-              style={{ backgroundColor: p.color + "22", border: `2px solid ${p.color}44` }}>
-              <p.Icon className="h-6 w-6" style={{ color: p.color }} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold" style={{ color: tc.textColor }}>{p.name}</h3>
-                <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.mutedText }} />
+    <div className="flex flex-col gap-3 pb-6">
+      {sections.map(s => (
+        <div key={s.key} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="p-4">
+            <button type="button" onClick={() => toggle(s.key)} className="w-full flex items-center justify-between text-left">
+              <div>
+                <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{s.title}</h3>
+                <p className="text-xs mt-0.5" style={ls}>{s.subtitle}</p>
               </div>
-              <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>{p.description}</p>
+              <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${open[s.key] ? "rotate-180" : ""}`} style={ls} />
+            </button>
+          </div>
+          {open[s.key] && (
+            <div className="px-4 pb-4 pt-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+              {s.content}
             </div>
-          </div>
-          <div className="mt-4 py-2.5 rounded-lg text-center text-xs font-semibold inline-flex items-center justify-center gap-1.5 w-full"
-            style={{ backgroundColor: p.color, color: "#fff" }}>
-            Open {p.name}
-            <ArrowRight className="h-3.5 w-3.5" />
-          </div>
-        </a>
+          )}
+        </div>
       ))}
+      <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="p-4">
+          <button type="button" onClick={() => toggle("platforms")} className="w-full flex items-center justify-between text-left">
+            <div>
+              <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>My Platforms</h3>
+              <p className="text-xs mt-0.5" style={ls}>Quick-access to Liberty, Stanlib and SigningHub.</p>
+            </div>
+            <ChevronDown className={`h-4 w-4 flex-shrink-0 ml-3 transition-transform duration-200 ${open["platforms"] ? "rotate-180" : ""}`} style={ls} />
+          </button>
+        </div>
+        {open["platforms"] && (
+          <div className="px-4 pb-4 pt-3 space-y-3" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            {platforms.map(p => (
+              <a
+                key={p.key}
+                href={p.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-xl p-5 transition-opacity hover:opacity-90 active:scale-95"
+                style={{ backgroundColor: tc.cardBg, border: `2px solid ${tc.borderColor}` }}
+                data-testid={`link-platform-${p.key}`}
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
+                    style={{ backgroundColor: p.color + "22", border: `2px solid ${p.color}44` }}>
+                    <p.Icon className="h-6 w-6" style={{ color: p.color }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-bold" style={{ color: tc.textColor }}>{p.name}</h3>
+                      <ExternalLink className="h-3.5 w-3.5 flex-shrink-0" style={{ color: tc.mutedText }} />
+                    </div>
+                    <p className="text-xs mt-1 leading-relaxed" style={{ color: tc.mutedText }}>{p.description}</p>
+                  </div>
+                </div>
+                <div className="mt-4 py-2.5 rounded-lg text-center text-xs font-semibold inline-flex items-center justify-center gap-1.5 w-full"
+                  style={{ backgroundColor: p.color, color: "#fff" }}>
+                  Open {p.name}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

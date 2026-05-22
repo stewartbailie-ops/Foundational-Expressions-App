@@ -1,19 +1,10 @@
 [
-  { "key": "topo-dark",       "label": "Topographic",      "file": "topo-dark.jpg",       "tileSize": "cover", "category": "dark" },
-  { "key": "topo-red-neon",   "label": "Neon Contour",     "file": "topo-red-neon.jpg",   "tileSize": "cover", "category": "dark" },
-  { "key": "topo-purple",     "label": "Deep Contour",     "file": "topo-purple.jpg",     "tileSize": "cover", "category": "dark" },
-  { "key": "topo-crimson",    "label": "Crimson Lines",    "file": "topo-crimson.jpg",    "tileSize": "cover", "category": "dark" },
-  { "key": "mesh-dark",       "label": "Dark Mesh",        "file": "mesh-dark.jpg",       "tileSize": "cover", "category": "dark" },
-  { "key": "poly-red",        "label": "Shattered",        "file": "poly-red.jpg",        "tileSize": "cover", "category": "dark" },
-  { "key": "bubbles-dark",    "label": "Glass Bubbles",    "file": "bubbles-dark.jpg",    "tileSize": "cover", "category": "dark" },
-  { "key": "luxury-maroon",   "label": "Maroon Luxury",    "file": "luxury-maroon.jpg",   "tileSize": "cover", "category": "dark" },
-  { "key": "bars-gold",       "label": "Gold Bars",        "file": "bars-gold.jpg",       "tileSize": "cover", "category": "dark" },
-  { "key": "neon-green-veins","label": "Neon Veins",       "file": "neon-green-veins.jpg","tileSize": "cover", "category": "neon" },
-  { "key": "neon-stripes",    "label": "Neon Stripes",     "file": "neon-stripes.jpg",    "tileSize": "cover", "category": "neon" },
-  { "key": "hex-dark",        "label": "Hexagon",          "file": "hex-dark.jpg",        "tileSize": "cover", "category": "geometric" },
-  { "key": "circles-teal",    "label": "Teal Circles",     "file": "circles-teal.jpg",    "tileSize": "cover", "category": "geometric" },
-  { "key": "marble-navy",     "label": "Navy Marble",      "file": "marble-navy.jpg",     "tileSize": "cover", "category": "fluid" },
-  { "key": "bokeh-rose",      "label": "Rose Bokeh",       "file": "bokeh-rose.jpg",      "tileSize": "cover", "category": "fluid" },
-  { "key": "butterflies-glow","label": "Butterflies",      "file": "butterflies-glow.jpg","tileSize": "cover", "category": "statement" },
-  { "key": "wood-warm",       "label": "Warm Wood",        "file": "wood-warm.jpg",       "tileSize": "cover", "category": "statement" }
+  { "key": "lattice",       "label": "Lattice",      "file": "dark_3d_lattice_scaffolding.jpg",    "tileSize": "cover", "category": "neutral" },
+  { "key": "stone",         "label": "Stone",         "file": "textured_grey_stone_cubes.jpg",      "tileSize": "cover", "category": "neutral" },
+  { "key": "carbon-gold",   "label": "Carbon Gold",   "file": "maroon_carbon_fiber_gold_trim.jpg",  "tileSize": "cover", "category": "luxury"  },
+  { "key": "smoke",         "label": "Smoke",         "file": "teal_smoky_translucent_circles.jpg", "tileSize": "cover", "category": "soft"    },
+  { "key": "hextech",       "label": "Hextech",       "file": "hexagons_orange_white_black.jpg",    "tileSize": "cover", "category": "geometric"},
+  { "key": "topographic",   "label": "Topographic",   "file": "topographic_lines_red_on_black.jpg", "tileSize": "cover", "category": "organic" },
+  { "key": "pentagons",     "label": "Pentagons",     "file": "neon_outlined_pentagons_black.jpg",  "tileSize": "cover", "category": "neon"    },
+  { "key": "neon-wave",     "label": "Neon Wave",     "file": "red_neon_wave_purple_ridges.jpg",    "tileSize": "cover", "category": "neon"    }
 ]
