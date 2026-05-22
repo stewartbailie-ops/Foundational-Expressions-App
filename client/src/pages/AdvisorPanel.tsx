@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePremium } from "@/hooks/use-premium";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank, RotateCw } from "lucide-react";
+import { Loader2, LogOut, User, BarChart2, Inbox, ChevronDown, ChevronUp, Eye, Upload, X, Link as LinkIcon, Layers, Plus, Trash2, ExternalLink, Phone, MapPin, Clock, Mail, Copy, Check, Download, RefreshCw, ArrowLeft, ArrowRight, ArrowLeftRight, TrendingUp, Calculator, FileText, Camera, ArrowUp, ArrowDown, Globe, Rss, GripVertical, Settings, KeyRound, Palette, FileCheck, Save, Home, ChevronRight, CalendarDays, Heart, HeartPulse, Building2, PenTool, LifeBuoy, AlertCircle, AlertTriangle, Users, Lock, Zap, Cake, Bell, MessageSquare, Briefcase, CreditCard, ShieldCheck, UserPlus, Share2, LineChart, Quote, PiggyBank, RotateCw } from "lucide-react";
 import Cropper, { type Area as CropArea } from "react-easy-crop";
 import { TradingViewSection, DailyQuoteSection, CompoundCalcSection, RetirementCalcSection, FinancialCalendarSection } from "./AdvisorProfile";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
@@ -17,6 +17,7 @@ import { TRADINGVIEW_SYMBOLS as TRADINGVIEW_SYMBOLS_PANEL, SA_FINANCIAL_EVENTS_2
 // can render the actual widgets as a live preview (was crashing because the
 // JSX referenced these components without importing them).
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
+import { FinancialDashboard } from "@/components/tools/FinancialDashboard";
 import ColourPicker from "@/components/ColourPicker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -547,6 +548,7 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
     showInteractive: (advisor as any).showInteractive !== false,
   });
   const [expandedKey, setExpandedKey] = useState<keyof InteractiveVals | null>(null);
+  const [dashOpen, setDashOpen] = useState(true);
   const [order, setOrder] = useState<Array<InteractiveToolKey>>(() => {
     if (typeof window === "undefined") return [...DEFAULT_INTERACTIVE_ORDER];
     try {
@@ -603,6 +605,32 @@ function InteractiveToolsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType
 
   return (
     <div className="space-y-3">
+      {/* ── Financial Health Dashboard ── */}
+      <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+        <button
+          type="button"
+          onClick={() => setDashOpen(o => !o)}
+          className="flex items-center justify-between w-full px-3 py-2.5"
+          style={{ backgroundColor: tc.inputBg }}
+        >
+          <div className="flex items-center gap-2">
+            <HeartPulse className="h-4 w-4" style={{ color: tc.accentColor }} />
+            <div className="text-left">
+              <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Financial Health Dashboard</div>
+              <div className="text-[11px]" style={{ color: tc.mutedText }}>Live financial snapshot — all tools under one roof</div>
+            </div>
+          </div>
+          {dashOpen
+            ? <ChevronUp className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />
+            : <ChevronDown className="h-4 w-4 flex-shrink-0" style={{ color: tc.mutedText }} />}
+        </button>
+        {dashOpen && (
+          <div className="p-3 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <FinancialDashboard tc={tc} advisorName={advisor.name} />
+          </div>
+        )}
+      </div>
+
       <p className="text-xs" style={{ color: tc.mutedText }}>
         Master switch shows the whole "Interactive Financial Tools" section on your public profile. Each tool below has its own drop-down — tap a card to read what it does, use the arrows to reorder the list, and the toggle to show or hide it.
       </p>
