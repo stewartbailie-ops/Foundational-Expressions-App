@@ -43,11 +43,11 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://www.google.com", "https://www.gstatic.com"],
+        scriptSrc: ["'self'", "'unsafe-inline'", "https://www.google.com", "https://www.gstatic.com", "https://s3.tradingview.com", "https://s.tradingview.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "https:"],
-        frameSrc: ["https://www.google.com"],
+        frameSrc: ["https://www.google.com", "https://s.tradingview.com", "https://www.tradingview.com", "https://www.tradingview-widget.com"],
         connectSrc: ["'self'", "https:"],
         // CSP violation reporting (W1.6) — both directives emitted so old + new
         // browsers both report violations to /api/csp-report. report-uri stays

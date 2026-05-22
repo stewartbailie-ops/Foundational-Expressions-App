@@ -10,6 +10,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TITLE_OPTIONS, SUBSCRIPTION_TIERS } from "@shared/schema";
 import { AdminImageCropper } from "@/components/AdminImageCropper";
+import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
 
 function InitialsPreview({ name, size = 64 }: { name: string; size?: number }) {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -82,6 +83,8 @@ export default function CreateAdvisor() {
   const [faisAgreementUrl, setFaisAgreementUrl] = useState<string | null>(null);
   const [faisFilename, setFaisFilename] = useState<string | null>(null);
   const [faisUploading, setFaisUploading] = useState(false);
+  const [backgroundStyle, setBackgroundStyle] = useState<number>(1);
+  const [patternOpacity, setPatternOpacity] = useState<number>(50);
 
   // Step 4
   const [email, setEmail] = useState("");
@@ -177,6 +180,8 @@ export default function CreateAdvisor() {
         faisAgreementUrl: faisAgreementUrl || null,
         tosAcceptedAt: tosAccepted ? new Date().toISOString() : null,
         subscriptionTier,
+        backgroundStyle,
+        patternOpacity,
       });
       return res.json();
     },
@@ -412,6 +417,17 @@ export default function CreateAdvisor() {
                       data-testid="input-advisor-code"
                     />
                     <p className="text-xs text-muted-foreground">The advisor's unique code from your FSP / brokerage.</p>
+                  </div>
+
+                  <div className="space-y-2 pt-1">
+                    <BackgroundPatternPicker
+                      value={backgroundStyle}
+                      opacity={patternOpacity}
+                      onChange={setBackgroundStyle}
+                      onOpacityChange={setPatternOpacity}
+                      label="Starting Background Pattern"
+                    />
+                    <p className="text-xs text-muted-foreground">The advisor can change this anytime from their panel.</p>
                   </div>
 
                   <div className="space-y-1.5">

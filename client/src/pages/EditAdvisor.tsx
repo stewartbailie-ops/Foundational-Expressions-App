@@ -13,6 +13,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
+import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
 import type { Advisor } from "@shared/schema";
 import { AdminImageCropper } from "@/components/AdminImageCropper";
 
@@ -45,6 +46,8 @@ export default function EditAdvisor() {
   const [uploading, setUploading] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+  const [backgroundStyle, setBackgroundStyle] = useState<number>(1);
+  const [patternOpacity, setPatternOpacity] = useState<number>(50);
 
   useEffect(() => {
     if (advisor && !loaded) {
@@ -61,6 +64,8 @@ export default function EditAdvisor() {
       setSelectedCorporate(advisor.corporateServices || []);
       setProfilePicUrl(advisor.profilePicUrl || null);
       setIsDemo(!!(advisor as any).isDemo);
+      setBackgroundStyle(((advisor as any).backgroundStyle as number) || 1);
+      setPatternOpacity(((advisor as any).patternOpacity as number) ?? 50);
       setLoaded(true);
     }
   }, [advisor, loaded]);
@@ -123,6 +128,8 @@ export default function EditAdvisor() {
         individualServices: selectedIndividual,
         corporateServices: selectedCorporate,
         isDemo,
+        backgroundStyle,
+        patternOpacity,
       });
       return res.json();
     },
@@ -307,7 +314,14 @@ export default function EditAdvisor() {
                     <span className="text-sm font-medium">Pink</span>
                   </button>
                 </div>
+                <p className="text-xs text-muted-foreground">Advisors can pick from 12 themes inside their own panel — this only sets the starting theme.</p>
               </div>
+              <BackgroundPatternPicker
+                value={backgroundStyle}
+                opacity={patternOpacity}
+                onChange={setBackgroundStyle}
+                onOpacityChange={setPatternOpacity}
+              />
               <div className="space-y-1.5">
                 <Label>Entity Type</Label>
                 <Select value={entityType} onValueChange={setEntityType}>

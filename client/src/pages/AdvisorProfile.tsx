@@ -1934,23 +1934,26 @@ export default function AdvisorProfile() {
                   <div className="font-semibold text-sm min-w-0" style={{ color: tc.textColor }}>Save to Home Screen</div>
                   <button onClick={() => setShowInstallHint(false)} style={{ color: mutedText }} className="leading-none shrink-0" aria-label="Close"><X className="h-4 w-4" /></button>
                 </div>
+                <div className="text-[11px] uppercase tracking-wider" style={{ color: mutedText }}>
+                  {isIOS ? "iPhone · Safari" : "Android · Chrome"}
+                </div>
                 <div className="space-y-2">
                   {isIOS ? (
                     <>
-                      <Step num={1} text="Open in Safari" color={accentColor} />
-                      <Step num={2} text="Tap the Share icon" color={accentColor} />
-                      <Step num={3} text={`Choose "Add to Home Screen"`} color={accentColor} />
+                      <Step num={1} text="Tap the Share icon" color={accentColor} />
+                      <Step num={2} text={`Choose "Add to Home Screen"`} color={accentColor} />
+                      <Step num={3} text="Tap Add" color={accentColor} />
                     </>
                   ) : (
                     <>
-                      <Step num={1} text="Tap your browser menu" color={accentColor} />
-                      <Step num={2} text={`Choose "Add to Home Screen"`} color={accentColor} />
+                      <Step num={1} text="Tap the browser menu" color={accentColor} />
+                      <Step num={2} text={`Choose "Add to Home screen"`} color={accentColor} />
                       <Step num={3} text="Tap Add" color={accentColor} />
                     </>
                   )}
                 </div>
                 <p className="text-[11px] leading-snug" style={{ color: mutedText }}>
-                  Opens like an app — no store needed.
+                  Opens like an app. No store, no install.
                 </p>
               </motion.div>
             </div>

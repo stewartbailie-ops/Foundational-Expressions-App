@@ -169,6 +169,36 @@ type DrawCtx = {
   qrImg: HTMLImageElement | null;
 };
 
+function drawInitialsBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, from: string, to: string, initials: string) {
+  const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  grad.addColorStop(0, from);
+  grad.addColorStop(1, to);
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = Math.round(r * 0.18);
+  ctx.shadowOffsetY = Math.round(r * 0.06);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  // White ring
+  ctx.strokeStyle = "rgba(255,255,255,0.95)";
+  ctx.lineWidth = Math.max(3, Math.round(r * 0.06));
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  // Letters
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold ${Math.round(r * 0.95)}px Georgia, "Times New Roman", serif`;
+  ctx.fillText(((initials[0] || "") + (initials[1] || "")) || "AC", cx, cy + Math.round(r * 0.05));
+  ctx.restore();
+}
+
 function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: DrawCtx) {
   const { advisor, from, to, photoImg, logoImg, qrImg } = c;
   const PHOTO_H = Math.round(H * 0.55); // ~1056
@@ -181,6 +211,9 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
     grad.addColorStop(1, "rgba(0,0,0,0.82)");
     ctx.fillStyle = grad;
     ctx.fillRect(0, PHOTO_H - 420, W, 420);
+    // Always-on initials badge (top-left), even with photo — brand mark.
+    const R = Math.round(W * 0.085);
+    drawInitialsBadge(ctx, 60 + R, 60 + R, R, from, to, initials);
   } else {
     drawInitialsBlock(ctx, 0, 0, W, PHOTO_H, from, to, initials);
   }
@@ -255,6 +288,9 @@ function drawSquare(ctx: CanvasRenderingContext2D, W: number, H: number, c: Draw
 
   if (photoImg) {
     drawCoverPhoto(ctx, 0, 0, LEFT_W, BODY_H, photoImg);
+    // Always-on initials badge (top-left) for brand consistency.
+    const R = Math.round(LEFT_W * 0.14);
+    drawInitialsBadge(ctx, 36 + R, 36 + R, R, from, to, initials);
   } else {
     drawInitialsBlock(ctx, 0, 0, LEFT_W, BODY_H, from, to, initials);
   }

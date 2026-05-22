@@ -30,6 +30,7 @@ import { NewsHero } from "@/components/NewsHero";
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
+import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
 import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
@@ -3590,31 +3591,14 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Background Pattern</h3>
-        <div className="grid grid-cols-3 gap-2">
-          {BACKGROUND_STYLE_OPTIONS.map(opt => (
-            <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
-              className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
-              style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {backgroundStyle > 1 && (
-          <div className="space-y-1.5 pt-1">
-            <div className="flex justify-between items-center">
-              <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
-              <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
-            </div>
-            <input type="range" min={5} max={100} step={5} value={patternOpacity}
-              onChange={e => setPatternOpacity(parseInt(e.target.value))}
-              className="w-full" style={{ accentColor: tc.accentColor }}
-            />
-            <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
-              <span>Barely visible</span><span>Solid</span>
-            </div>
-          </div>
-        )}
+        <BackgroundPatternPicker
+          value={backgroundStyle}
+          opacity={patternOpacity}
+          onChange={setBackgroundStyle}
+          onOpacityChange={setPatternOpacity}
+          label=""
+          colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
+        />
       </div>
 
       <button
@@ -4532,33 +4516,13 @@ function AdditionalProfileForm({
         </div>
 
         {/* M6 parity: Background Pattern is the LAST section (matching primary). */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Background Pattern</label>
-          <div className="grid grid-cols-3 gap-2">
-            {BACKGROUND_STYLE_OPTIONS.map(opt => (
-              <button key={opt.value} onClick={() => setBackgroundStyle(opt.value)}
-                className="rounded-lg border-2 py-2 px-1 text-center transition-all text-xs font-medium"
-                style={{ borderColor: backgroundStyle === opt.value ? tc.accentColor : tc.borderColor, color: backgroundStyle === opt.value ? tc.accentColor : tc.mutedText, backgroundColor: backgroundStyle === opt.value ? tc.buttonSecondaryBg : "transparent" }}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          {backgroundStyle > 1 && (
-            <div className="space-y-1.5 pt-1">
-              <div className="flex justify-between items-center">
-                <span className="text-xs" style={{ color: tc.mutedText }}>Pattern Intensity</span>
-                <span className="text-xs font-medium" style={{ color: tc.accentColor }}>{patternOpacity}%</span>
-              </div>
-              <input type="range" min={5} max={100} step={5} value={patternOpacity}
-                onChange={e => setPatternOpacity(parseInt(e.target.value))}
-                className="w-full" style={{ accentColor: tc.accentColor }} />
-              <div className="flex justify-between text-xs" style={{ color: tc.mutedText }}>
-                <span>Barely visible</span><span>Solid</span>
-              </div>
-            </div>
-          )}
-        </div>
+        <BackgroundPatternPicker
+          value={backgroundStyle}
+          opacity={patternOpacity}
+          onChange={setBackgroundStyle}
+          onOpacityChange={setPatternOpacity}
+          colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
+        />
 
         <div className="flex gap-2 pt-1">
           <button onClick={onDone} className="flex-1 py-2.5 rounded-xl text-sm font-medium"
@@ -7931,8 +7895,9 @@ type BillingStatus = {
 function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: status, isLoading } = useQuery<BillingStatus>({
+  const { data: status, isLoading, error, refetch } = useQuery<BillingStatus>({
     queryKey: ["/api/billing/status"],
+    retry: 1,
   });
 
   const [busyTier, setBusyTier] = useState<"basic" | "premium" | null>(null);
@@ -7993,8 +7958,16 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     }
   };
 
-  if (isLoading || !status) {
+  if (isLoading) {
     return <div className="py-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} /></div>;
+  }
+  if (error || !status) {
+    return (
+      <div className="rounded-xl p-5 text-sm space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }} data-testid="billing-error">
+        <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#dc2626" }} /><span>Could not load your billing status. Your session may have expired.</span></div>
+        <button onClick={() => refetch()} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: tc.accentColor, color: tc.bgColor }}>Try again</button>
+      </div>
+    );
   }
 
   const daysLeftInTrial = status.trialEndsAt
@@ -8082,14 +8055,14 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         <PlanCard
           tier="premium"
           price="R499/mo"
-          blurb="Everything in Basic, plus practice management + white-label feel."
+          blurb="Everything in Basic, plus practice management and advanced tools."
           features={[
-            "Secondary profile (un-deletable)",
+            "Secondary profile",
             "Full grader breakdown + advanced analytics dashboard",
             "Compound Interest + Retirement calculators",
             "Image pattern presets, Editor's article, Smartie Box",
             "Risk Profile Quiz + TradingView multi-instrument",
-            "Multi-format business cards with optional footer removal",
+            "Multi-format business cards (option to hide footer branding)",
             "My Clients (POPIA-encrypted vault, Book of Life, birthdays)",
             "Priority support (24hr Mon–Fri)",
           ]}
