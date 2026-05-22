@@ -364,6 +364,17 @@ export async function registerRoutes(
     });
   });
 
+  // Reserved VM redeploys rebuild the container, so anything written under
+  // ./uploads/ at runtime is lost. Pre-create the directory tree so the static
+  // handler doesn't 5xx on a cold deploy with no prior uploads, and so the
+  // failure mode for missing files is a clean 404 (the client renders the
+  // initials badge as fallback via the img onError handler on the profile).
+  // Permanent fix: migrate to Replit Object Storage (tracked separately).
+  try {
+    const fsSync = await import("fs");
+    fsSync.mkdirSync("uploads/profile", { recursive: true });
+    fsSync.mkdirSync("uploads/fais", { recursive: true });
+  } catch { /* best-effort */ }
   app.use("/uploads", (await import("express")).default.static("uploads"));
 
   app.post("/api/upload/profile-pic", upload.single("file"), async (req, res) => {

@@ -1022,6 +1022,7 @@ export default function AdvisorProfile() {
   // public profile. Stats now live in the advisor's panel (Stats tab + heading).
 
   const [lang, setLang] = useState<Lang>("en");
+  const [profilePicBroken, setProfilePicBroken] = useState(false);
   const [inDevClicked, setInDevClicked] = useState<string | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState<string | null>(null);
   const [financialMediaOpen, setFinancialMediaOpen] = useState(false);
@@ -1694,12 +1695,13 @@ export default function AdvisorProfile() {
           data-testid="profile-header"
         >
           {/* Top area — full-width cover photo or gradient initials */}
-          {advisor.profilePicUrl && advisor.showProfilePic !== false ? (
+          {advisor.profilePicUrl && advisor.showProfilePic !== false && !profilePicBroken ? (
             <div className="relative w-full" style={{ minHeight: 300 }}>
               <img src={advisor.profilePicUrl} alt={advisor.name}
                 className="w-full object-cover block"
                 style={{ height: 300 }}
                 data-testid="img-profile-pic"
+                onError={() => setProfilePicBroken(true)}
               />
             </div>
           ) : (

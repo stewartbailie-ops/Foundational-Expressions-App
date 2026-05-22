@@ -7970,6 +7970,21 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
     );
   }
 
+  // Safe defaults — legacy advisors created before Task #26 may have null/missing
+  // billing columns. Treat anything unrecognised as a fresh trial so the plan
+  // tiles always render rather than crashing the tab.
+  const safeStatus = {
+    tier: (status.tier ?? "trial") as BillingStatus["tier"],
+    status: (status.status ?? "trialing") as BillingStatus["status"],
+    trialEndsAt: status.trialEndsAt ?? null,
+    hasSubscription: !!status.hasSubscription,
+    premiumActive: !!status.premiumActive,
+    basicOrBetter: !!status.basicOrBetter,
+    paystackConfigured: !!status.paystackConfigured,
+  };
+  // Reassign so the rest of the render uses safe defaults without touching downstream code.
+  status = safeStatus as typeof status;
+
   const daysLeftInTrial = status.trialEndsAt
     ? Math.max(0, Math.ceil((new Date(status.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
     : null;
