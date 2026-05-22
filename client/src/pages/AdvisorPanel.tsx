@@ -3385,8 +3385,6 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
           { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
           { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
-          { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
-          { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
           { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
@@ -4334,8 +4332,6 @@ function AdditionalProfileForm({
             { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
             { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
             { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
-            { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
-            { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
             { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
