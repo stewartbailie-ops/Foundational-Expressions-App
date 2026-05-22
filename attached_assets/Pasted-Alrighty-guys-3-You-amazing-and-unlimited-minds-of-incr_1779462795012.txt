@@ -1,0 +1,14 @@
+Alrighty guys <3 - You amazing and unlimited minds of incredibleness - I had a brainfart/epiphany, and these are rare for me ;) So I just wanted to message and get everyone's feedback and thoughts; my general idea is to try and combine as many as we can or hopefully all of these tools into one large all financials display tool? Using sliders, drop-downs and basic inputs to ease the flow the functionality - My thoughts are technically this can work as certain in-puts/values don’t change? (Income/Age etc) 
+
+Looking for feedback on; 
+	1. Idea's and possibilities (Please don’t hold back <3) - We think of work-arounds/solutions to raised concerns or impossibilities.
+	2. I understand in order to get some out-puts some certain in-puts are needed, my thoughts are the outputs don’t give values but have a small description explain what in-puts are needed in order to get a value output - These outputs can be directly influenced by all the combined in pouts? This flag can also be used as an educational tool of some sort (Worded or visualized) 
+	3. When we started this project, with the opening tools we had - They all had multiple infographics & visuals that changes as and when in-puts were made/updated - Green and red, serving as a kind of shock/wake-up factor (I was hoping we can move back to this as we build here)
+	4. Another function ive noticed that’s gone missing was the abliity to download a PDF overview of the output? - Please can we explore our options here again.. 
+	5. In addition, we have interactive financial tools on our App (Attached screen-shots) - Similar to what ive explained above, can these also be incorporated? 
+	6. Ive requested feedback from multiple sources; hoping to combine all the good ideas into a single possible build goal/layout 
+	7. Ive attached screen-shots of both the tools section (Control Panel - Contract card) These are the tools I would like to combine/incorporate into one - You will notice these tools aren't exactly the same (This will need correction) 
+	8. All neatly built into one small calculator/financial tool? (As things change, the entire layout, visuals & outputs change (Real-life updates) 
+	9. Has this been done or created before (Something similar online?)
+	10. What would be a cool name for this Tool/Function/thingy be? 
+	11. Lastly, we are not limited to what we have, if any of you see the opportunity to add a new tool, function etc - Please flag or add to it your feedback? 

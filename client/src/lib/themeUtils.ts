@@ -21,6 +21,27 @@ export const BACKGROUND_STYLE_OPTIONS = [
   { value: 7, label: "Tiled Name" },
 ] as const;
 
+// Premium image-pattern presets. Files live under `client/public/patterns/`
+// and are served at `/patterns/<file>`. Mirrors registry.json (kept in lock-
+// step with that file; the JSON is documentation, not fetched at runtime).
+// Gated behind `image_pattern_presets` Premium feature flag at the UI layer.
+export const IMAGE_PATTERN_OPTIONS = [
+  { key: "lattice",     label: "Lattice",     file: "dark_3d_lattice_scaffolding.jpg" },
+  { key: "stone",       label: "Stone",       file: "textured_grey_stone_cubes.jpg" },
+  { key: "carbon-gold", label: "Carbon Gold", file: "maroon_carbon_fiber_gold_trim.jpg" },
+  { key: "smoke",       label: "Smoke",       file: "teal_smoky_translucent_circles.jpg" },
+  { key: "hextech",     label: "Hextech",     file: "hexagons_orange_white_black.jpg" },
+  { key: "topographic", label: "Topographic", file: "topographic_lines_red_on_black.jpg" },
+  { key: "pentagons",   label: "Pentagons",   file: "neon_outlined_pentagons_black.jpg" },
+  { key: "neon-wave",   label: "Neon Wave",   file: "red_neon_wave_purple_ridges.jpg" },
+] as const;
+
+export function getImagePatternUrl(key: string | null | undefined): string | null {
+  if (!key) return null;
+  const preset = IMAGE_PATTERN_OPTIONS.find(p => p.key === key);
+  return preset ? `/patterns/${preset.file}` : null;
+}
+
 // ─── Hex / colour helpers (used by the custom-colour theme path) ────────────
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = (hex || "").replace("#", "").trim();
@@ -114,12 +135,46 @@ function applyPatternOverlay(
   };
 }
 
+// When an image pattern is selected we render the chosen image at `cover`
+// and wash the theme background colour over it using `patternOpacity` as the
+// reveal slider (100 = image fully visible, 5 = almost solid theme colour).
+// Returns null if no preset matches the key — caller falls back to the CSS
+// pattern path.
+function applyImagePattern(
+  base: React.CSSProperties,
+  imagePatternKey: string,
+  patternOpacity?: number | null,
+): React.CSSProperties | null {
+  const url = getImagePatternUrl(imagePatternKey);
+  if (!url) return null;
+  const reveal = Math.max(5, Math.min(100, patternOpacity ?? 50)) / 100;
+  const tintAlpha = 1 - reveal;
+  const bgColorHex = typeof base.backgroundColor === "string" ? base.backgroundColor : "#0a0a0a";
+  // Parse #rrggbb (the named-theme palette is always 6-char hex).
+  let r = 10, g = 10, b = 10;
+  const m = bgColorHex.match(/^#([0-9a-f]{6})$/i);
+  if (m) {
+    const n = parseInt(m[1], 16);
+    r = (n >> 16) & 255; g = (n >> 8) & 255; b = n & 255;
+  }
+  const tint = `rgba(${r},${g},${b},${tintAlpha.toFixed(3)})`;
+  return {
+    backgroundColor: bgColorHex,
+    backgroundImage: `linear-gradient(${tint}, ${tint}), url("${url}")`,
+    backgroundSize: "100% 100%, cover",
+    backgroundPosition: "center, center",
+    backgroundRepeat: "no-repeat, no-repeat",
+    backgroundAttachment: "scroll, fixed",
+  };
+}
+
 export function getThemeBackground(
   theme: string | null | undefined,
   backgroundStyle?: number | null,
   patternOpacity?: number | null,
   themeColor?: string | null,
   advisorName?: string | null,
+  imagePatternKey?: string | null,
 ): React.CSSProperties {
   const t = theme || "blue";
   const s = Number(backgroundStyle) || 1;
@@ -153,6 +208,10 @@ export function getThemeBackground(
         ].join(", "),
         backgroundSize: "100% 100%, 100% 100%",
       };
+    }
+    if (imagePatternKey) {
+      const ip = applyImagePattern(base, imagePatternKey, patternOpacity);
+      if (ip) return ip;
     }
     return applyPatternOverlay(base, accentRgba, s, opacityMult, advisorName || undefined);
   }
@@ -279,6 +338,10 @@ export function getThemeBackground(
     };
   }
 
+  if (imagePatternKey) {
+    const ip = applyImagePattern(base, imagePatternKey, patternOpacity);
+    if (ip) return ip;
+  }
   return applyPatternOverlay(base, accentRgba, s, opacityMult, advisorName || undefined);
 }
 

@@ -48,6 +48,7 @@ export default function EditAdvisor() {
   const [isDemo, setIsDemo] = useState(false);
   const [backgroundStyle, setBackgroundStyle] = useState<number>(1);
   const [patternOpacity, setPatternOpacity] = useState<number>(50);
+  const [imagePatternKey, setImagePatternKey] = useState<string | null>(null);
 
   useEffect(() => {
     if (advisor && !loaded) {
@@ -66,6 +67,7 @@ export default function EditAdvisor() {
       setIsDemo(!!(advisor as any).isDemo);
       setBackgroundStyle(((advisor as any).backgroundStyle as number) || 1);
       setPatternOpacity(((advisor as any).patternOpacity as number) ?? 50);
+      setImagePatternKey(((advisor as any).imagePatternKey as string | null) ?? null);
       setLoaded(true);
     }
   }, [advisor, loaded]);
@@ -130,6 +132,7 @@ export default function EditAdvisor() {
         isDemo,
         backgroundStyle,
         patternOpacity,
+        imagePatternKey,
       });
       return res.json();
     },
@@ -321,6 +324,9 @@ export default function EditAdvisor() {
                 opacity={patternOpacity}
                 onChange={setBackgroundStyle}
                 onOpacityChange={setPatternOpacity}
+                imagePatternKey={imagePatternKey}
+                onImagePatternKeyChange={setImagePatternKey}
+                premium={true}
               />
               <div className="space-y-1.5">
                 <Label>Entity Type</Label>

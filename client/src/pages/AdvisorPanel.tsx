@@ -2754,6 +2754,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const THEME_HEX_MAP: Record<string, string> = { dark:"#1a1a1a", blue:"#4a8db5", pink:"#be185d", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" };
   const [themeColor, setThemeColor] = useState<string>((advisor as any).themeColor || THEME_HEX_MAP[advisor.theme || "blue"] || "#4a8db5");
   const [backgroundStyle, setBackgroundStyle] = useState<number>((advisor as any).backgroundStyle || 1);
+  const [imagePatternKey, setImagePatternKey] = useState<string | null>(((advisor as any).imagePatternKey as string | null) ?? null);
+  const { isPremium: imagePatternPremium } = usePremium();
   const [email, setEmail] = useState(advisor.email || "");
   const [contactNumber, setContactNumber] = useState((advisor as any).contactNumber || "");
   const [location, setLocation] = useState((advisor as any).location || "");
@@ -2916,6 +2918,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolStd,
         showToolForexCalc,
         patternOpacity,
+        imagePatternKey,
         showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
         nickname: nickname || null,
@@ -3632,6 +3635,9 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           opacity={patternOpacity}
           onChange={setBackgroundStyle}
           onOpacityChange={setPatternOpacity}
+          imagePatternKey={imagePatternKey}
+          onImagePatternKeyChange={setImagePatternKey}
+          premium={imagePatternPremium}
           label=""
           colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
         />
@@ -3840,6 +3846,8 @@ function AdditionalProfileForm({
   const SEC_THEME_HEX_MAP: Record<string, string> = { dark:"#1a1a1a", blue:"#4a8db5", pink:"#be185d", "light-blue":"#0ea5e9", "dark-royal-purple":"#a855f7", "dark-green":"#22c55e", gold:"#d4a017", teal:"#0d9488", red:"#dc2626", navy:"#1d4ed8", coral:"#f97316", silver:"#6b7280" };
   const [themeColor, setThemeColor] = useState<string>((existingProfile as any)?.themeColor || SEC_THEME_HEX_MAP[existingProfile?.theme || "blue"] || "#4a8db5");
   const [backgroundStyle, setBackgroundStyle] = useState<number>((existingProfile as any)?.backgroundStyle || 1);
+  const [imagePatternKey, setImagePatternKey] = useState<string | null>(((existingProfile as any)?.imagePatternKey as string | null) ?? null);
+  const { isPremium: imagePatternPremium } = usePremium();
   const [showHeader, setShowHeader] = useState((existingProfile as any)?.showHeader !== false);
   const [showProfilePic, setShowProfilePic] = useState((existingProfile as any)?.showProfilePic !== false);
   const [showIntro, setShowIntro] = useState((existingProfile as any)?.showIntro !== false);
@@ -3992,6 +4000,7 @@ function AdditionalProfileForm({
         showFinancialCalendar,
         showEmergencyContacts,
         patternOpacity,
+        imagePatternKey,
         nickname: nickname || null,
         profileDescription: profileDescription || null,
         profileSectionOrder: sectionOrder.join(","),
@@ -4565,6 +4574,9 @@ function AdditionalProfileForm({
           opacity={patternOpacity}
           onChange={setBackgroundStyle}
           onOpacityChange={setPatternOpacity}
+          imagePatternKey={imagePatternKey}
+          onImagePatternKeyChange={setImagePatternKey}
+          premium={imagePatternPremium}
           colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
         />
 

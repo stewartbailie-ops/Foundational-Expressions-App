@@ -27,6 +27,7 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["show_compound_calc",       "boolean NOT NULL DEFAULT false"],
   ["show_retirement_calc",     "boolean NOT NULL DEFAULT false"],
   ["show_financial_calendar",  "boolean NOT NULL DEFAULT false"],
+  ["image_pattern_key",        "text"],
 ];
 
 // Lead-table additive columns. Same pattern, separate list because the parent

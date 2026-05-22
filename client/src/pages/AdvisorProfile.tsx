@@ -1355,7 +1355,7 @@ export default function AdvisorProfile() {
   // M4: tiled-name pattern uses the secondary's own nickname when present so
   // "Corporate Demo" tiles with "Corporate Demo", not the parent advisor's name.
   // Falls back to advisor.name for primary profiles or secondaries without a nickname.
-  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity, (advisor as any).themeColor, (advisor as any).nickname || advisor.name);
+  const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity, (advisor as any).themeColor, (advisor as any).nickname || advisor.name, (advisor as any).imagePatternKey);
 
   const profileShareUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
   const hasWhatsApp = !!(advisor as any).contactNumber;

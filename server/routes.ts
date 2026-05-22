@@ -162,7 +162,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   "showTradingView", "tradingViewSymbols",
   "showDailyQuotes", "dailyQuotesSet",
   "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar",
-  "patternOpacity", "profileSectionOrder", "active",
+  "patternOpacity", "imagePatternKey", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;
 
