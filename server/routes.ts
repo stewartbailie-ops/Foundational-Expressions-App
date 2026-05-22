@@ -364,18 +364,38 @@ export async function registerRoutes(
     });
   });
 
-  // Reserved VM redeploys rebuild the container, so anything written under
-  // ./uploads/ at runtime is lost. Pre-create the directory tree so the static
-  // handler doesn't 5xx on a cold deploy with no prior uploads, and so the
-  // failure mode for missing files is a clean 404 (the client renders the
-  // initials badge as fallback via the img onError handler on the profile).
-  // Permanent fix: migrate to Replit Object Storage (tracked separately).
-  try {
-    const fsSync = await import("fs");
-    fsSync.mkdirSync("uploads/profile", { recursive: true });
-    fsSync.mkdirSync("uploads/fais", { recursive: true });
-  } catch { /* best-effort */ }
-  app.use("/uploads", (await import("express")).default.static("uploads"));
+  // Task #58 — Profile pictures live in Replit Object Storage so they survive
+  // Reserved VM redeploys (which wipe anything outside the source tree). URL
+  // scheme `/uploads/profile/<filename>` is preserved so existing values in
+  // `advisors.profilePicUrl` keep resolving; the handler below streams the
+  // bytes back from the bucket. Files that pre-date this migration (written
+  // to the old on-disk path) are already gone — the <img> onError fallback
+  // on the profile renders the initials badge for those.
+  const { objectStorage, ObjectNotFoundError } = await import("./replit_integrations/object_storage/objectStorage");
+
+  app.get("/uploads/profile/:filename", async (req, res) => {
+    const filename = req.params.filename;
+    if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+      return res.status(400).json({ message: "Invalid filename" });
+    }
+    try {
+      const { stream, metadata } = await objectStorage.getPublicStream(`profile/${filename}`);
+      res.set({
+        "Content-Type": metadata.contentType || "application/octet-stream",
+        "Cache-Control": "public, max-age=31536000, immutable",
+      });
+      if (metadata.size) res.set("Content-Length", String(metadata.size));
+      stream.on("error", (err) => {
+        console.error("[uploads] profile stream error:", err);
+        if (!res.headersSent) res.status(500).end();
+      });
+      stream.pipe(res);
+    } catch (err) {
+      if (err instanceof ObjectNotFoundError) return res.status(404).end();
+      console.error("[uploads] profile fetch failed:", err);
+      res.status(500).json({ message: "Failed to read object" });
+    }
+  });
 
   app.post("/api/upload/profile-pic", upload.single("file"), async (req, res) => {
     const session = req.session as any;
@@ -384,8 +404,6 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).json({ message: "No file uploaded or invalid file type" });
     }
-    const fs = await import("fs/promises");
-    const path = await import("path");
     const crypto = await import("crypto");
     const extByMime: Record<string, string> = {
       "image/jpeg": ".jpg",
@@ -393,10 +411,13 @@ export async function registerRoutes(
       "image/webp": ".webp",
     };
     const ext = extByMime[req.file.mimetype] ?? ".jpg";
-    const dir = path.join("uploads", "profile");
-    await fs.mkdir(dir, { recursive: true });
     const filename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
-    await fs.writeFile(path.join(dir, filename), req.file.buffer);
+    try {
+      await objectStorage.putPublic(`profile/${filename}`, req.file.buffer, req.file.mimetype);
+    } catch (err) {
+      console.error("[upload] profile-pic put failed:", err);
+      return res.status(500).json({ message: "Failed to store image" });
+    }
     res.json({ url: `/uploads/profile/${filename}` });
   });
 
@@ -2128,8 +2149,13 @@ export async function registerRoutes(
   const path = await import("path");
   const fs = await import("fs");
   const fsp = fs.promises;
-  const CLIENTS_UPLOAD_ROOT = path.join(process.cwd(), "uploads", "clients");
-  await fsp.mkdir(CLIENTS_UPLOAD_ROOT, { recursive: true });
+  // Task #58 — Encrypted client documents live in Replit Object Storage so
+  // the ciphertext survives Reserved VM redeploys. The on-disk path
+  // `uploads/clients/<advisorId>/<filename>.enc` was wiped on every deploy.
+  // The DB column `encryptedPath` now holds an object-storage key like
+  // `clients/<advisorId>/<filename>.enc` for new rows. Legacy rows whose
+  // value still starts with `/` are read from disk as a transitional fallback.
+  const isLegacyFsPath = (p: string) => p.startsWith("/");
   const docUpload = multer({
     storage: multer.memoryStorage(),
     limits: { fileSize: 10 * 1024 * 1024 },
@@ -2262,9 +2288,17 @@ export async function registerRoutes(
     const docs = await storage.listClientDocuments(targetAdvisorId, id);
     const unlinkFailures: string[] = [];
     for (const d of docs) {
-      try { await fsp.unlink(d.encryptedPath); }
-      catch (err: any) {
-        if (err?.code !== "ENOENT") { unlinkFailures.push(`doc#${d.id}: ${err?.code || err?.message}`); continue; }
+      try {
+        if (isLegacyFsPath(d.encryptedPath)) {
+          await fsp.unlink(d.encryptedPath);
+        } else {
+          await objectStorage.deletePrivate(d.encryptedPath);
+        }
+      } catch (err: any) {
+        if (err?.code !== "ENOENT" && err?.name !== "ObjectNotFoundError") {
+          unlinkFailures.push(`doc#${d.id}: ${err?.code || err?.message}`);
+          continue;
+        }
       }
       await storage.markDocumentErased(targetAdvisorId, d.id);
     }
@@ -2290,17 +2324,20 @@ export async function registerRoutes(
     const client = await storage.getClient(advisorId, clientId);
     if (!client) return res.status(404).json({ message: "Client not found" });
     if (!req.file) return res.status(400).json({ message: "file required" });
-    const advisorDir = path.join(CLIENTS_UPLOAD_ROOT, String(advisorId));
-    await fsp.mkdir(advisorDir, { recursive: true });
     const filename = `${Date.now()}_${crypto.randomBytes(8).toString("hex")}.enc`;
-    const encPath = path.join(advisorDir, filename);
+    const objectKey = `clients/${advisorId}/${filename}`;
     const encrypted = encryptBuffer(req.file.buffer);
-    await fsp.writeFile(encPath, encrypted, { mode: 0o600 });
+    try {
+      await objectStorage.putPrivate(objectKey, encrypted);
+    } catch (err) {
+      console.error("[clients] document put failed:", (err as Error).message);
+      return res.status(500).json({ message: "Failed to store document" });
+    }
     const doc = await storage.createClientDocument({
       clientId, advisorId,
       originalFilename: req.file.originalname,
       mimeType: req.file.mimetype,
-      encryptedPath: encPath,
+      encryptedPath: objectKey,
       sizeBytes: req.file.size,
     });
     storage.recordAuditPii({ ...auditCtx(req), action: "write", tableName: "client_documents", rowId: doc.id, fieldName: "upload" });
@@ -2325,7 +2362,9 @@ export async function registerRoutes(
     if (!doc || doc.erasedAt) return res.status(404).json({ message: "Not found" });
     let plaintext: Buffer;
     try {
-      const blob = await fsp.readFile(doc.encryptedPath);
+      const blob = isLegacyFsPath(doc.encryptedPath)
+        ? await fsp.readFile(doc.encryptedPath)
+        : await objectStorage.getPrivate(doc.encryptedPath);
       plaintext = decryptBuffer(blob);
     } catch (err) {
       console.error("[clients] document decrypt failed:", (err as Error).message);

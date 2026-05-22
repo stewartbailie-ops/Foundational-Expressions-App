@@ -16,6 +16,7 @@ Master control panel for managing Advisory Connect profiles, tracking client ref
 - **Auth**: Session-based (`express-session` + `connect-pg-simple`), admin password in `ADMIN_PASSWORD` secret. Sessions 7 days.
 - **Email**: SendGrid (`SENDGRID_API_KEY`)
 - **QR**: `qrcode.react`
+- **File storage**: Replit Object Storage (Task #58). Profile pictures (public bucket, key `profile/<random>.<ext>`, served via `/uploads/profile/<filename>` streaming handler) and encrypted client documents (private bucket, key `clients/<advisorId>/<random>.enc`). Wrapper at `server/replit_integrations/object_storage/`. Survives Reserved VM redeploys (filesystem under `uploads/` does not).
 - Public routes (profile, lead forms, webhooks) are NOT auth-gated. Control panel + advisor sub-panel are.
 - Auth middleware: `server/auth.ts`. Session setup: `server/index.ts`. Routes: `POST /api/auth/login`, `GET /api/auth/session`, `POST /api/auth/logout`.
 
@@ -47,7 +48,7 @@ At-rest encryption + audit trail for "special personal information" (POPIA s.26)
 - `clients` — plaintext name/email/phone; `id_number_enc`, `bank_account_enc`, `bank_branch_enc`, `tax_number_enc` are ciphertext only. `erased_at` / `erased_by` are the right-to-erasure tombstone.
 - `audit_pii` — append-only via Postgres rules (UPDATE/DELETE rewrite to NOTHING). Records who/what/when/IP/UA for every PII read, write, erase, rate-limit block.
 - `client_consent` — one row per consent grant, captures the exact text agreed to.
-- `client_documents` — metadata only; bytes live encrypted on disk at `uploads/clients/<advisorId>/<random>.enc` (`chmod 0600`, never publicly served).
+- `client_documents` — metadata only; bytes live encrypted in **Replit Object Storage** under the private bucket at key `clients/<advisorId>/<random>.enc` (Task #58, migrated off the Reserved VM filesystem so they survive redeploys). `encryptedPath` stores the object-storage key for new rows; legacy values starting with `/` are read from disk as a transitional fallback.
 - **Per-advisor isolation is enforced at the storage layer**, not just routes — `listClients`/`getClient`/`updateClient`/`eraseClient` all take `advisorId` and `WHERE advisor_id = ?` it into the SQL. A forgotten route-level auth check cannot leak across advisors.
 - **Rate limits** on `/api/callback`, `/api/referral`, `/api/will-request`, `/api/advisors/slug/:slug`, `/api/webhook/*`, `/api/stats/access`. 429 blocks log to `audit_pii`. Per-IP in-memory via `express-rate-limit`.
 - **Right-to-erasure** — admin-only `POST /api/clients/:id/erase` wipes encrypted columns, unlinks documents, sets `erased_at`. Audit history retained (POPIA Reg 4 permits anonymised records).
