@@ -2780,6 +2780,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolEmergency, setShowToolEmergency] = useState((advisor as any).showToolEmergency !== false);
   const [showToolLifeCover, setShowToolLifeCover] = useState((advisor as any).showToolLifeCover !== false);
   const [showToolDebt, setShowToolDebt] = useState((advisor as any).showToolDebt !== false);
+  const [showToolStd, setShowToolStd] = useState((advisor as any).showToolStd !== false);
+  const [showToolForexCalc, setShowToolForexCalc] = useState((advisor as any).showToolForexCalc !== false);
   const [patternOpacity, setPatternOpacity] = useState<number>((advisor as any).patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(advisor as any).showEmergencyContacts);
   const [indServicesOpen, setIndServicesOpen] = useState(false);
@@ -2880,6 +2882,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolEmergency,
         showToolLifeCover,
         showToolDebt,
+        showToolStd,
+        showToolForexCalc,
         patternOpacity,
         showEmergencyContacts,
         profileSectionOrder: sectionOrder.join(","),
@@ -3341,7 +3345,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, borderStyle: "dashed" }}>
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Admin Notes</h3>
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>My Profile Notes</h3>
           <p className="text-xs mt-0.5" style={{ color: tc.mutedText }}>Nickname &amp; description are for your reference only — never shown to clients.</p>
         </div>
         <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder='Profile nickname (e.g. "Corporate Clients")' className="w-full px-3 py-2 rounded-lg text-sm outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} data-testid="input-profile-nickname" />
@@ -3349,22 +3353,36 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
       </div>
 
       <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <h3 className="text-sm font-semibold mb-1" style={{ color: tc.sectionTitle }}>Profile Page Elements</h3>
+        <div>
+          <h3 className="text-sm font-semibold mb-0.5" style={{ color: tc.sectionTitle }}>Profile Elements</h3>
+          <p className="text-xs" style={{ color: tc.mutedText }}>Core features shown on your profile page.</p>
+        </div>
         {[
           { label: "QR Code", value: showQrCode, set: setShowQrCode },
           { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
           { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
           { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+        ].map(item => (
+          <div key={item.label} className="flex items-center justify-between py-1.5">
+            <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
+            <div onClick={() => item.set(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }}>
+              <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: item.value ? "18px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div>
+          <h3 className="text-sm font-semibold mb-0.5" style={{ color: tc.sectionTitle }}>Profile Displays</h3>
+          <p className="text-xs" style={{ color: tc.mutedText }}>Live data widgets and content displayed on your public profile.</p>
+        </div>
+        {[
           { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
           { label: "More Finance News (second feed)", value: showSecondNews, set: setShowSecondNews },
           { label: "Live Exchange Rates", value: showForex, set: setShowForex },
           { label: "Financial Facts of the Day", value: showFunFacts, set: setShowFunFacts },
-          { label: "Financial Tools Section", value: showTools, set: setShowTools },
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
-          { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
-          { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
-          { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
-          { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
           { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
           { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
           { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
@@ -3410,12 +3428,25 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             </div>
           </div>
         )}
+      </div>
+
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold mb-0.5" style={{ color: tc.sectionTitle }}>Financial Tools</h3>
+            <p className="text-xs" style={{ color: tc.mutedText }}>Show the calculator section on your profile.</p>
+          </div>
+          <div onClick={() => setShowTools(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: showTools ? tc.checkActive : tc.checkInactive }}>
+            <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: showTools ? "18px" : "2px", backgroundColor: showTools ? tc.checkDotActive : tc.checkDotInactive }} />
+          </div>
+        </div>
         {showTools && (
           <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
             {[
+              { label: "Standard Calculator", value: showToolStd, set: setShowToolStd },
               { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
               { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
+              { label: "Forex Calculator", value: showToolForexCalc, set: setShowToolForexCalc },
               { label: "Compound Interest Calculator", value: showToolCompound, set: setShowToolCompound },
               { label: "Vehicle & Assets Calculator", value: showToolVehicle, set: setShowToolVehicle },
               { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
@@ -3432,16 +3463,20 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
             ))}
           </div>
         )}
+      </div>
 
-        <div className="flex items-center justify-between py-1.5" style={{ borderTop: `1px solid ${tc.borderColor}`, paddingTop: "12px" }}>
-          <span className="text-sm" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
+      <div className="rounded-xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold mb-0.5" style={{ color: tc.sectionTitle }}>Interactive Financial Tools</h3>
+            <p className="text-xs" style={{ color: tc.mutedText }}>Show the showpiece interactive tools section on your profile.</p>
+          </div>
           <div onClick={() => setShowInteractive(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }}>
             <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: showInteractive ? "18px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
           </div>
         </div>
         {showInteractive && (
           <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
-            <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
             {[
               { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
               { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
@@ -3822,6 +3857,8 @@ function AdditionalProfileForm({
   const [showToolEmergency, setShowToolEmergency] = useState((existingProfile as any)?.showToolEmergency !== false);
   const [showToolLifeCover, setShowToolLifeCover] = useState((existingProfile as any)?.showToolLifeCover !== false);
   const [showToolDebt, setShowToolDebt] = useState((existingProfile as any)?.showToolDebt !== false);
+  const [showToolStd, setShowToolStd] = useState((existingProfile as any)?.showToolStd !== false);
+  const [showToolForexCalc, setShowToolForexCalc] = useState((existingProfile as any)?.showToolForexCalc !== false);
   const [showMoneywebFeed, setShowMoneywebFeed] = useState(!!(existingProfile as any)?.showMoneywebFeed);
   const [showSecondNews, setShowSecondNews] = useState(!!(existingProfile as any)?.showSecondNews);
   const [showForex, setShowForex] = useState(!!(existingProfile as any)?.showForex);
@@ -3916,6 +3953,8 @@ function AdditionalProfileForm({
         showToolEmergency,
         showToolLifeCover,
         showToolDebt,
+        showToolStd,
+        showToolForexCalc,
         showMoneywebFeed,
         showSecondNews,
         showForex,
@@ -4261,7 +4300,7 @@ function AdditionalProfileForm({
         </div>
 
         <div className="space-y-1.5 p-3 rounded-lg" style={{ border: `1px dashed ${tc.borderColor}` }}>
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Admin Notes (not shown to clients)</label>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>My Profile Notes (not shown to clients)</label>
           <input value={nickname} onChange={e => setNickname(e.target.value)} placeholder='Nickname (e.g. "Corporate Clients")' className="w-full px-3 py-2 rounded-lg text-xs outline-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
           <textarea value={profileDescription} onChange={e => setProfileDescription(e.target.value)} placeholder="Short description..." rows={2} className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor }} />
         </div>
@@ -4269,22 +4308,30 @@ function AdditionalProfileForm({
         {/* M6 parity reorder: Profile Page Elements → Theme Colour → Section
             Order → Background Pattern, matching the Primary editor exactly. */}
         <div className="space-y-2">
-          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Page Elements</label>
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Elements</label>
           {[
             { label: "QR Code", value: showQrCode, set: setShowQrCode },
             { label: "Call Back Button", value: showCallbackLink, set: setShowCallbackLink },
             { label: "Refer Friends Button", value: showReferralsLink, set: setShowReferralsLink },
             { label: "Complimentary Will", value: showComplimentaryWill, set: setShowComplimentaryWill },
+          ].map(item => (
+            <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+              <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>
+              <div onClick={() => item.set(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: item.value ? tc.checkActive : tc.checkInactive }} data-testid={`toggle-secondary-${item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}>
+                <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: item.value ? "17px" : "2px", backgroundColor: item.value ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile Displays</label>
+          {[
             { label: "Live News Feed", value: showMoneywebFeed, set: setShowMoneywebFeed },
             { label: "More Finance News (second feed)", value: showSecondNews, set: setShowSecondNews },
             { label: "Live Exchange Rates", value: showForex, set: setShowForex },
             { label: "Financial Facts of the Day", value: showFunFacts, set: setShowFunFacts },
-            { label: "Financial Tools Section", value: showTools, set: setShowTools },
             { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
-            { label: "My Liberty (Platforms)", value: showLiberty, set: setShowLiberty },
-            { label: "Stanlib (Platforms)", value: showStanlib, set: setShowStanlib },
-            { label: "SigningHub (Platforms)", value: showSigninghub, set: setShowSigninghub },
-            { label: "My Email (Platforms)", value: showMyEmail, set: setShowMyEmail },
             { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
             { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
             { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
@@ -4330,12 +4377,22 @@ function AdditionalProfileForm({
               </div>
             </div>
           )}
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
+            <span className="text-xs font-medium" style={{ color: tc.textColor }}>Financial Tools</span>
+            <div onClick={() => setShowTools(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showTools ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-tools">
+              <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showTools ? "17px" : "2px", backgroundColor: showTools ? tc.checkDotActive : tc.checkDotInactive }} />
+            </div>
+          </div>
           {showTools && (
             <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
-              <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Tools visible on profile:</p>
               {[
+                { label: "Standard Calculator", value: showToolStd, set: setShowToolStd },
                 { label: "SA Tax Calculator", value: showToolTax, set: setShowToolTax },
                 { label: "Exchange Rate Converter", value: showToolExchange, set: setShowToolExchange },
+                { label: "Forex Calculator", value: showToolForexCalc, set: setShowToolForexCalc },
                 { label: "Compound Interest Calc", value: showToolCompound, set: setShowToolCompound },
                 { label: "Vehicle & Assets Calc", value: showToolVehicle, set: setShowToolVehicle },
                 { label: "Bond / Home Loan Calculator", value: showToolBond, set: setShowToolBond },
@@ -4352,9 +4409,11 @@ function AdditionalProfileForm({
               ))}
             </div>
           )}
+        </div>
 
+        <div className="space-y-2">
           <div className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
-            <span className="text-xs" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
+            <span className="text-xs font-medium" style={{ color: tc.textColor }}>Interactive Financial Tools</span>
             <div onClick={() => setShowInteractive(v => !v)} className="w-8 h-4 rounded-full relative cursor-pointer" style={{ backgroundColor: showInteractive ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-show-interactive">
               <div className="absolute top-0.5 w-3 h-3 rounded-full transition-all" style={{ left: showInteractive ? "17px" : "2px", backgroundColor: showInteractive ? tc.checkDotActive : tc.checkDotInactive }} />
             </div>
