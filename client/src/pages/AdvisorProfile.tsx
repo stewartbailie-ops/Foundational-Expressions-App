@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef, Fragment } from "react";
+import { useState, useMemo, useEffect, useRef, Fragment, type ReactNode } from "react";
 import { useRoute, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -15,6 +15,7 @@ import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
+import { ComingSoonCard } from "@/components/tools/ComingSoonCard";
 
 function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -30,6 +31,45 @@ function getInitials(name: string): string {
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+const INTERACTIVE_ROTATION_MS = 3 * 60 * 60 * 1000;
+
+function useInteractiveToolRotation(storageKey: string, toolCount: number, enabled: boolean) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (!enabled || toolCount <= 1) {
+      setIndex(0);
+      return;
+    }
+
+    const syncRotation = () => {
+      const now = Date.now();
+      try {
+        const stored = JSON.parse(localStorage.getItem(storageKey) || "{}") as { index?: number; changedAt?: number };
+        let nextIndex = Number.isFinite(stored.index) ? Math.abs(Math.trunc(stored.index!)) % toolCount : 0;
+        let changedAt = Number.isFinite(stored.changedAt) ? stored.changedAt! : now;
+        const steps = Math.floor(Math.max(0, now - changedAt) / INTERACTIVE_ROTATION_MS);
+
+        if (steps > 0) {
+          nextIndex = (nextIndex + steps) % toolCount;
+          changedAt += steps * INTERACTIVE_ROTATION_MS;
+        }
+
+        localStorage.setItem(storageKey, JSON.stringify({ index: nextIndex, changedAt }));
+        setIndex(nextIndex);
+      } catch {
+        setIndex(Math.floor(now / INTERACTIVE_ROTATION_MS) % toolCount);
+      }
+    };
+
+    syncRotation();
+    const intervalId = window.setInterval(syncRotation, 60_000);
+    return () => window.clearInterval(intervalId);
+  }, [enabled, storageKey, toolCount]);
+
+  return index;
 }
 
 function ProfileInitialsBadge({ initials, theme, themeColor, size = 288, downloadable = false, name = "" }: {
@@ -1072,6 +1112,20 @@ export default function AdvisorProfile() {
   const [dpDebt, setDpDebt] = useState("150000");
   const [dpRate, setDpRate] = useState("20");
   const [dpPayment, setDpPayment] = useState("3000");
+  const interactiveToolCount = advisor ? [
+    (advisor as any).showShowpieceSqueeze !== false,
+    (advisor as any).showShowpieceTaxBite !== false,
+    (advisor as any).showShowpieceInflation !== false,
+    (advisor as any).showShowpieceWaiting !== false,
+    (advisor as any).showToolReality !== false,
+    (advisor as any).showToolLatte !== false,
+  ].filter(Boolean).length : 0;
+  const rotateInteractiveTools = !!(advisor as any)?.rotateInteractiveTools;
+  const interactiveRotationIndex = useInteractiveToolRotation(
+    `advisory-connect:interactive-tool:${slug}`,
+    interactiveToolCount,
+    rotateInteractiveTools,
+  );
   // Pension + CGT calculators removed pre-presentation (Task #22 W1 T1) —
   // accuracy concerns on edge cases. DB columns show_tool_pension /
   // show_tool_cgt retained per additive-only convention but no longer read.
@@ -2012,21 +2066,19 @@ export default function AdvisorProfile() {
             platforms: null,
 
             interactive: ((advisor as any).showInteractive !== false) ? (() => {
-              const showSqueeze = (advisor as any).showShowpieceSqueeze !== false;
-              const showTaxBite = (advisor as any).showShowpieceTaxBite !== false;
-              const showInflation = (advisor as any).showShowpieceInflation !== false;
-              const showWaiting = (advisor as any).showShowpieceWaiting !== false;
-              const showReality = (advisor as any).showToolReality !== false;
-              const showLatte = (advisor as any).showToolLatte !== false;
-              if (!showSqueeze && !showTaxBite && !showInflation && !showWaiting && !showReality && !showLatte) return null;
+              const tools = [
+                (advisor as any).showShowpieceSqueeze !== false && { key: "squeeze", node: <RealMoneySqueeze accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} /> },
+                (advisor as any).showShowpieceTaxBite !== false && { key: "tax-bite", node: <TaxBite accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} /> },
+                (advisor as any).showShowpieceInflation !== false && { key: "inflation", node: <InflationMillion accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} /> },
+                (advisor as any).showShowpieceWaiting !== false && { key: "waiting", node: <CostOfWaiting accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} /> },
+                (advisor as any).showToolReality !== false && { key: "reality", node: <RealityCheck accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} /> },
+                (advisor as any).showToolLatte !== false && { key: "latte", node: <LatteMillionaire accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} inputBg={tc.inputBg} /> },
+              ].filter(Boolean) as { key: string; node: ReactNode }[];
+              if (tools.length === 0) return null;
+              const visibleTools = rotateInteractiveTools ? [tools[interactiveRotationIndex % tools.length]] : tools;
               return (
                 <div className="space-y-3" data-testid="section-interactive">
-                  {showSqueeze && <RealMoneySqueeze accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
-                  {showTaxBite && <TaxBite accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
-                  {showInflation && <InflationMillion accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
-                  {showWaiting && <CostOfWaiting accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
-                  {showReality && <RealityCheck accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} />}
-                  {showLatte && <LatteMillionaire accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} textColor={textColor} mutedText={mutedText} inputBg={tc.inputBg} />}
+                  {visibleTools.map((tool) => <Fragment key={tool.key}>{tool.node}</Fragment>)}
                 </div>
               );
             })() : null,
@@ -2853,6 +2905,21 @@ export default function AdvisorProfile() {
             )}
           </div>
         )}
+
+        <div className="grid gap-3" data-testid="section-coming-soon">
+          <ComingSoonCard
+            title="Android Widget"
+            description="A home-screen widget for quick profile access and advisor updates is planned for the native-app phase."
+            icon={Smartphone}
+            tc={tc}
+          />
+          <ComingSoonCard
+            title="FAIS Agreement & eSign"
+            description="A guided FAIS agreement and electronic-signature flow is being prepared for advisor-client onboarding."
+            icon={FileCheck}
+            tc={tc}
+          />
+        </div>
 
         {/* o. Contact Details */}
         {(hasContactDetails || (advisor as any).location) && (
