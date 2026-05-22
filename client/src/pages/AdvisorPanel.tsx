@@ -2801,6 +2801,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showToolReality, setShowToolReality] = useState((advisor as any).showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((advisor as any).showToolLatte !== false);
   const [showInteractive, setShowInteractive] = useState((advisor as any).showInteractive !== false);
+  const [rotateInteractiveTools, setRotateInteractiveTools] = useState(!!(advisor as any).rotateInteractiveTools);
   const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((advisor as any).showShowpieceSqueeze !== false);
   const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((advisor as any).showShowpieceTaxBite !== false);
   const [showShowpieceInflation, setShowShowpieceInflation] = useState((advisor as any).showShowpieceInflation !== false);
@@ -2903,6 +2904,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showToolReality,
         showToolLatte,
         showInteractive,
+        rotateInteractiveTools,
         showShowpieceSqueeze,
         showShowpieceTaxBite,
         showShowpieceInflation,
@@ -3504,6 +3506,12 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         </div>
         {showInteractive && (
           <div className="pt-2 space-y-1.5" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center justify-between py-1 pl-2">
+              <span className="text-xs" style={{ color: tc.textColor }}>Rotate one tool every few hours</span>
+              <div onClick={() => setRotateInteractiveTools(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: rotateInteractiveTools ? tc.checkActive : tc.checkInactive }} data-testid="toggle-rotate-interactive-tools">
+                <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: rotateInteractiveTools ? "18px" : "2px", backgroundColor: rotateInteractiveTools ? tc.checkDotActive : tc.checkDotInactive }} />
+              </div>
+            </div>
             {[
               { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
               { label: "Tax Bite", value: showShowpieceTaxBite, set: setShowShowpieceTaxBite },
@@ -3855,6 +3863,7 @@ function AdditionalProfileForm({
   const [showToolReality, setShowToolReality] = useState((existingProfile as any)?.showToolReality !== false);
   const [showToolLatte, setShowToolLatte] = useState((existingProfile as any)?.showToolLatte !== false);
   const [showInteractive, setShowInteractive] = useState((existingProfile as any)?.showInteractive !== false);
+  const [rotateInteractiveTools, setRotateInteractiveTools] = useState(!!(existingProfile as any)?.rotateInteractiveTools);
   const [showShowpieceSqueeze, setShowShowpieceSqueeze] = useState((existingProfile as any)?.showShowpieceSqueeze !== false);
   const [showShowpieceTaxBite, setShowShowpieceTaxBite] = useState((existingProfile as any)?.showShowpieceTaxBite !== false);
   // M6 parity: 6 toggles that existed on the primary editor but were missing
@@ -3955,6 +3964,7 @@ function AdditionalProfileForm({
         showToolReality,
         showToolLatte,
         showInteractive,
+        rotateInteractiveTools,
         showShowpieceSqueeze,
         showShowpieceTaxBite,
         showShowpieceInflation,
@@ -4428,6 +4438,12 @@ function AdditionalProfileForm({
           </div>
           {showInteractive && (
             <div className="rounded-lg px-2 py-2 space-y-2" style={{ border: `1px solid ${tc.borderColor}`, backgroundColor: tc.inputBg + "55" }}>
+              <div className="flex items-center justify-between pl-2">
+                <span className="text-xs" style={{ color: tc.textColor }}>Rotate one tool every few hours</span>
+                <div onClick={() => setRotateInteractiveTools(v => !v)} className="w-9 h-5 rounded-full relative cursor-pointer" style={{ backgroundColor: rotateInteractiveTools ? tc.checkActive : tc.checkInactive }} data-testid="toggle-secondary-rotate-interactive-tools">
+                  <div className="absolute top-0.5 w-4 h-4 rounded-full transition-all" style={{ left: rotateInteractiveTools ? "18px" : "2px", backgroundColor: rotateInteractiveTools ? tc.checkDotActive : tc.checkDotInactive }} />
+                </div>
+              </div>
               <p className="text-xs font-medium" style={{ color: tc.mutedText }}>Interactive tools visible on profile:</p>
               {[
                 { label: "Real Money Squeeze", value: showShowpieceSqueeze, set: setShowShowpieceSqueeze },
