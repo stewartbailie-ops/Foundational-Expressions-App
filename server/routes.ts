@@ -85,6 +85,11 @@ const safeUpdateAdvisorProfileSchema = safeInsertAdvisorProfileSchema.omit({ adv
 
 const otpStore = new Map<string, { code: string; expires: number }>();
 
+function routeParam(value: string | string[] | undefined): string {
+  if (value === undefined) return "";
+  return Array.isArray(value) ? value[0] : value;
+}
+
 // Returns true if the request session is allowed to manage the given advisor's data.
 // Allowed when: master admin, the advisor's own logged-in panel session, or a demo advisor.
 async function canAccessAdvisor(req: import("express").Request, advisorId: number): Promise<boolean> {
@@ -501,7 +506,8 @@ export async function registerRoutes(
   });
 
   app.get("/api/advisors/slug/:slug", publicReadLimiter, async (req, res) => {
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    const slug = routeParam(req.params.slug);
+    const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     res.json(toPublicAdvisor(advisor));
   });
@@ -1572,10 +1578,11 @@ export async function registerRoutes(
 
   // Setup account (first time): store password hash + send verification OTP
   app.post("/api/advisor-auth/:slug/setup", otpSendLimiter, async (req, res) => {
+    const slug = routeParam(req.params.slug);
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ message: "Email and password required" });
     if (password.length < 10) return res.status(400).json({ message: "Password must be at least 10 characters" });
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
       return res.status(400).json({ message: "That email address is not registered for this account." });
@@ -1584,9 +1591,9 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Account already set up. Please sign in." });
     }
     const hash = await bcrypt.hash(password, 10);
-    (req.session as any)[`setup_hash_${req.params.slug}`] = hash;
+    (req.session as any)[`setup_hash_${slug}`] = hash;
     const code = generateOtp();
-    otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
+    otpStore.set(slug, { code, expires: Date.now() + 10 * 60 * 1000 });
     try {
       await sendEmail(
         advisor.email,
@@ -1608,24 +1615,25 @@ export async function registerRoutes(
 
   // Verify email OTP (one-time) — marks account as verified and starts session
   app.post("/api/advisor-auth/:slug/verify-otp", otpLimiter, async (req, res) => {
+    const slug = routeParam(req.params.slug);
     const { code } = req.body;
     if (!code) return res.status(400).json({ message: "Code required" });
-    const entry = otpStore.get(req.params.slug);
+    const entry = otpStore.get(slug);
     if (!entry) return res.status(400).json({ message: "No verification code found. Please go back and try again." });
     if (Date.now() > entry.expires) {
-      otpStore.delete(req.params.slug);
+      otpStore.delete(slug);
       return res.status(400).json({ message: "Code expired. Please go back and request a new one." });
     }
     if (entry.code !== code.trim()) {
       return res.status(400).json({ message: "Incorrect code. Please try again." });
     }
-    otpStore.delete(req.params.slug);
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    otpStore.delete(slug);
+    const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    const pendingHash = (req.session as any)[`setup_hash_${req.params.slug}`];
+    const pendingHash = (req.session as any)[`setup_hash_${slug}`];
     if (pendingHash) {
       await storage.updateAdvisor(advisor.id, { advisorPasswordHash: pendingHash, advisorPasswordSet: true, advisorEmailVerified: true });
-      delete (req.session as any)[`setup_hash_${req.params.slug}`];
+      delete (req.session as any)[`setup_hash_${slug}`];
     } else if (advisor.advisorPasswordHash) {
       await storage.updateAdvisor(advisor.id, { advisorPasswordSet: true, advisorEmailVerified: true });
     } else {
@@ -1634,19 +1642,20 @@ export async function registerRoutes(
     // Task #24 — set canonical session.advisorId so newly-verified advisors
     // can hit /api/emails* immediately without an extra login round-trip.
     (req.session as any).advisorId = advisor.id;
-    (req.session as any)[`advisor_${req.params.slug}`] = true;
+    (req.session as any)[`advisor_${slug}`] = true;
     res.json({ authenticated: true });
   });
 
   // Resend verification OTP (only for unverified accounts)
   app.post("/api/advisor-auth/:slug/resend-otp", otpSendLimiter, async (req, res) => {
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    const slug = routeParam(req.params.slug);
+    const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (advisor.advisorEmailVerified) return res.status(400).json({ message: "Account already verified." });
-    const hasPendingHash = !!(req.session as any)[`setup_hash_${req.params.slug}`] || !!advisor.advisorPasswordHash;
+    const hasPendingHash = !!(req.session as any)[`setup_hash_${slug}`] || !!advisor.advisorPasswordHash;
     if (!hasPendingHash) return res.status(400).json({ message: "Please complete account setup first." });
     const code = generateOtp();
-    otpStore.set(req.params.slug, { code, expires: Date.now() + 10 * 60 * 1000 });
+    otpStore.set(slug, { code, expires: Date.now() + 10 * 60 * 1000 });
     try {
       await sendEmail(
         advisor.email!,
@@ -1726,6 +1735,7 @@ export async function registerRoutes(
 
   // Standard login: email + password
   app.post("/api/advisor-auth/:slug/login", advisorLoginLimiter, async (req, res) => {
+    const slug = routeParam(req.params.slug);
     const { email, password } = req.body;
     // Task #24 — capture IP + UA for audit regardless of outcome.
     const ipAddress = (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() || req.ip || null;
@@ -1734,7 +1744,7 @@ export async function registerRoutes(
       role: "advisor",
       advisorId,
       emailAttempted: typeof email === "string" ? email.slice(0, 200) : null,
-      slug: req.params.slug,
+      slug,
       outcome,
       ipAddress,
       userAgent,
@@ -1743,7 +1753,7 @@ export async function registerRoutes(
       audit("missing_credentials", null);
       return res.status(400).json({ message: "Email and password required" });
     }
-    const advisor = await storage.getAdvisorBySlug(req.params.slug);
+    const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) {
       audit("invalid_email", null);
       return res.status(404).json({ message: "Advisor not found" });
