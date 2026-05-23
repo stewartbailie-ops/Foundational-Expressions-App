@@ -8,6 +8,7 @@ import type { Advisor } from "@shared/schema";
 import { INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
+import { readStoredRiskProfileResult } from "@/lib/riskProfileResult";
 
 // Task #31 — per-row duplicate notice. Wrapped in a child component so the
 // hook call obeys rules-of-hooks even though the parent renders the list.
@@ -192,6 +193,7 @@ export default function ReferralForm() {
     if (!advisor || !canSubmit) return;
     setSubmitting(true);
     setSubmitError("");
+    const riskResult = readStoredRiskProfileResult();
 
     try {
       for (const ref of referrals) {
@@ -216,6 +218,8 @@ export default function ReferralForm() {
           referralReason: ref.referralReason.trim() || undefined,
           source: `referral-form-${slug}`,
           sourceProfileSlug: slug || undefined,
+          riskProfile: riskResult?.profile,
+          riskScore: riskResult?.score,
           recaptchaToken: recaptchaToken ?? undefined,
         });
       }

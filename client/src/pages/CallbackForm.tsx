@@ -7,6 +7,7 @@ import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
+import { readStoredRiskProfileResult } from "@/lib/riskProfileResult";
 
 function getInitials(name: string): string {
   return name
@@ -209,6 +210,7 @@ export default function CallbackForm() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!canSubmit) return;
+    const riskResult = readStoredRiskProfileResult();
 
     mutation.mutate({
       advisorId: advisor.id,
@@ -233,6 +235,8 @@ export default function CallbackForm() {
         : undefined,
       source: "callback-form",
       sourceProfileSlug: slug || undefined,
+      riskProfile: riskResult?.profile,
+      riskScore: riskResult?.score,
       recaptchaToken: recaptchaToken ?? undefined,
     });
   };

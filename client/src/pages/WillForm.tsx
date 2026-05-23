@@ -7,6 +7,7 @@ import type { Advisor } from "@shared/schema";
 import { getThemeColors } from "@/lib/themeUtils";
 import { apiRequest } from "@/lib/queryClient";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
+import { readStoredRiskProfileResult } from "@/lib/riskProfileResult";
 
 function getInitials(name: string): string {
   return name.split(" ").map((w) => w[0]).join("").toUpperCase().slice(0, 2);
@@ -69,6 +70,7 @@ export default function WillForm() {
 
   const submitMutation = useMutation({
     mutationFn: async () => {
+      const riskResult = readStoredRiskProfileResult();
       return apiRequest("POST", "/api/will-request", {
         advisorId: advisor!.id,
         fullName,
@@ -84,6 +86,8 @@ export default function WillForm() {
         estateValueBracket: estateValueBracket || undefined,
         source: `claim-will/${slug}`,
         sourceProfileSlug: slug || undefined,
+        riskProfile: riskResult?.profile,
+        riskScore: riskResult?.score,
         recaptchaToken: recaptchaToken ?? undefined,
       });
     },

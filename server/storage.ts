@@ -221,6 +221,7 @@ export class DatabaseStorage implements IStorage {
       showRetirementCalc: (profile.profile as any).showRetirementCalc,
       showFinancialCalendar: (profile.profile as any).showFinancialCalendar,
       showFinancialDashboard: (profile.profile as any).showFinancialDashboard,
+      showSudoku: (profile.profile as any).showSudoku,
       // ── End per-secondary toggles ──
       facebookUrl: profile.profile.facebookUrl,
       instagramUrl: profile.profile.instagramUrl,

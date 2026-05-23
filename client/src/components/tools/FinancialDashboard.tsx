@@ -3,12 +3,14 @@ import {
   AlertTriangle,
   ArrowRight,
   Banknote,
+  Download,
   HeartPulse,
   PiggyBank,
   ShieldCheck,
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { jsPDF } from "jspdf";
 import { type getThemeColors } from "@/lib/themeUtils";
 
 export type FinancialDashboardProps = {
@@ -318,6 +320,74 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
     model.debtScore < 60 && "A debt strategy may free up future monthly breathing room.",
   ].filter(Boolean) as string[];
 
+  const downloadSummaryPdf = () => {
+    const generatedAt = new Date();
+    const pdf = new jsPDF();
+    pdf.setFillColor(18, 45, 68);
+    pdf.rect(0, 0, 210, 38, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(20);
+    pdf.text("Financial Dashboard", 16, 22);
+    pdf.setFontSize(10);
+    pdf.text(`Prepared for ${advisorName || "your advisor"} | ${generatedAt.toLocaleDateString("en-ZA")}`, 16, 31);
+
+    pdf.setTextColor(24, 35, 48);
+    pdf.setFontSize(14);
+    pdf.text("Key inputs", 16, 54);
+    pdf.setFontSize(10);
+    const inputRows = [
+      ["Monthly gross income", ZAR(inputs.grossIncome)],
+      ["Current age", `${inputs.age} years`],
+      ["Retirement age", `${inputs.retirementAge} years`],
+      ["Monthly investing", ZAR(inputs.monthlySave)],
+    ];
+    inputRows.forEach(([label, value], index) => {
+      const y = 66 + index * 8;
+      pdf.setFont("helvetica", "bold");
+      pdf.text(label, 16, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(value, 82, y);
+    });
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.text("Score snapshot", 16, 108);
+    pdf.setFontSize(10);
+    const scoreRows = [
+      ["Health score", `${model.score} / 100 (${band.label})`],
+      ["Future readiness", `${model.futureScore} / 100`],
+      ["Protection", `${model.protectionScore} / 100`],
+      ["Debt pressure", `${model.debtScore} / 100`],
+    ];
+    scoreRows.forEach(([label, value], index) => {
+      const y = 120 + index * 8;
+      pdf.setFont("helvetica", "bold");
+      pdf.text(label, 16, y);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(value, 82, y);
+    });
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.text("Advisor conversation flags", 16, 162);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const flagLines = flags.length ? flags : ["No urgent flags from this educational snapshot."];
+    let y = 174;
+    flagLines.forEach((flag) => {
+      const wrapped = pdf.splitTextToSize(`- ${flag}`, 178);
+      pdf.text(wrapped, 16, y);
+      y += wrapped.length * 5 + 4;
+    });
+
+    pdf.setDrawColor(198, 214, 226);
+    pdf.line(16, 275, 194, 275);
+    pdf.setTextColor(90, 103, 117);
+    pdf.setFontSize(9);
+    pdf.text("Educational estimate only. Not personalised financial advice.", 16, 286);
+    pdf.save("advisory-connect-financial-dashboard.pdf");
+  };
+
   return (
     <section className="overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="financial-dashboard">
       <div className="p-4" style={{ background: `linear-gradient(135deg, ${accentColor}22 0%, rgba(16,185,129,0.08) 44%, rgba(239,68,68,0.08) 100%)`, borderBottom: `1px solid ${borderColor}` }}>
@@ -397,6 +467,9 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(model.lumpSumRealValue)} real value`} detail={`${compactZar(inputs.futureLumpSum)} today after ${model.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.lumpSumRealValue / Math.max(inputs.futureLumpSum, 1)) * 100} />
           <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={model.debt.canPay ? model.debt.months > 0 ? `${model.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={model.debt.canPay ? `${compactZar(Math.max(0, model.debt.totalPaid - inputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
+        <button type="button" onClick={downloadSummaryPdf} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+          <Download className="h-3.5 w-3.5" /> Download summary
+        </button>
         <p className="text-[11px] leading-relaxed" style={{ color: mutedText }}>Educational estimate only. It uses simplified South African tax assumptions based on 2025/26 SARS rates, inflation, protection and compound-growth assumptions and is not personalised financial advice.</p>
       </div>
     </section>

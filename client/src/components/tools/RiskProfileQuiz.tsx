@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, Gauge, RotateCcw } from "lucide-react";
 import { jsPDF } from "jspdf";
 import { type getThemeColors } from "@/lib/themeUtils";
+import { writeStoredRiskProfileResult } from "@/lib/riskProfileResult";
 
 type RiskProfileQuizProps = {
   tc: ReturnType<typeof getThemeColors>;
@@ -96,6 +97,11 @@ export function RiskProfileQuiz({ tc }: RiskProfileQuizProps) {
   const score = useMemo(() => Object.values(answers).reduce((total, answer) => total + answer, 0), [answers]);
   const complete = answerCount === QUESTIONS.length;
   const profile = complete ? scoreProfile(score) : null;
+
+  useEffect(() => {
+    if (!profile) return;
+    writeStoredRiskProfileResult({ profile, score });
+  }, [profile, score]);
 
   const downloadPdf = () => {
     if (!profile) return;
