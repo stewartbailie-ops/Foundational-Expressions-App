@@ -215,8 +215,8 @@ function PulseRing({
           <div className="grid h-10 w-10 place-items-center rounded-full text-[11px] font-extrabold" style={{ backgroundColor: inputBg, color }}>{score}</div>
         </div>
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>{label}</p>
-          <p className="truncate text-sm font-bold" style={{ color: textColor }}>{value}</p>
+          <p className="text-[11px] font-semibold uppercase leading-tight" style={{ color: mutedText }}>{label}</p>
+          <p className="break-words text-sm font-bold leading-tight" style={{ color: textColor }}>{value}</p>
         </div>
       </div>
     </div>
@@ -243,7 +243,7 @@ function InsightCard({
         <span className="mt-0.5" style={{ color }}>{icon}</span>
         <div className="min-w-0">
           <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>{title}</p>
-          <p className="text-base font-extrabold" style={{ color: textColor }}>{value}</p>
+          <p className="break-words text-base font-extrabold" style={{ color: textColor }}>{value}</p>
         </div>
       </div>
       {bar !== undefined && (
@@ -336,7 +336,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
       </div>
       <div className="space-y-4 p-4">
         <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
             <RangeInput label="Monthly gross income" value={inputs.grossIncome} display={ZAR(inputs.grossIncome)} min={10000} max={250000} step={1000} onChange={(value) => update("grossIncome", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-income" />
             <RangeInput label="Your age" value={inputs.age} display={`${inputs.age} yrs`} min={18} max={70} step={1} onChange={(value) => update("age", Math.min(value, inputs.retirementAge - 1))} accentColor={accentColor} mutedText={mutedText} testId="pulse-age" />
             <RangeInput label="Monthly investing" value={inputs.monthlySave} display={ZAR(inputs.monthlySave)} min={0} max={30000} step={250} onChange={(value) => update("monthlySave", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-saving" />
@@ -345,7 +345,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
             {advancedOpen ? "Hide" : "Tune"} assumptions and protection inputs <ArrowRight className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-90" : ""}`} />
           </button>
           {advancedOpen && (
-            <div className="mt-3 grid gap-2 border-t pt-3 sm:grid-cols-2 lg:grid-cols-4" style={{ borderColor }}>
+            <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
               <NumberField label="Retirement age" value={inputs.retirementAge} min={inputs.age + 1} onChange={(value) => update("retirementAge", value)} suffix="yrs" inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
               <NumberField label="Investments now" value={inputs.currentInvestments} onChange={(value) => update("currentInvestments", value)} inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
               <NumberField label="Essential expenses" value={inputs.essentialExpenses} onChange={(value) => update("essentialExpenses", value)} inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
@@ -361,12 +361,12 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
             </div>
           )}
         </div>
-        <div className="grid gap-2 md:grid-cols-3">
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(11rem, 100%), 1fr))" }}>
           <PulseRing label="Future readiness" score={model.futureScore} value={`${Math.round(model.retirementRatio * 100)}% of target`} color={futureColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Protection" score={model.protectionScore} value={`${(inputs.emergencySavings / Math.max(inputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Debt pressure" score={model.debtScore} value={`${Math.round(model.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
         </div>
-        <div className="grid gap-2 lg:grid-cols-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
           <InsightCard icon={<Banknote className="h-4 w-4" />} title="What SARS takes" value={`${ZAR(model.taxMonthly)} / month`} detail={`${ZAR(model.takeHome)} remains before the rest of life starts spending it.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.taxMonthly / Math.max(inputs.grossIncome, 1)) * 100} />
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation squeeze" value={`${ZAR(model.futureIncomeValue)} real pay`} detail={`Your ${ZAR(inputs.grossIncome)} monthly income only feels like this in ${model.years} years at ${inputs.inflation}% inflation.`} color="#f59e0b" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.futureIncomeValue / Math.max(inputs.grossIncome, 1)) * 100} />
           <InsightCard icon={<PiggyBank className="h-4 w-4" />} title="Retirement gap" value={model.retirementRatio >= 1 ? "Target covered" : `${compactZar(model.retirementNeed - model.retirementPot)} gap`} detail={`${compactZar(model.retirementPot)} projected pot, worth ${compactZar(model.realPot)} in today's money.`} color={futureColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={model.retirementRatio * 100} />
@@ -374,13 +374,13 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Life cover lens" value={`${compactZar(Math.max(0, model.lifeCoverNeed - inputs.existingLifeCover))} short`} detail={`Simple ten-year income replacement target: ${compactZar(model.lifeCoverNeed)} before a full needs analysis.`} color={protectionColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={model.lifeCoverRatio * 100} />
           <InsightCard icon={<TrendingUp className="h-4 w-4" />} title="Small spend, big future" value={compactZar(model.latteValue)} detail={`${ZAR(inputs.discretionarySpend)} redirected monthly could compound over ${model.years} years.`} color={accentColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
-        <div className="grid gap-3 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="grid gap-3">
           <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
               <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>What changes most?</p><p className="text-sm font-bold" style={{ color: textColor }}>Add {ZAR(boost)} to monthly investing</p></div>
-              <div className="w-full sm:w-56"><RangeInput label="Monthly boost" value={boost} display={ZAR(boost)} min={0} max={5000} step={250} onChange={setBoost} accentColor={accentColor} mutedText={mutedText} testId="pulse-boost" /></div>
+              <div className="w-full"><RangeInput label="Monthly boost" value={boost} display={ZAR(boost)} min={0} max={5000} step={250} onChange={setBoost} accentColor={accentColor} mutedText={mutedText} testId="pulse-boost" /></div>
             </div>
-            <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(8rem, 100%), 1fr))" }}>
               <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Current path</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(model.retirementPot)}</p></div>
               <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Small change</p><p className="text-lg font-black" style={{ color: accentColor }}>{compactZar(model.improvedPot)}</p></div>
               <div className="rounded-lg p-3" style={{ backgroundColor: `${accentColor}16`, border: `1px solid ${accentColor}55` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Difference</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(model.improvedPot - model.retirementPot)}</p></div>
@@ -393,7 +393,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
             <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.24)", color: mutedText }}>These flags are conversation starters. A full needs analysis still belongs with the advisor.</div>
           </div>
         </div>
-        <div className="grid gap-2 md:grid-cols-2">
+        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(model.lumpSumRealValue)} real value`} detail={`${compactZar(inputs.futureLumpSum)} today after ${model.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.lumpSumRealValue / Math.max(inputs.futureLumpSum, 1)) * 100} />
           <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={model.debt.canPay ? model.debt.months > 0 ? `${model.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={model.debt.canPay ? `${compactZar(Math.max(0, model.debt.totalPaid - inputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
