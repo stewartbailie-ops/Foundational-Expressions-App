@@ -161,8 +161,12 @@ function applyImagePattern(
   return {
     backgroundColor: bgColorHex,
     backgroundImage: `linear-gradient(${tint}, ${tint}), url("${url}")`,
-    backgroundSize: "100% 100%, cover",
-    backgroundPosition: "center, center",
+    // Size image to viewport dimensions so it renders sharp without
+    // background-attachment:fixed (which causes scroll repaints on mobile).
+    // 100vw/100vh are relative to viewport, not element height, so the image
+    // is never upscaled even on very tall profile pages.
+    backgroundSize: "100% 100%, 100vw 100vh",
+    backgroundPosition: "0 0, 50% 0",
     backgroundRepeat: "no-repeat, no-repeat",
   };
 }

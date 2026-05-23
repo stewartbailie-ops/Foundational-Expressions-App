@@ -169,6 +169,43 @@ type DrawCtx = {
   qrImg: HTMLImageElement | null;
 };
 
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function drawSquareBadge(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, from: string, to: string, initials: string) {
+  const r = Math.round(size * 0.22);
+  const grad = ctx.createLinearGradient(x, y, x + size, y + size);
+  grad.addColorStop(0, from);
+  grad.addColorStop(1, to);
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.45)";
+  ctx.shadowBlur = Math.round(size * 0.16);
+  ctx.shadowOffsetY = Math.round(size * 0.06);
+  ctx.fillStyle = grad;
+  roundRect(ctx, x, y, size, size, r);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+  ctx.fillStyle = "#ffffff";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold ${Math.round(size * 0.46)}px Georgia, "Times New Roman", serif`;
+  ctx.fillText(((initials[0] || "") + (initials[1] || "")) || "AC", x + size / 2, y + size / 2 + Math.round(size * 0.03));
+  ctx.restore();
+}
+
 function drawInitialsBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, from: string, to: string, initials: string) {
   const grad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
   grad.addColorStop(0, from);
@@ -201,34 +238,48 @@ function drawInitialsBadge(ctx: CanvasRenderingContext2D, cx: number, cy: number
 
 function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: DrawCtx) {
   const { advisor, from, to, photoImg, logoImg, qrImg } = c;
-  const PHOTO_H = Math.round(H * 0.55); // ~1056
+  const FOOTER_H = Math.round(H * 0.07);
+  const PHOTO_H = Math.round(H * 0.62);
   const initials = getInitials(advisor.name);
+  const BADGE = Math.round(W * 0.14);
+  const MARGIN = 64;
 
   if (photoImg) {
     drawCoverPhoto(ctx, 0, 0, W, PHOTO_H, photoImg);
-    const grad = ctx.createLinearGradient(0, PHOTO_H - 420, 0, PHOTO_H);
+    // Deep dark gradient over bottom 45% of photo for text legibility
+    const grad = ctx.createLinearGradient(0, PHOTO_H * 0.55, 0, PHOTO_H);
     grad.addColorStop(0, "rgba(0,0,0,0)");
-    grad.addColorStop(1, "rgba(0,0,0,0.82)");
+    grad.addColorStop(1, "rgba(0,0,0,0.90)");
     ctx.fillStyle = grad;
-    ctx.fillRect(0, PHOTO_H - 420, W, 420);
-    // Initials badge — bottom-left of photo, level with name text.
-    const R = Math.round(W * 0.085);
-    drawInitialsBadge(ctx, 64 + R, PHOTO_H - 220, R, from, to, initials);
+    ctx.fillRect(0, PHOTO_H * 0.55, W, PHOTO_H * 0.45);
   } else {
     drawInitialsBlock(ctx, 0, 0, W, PHOTO_H, from, to, initials);
   }
 
-  // Name + Title on photo
-  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  // Square badge (Header Image style) at bottom-left of photo
+  const badgeY = PHOTO_H - MARGIN - BADGE;
+  drawSquareBadge(ctx, MARGIN, badgeY, BADGE, from, to, initials);
+
+  // Name + Title to the right of badge, vertically centred on badge
+  const textX = MARGIN + BADGE + 48;
+  const maxTextW = W - textX - MARGIN;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
   ctx.fillStyle = "#ffffff";
-  ctx.font = `bold 70px Arial, sans-serif`;
-  const nameLines = wrapText(ctx, advisor.name, W - 120, 2);
-  let ny = PHOTO_H - 150 - (nameLines.length - 1) * 38;
-  for (const line of nameLines) { ctx.fillText(line, W / 2, ny); ny += 78; }
+  ctx.font = `bold 68px Arial, sans-serif`;
+  const nameLines = wrapText(ctx, advisor.name, maxTextW, 2);
+  const lineH = 76;
+  const titleH = advisor.title ? 36 : 0;
+  const totalH = nameLines.length * lineH + (titleH > 0 ? 18 + titleH : 0);
+  let textY = badgeY + BADGE / 2 - totalH / 2 + lineH * 0.78;
+  for (const line of nameLines) {
+    ctx.fillText(truncateToWidth(ctx, line, maxTextW), textX, textY);
+    textY += lineH;
+  }
   if (advisor.title) {
-    ctx.fillStyle = "rgba(255,255,255,0.85)";
-    ctx.font = `600 30px Arial, sans-serif`;
-    ctx.fillText(advisor.title.toUpperCase(), W / 2, PHOTO_H - 64);
+    ctx.fillStyle = "rgba(255,255,255,0.80)";
+    ctx.font = `600 28px Arial, sans-serif`;
+    ctx.fillText(advisor.title.toUpperCase(), textX, textY + 18);
   }
 
   // White body
@@ -248,30 +299,30 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  let y = PHOTO_H + 100;
+  let y = PHOTO_H + 90;
   for (const [label, text] of items) {
     ctx.fillStyle = "#909090";
     ctx.font = `bold 24px Arial, sans-serif`;
     ctx.fillText(label.toUpperCase(), 80, y);
     ctx.fillStyle = "#1f1f1f";
-    ctx.font = `500 32px Arial, sans-serif`;
+    ctx.font = `500 30px Arial, sans-serif`;
     ctx.fillText(truncateToWidth(ctx, text, W - 280), 220, y);
-    y += 64;
+    y += 60;
   }
 
   // QR
   if (qrImg) {
-    const QR = 340;
-    const qrY = Math.max(y + 50, H - 620);
+    const QR = 300;
+    const qrY = Math.max(y + 40, H - FOOTER_H - QR - 80);
     const qrX = (W - QR) / 2;
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(qrX - 18, qrY - 18, QR + 36, QR + 36);
+    ctx.fillRect(qrX - 16, qrY - 16, QR + 32, QR + 32);
     ctx.drawImage(qrImg, qrX, qrY, QR, QR);
     ctx.fillStyle = "#666"; ctx.textAlign = "center";
-    ctx.font = `500 26px Arial, sans-serif`;
-    ctx.fillText("Scan to view full profile", W / 2, qrY + QR + 44);
-    ctx.fillStyle = "#999"; ctx.font = `22px Arial, sans-serif`;
-    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR + 80);
+    ctx.font = `500 24px Arial, sans-serif`;
+    ctx.fillText("Scan to view full profile", W / 2, qrY + QR + 40);
+    ctx.fillStyle = "#999"; ctx.font = `20px Arial, sans-serif`;
+    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR + 72);
   }
 
   drawFooter(ctx, W, H, logoImg);

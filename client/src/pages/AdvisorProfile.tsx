@@ -673,7 +673,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
   const symbolsCsv = (advisor as any).tradingViewSymbols as string | null;
   const symbols = (symbolsCsv && symbolsCsv.trim()
     ? symbolsCsv.split(",").map(s => s.trim()).filter(Boolean)
-    : ["FX_IDC:USDZAR", "FX_IDC:EURZAR", "TVC:GOLD", "SP:SPX"]
+    : ["TVC:GOLD", "TVC:SILVER", "TVC:USOIL"]
   ).slice(0, 8);
   const hostRef = useRef<HTMLDivElement>(null);
 
