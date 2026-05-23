@@ -164,7 +164,6 @@ function applyImagePattern(
     backgroundSize: "100% 100%, cover",
     backgroundPosition: "center, center",
     backgroundRepeat: "no-repeat, no-repeat",
-    backgroundAttachment: "scroll, fixed",
   };
 }
 

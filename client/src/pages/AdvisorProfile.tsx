@@ -673,7 +673,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
   const symbolsCsv = (advisor as any).tradingViewSymbols as string | null;
   const symbols = (symbolsCsv && symbolsCsv.trim()
     ? symbolsCsv.split(",").map(s => s.trim()).filter(Boolean)
-    : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"]
+    : ["FX_IDC:USDZAR", "FX_IDC:EURZAR", "TVC:GOLD", "SP:SPX"]
   ).slice(0, 8);
   const hostRef = useRef<HTMLDivElement>(null);
 
@@ -690,7 +690,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
     const container = document.createElement("div");
     container.className = "tradingview-widget-container";
     container.style.width = "100%";
-    container.style.height = "400px";
+    container.style.height = "480px";
     const widget = document.createElement("div");
     widget.className = "tradingview-widget-container__widget";
     widget.style.width = "100%";
@@ -738,7 +738,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
       <p className="text-xs" style={{ color: tc.mutedText }}>
         Live chart data via TradingView. Tracking {symbols.length} instrument{symbols.length === 1 ? "" : "s"}.
       </p>
-      <div ref={hostRef} style={{ minHeight: 400, width: "100%" }} />
+      <div ref={hostRef} style={{ minHeight: 480, width: "100%" }} />
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>
         Powered by TradingView · Prices for illustration only, not investment advice.
       </p>

@@ -211,9 +211,9 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
     grad.addColorStop(1, "rgba(0,0,0,0.82)");
     ctx.fillStyle = grad;
     ctx.fillRect(0, PHOTO_H - 420, W, 420);
-    // Always-on initials badge (top-left), even with photo — brand mark.
+    // Initials badge — bottom-left of photo, level with name text.
     const R = Math.round(W * 0.085);
-    drawInitialsBadge(ctx, 60 + R, 60 + R, R, from, to, initials);
+    drawInitialsBadge(ctx, 64 + R, PHOTO_H - 220, R, from, to, initials);
   } else {
     drawInitialsBlock(ctx, 0, 0, W, PHOTO_H, from, to, initials);
   }
@@ -288,9 +288,6 @@ function drawSquare(ctx: CanvasRenderingContext2D, W: number, H: number, c: Draw
 
   if (photoImg) {
     drawCoverPhoto(ctx, 0, 0, LEFT_W, BODY_H, photoImg);
-    // Always-on initials badge (top-left) for brand consistency.
-    const R = Math.round(LEFT_W * 0.14);
-    drawInitialsBadge(ctx, 36 + R, 36 + R, R, from, to, initials);
   } else {
     drawInitialsBlock(ctx, 0, 0, LEFT_W, BODY_H, from, to, initials);
   }
@@ -325,7 +322,12 @@ function drawSquare(ctx: CanvasRenderingContext2D, W: number, H: number, c: Draw
     for (const line of titleLines) { ctx.fillText(line, padX, y); y += 32; }
   }
 
-  y += 24;
+  // Initials badge — right panel, below name/title, left-aligned with text.
+  const badgeR = Math.round(Math.min(LEFT_W, BODY_H) * 0.08);
+  y += 20;
+  drawInitialsBadge(ctx, padX + badgeR, y + badgeR, badgeR, from, to, initials);
+  y += badgeR * 2 + 20;
+
   ctx.fillStyle = "#eee";
   ctx.fillRect(padX, y, maxW, 2);
   y += 28;
