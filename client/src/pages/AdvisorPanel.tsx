@@ -8101,7 +8101,7 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         {status.status === "past_due" && (
           <div className="mt-2 text-sm flex gap-2 items-start" style={{ color: "#dc2626" }}>
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Your last payment failed. Update your card via Manage subscription to keep your access.</span>
+            <span>Your last payment failed. Visit the billing portal to update your card and restore access.</span>
           </div>
         )}
       </div>
@@ -8116,30 +8116,31 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
         <PlanCard
           tier="basic"
           price="R299/mo"
-          blurb="Everything you need to capture and grade leads."
+          blurb="Your digital practice, live and ready to capture leads."
           features={[
-            "One public profile",
-            "All 4 lead capture forms with rich grader fields",
-            "Lead registry with grade + temperature on every row",
-            "All themes, patterns, QR + share link",
-            "Standard digital business card",
-            "Basic analytics (lead count + profile views)",
-            "14-day free trial",
+            "Public advisor profile with your own personalised link",
+            "Lead capture forms with risk-profile and grading questions",
+            "Lead inbox — grade, temperature and follow-up tracking",
+            "All themes, custom colours, QR code and share link",
+            "Digital business card — downloadable and shareable",
+            "Profile analytics — views and lead count",
+            "14-day free trial, no card required",
           ]}
         />
         <PlanCard
           tier="premium"
           price="R499/mo"
-          blurb="Everything in Basic, plus practice management and advanced tools."
+          blurb="Full practice management — from first contact to client onboarding."
           features={[
-            "Secondary profile",
-            "Full grader breakdown + advanced analytics dashboard",
-            "Compound Interest + Retirement calculators",
-            "Image pattern presets, Editor's article, Smartie Box",
-            "Risk Profile Quiz + TradingView multi-instrument",
-            "Multi-format business cards (option to hide footer branding)",
-            "My Clients (POPIA-encrypted vault, Book of Life, birthdays)",
-            "Priority support (24hr Mon–Fri)",
+            "Everything in Starter, plus:",
+            "Second profile for a specialist niche or business unit",
+            "Compound interest + retirement savings calculators",
+            "Premium background image patterns",
+            "Risk Profile Quiz (score attached to every lead)",
+            "Live market data — multi-instrument chart widget",
+            "My Clients — POPIA-compliant encrypted client vault",
+            "Book of Life — secure document store per client",
+            "Priority support (24hr response, Mon–Fri)",
           ]}
         />
       </div>
@@ -8155,7 +8156,7 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
               data-testid="button-billing-manage"
             >
               <ExternalLink className="h-3.5 w-3.5 inline mr-1.5" />
-              Manage on Paystack
+              Billing portal
             </button>
             <button
               onClick={cancelSubscription}
@@ -8167,7 +8168,7 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
               {cancelling ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : status.status === "cancelled" ? "Cancelled" : "Cancel subscription"}
             </button>
           </div>
-          <div className="text-xs" style={{ color: tc.mutedText }}>Card updates and invoice history live on Paystack. Cancelling keeps your access through the end of the current billing period.</div>
+          <div className="text-xs" style={{ color: tc.mutedText }}>Card details and invoice history are available in your billing portal. Cancelling keeps your access through the end of the current billing period.</div>
         </div>
       )}
     </div>
