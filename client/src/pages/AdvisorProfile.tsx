@@ -16,6 +16,7 @@ import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityChec
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { ComingSoonCard } from "@/components/tools/ComingSoonCard";
+import { FinancialDashboard } from "@/components/tools/FinancialDashboard";
 
 function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -1026,12 +1027,14 @@ export function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThem
       {/* SA Financial Events */}
       <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
         <p className="text-xs font-semibold mb-1" style={{ color: tc.accentColor }}>SA Financial Events 2026</p>
-        {SA_FINANCIAL_EVENTS_2026.slice().sort((a, b) => a.date.localeCompare(b.date)).map((ev, idx) => {
+        {SA_FINANCIAL_EVENTS_2026
+          .filter(e => new Date(e.date) >= new Date(today.getFullYear(), today.getMonth(), today.getDate()))
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .map((ev, idx) => {
           const d = new Date(ev.date);
-          const isPast = d < new Date(today.getFullYear(), today.getMonth(), today.getDate());
           const colour = getCategoryColor(ev.category);
           return (
-            <div key={`${ev.date}-${idx}`} className="flex items-start gap-2 py-1" style={{ opacity: isPast ? 0.45 : 1 }}>
+            <div key={`${ev.date}-${idx}`} className="flex items-start gap-2 py-1">
               <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded-full mt-0.5" style={{ backgroundColor: `${colour}22`, color: colour, minWidth: 44, textAlign: "center" }}>{ev.category}</span>
               <div className="flex-1 min-w-0">
                 <p className="text-xs" style={{ color: tc.textColor }}>{ev.title}</p>
@@ -2866,6 +2869,9 @@ export default function AdvisorProfile() {
           ) : null,
           calendar: (advisor as any).showFinancialCalendar ? (
             <FinancialCalendarSection tc={tc} />
+          ) : null,
+          financialdashboard: (advisor as any).showFinancialDashboard ? (
+            <FinancialDashboard tc={tc} advisorName={advisor.name} />
           ) : null,
           };
           return profileSectionOrder.map((key, i) =>

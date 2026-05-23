@@ -24,10 +24,11 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["trading_view_symbols",     "text"],
   ["show_daily_quotes",        "boolean NOT NULL DEFAULT false"],
   ["daily_quotes_set",         "text DEFAULT 'general'"],
-  ["show_compound_calc",       "boolean NOT NULL DEFAULT false"],
-  ["show_retirement_calc",     "boolean NOT NULL DEFAULT false"],
-  ["show_financial_calendar",  "boolean NOT NULL DEFAULT false"],
-  ["image_pattern_key",        "text"],
+  ["show_compound_calc",        "boolean NOT NULL DEFAULT false"],
+  ["show_retirement_calc",      "boolean NOT NULL DEFAULT false"],
+  ["show_financial_calendar",   "boolean NOT NULL DEFAULT false"],
+  ["show_financial_dashboard",  "boolean NOT NULL DEFAULT false"],
+  ["image_pattern_key",         "text"],
 ];
 
 // Lead-table additive columns. Same pattern, separate list because the parent

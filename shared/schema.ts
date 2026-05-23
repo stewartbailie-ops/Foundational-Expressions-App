@@ -78,6 +78,7 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   showCompoundCalc: boolean("show_compound_calc").default(false),
   showRetirementCalc: boolean("show_retirement_calc").default(false),
   showFinancialCalendar: boolean("show_financial_calendar").default(false),
+  showFinancialDashboard: boolean("show_financial_dashboard").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   imagePatternKey: text("image_pattern_key"),
   profileSectionOrder: text("profile_section_order"),
@@ -178,6 +179,7 @@ export const advisors = pgTable("advisors", {
   showCompoundCalc: boolean("show_compound_calc").default(false),
   showRetirementCalc: boolean("show_retirement_calc").default(false),
   showFinancialCalendar: boolean("show_financial_calendar").default(false),
+  showFinancialDashboard: boolean("show_financial_dashboard").default(false),
   patternOpacity: integer("pattern_opacity").default(50),
   imagePatternKey: text("image_pattern_key"),
   profileSectionOrder: text("profile_section_order"),
@@ -316,7 +318,7 @@ export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
   "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
-  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar",
+  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
@@ -339,6 +341,7 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   compoundcalc: "Compound Interest Calculator",
   retirementcalc: "Retirement Savings Calculator",
   calendar: "Financial Calendar",
+  financialdashboard: "Financial Health Dashboard",
 };
 
 // Category-tinted backgrounds for fun-fact cards (dark, professional, white text on top)

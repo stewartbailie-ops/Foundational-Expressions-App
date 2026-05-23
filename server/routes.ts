@@ -161,7 +161,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   // every section would be silently off regardless of advisor settings.
   "showTradingView", "tradingViewSymbols",
   "showDailyQuotes", "dailyQuotesSet",
-  "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar",
+  "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar", "showFinancialDashboard",
   "patternOpacity", "imagePatternKey", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;
