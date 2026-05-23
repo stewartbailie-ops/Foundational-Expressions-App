@@ -286,7 +286,10 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, PHOTO_H, W, H - PHOTO_H);
 
-  // Contact list
+  // Contact list — anchor QR first so contacts never push it off-card
+  const QR = 220;
+  const qrY = H - FOOTER_H - 72 - QR; // always anchored from bottom
+
   const phone = (advisor as any).contactNumber || "";
   const workingHours = (advisor as any).workingHours || "";
   const location = (advisor as any).location || "";
@@ -299,30 +302,29 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
 
   ctx.textBaseline = "alphabetic";
   ctx.textAlign = "left";
-  let y = PHOTO_H + 90;
+  let y = PHOTO_H + 70;
   for (const [label, text] of items) {
+    if (y + 38 > qrY - 12) break; // stop before overlapping QR
     ctx.fillStyle = "#909090";
-    ctx.font = `bold 24px Arial, sans-serif`;
+    ctx.font = `bold 22px Arial, sans-serif`;
     ctx.fillText(label.toUpperCase(), 80, y);
     ctx.fillStyle = "#1f1f1f";
-    ctx.font = `500 30px Arial, sans-serif`;
+    ctx.font = `500 28px Arial, sans-serif`;
     ctx.fillText(truncateToWidth(ctx, text, W - 280), 220, y);
-    y += 60;
+    y += 42;
   }
 
-  // QR
+  // QR — fixed position relative to footer
   if (qrImg) {
-    const QR = 300;
-    const qrY = Math.max(y + 40, H - FOOTER_H - QR - 80);
     const qrX = (W - QR) / 2;
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(qrX - 16, qrY - 16, QR + 32, QR + 32);
+    ctx.fillRect(qrX - 12, qrY - 12, QR + 24, QR + 24);
     ctx.drawImage(qrImg, qrX, qrY, QR, QR);
     ctx.fillStyle = "#666"; ctx.textAlign = "center";
-    ctx.font = `500 24px Arial, sans-serif`;
-    ctx.fillText("Scan to view full profile", W / 2, qrY + QR + 40);
-    ctx.fillStyle = "#999"; ctx.font = `20px Arial, sans-serif`;
-    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR + 72);
+    ctx.font = `500 22px Arial, sans-serif`;
+    ctx.fillText("Scan to view full profile", W / 2, qrY + QR + 32);
+    ctx.fillStyle = "#999"; ctx.font = `18px Arial, sans-serif`;
+    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR + 60);
   }
 
   drawFooter(ctx, W, H, logoImg);

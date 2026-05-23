@@ -2635,7 +2635,6 @@ function ShareAssetsCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typ
 
   const variants: { key: CardVariant; title: string; dims: string; sub: string; aspect: { w: number; h: number } }[] = [
     { key: "portrait", title: "Portrait", dims: "1080 × 1920", sub: "Stories · WhatsApp Status · Reels cover", aspect: { w: 48, h: 84 } },
-    { key: "square",   title: "Square",   dims: "1080 × 1080", sub: "Instagram / LinkedIn feed posts",         aspect: { w: 70, h: 70 } },
   ];
 
   const { from, to } = getInitialsBadgeColors(advisor.theme || "blue", (advisor as any).themeColor);
@@ -2786,7 +2785,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showTradingView, setShowTradingView] = useState(!!(advisor as any).showTradingView);
   const [tradingViewSymbols, setTradingViewSymbols] = useState<string[]>(() => {
     const csv = (advisor as any).tradingViewSymbols as string | null;
-    return csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"];
+    return csv ? csv.split(",").map(s => s.trim()).filter(Boolean) : ["TVC:SILVER", "TVC:GOLD", "TVC:USOIL", "BITSTAMP:BTCUSD"];
   });
   const [showDailyQuotes, setShowDailyQuotes] = useState(!!(advisor as any).showDailyQuotes);
   const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((advisor as any).dailyQuotesSet || "general");
@@ -3901,7 +3900,7 @@ function AdditionalProfileForm({
   const [showTradingView, setShowTradingView] = useState(!!(existingProfile as any)?.showTradingView);
   const [tradingViewSymbols, setTradingViewSymbols] = useState<string[]>(() => {
     const csv = (existingProfile as any)?.tradingViewSymbols as string | null;
-    return csv ? csv.split(",").map((s: string) => s.trim()).filter(Boolean) : ["FX_IDC:USDZAR", "JSE:J203", "TVC:GOLD"];
+    return csv ? csv.split(",").map((s: string) => s.trim()).filter(Boolean) : ["TVC:SILVER", "TVC:GOLD", "TVC:USOIL", "BITSTAMP:BTCUSD"];
   });
   const [showDailyQuotes, setShowDailyQuotes] = useState(!!(existingProfile as any)?.showDailyQuotes);
   const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((existingProfile as any)?.dailyQuotesSet || "general");
@@ -8118,12 +8117,18 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
           price="R299/mo"
           blurb="Your digital practice, live and ready to capture leads."
           features={[
-            "Public advisor profile with your own personalised link",
-            "Lead capture forms with risk-profile and grading questions",
-            "Lead inbox — grade, temperature and follow-up tracking",
-            "All themes, custom colours, QR code and share link",
-            "Digital business card — downloadable and shareable",
-            "Profile analytics — views and lead count",
+            "One public profile with your own personalised link",
+            "All four lead capture forms (email, callback, referral & will)",
+            "Basic lead registry — view and sort",
+            "QR code + share link",
+            "Standard background & theme selections",
+            "My Platforms (basic selection)",
+            "TradingView chart (basic selection)",
+            "Financial calculators (basic selection)",
+            "Daily Quotes widget",
+            "Daily Financial Facts",
+            "Single live news feed",
+            "Basic analytics (lead count, profile views)",
             "14-day free trial, no card required",
           ]}
         />
@@ -8132,14 +8137,22 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
           price="R499/mo"
           blurb="Full practice management — from first contact to client onboarding."
           features={[
-            "Everything in Starter, plus:",
-            "Second profile for a specialist niche or business unit",
-            "Compound interest + retirement savings calculators",
-            "Premium background image patterns",
-            "Risk Profile Quiz (score attached to every lead)",
-            "Live market data — multi-instrument chart widget",
+            "Everything in Basic, plus:",
+            "Secondary profile (separate slug, settings and toggles)",
+            "All CSS backgrounds & custom hex theme selection",
+            "Advanced lead analytics (grader, temperature, quality score)",
+            "Enhanced grader fields (callback, referral & will forms)",
+            "Financial calculators (advanced calculators)",
+            "Financial showpiece displays",
+            "Financial calendar (SA events)",
+            "Live Markets & exchange rates",
+            "Additional live news feed",
+            "Risk profile analysis",
+            "Game of the Day (Sudoku)",
+            "Financial Health Dashboard",
+            "TradingView chart (multiple instruments, advisor's choice)",
+            "My Platforms (advanced selection)",
             "My Clients — POPIA-compliant encrypted client vault",
-            "Book of Life — secure document store per client",
             "Priority support (24hr response, Mon–Fri)",
           ]}
         />

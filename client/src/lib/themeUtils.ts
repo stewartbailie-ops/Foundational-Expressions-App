@@ -167,7 +167,7 @@ function applyImagePattern(
     // is never upscaled even on very tall profile pages.
     backgroundSize: "100% 100%, 100vw 100vh",
     backgroundPosition: "0 0, 50% 0",
-    backgroundRepeat: "no-repeat, no-repeat",
+    backgroundRepeat: "no-repeat, repeat-y",
   };
 }
 

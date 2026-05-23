@@ -48,24 +48,8 @@ export function getCategoryColor(cat: CalendarCategory): string {
 }
 
 export const TRADINGVIEW_SYMBOLS: { value: string; label: string }[] = [
-  { value: "FX_IDC:USDZAR", label: "USD / ZAR" },
-  { value: "FX_IDC:EURZAR", label: "EUR / ZAR" },
-  { value: "FX_IDC:GBPZAR", label: "GBP / ZAR" },
-  { value: "TVC:GOLD", label: "Gold (USD/oz)" },
-  { value: "TVC:SILVER", label: "Silver (USD/oz)" },
-  { value: "TVC:USOIL", label: "Crude Oil (Brent)" },
-  { value: "JSE:J203", label: "JSE All Share Index" },
-  { value: "JSE:TOP40", label: "JSE Top 40" },
-  { value: "JSE:NPN", label: "Naspers" },
-  { value: "JSE:PRX", label: "Prosus" },
-  { value: "JSE:SOL", label: "Sasol" },
-  { value: "JSE:AGL", label: "Anglo American" },
-  { value: "JSE:SBK", label: "Standard Bank" },
-  { value: "JSE:FSR", label: "FirstRand" },
-  { value: "JSE:DSY", label: "Discovery" },
-  { value: "JSE:SLM", label: "Sanlam" },
-  { value: "JSE:STX40", label: "Satrix Top 40 ETF" },
-  { value: "SP:SPX", label: "S&P 500" },
-  { value: "NASDAQ:NDX", label: "Nasdaq 100" },
+  { value: "TVC:SILVER",      label: "Silver (USD/oz)" },
+  { value: "TVC:GOLD",        label: "Gold (USD/oz)" },
+  { value: "TVC:USOIL",       label: "Crude Oil (Brent)" },
   { value: "BITSTAMP:BTCUSD", label: "Bitcoin (USD)" },
 ];
