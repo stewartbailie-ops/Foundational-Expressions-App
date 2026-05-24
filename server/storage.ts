@@ -354,6 +354,8 @@ export class DatabaseStorage implements IStorage {
         referralReason: emails.referralReason,
         hasWill: emails.hasWill,
         estateValueBracket: emails.estateValueBracket,
+        riskProfile: emails.riskProfile,
+        riskScore: emails.riskScore,
         advisorName: advisors.name,
       })
       .from(emails)

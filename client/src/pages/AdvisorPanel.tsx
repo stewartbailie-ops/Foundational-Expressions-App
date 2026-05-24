@@ -1876,6 +1876,13 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
                       {lead.estateValueBracket && <Row label="Estate Value" value={lead.estateValueBracket} tc={tc} />}
                       {lead.biggestConcern && <Row label="Biggest Concern" value={lead.biggestConcern} tc={tc} full />}
                       {lead.referralReason && <Row label="Why Referred" value={lead.referralReason} tc={tc} full />}
+                      {lead.riskProfile && (
+                        <Row
+                          label="Risk Profile"
+                          value={lead.riskScore != null ? `${lead.riskProfile} (${lead.riskScore}/100)` : lead.riskProfile}
+                          tc={tc}
+                        />
+                      )}
                     </div>
 
                     {/* Referrer */}

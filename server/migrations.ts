@@ -46,6 +46,8 @@ const EMAILS_COLUMNS: [string, string][] = [
   ["referral_reason",       "text"],
   ["has_will",              "boolean"],
   ["estate_value_bracket",  "text"],
+  ["risk_profile",          "text"],
+  ["risk_score",            "integer"],
 ];
 
 type ExistsRow = { exists: boolean | null };

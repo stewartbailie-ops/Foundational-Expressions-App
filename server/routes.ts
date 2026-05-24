@@ -931,6 +931,8 @@ export async function registerRoutes(
         sourceProfileSlug: z.string().optional(),
         // Task #23 — per-referral "why are you referring them?" open text.
         referralReason: z.string().optional(),
+        riskProfile: z.string().optional(),
+        riskScore: z.number().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -984,6 +986,8 @@ export async function registerRoutes(
         referrerPhone: data.referrerPhone,
         referrerRelation: data.referrerRelation,
         referralReason: data.referralReason,
+        riskProfile: data.riskProfile,
+        riskScore: data.riskScore,
         source: data.source,
         sourceProfileSlug: data.sourceProfileSlug,
       });
@@ -1054,6 +1058,8 @@ export async function registerRoutes(
         biggestConcern: z.string().optional(),
         hasAdvisor: z.boolean().optional(),
         existingAdvisorName: z.string().optional(),
+        riskProfile: z.string().optional(),
+        riskScore: z.number().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -1110,6 +1116,8 @@ export async function registerRoutes(
         biggestConcern: data.biggestConcern,
         hasAdvisor: data.hasAdvisor,
         existingAdvisorName: data.existingAdvisorName,
+        riskProfile: data.riskProfile,
+        riskScore: data.riskScore,
         source: data.source,
         sourceProfileSlug: data.sourceProfileSlug,
       });
@@ -1174,6 +1182,8 @@ export async function registerRoutes(
         estateValueBracket: z.string().optional(),
         incomeRange: z.string().optional(),
         age: z.number().optional(),
+        riskProfile: z.string().optional(),
+        riskScore: z.number().optional(),
         recaptchaToken: z.string().optional(),
       });
 
@@ -1237,6 +1247,8 @@ export async function registerRoutes(
         clientChildren: children,
         hasWill: data.hasWill,
         estateValueBracket: data.estateValueBracket,
+        riskProfile: data.riskProfile,
+        riskScore: data.riskScore,
         source: data.source || "will-form",
         sourceProfileSlug: data.sourceProfileSlug,
       });

@@ -541,6 +541,9 @@ export const emails = pgTable("emails", {
   hasWill: boolean("has_will"),
   // Will form: bracket — estimated estate value (drives Will temperature axis).
   estateValueBracket: text("estate_value_bracket"),
+  // Risk Profile Quiz — captured from localStorage when client submits a lead form.
+  riskProfile: text("risk_profile"),
+  riskScore: integer("risk_score"),
 });
 
 export const insertEmailSchema = createInsertSchema(emails).omit({
