@@ -691,7 +691,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
     const container = document.createElement("div");
     container.className = "tradingview-widget-container";
     container.style.width = "100%";
-    container.style.height = "400px";
+    container.style.height = "320px";
     const widget = document.createElement("div");
     widget.className = "tradingview-widget-container__widget";
     widget.style.width = "100%";
@@ -705,10 +705,10 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
       symbols: symbols.map(s => [s.split(":").pop() || s, s + "|1D"]),
       chartOnly: false,
       width: "100%",
-      height: "100%",
+      height: 320,
       locale: "en",
       colorTheme: tc.isDark ? "dark" : "light",
-      autosize: true,
+      autosize: false,
       showVolume: false,
       showMA: false,
       hideDateRanges: false,
