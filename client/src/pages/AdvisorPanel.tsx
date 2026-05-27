@@ -6586,8 +6586,10 @@ function FullCalendarCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
 function ScanDocumentsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const scanCanvasRef = useRef<HTMLCanvasElement>(null);
+  const filePickerRef = useRef<HTMLInputElement>(null);
   const [scanStream, setScanStream] = useState<MediaStream | null>(null);
   const [scanImage, setScanImage] = useState<string | null>(null);
+  const [scanFileName, setScanFileName] = useState<string | null>(null);
   const [scanPhase, setScanPhase] = useState<"idle" | "streaming" | "captured">("idle");
 
   const startScan = async () => {
@@ -6604,21 +6606,37 @@ function ScanDocumentsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
     const c = scanCanvasRef.current;
     c.width = v.videoWidth || 1280; c.height = v.videoHeight || 720;
     const ctx = c.getContext("2d");
-    if (ctx) { ctx.drawImage(v, 0, 0); setScanImage(c.toDataURL("image/png")); }
+    if (ctx) { ctx.drawImage(v, 0, 0); setScanImage(c.toDataURL("image/png")); setScanFileName(null); }
     scanStream?.getTracks().forEach(t => t.stop());
     setScanStream(null);
     setScanPhase("captured");
   };
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setScanImage(ev.target?.result as string);
+      setScanFileName(file.name);
+      setScanPhase("captured");
+    };
+    reader.readAsDataURL(file);
+    e.target.value = "";
+  };
   const downloadScan = () => {
     if (!scanImage) return;
-    const a = document.createElement("a"); a.href = scanImage; a.download = `scan-${Date.now()}.png`; a.click();
+    const a = document.createElement("a");
+    a.href = scanImage;
+    a.download = scanFileName || `scan-${Date.now()}.png`;
+    a.click();
   };
   const shareScan = async () => {
     if (!scanImage) return;
     if (navigator.share && navigator.canShare?.({ files: [] })) {
       const res = await fetch(scanImage); const blob = await res.blob();
-      const file = new File([blob], `scan-${Date.now()}.png`, { type: "image/png" });
-      try { await navigator.share({ files: [file], title: "Scanned Document" }); return; } catch { }
+      const name = scanFileName || `scan-${Date.now()}.png`;
+      const file = new File([blob], name, { type: blob.type });
+      try { await navigator.share({ files: [file], title: "Document" }); return; } catch { }
     }
     downloadScan();
   };
@@ -6626,17 +6644,25 @@ function ScanDocumentsCard({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
   return (
     <div className="space-y-3">
       <canvas ref={scanCanvasRef} style={{ display: "none" }} />
+      <input ref={filePickerRef} type="file" accept="image/*,application/pdf" className="hidden" onChange={handleFileUpload} />
       {scanPhase === "idle" && (
         <div className="flex flex-col items-center gap-3">
           <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ backgroundColor: tc.buttonSecondaryBg }}>
             <Camera className="h-8 w-8" style={{ color: tc.accentColor }} />
           </div>
-          <p className="text-xs text-center leading-relaxed" style={{ color: tc.mutedText }}>Point your camera at a document to capture it — works best in good lighting.</p>
-          <button type="button" onClick={startScan}
-            className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
-            style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-            <Camera className="h-4 w-4" /> Open Camera
-          </button>
+          <p className="text-xs text-center leading-relaxed" style={{ color: tc.mutedText }}>Capture a document with your camera or upload a file from your device.</p>
+          <div className="grid grid-cols-2 gap-2 w-full">
+            <button type="button" onClick={startScan}
+              className="py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+              style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
+              <Camera className="h-4 w-4" /> Camera
+            </button>
+            <button type="button" onClick={() => filePickerRef.current?.click()}
+              className="py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}>
+              <Upload className="h-4 w-4" /> Upload
+            </button>
+          </div>
         </div>
       )}
       {scanPhase === "streaming" && (
@@ -6691,6 +6717,23 @@ function MediaLinksCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<type
   const [videosUrl, setVideosUrl] = useState((advisor as any).financialsVideosUrl || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [feedOpen, setFeedOpen] = useState(false);
+  const [mwCat, setMwCat] = useState("all");
+  const [mwItems, setMwItems] = useState<Array<{ title: string; link: string; description: string; pubDate: string; category: string }>>([]);
+  const [mwLoading, setMwLoading] = useState(false);
+  const [mwCopied, setMwCopied] = useState<string | null>(null);
+
+  const fetchFeed = async (cat: string) => {
+    setMwLoading(true);
+    try {
+      const res = await fetch(`/api/moneyweb/feed?category=${cat}`);
+      const data = await res.json();
+      setMwItems(data.items || []);
+    } catch { setMwItems([]); }
+    setMwLoading(false);
+  };
+
+  useEffect(() => { if (feedOpen) fetchFeed(mwCat); }, [feedOpen, mwCat]);
 
   const handleSave = async () => {
     setSaving(true);
@@ -6729,6 +6772,66 @@ function MediaLinksCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<type
         {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : saved ? <Check className="h-3 w-3" /> : <Save className="h-3 w-3" />}
         {saved ? "Saved!" : "Save Links"}
       </button>
+
+      {/* Live MoneyWeb Articles — collapsible */}
+      <div className="rounded-lg overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+        <button type="button" onClick={() => setFeedOpen(p => !p)}
+          className="w-full flex items-center justify-between px-3 py-2.5 text-left"
+          style={{ backgroundColor: tc.inputBg }}>
+          <div className="flex items-center gap-2">
+            <Rss className="h-3.5 w-3.5" style={{ color: tc.accentColor }} />
+            <span className="text-xs font-semibold" style={{ color: tc.sectionTitle }}>Live MoneyWeb Articles</span>
+          </div>
+          <ChevronDown className={`h-3.5 w-3.5 transition-transform ${feedOpen ? "rotate-180" : ""}`} style={ls} />
+        </button>
+        {feedOpen && (
+          <div className="p-3 space-y-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
+            <div className="flex items-center gap-2">
+              <TSelect value={mwCat} onChange={setMwCat} colors={tc} className="flex-1" options={[
+                { value: "all", label: "All Finance" },
+                { value: "news", label: "News" },
+                { value: "markets", label: "Markets" },
+                { value: "investing", label: "Investing" },
+                { value: "personal-finance", label: "Personal Finance" },
+              ]} />
+              <button type="button" onClick={() => fetchFeed(mwCat)}
+                className="p-1.5 rounded-lg hover:opacity-70 flex-shrink-0" style={{ backgroundColor: tc.buttonSecondaryBg }}>
+                <RefreshCw className={`h-3.5 w-3.5 ${mwLoading ? "animate-spin" : ""}`} style={{ color: tc.accentColor }} />
+              </button>
+            </div>
+            {mwLoading ? (
+              <div className="flex items-center justify-center gap-2 py-4">
+                <Loader2 className="h-4 w-4 animate-spin" style={ls} />
+                <span className="text-xs" style={ls}>Loading…</span>
+              </div>
+            ) : mwItems.length === 0 ? (
+              <p className="text-xs text-center py-3" style={ls}>No articles. Try refreshing.</p>
+            ) : (
+              <div className="space-y-2">
+                {mwItems.map((article, i) => (
+                  <div key={i} className="rounded-lg p-2.5 space-y-1" style={{ backgroundColor: tc.cardBg }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <a href={article.link} target="_blank" rel="noopener noreferrer"
+                        className="text-xs font-medium leading-snug hover:underline flex-1" style={{ color: tc.textColor }}>
+                        {article.title}
+                      </a>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText(article.link); setMwCopied(article.link); setTimeout(() => setMwCopied(null), 2000); }}
+                        className="flex-shrink-0 p-1 rounded hover:opacity-70" style={{ color: mwCopied === article.link ? tc.accentColor : tc.mutedText }}>
+                        {mwCopied === article.link ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                      </button>
+                    </div>
+                    {article.pubDate && (
+                      <span className="text-xs" style={ls}>
+                        {new Date(article.pubDate).toLocaleDateString("en-ZA", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
