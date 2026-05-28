@@ -29,6 +29,7 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["show_financial_calendar",   "boolean NOT NULL DEFAULT false"],
   ["show_financial_dashboard",  "boolean NOT NULL DEFAULT false"],
   ["show_sudoku",               "boolean NOT NULL DEFAULT false"],
+  ["show_daily_trivia",         "boolean NOT NULL DEFAULT false"],
   ["image_pattern_key",         "text"],
 ];
 

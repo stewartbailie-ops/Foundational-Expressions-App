@@ -2801,6 +2801,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(advisor as any).showFinancialCalendar);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(!!(advisor as any).showFinancialDashboard);
   const [showSudoku, setShowSudoku] = useState(!!(advisor as any).showSudoku);
+  const [showDailyTrivia, setShowDailyTrivia] = useState(!!(advisor as any).showDailyTrivia);
   const [showFunFacts, setShowFunFacts] = useState(!!(advisor as any).showFunFacts);
   const [showForex, setShowForex] = useState(!!(advisor as any).showForex);
   const [showSecondNews, setShowSecondNews] = useState(!!(advisor as any).showSecondNews);
@@ -2905,6 +2906,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         showFinancialCalendar,
         showFinancialDashboard,
         showSudoku,
+        showDailyTrivia,
         showFunFacts,
         showForex,
         showSecondNews,
@@ -3432,6 +3434,7 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
           { label: "Financial Health Dashboard", value: showFinancialDashboard, set: setShowFinancialDashboard },
           { label: "Game of the Day (Sudoku)", value: showSudoku, set: setShowSudoku },
+          { label: "Daily Finance Trivia", value: showDailyTrivia, set: setShowDailyTrivia },
         ].map(item => (
           <div key={item.label} className="flex items-center justify-between py-1.5">
             <span className="text-sm" style={{ color: tc.textColor }}>{item.label}</span>
@@ -3919,6 +3922,7 @@ function AdditionalProfileForm({
   const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(existingProfile as any)?.showFinancialCalendar);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(!!(existingProfile as any)?.showFinancialDashboard);
   const [showSudoku, setShowSudoku] = useState(!!(existingProfile as any)?.showSudoku);
+  const [showDailyTrivia, setShowDailyTrivia] = useState(!!(existingProfile as any)?.showDailyTrivia);
   const [patternOpacity, setPatternOpacity] = useState<number>((existingProfile as any)?.patternOpacity ?? 50);
   const [showEmergencyContacts, setShowEmergencyContacts] = useState(!!(existingProfile as any)?.showEmergencyContacts);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
@@ -4014,6 +4018,7 @@ function AdditionalProfileForm({
         showFinancialCalendar,
         showFinancialDashboard,
         showSudoku,
+        showDailyTrivia,
         showEmergencyContacts,
         patternOpacity,
         imagePatternKey,
@@ -4382,6 +4387,7 @@ function AdditionalProfileForm({
             { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
             { label: "Financial Health Dashboard", value: showFinancialDashboard, set: setShowFinancialDashboard },
             { label: "Game of the Day (Sudoku)", value: showSudoku, set: setShowSudoku },
+            { label: "Daily Finance Trivia", value: showDailyTrivia, set: setShowDailyTrivia },
           ].map(item => (
             <div key={item.label} className="flex items-center justify-between px-2 py-2 rounded-lg" style={{ border: `1px solid ${tc.borderColor}` }}>
               <span className="text-xs" style={{ color: tc.textColor }}>{item.label}</span>

@@ -430,68 +430,164 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
   const downloadSummaryPdf = () => {
     const generatedAt = new Date();
     const pdf = new jsPDF();
+
+    const scoreRgb = (s: number): [number, number, number] =>
+      s >= 75 ? [16, 185, 129] : s >= 45 ? [245, 158, 11] : [239, 68, 68];
+
+    const drawBar = (x: number, barY: number, score: number) => {
+      const w = 44; const h = 3;
+      pdf.setFillColor(220, 220, 220);
+      pdf.roundedRect(x, barY - 2.5, w, h, 1, 1, "F");
+      const [r, g, b] = scoreRgb(score);
+      pdf.setFillColor(r, g, b);
+      pdf.roundedRect(x, barY - 2.5, Math.max(1, w * score / 100), h, 1, 1, "F");
+    };
+
+    const addFooter = () => {
+      const n = pdf.getNumberOfPages();
+      for (let i = 1; i <= n; i++) {
+        pdf.setPage(i);
+        pdf.setDrawColor(198, 214, 226);
+        pdf.line(16, 275, 194, 275);
+        pdf.setTextColor(110, 120, 130);
+        pdf.setFontSize(8);
+        pdf.setFont("helvetica", "normal");
+        pdf.text(
+          "Educational estimate only. Simplified SA tax assumptions (2025/26 SARS rates). Not personalised financial advice.",
+          16, 282,
+        );
+        if (advisorName) pdf.text(`Prepared by ${advisorName} via Advisory Connect`, 16, 288);
+        pdf.text(`Page ${i} of ${n}`, 175, 288);
+      }
+    };
+
+    let cy = 0;
+    const checkPage = (needed: number) => {
+      if (cy + needed > 265) { pdf.addPage(); cy = 16; }
+    };
+
+    const sectionHeader = (title: string) => {
+      checkPage(14);
+      pdf.setDrawColor(200, 215, 228);
+      pdf.line(16, cy, 194, cy);
+      cy += 8;
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(12);
+      pdf.setTextColor(18, 45, 68);
+      pdf.text(title, 16, cy);
+      cy += 8;
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(10);
+      pdf.setTextColor(40, 50, 60);
+    };
+
+    const kv = (label: string, value: string, rgb?: [number, number, number]) => {
+      checkPage(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(40, 50, 60);
+      pdf.text(label, 16, cy);
+      pdf.setFont("helvetica", "normal");
+      if (rgb) pdf.setTextColor(...rgb); else pdf.setTextColor(40, 50, 60);
+      pdf.text(value, 110, cy);
+      pdf.setTextColor(40, 50, 60);
+      cy += 8;
+    };
+
+    const scoreRow = (label: string, score: number, suffix = "") => {
+      checkPage(9);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(40, 50, 60);
+      pdf.text(label, 16, cy);
+      const [r, g, b] = scoreRgb(score);
+      pdf.setTextColor(r, g, b);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`${score} / 100${suffix}`, 110, cy);
+      drawBar(155, cy, score);
+      pdf.setTextColor(40, 50, 60);
+      cy += 9;
+    };
+
+    // ── Header ─────────────────────────────────────────────────────────────
     pdf.setFillColor(18, 45, 68);
-    pdf.rect(0, 0, 210, 38, "F");
+    pdf.rect(0, 0, 210, 42, "F");
     pdf.setTextColor(255, 255, 255);
-    pdf.setFontSize(20);
-    pdf.text("Financial Dashboard", 16, 22);
-    pdf.setFontSize(10);
-    pdf.text(`Prepared for ${advisorName || "your advisor"} | ${generatedAt.toLocaleDateString("en-ZA")}`, 16, 31);
-
-    pdf.setTextColor(24, 35, 48);
-    pdf.setFontSize(14);
-    pdf.text("Key inputs", 16, 54);
-    pdf.setFontSize(10);
-    const inputRows = [
-      ["Monthly gross income", ZAR(inputs.grossIncome)],
-      ["Current age", `${inputs.age} years`],
-      ["Retirement age", `${inputs.retirementAge} years`],
-      ["Monthly investing", ZAR(inputs.monthlySave)],
-    ];
-    inputRows.forEach(([label, value], index) => {
-      const y = 66 + index * 8;
-      pdf.setFont("helvetica", "bold");
-      pdf.text(label, 16, y);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(value, 82, y);
-    });
-
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.text("Score snapshot", 16, 108);
-    pdf.setFontSize(10);
-    const scoreRows = [
-      ["Health score", `${visibleModel.score} / 100 (${band.label})`],
-      ["Future readiness", `${visibleModel.futureScore} / 100`],
-      ["Protection", `${visibleModel.protectionScore} / 100`],
-      ["Debt pressure", `${visibleModel.debtScore} / 100`],
-    ];
-    scoreRows.forEach(([label, value], index) => {
-      const y = 120 + index * 8;
-      pdf.setFont("helvetica", "bold");
-      pdf.text(label, 16, y);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(value, 82, y);
-    });
-
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.text("Advisor conversation flags", 16, 162);
+    pdf.setFontSize(22);
+    pdf.text("Financial Dashboard", 16, 20);
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(10);
+    pdf.text(`Prepared for ${advisorName || "your advisor"}  ·  ${generatedAt.toLocaleDateString("en-ZA")}`, 16, 30);
+    pdf.setTextColor(160, 190, 210);
+    pdf.setFontSize(8);
+    pdf.text(withAdvisor ? "Showing: With advisor scenario" : "Showing: Current path (no advisor)", 16, 38);
+    cy = 54;
+
+    // ── Key Inputs ─────────────────────────────────────────────────────────
+    sectionHeader("Key inputs");
+    kv("Monthly gross income", ZAR(effectiveInputs.grossIncome));
+    kv("Current age", `${effectiveInputs.age} years`);
+    kv("Retirement age", `${effectiveInputs.retirementAge} years`);
+    kv("Monthly investing", ZAR(effectiveInputs.monthlySave));
+    if (effectiveInputs.debtBalance > 0) kv("Debt balance", ZAR(effectiveInputs.debtBalance));
+    if (effectiveInputs.emergencySavings > 0) kv("Emergency savings", ZAR(effectiveInputs.emergencySavings));
+    cy += 4;
+
+    // ── Score Snapshot ─────────────────────────────────────────────────────
+    sectionHeader("Score snapshot");
+    scoreRow("Health score", visibleModel.score, `  (${band.label})`);
+    scoreRow("Future readiness", visibleModel.futureScore);
+    scoreRow("Protection", visibleModel.protectionScore);
+    scoreRow("Debt pressure", visibleModel.debtScore);
+    cy += 4;
+
+    // ── Financial Insights ─────────────────────────────────────────────────
+    sectionHeader("Financial insights");
+    kv("Monthly tax (SARS)", ZAR(visibleModel.taxMonthly), [239, 68, 68]);
+    kv("Take-home pay", ZAR(visibleModel.takeHome));
+    kv("Projected retirement pot", compactZar(visibleModel.retirementPot));
+    kv("Pot in today's money", compactZar(visibleModel.realPot));
+    kv("Retirement target", compactZar(visibleModel.retirementNeed));
+    kv("Emergency fund gap", compactZar(Math.max(0, visibleModel.emergencyTarget - effectiveInputs.emergencySavings)));
+    kv("Life cover gap", compactZar(Math.max(0, visibleModel.lifeCoverNeed - effectiveInputs.existingLifeCover)));
+    if (fireYears > 0) {
+      kv("FIRE number", compactZar(fireNumber));
+      kv("Financial independence age", `${freedomAge} yrs  (${fireYears} years away)`, [16, 185, 129]);
+    }
+    cy += 4;
+
+    // ── Advisor Uplift ─────────────────────────────────────────────────────
+    if (scoreDelta > 0 || advisorScenario.taxSavingMonthly > 0) {
+      sectionHeader("Advisor uplift — projected improvement");
+      kv("Score improvement", `+${scoreDelta} points`, [16, 185, 129]);
+      kv("Additional retirement savings", `+${compactZar(retirementDelta)}`, [16, 185, 129]);
+      if (advisorScenario.taxSavingMonthly > 0)
+        kv("Monthly tax saving (RA deduction)", `+${ZAR(advisorScenario.taxSavingMonthly)} / month`, [16, 185, 129]);
+      cy += 4;
+    }
+
+    // ── Active Life Events ─────────────────────────────────────────────────
+    if (activeLifeEvents.length > 0) {
+      sectionHeader("Active life event scenarios");
+      checkPage(9);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(40, 50, 60);
+      pdf.text(activeLifeEvents.map(e => `• ${e.label}  (${e.detail})`).join("    "), 16, cy);
+      cy += 12;
+    }
+
+    // ── Conversation Flags ─────────────────────────────────────────────────
+    sectionHeader("Advisor conversation flags");
     const flagLines = flags.length ? flags : ["No urgent flags from this educational snapshot."];
-    let y = 174;
     flagLines.forEach((flag) => {
-      const wrapped = pdf.splitTextToSize(`- ${flag}`, 178);
-      pdf.text(wrapped, 16, y);
-      y += wrapped.length * 5 + 4;
+      checkPage(12);
+      const wrapped = pdf.splitTextToSize(`• ${flag}`, 178);
+      pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(40, 50, 60);
+      pdf.text(wrapped, 16, cy);
+      cy += wrapped.length * 5.5 + 3;
     });
 
-    pdf.setDrawColor(198, 214, 226);
-    pdf.line(16, 275, 194, 275);
-    pdf.setTextColor(90, 103, 117);
-    pdf.setFontSize(9);
-    pdf.text("Educational estimate only. Not personalised financial advice.", 16, 286);
+    addFooter();
     pdf.save("advisory-connect-financial-dashboard.pdf");
   };
 
