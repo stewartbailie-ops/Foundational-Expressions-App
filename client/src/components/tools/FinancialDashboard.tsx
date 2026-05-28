@@ -68,6 +68,24 @@ const PROTECTION_SCORE_WEIGHTS = {
   lifeCover: 0.45,
 };
 
+type LifeEventKey = "marriage" | "child" | "vehicle" | "home" | "promotion" | "jobLoss";
+
+const LIFE_EVENTS: Array<{ key: LifeEventKey; label: string; detail: string }> = [
+  { key: "marriage", label: "Marriage", detail: "+R5k expenses" },
+  { key: "child", label: "Child", detail: "+R7k expenses" },
+  { key: "vehicle", label: "Vehicle", detail: "+R250k debt" },
+  { key: "home", label: "Home purchase", detail: "+R1.5m debt" },
+  { key: "promotion", label: "Promotion", detail: "+R15k income" },
+  { key: "jobLoss", label: "Job loss", detail: "income pause" },
+];
+
+const SA_BENCHMARKS = {
+  avgSavings: 85000,
+  avgDebt: 320000,
+  avgIncome: 28000,
+  avgEmergencyMonths: 0.8,
+};
+
 const ZAR = (value: number) => `R ${Math.round(Math.max(0, value)).toLocaleString("en-ZA")}`;
 
 const compactZar = (value: number) => {
@@ -258,67 +276,150 @@ function InsightCard({
   );
 }
 
+function buildDashboardModel(inputs: PulseInputs, boost: number, taxableDeductionAnnual = 0) {
+  const years = Math.max(1, inputs.retirementAge - inputs.age);
+  const taxableAnnualIncome = Math.max(0, inputs.grossIncome * 12 - taxableDeductionAnnual);
+  const taxMonthly = annualTax(taxableAnnualIncome, inputs.age) / 12;
+  const takeHome = Math.max(0, inputs.grossIncome - taxMonthly);
+  const retirementPot = futureValue(inputs.currentInvestments, inputs.monthlySave, inputs.expectedReturn, years);
+  const improvedPot = futureValue(inputs.currentInvestments, inputs.monthlySave + boost, inputs.expectedReturn, years);
+  const realPot = retirementPot / Math.pow(1 + inputs.inflation / 100, years);
+  const retirementNeed = inputs.essentialExpenses * 12 * 25 * Math.pow(1 + inputs.inflation / 100, years);
+  const retirementRatio = retirementNeed > 0 ? retirementPot / retirementNeed : 0;
+  const emergencyTarget = inputs.essentialExpenses * 6;
+  const emergencyRatio = emergencyTarget > 0 ? inputs.emergencySavings / emergencyTarget : 0;
+  const lifeCoverNeed = inputs.grossIncome * 12 * 10;
+  const lifeCoverRatio = lifeCoverNeed > 0 ? inputs.existingLifeCover / lifeCoverNeed : 0;
+  const debt = debtPayoff(inputs.debtBalance, inputs.debtRate, inputs.debtPayment);
+  const debtToIncome = inputs.grossIncome > 0 ? inputs.debtPayment / inputs.grossIncome : 0;
+  const futureIncomeValue = inputs.grossIncome / Math.pow(1 + inputs.inflation / 100, years);
+  const lumpSumRealValue = inputs.futureLumpSum / Math.pow(1 + inputs.inflation / 100, years);
+  const latteValue = futureValue(0, inputs.discretionarySpend, inputs.expectedReturn, years);
+  const delayedValue = futureValue(0, inputs.monthlySave, inputs.expectedReturn, Math.max(1, years - 10));
+  const taxScore = clampPercent(100 - (taxMonthly / Math.max(inputs.grossIncome, 1)) * TAX_SCORE_SENSITIVITY);
+  const futureScore = clampPercent(retirementRatio * 100);
+  const protectionScore = clampPercent((
+    Math.min(1, emergencyRatio) * PROTECTION_SCORE_WEIGHTS.emergencyFund
+    + Math.min(1, lifeCoverRatio) * PROTECTION_SCORE_WEIGHTS.lifeCover
+  ) * 100);
+  const debtScore = clampPercent(
+    100
+    - debtToIncome * DEBT_TO_INCOME_SCORE_WEIGHT
+    - (inputs.debtBalance / Math.max(inputs.grossIncome * 12, 1)) * DEBT_BALANCE_SCORE_WEIGHT,
+  );
+  const score = Math.round(
+    futureScore * SCORE_WEIGHTS.future
+    + protectionScore * SCORE_WEIGHTS.protection
+    + debtScore * SCORE_WEIGHTS.debt
+    + taxScore * SCORE_WEIGHTS.tax,
+  );
+  return {
+    years, taxMonthly, takeHome, retirementPot, improvedPot, realPot, retirementNeed, retirementRatio,
+    emergencyTarget, emergencyRatio, lifeCoverNeed, lifeCoverRatio, debt, debtToIncome, futureIncomeValue,
+    lumpSumRealValue, latteValue, delayedValue, futureScore: Math.round(futureScore),
+    protectionScore: Math.round(protectionScore), debtScore: Math.round(debtScore), score,
+  };
+}
+
 export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps) {
   const { accentColor, borderColor, cardBg, inputBg, textColor, mutedText } = tc;
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [withAdvisor, setWithAdvisor] = useState(false);
+  const [lifeEventsOpen, setLifeEventsOpen] = useState(false);
+  const [lifeEvents, setLifeEvents] = useState<LifeEventKey[]>([]);
   const [boost, setBoost] = useState(500);
   const update = <K extends keyof PulseInputs>(key: K, value: PulseInputs[K]) => setInputs((current) => ({ ...current, [key]: value }));
 
-  const model = useMemo(() => {
-    const years = Math.max(1, inputs.retirementAge - inputs.age);
-    const taxMonthly = annualTax(inputs.grossIncome * 12, inputs.age) / 12;
-    const takeHome = Math.max(0, inputs.grossIncome - taxMonthly);
-    const retirementPot = futureValue(inputs.currentInvestments, inputs.monthlySave, inputs.expectedReturn, years);
-    const improvedPot = futureValue(inputs.currentInvestments, inputs.monthlySave + boost, inputs.expectedReturn, years);
-    const realPot = retirementPot / Math.pow(1 + inputs.inflation / 100, years);
-    const retirementNeed = inputs.essentialExpenses * 12 * 25 * Math.pow(1 + inputs.inflation / 100, years);
-    const retirementRatio = retirementNeed > 0 ? retirementPot / retirementNeed : 0;
-    const emergencyTarget = inputs.essentialExpenses * 6;
-    const emergencyRatio = emergencyTarget > 0 ? inputs.emergencySavings / emergencyTarget : 0;
-    const lifeCoverNeed = inputs.grossIncome * 12 * 10;
-    const lifeCoverRatio = lifeCoverNeed > 0 ? inputs.existingLifeCover / lifeCoverNeed : 0;
-    const debt = debtPayoff(inputs.debtBalance, inputs.debtRate, inputs.debtPayment);
-    const debtToIncome = inputs.grossIncome > 0 ? inputs.debtPayment / inputs.grossIncome : 0;
-    const futureIncomeValue = inputs.grossIncome / Math.pow(1 + inputs.inflation / 100, years);
-    const lumpSumRealValue = inputs.futureLumpSum / Math.pow(1 + inputs.inflation / 100, years);
-    const latteValue = futureValue(0, inputs.discretionarySpend, inputs.expectedReturn, years);
-    const delayedValue = futureValue(0, inputs.monthlySave, inputs.expectedReturn, Math.max(1, years - 10));
-    const taxScore = clampPercent(100 - (taxMonthly / Math.max(inputs.grossIncome, 1)) * TAX_SCORE_SENSITIVITY);
-    const futureScore = clampPercent(retirementRatio * 100);
-    const protectionScore = clampPercent((
-      Math.min(1, emergencyRatio) * PROTECTION_SCORE_WEIGHTS.emergencyFund
-      + Math.min(1, lifeCoverRatio) * PROTECTION_SCORE_WEIGHTS.lifeCover
-    ) * 100);
-    const debtScore = clampPercent(
-      100
-      - debtToIncome * DEBT_TO_INCOME_SCORE_WEIGHT
-      - (inputs.debtBalance / Math.max(inputs.grossIncome * 12, 1)) * DEBT_BALANCE_SCORE_WEIGHT,
-    );
-    const score = Math.round(
-      futureScore * SCORE_WEIGHTS.future
-      + protectionScore * SCORE_WEIGHTS.protection
-      + debtScore * SCORE_WEIGHTS.debt
-      + taxScore * SCORE_WEIGHTS.tax,
-    );
-    return {
-      years, taxMonthly, takeHome, retirementPot, improvedPot, realPot, retirementNeed, retirementRatio,
-      emergencyTarget, emergencyRatio, lifeCoverNeed, lifeCoverRatio, debt, debtToIncome, futureIncomeValue,
-      lumpSumRealValue, latteValue, delayedValue, futureScore: Math.round(futureScore),
-      protectionScore: Math.round(protectionScore), debtScore: Math.round(debtScore), score,
-    };
-  }, [boost, inputs]);
+  const effectiveInputs = useMemo(() => {
+    const next = { ...inputs };
+    if (lifeEvents.includes("marriage")) next.essentialExpenses += 5000;
+    if (lifeEvents.includes("child")) next.essentialExpenses += 7000;
+    if (lifeEvents.includes("vehicle")) {
+      next.debtBalance += 250000;
+      next.debtPayment += 3000;
+    }
+    if (lifeEvents.includes("home")) {
+      next.debtBalance += 1500000;
+      next.debtPayment += 9000;
+    }
+    if (lifeEvents.includes("promotion")) {
+      next.grossIncome += 15000;
+      next.monthlySave += 2000;
+    }
+    if (lifeEvents.includes("jobLoss")) {
+      next.grossIncome = 0;
+      next.monthlySave = 0;
+    }
+    return next;
+  }, [inputs, lifeEvents]);
 
-  const band = scoreBand(model.score);
-  const protectionColor = model.protectionScore >= 75 ? "#10b981" : model.protectionScore >= 45 ? "#f59e0b" : "#ef4444";
-  const futureColor = model.futureScore >= 75 ? "#10b981" : model.futureScore >= 45 ? "#f59e0b" : "#ef4444";
-  const debtColor = model.debtScore >= 75 ? "#10b981" : model.debtScore >= 45 ? "#f59e0b" : "#ef4444";
+  const model = useMemo(() => buildDashboardModel(effectiveInputs, boost), [boost, effectiveInputs]);
+
+  const advisorScenario = useMemo(() => {
+    const monthlySaveDelta = effectiveInputs.grossIncome * 0.15;
+    const annualRaDeduction = Math.min(monthlySaveDelta * 12, effectiveInputs.grossIncome * 12 * 0.275, 350000);
+    const advisedInputs = {
+      ...effectiveInputs,
+      monthlySave: effectiveInputs.monthlySave + monthlySaveDelta,
+      debtRate: Math.max(0, effectiveInputs.debtRate - 3),
+      emergencySavings: Math.max(effectiveInputs.emergencySavings, effectiveInputs.essentialExpenses * 6),
+      existingLifeCover: Math.max(effectiveInputs.existingLifeCover, effectiveInputs.grossIncome * 12 * 10),
+    };
+    const advisedModel = buildDashboardModel(advisedInputs, boost, annualRaDeduction);
+    return {
+      model: advisedModel,
+      taxSavingMonthly: Math.max(0, model.taxMonthly - advisedModel.taxMonthly),
+    };
+  }, [boost, effectiveInputs, model.taxMonthly]);
+
+  const visibleModel = withAdvisor ? advisorScenario.model : model;
+
+  const band = scoreBand(visibleModel.score);
+  const advisedBand = scoreBand(advisorScenario.model.score);
+  const protectionColor = visibleModel.protectionScore >= 75 ? "#10b981" : visibleModel.protectionScore >= 45 ? "#f59e0b" : "#ef4444";
+  const futureColor = visibleModel.futureScore >= 75 ? "#10b981" : visibleModel.futureScore >= 45 ? "#f59e0b" : "#ef4444";
+  const debtColor = visibleModel.debtScore >= 75 ? "#10b981" : visibleModel.debtScore >= 45 ? "#f59e0b" : "#ef4444";
+  const scoreDelta = advisorScenario.model.score - model.score;
+  const retirementDelta = advisorScenario.model.retirementPot - model.retirementPot;
+  const fireNumber = effectiveInputs.essentialExpenses * 12 * 25;
+  let fireYears = 0;
+  for (let y = 1; y <= 60; y += 1) {
+    if (futureValue(effectiveInputs.currentInvestments, effectiveInputs.monthlySave, effectiveInputs.expectedReturn, y) >= fireNumber) {
+      fireYears = y;
+      break;
+    }
+  }
+  const freedomAge = effectiveInputs.age + fireYears;
+  const savingsTotal = effectiveInputs.currentInvestments + effectiveInputs.emergencySavings;
+  const activeLifeEvents = LIFE_EVENTS.filter((event) => lifeEvents.includes(event.key));
+  const benchmarkRows = [
+    {
+      label: "Income",
+      positive: effectiveInputs.grossIncome >= SA_BENCHMARKS.avgIncome,
+      text: `${ZAR(Math.abs(effectiveInputs.grossIncome - SA_BENCHMARKS.avgIncome))} ${effectiveInputs.grossIncome >= SA_BENCHMARKS.avgIncome ? "more" : "less"} than average`,
+    },
+    {
+      label: "Savings",
+      positive: savingsTotal >= SA_BENCHMARKS.avgSavings,
+      text: `${ZAR(Math.abs(savingsTotal - SA_BENCHMARKS.avgSavings))} ${savingsTotal >= SA_BENCHMARKS.avgSavings ? "ahead" : "behind"}`,
+    },
+    {
+      label: "Debt",
+      positive: effectiveInputs.debtBalance <= SA_BENCHMARKS.avgDebt,
+      text: `${ZAR(Math.abs(effectiveInputs.debtBalance - SA_BENCHMARKS.avgDebt))} ${effectiveInputs.debtBalance <= SA_BENCHMARKS.avgDebt ? "less" : "more"} debt`,
+    },
+  ];
   const flags = [
-    model.emergencyRatio < 0.5 && "Build a stronger cash buffer before life gets noisy.",
-    model.lifeCoverRatio < 0.5 && "Discuss whether your dependants need more protection.",
-    model.retirementRatio < 0.65 && "Test a higher retirement contribution while time can still compound it.",
-    model.debtScore < 60 && "A debt strategy may free up future monthly breathing room.",
+    visibleModel.emergencyRatio < 0.5 && "Build a stronger cash buffer before life gets noisy.",
+    visibleModel.lifeCoverRatio < 0.5 && "Discuss whether your dependants need more protection.",
+    visibleModel.retirementRatio < 0.65 && "Test a higher retirement contribution while time can still compound it.",
+    visibleModel.debtScore < 60 && "A debt strategy may free up future monthly breathing room.",
   ].filter(Boolean) as string[];
+
+  const toggleLifeEvent = (key: LifeEventKey) => {
+    setLifeEvents((current) => current.includes(key) ? current.filter((event) => event !== key) : [...current, key]);
+  };
 
   const downloadSummaryPdf = () => {
     const generatedAt = new Date();
@@ -354,10 +455,10 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
     pdf.text("Score snapshot", 16, 108);
     pdf.setFontSize(10);
     const scoreRows = [
-      ["Health score", `${model.score} / 100 (${band.label})`],
-      ["Future readiness", `${model.futureScore} / 100`],
-      ["Protection", `${model.protectionScore} / 100`],
-      ["Debt pressure", `${model.debtScore} / 100`],
+      ["Health score", `${visibleModel.score} / 100 (${band.label})`],
+      ["Future readiness", `${visibleModel.futureScore} / 100`],
+      ["Protection", `${visibleModel.protectionScore} / 100`],
+      ["Debt pressure", `${visibleModel.debtScore} / 100`],
     ];
     scoreRows.forEach(([label, value], index) => {
       const y = 120 + index * 8;
@@ -396,11 +497,19 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
             <div className="flex items-center gap-2"><HeartPulse className="h-5 w-5" style={{ color: accentColor }} /><h3 className="text-base font-extrabold" style={{ color: textColor }}>Financial Dashboard</h3></div>
             <p className="max-w-xl text-xs leading-relaxed" style={{ color: mutedText }}>A live view of tax, inflation, retirement, protection and debt under the same assumptions.</p>
           </div>
-          <div className="flex items-center gap-3 rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
-            <div className="grid h-16 w-16 place-items-center rounded-full" style={{ background: `conic-gradient(${band.color} ${model.score}%, rgba(255,255,255,0.08) ${model.score}% 100%)` }}>
-              <div className="grid h-12 w-12 place-items-center rounded-full text-lg font-black" style={{ backgroundColor: cardBg, color: band.color }}>{model.score}</div>
+          <div className="flex flex-col gap-3 rounded-xl p-3 sm:flex-row sm:items-center" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+            <div className="grid h-16 w-16 place-items-center rounded-full" style={{ background: `conic-gradient(${band.color} ${visibleModel.score}%, rgba(255,255,255,0.08) ${visibleModel.score}% 100%)` }}>
+              <div className="grid h-12 w-12 place-items-center rounded-full text-lg font-black" style={{ backgroundColor: cardBg, color: band.color }}>{visibleModel.score}</div>
             </div>
-            <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Health score</p><p className="text-sm font-bold" style={{ color: textColor }}>{band.label}</p><p className="text-[11px]" style={{ color: mutedText }}>Educational snapshot</p></div>
+            <div className="min-w-0"><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Health score</p><p className="text-sm font-bold" style={{ color: textColor }}>{band.label}</p><p className="text-[11px]" style={{ color: mutedText }}>Educational snapshot</p></div>
+            <div className="grid grid-cols-2 overflow-hidden rounded-lg text-[11px] font-bold" style={{ border: `1px solid ${borderColor}` }}>
+              <button type="button" onClick={() => setWithAdvisor(false)} className="px-3 py-2 transition-colors" style={{ backgroundColor: withAdvisor ? "transparent" : tc.buttonBg, color: withAdvisor ? mutedText : tc.buttonText }}>
+                Without advisor
+              </button>
+              <button type="button" onClick={() => setWithAdvisor(true)} className="px-3 py-2 transition-colors" style={{ backgroundColor: withAdvisor ? "#10b981" : "transparent", color: withAdvisor ? "#ffffff" : mutedText }}>
+                With advisor
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -432,17 +541,55 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           )}
         </div>
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(11rem, 100%), 1fr))" }}>
-          <PulseRing label="Future readiness" score={model.futureScore} value={`${Math.round(model.retirementRatio * 100)}% of target`} color={futureColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
-          <PulseRing label="Protection" score={model.protectionScore} value={`${(inputs.emergencySavings / Math.max(inputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
-          <PulseRing label="Debt pressure" score={model.debtScore} value={`${Math.round(model.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
+          <PulseRing label="Future readiness" score={visibleModel.futureScore} value={`${Math.round(visibleModel.retirementRatio * 100)}% of target`} color={futureColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
+          <PulseRing label="Protection" score={visibleModel.protectionScore} value={`${(effectiveInputs.emergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
+          <PulseRing label="Debt pressure" score={visibleModel.debtScore} value={`${Math.round(visibleModel.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
+        </div>
+        <div className="rounded-xl p-3" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(16,185,129,0.18))", border: `1px solid ${borderColor}` }}>
+          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(13rem, 100%), 1fr))" }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
+              <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Without advisor</p>
+              <p className="mt-1 text-base font-black" style={{ color: textColor }}>Score: {model.score} ({scoreBand(model.score).label})</p>
+              <p className="text-xs" style={{ color: mutedText }}>Retirement: <strong style={{ color: textColor }}>{compactZar(model.retirementPot)}</strong></p>
+              <p className="text-xs" style={{ color: mutedText }}>Tax saving: -</p>
+            </div>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.42)" }}>
+              <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>With advisor</p>
+              <p className="mt-1 text-base font-black" style={{ color: textColor }}>
+                Score: {advisorScenario.model.score} ({advisedBand.label}) <span style={{ color: "#10b981" }}>+{Math.max(0, scoreDelta)}</span>
+              </p>
+              <p className="text-xs" style={{ color: mutedText }}>
+                Retirement: <strong style={{ color: textColor }}>{compactZar(advisorScenario.model.retirementPot)}</strong> <span className="text-sm font-black" style={{ color: "#10b981" }}>+{compactZar(retirementDelta)}</span>
+              </p>
+              <p className="text-xs" style={{ color: mutedText }}>Tax saving: <strong style={{ color: "#10b981" }}>{ZAR(advisorScenario.taxSavingMonthly)} / month saved</strong></p>
+            </div>
+          </div>
+          <p className="mt-2 text-[11px] leading-relaxed" style={{ color: mutedText }}>Illustrative optimisation. Actual results depend on your full financial plan.</p>
         </div>
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
-          <InsightCard icon={<Banknote className="h-4 w-4" />} title="What SARS takes" value={`${ZAR(model.taxMonthly)} / month`} detail={`${ZAR(model.takeHome)} remains before the rest of life starts spending it.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.taxMonthly / Math.max(inputs.grossIncome, 1)) * 100} />
-          <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation squeeze" value={`${ZAR(model.futureIncomeValue)} real pay`} detail={`Your ${ZAR(inputs.grossIncome)} monthly income only feels like this in ${model.years} years at ${inputs.inflation}% inflation.`} color="#f59e0b" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.futureIncomeValue / Math.max(inputs.grossIncome, 1)) * 100} />
-          <InsightCard icon={<PiggyBank className="h-4 w-4" />} title="Retirement gap" value={model.retirementRatio >= 1 ? "Target covered" : `${compactZar(model.retirementNeed - model.retirementPot)} gap`} detail={`${compactZar(model.retirementPot)} projected pot, worth ${compactZar(model.realPot)} in today's money.`} color={futureColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={model.retirementRatio * 100} />
-          <InsightCard icon={<ShieldCheck className="h-4 w-4" />} title="Emergency fund" value={`${compactZar(Math.max(0, model.emergencyTarget - inputs.emergencySavings))} gap`} detail={`A six-month cash target is ${compactZar(model.emergencyTarget)} from your essential expenses.`} color={protectionColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={model.emergencyRatio * 100} />
-          <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Life cover lens" value={`${compactZar(Math.max(0, model.lifeCoverNeed - inputs.existingLifeCover))} short`} detail={`Simple ten-year income replacement target: ${compactZar(model.lifeCoverNeed)} before a full needs analysis.`} color={protectionColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={model.lifeCoverRatio * 100} />
-          <InsightCard icon={<TrendingUp className="h-4 w-4" />} title="Small spend, big future" value={compactZar(model.latteValue)} detail={`${ZAR(inputs.discretionarySpend)} redirected monthly could compound over ${model.years} years.`} color={accentColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
+          <InsightCard icon={<Banknote className="h-4 w-4" />} title="What SARS takes" value={`${ZAR(visibleModel.taxMonthly)} / month`} detail={`${ZAR(visibleModel.takeHome)} remains before the rest of life starts spending it.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.taxMonthly / Math.max(effectiveInputs.grossIncome, 1)) * 100} />
+          <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation squeeze" value={`${ZAR(visibleModel.futureIncomeValue)} real pay`} detail={`Your ${ZAR(effectiveInputs.grossIncome)} monthly income only feels like this in ${visibleModel.years} years at ${effectiveInputs.inflation}% inflation.`} color="#f59e0b" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.futureIncomeValue / Math.max(effectiveInputs.grossIncome, 1)) * 100} />
+          <InsightCard icon={<PiggyBank className="h-4 w-4" />} title="Retirement gap" value={visibleModel.retirementRatio >= 1 ? "Target covered" : `${compactZar(visibleModel.retirementNeed - visibleModel.retirementPot)} gap`} detail={`${compactZar(visibleModel.retirementPot)} projected pot, worth ${compactZar(visibleModel.realPot)} in today's money.`} color={futureColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={visibleModel.retirementRatio * 100} />
+          <InsightCard icon={<ShieldCheck className="h-4 w-4" />} title="Emergency fund" value={`${compactZar(Math.max(0, visibleModel.emergencyTarget - effectiveInputs.emergencySavings))} gap`} detail={`A six-month cash target is ${compactZar(visibleModel.emergencyTarget)} from your essential expenses.`} color={protectionColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={visibleModel.emergencyRatio * 100} />
+          <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Life cover lens" value={`${compactZar(Math.max(0, visibleModel.lifeCoverNeed - effectiveInputs.existingLifeCover))} short`} detail={`Simple ten-year income replacement target: ${compactZar(visibleModel.lifeCoverNeed)} before a full needs analysis.`} color={protectionColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={visibleModel.lifeCoverRatio * 100} />
+          <InsightCard icon={<TrendingUp className="h-4 w-4" />} title="Small spend, big future" value={compactZar(visibleModel.latteValue)} detail={`${ZAR(effectiveInputs.discretionarySpend)} redirected monthly could compound over ${visibleModel.years} years.`} color={accentColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
+          <InsightCard icon={<PiggyBank className="h-4 w-4" />} title="Your freedom number" value={compactZar(fireNumber)} detail={fireYears > 0 ? `At current savings, financial independence at age ${freedomAge}.` : "Current savings rate won't reach your FIRE number - try increasing monthly investing."} color={accentColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={fireYears > 0 ? (60 - fireYears) / 60 * 100 : 0} />
+          <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+            <div className="flex min-w-0 items-start gap-2">
+              <span className="mt-0.5" style={{ color: accentColor }}><Banknote className="h-4 w-4" /></span>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>vs. the average South African</p>
+                <div className="mt-2 space-y-1.5">
+                  {benchmarkRows.map((row) => (
+                    <p key={row.label} className="text-xs font-semibold" style={{ color: row.positive ? "#10b981" : "#ef4444" }}>
+                      <span style={{ color: mutedText }}>{row.label}: </span>{row.text}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <p className="mt-2 text-[11px] leading-relaxed" style={{ color: mutedText }}>National averages are estimates - every situation is unique. Emergency benchmark: {SA_BENCHMARKS.avgEmergencyMonths} months.</p>
+          </div>
         </div>
         <div className="grid gap-3">
           <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
@@ -451,11 +598,57 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
               <div className="w-full"><RangeInput label="Monthly boost" value={boost} display={ZAR(boost)} min={0} max={5000} step={250} onChange={setBoost} accentColor={accentColor} mutedText={mutedText} testId="pulse-boost" /></div>
             </div>
             <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(8rem, 100%), 1fr))" }}>
-              <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Current path</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(model.retirementPot)}</p></div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Small change</p><p className="text-lg font-black" style={{ color: accentColor }}>{compactZar(model.improvedPot)}</p></div>
-              <div className="rounded-lg p-3" style={{ backgroundColor: `${accentColor}16`, border: `1px solid ${accentColor}55` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Difference</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(model.improvedPot - model.retirementPot)}</p></div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Current path</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(visibleModel.retirementPot)}</p></div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Small change</p><p className="text-lg font-black" style={{ color: accentColor }}>{compactZar(visibleModel.improvedPot)}</p></div>
+              <div className="rounded-lg p-3" style={{ backgroundColor: `${accentColor}16`, border: `1px solid ${accentColor}55` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Difference</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(visibleModel.improvedPot - visibleModel.retirementPot)}</p></div>
             </div>
-            <div className="mt-3 rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, color: mutedText }}>Starting ten years later with the same monthly investment projects about <strong style={{ color: "#ef4444" }}>{compactZar(model.delayedValue)}</strong>. The time gap does the loudest talking.</div>
+            <div className="mt-3 rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, color: mutedText }}>Starting ten years later with the same monthly investment projects about <strong style={{ color: "#ef4444" }}>{compactZar(visibleModel.delayedValue)}</strong>. The time gap does the loudest talking.</div>
+          </div>
+          <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+            <button type="button" onClick={() => setLifeEventsOpen((current) => !current)} className="flex w-full items-center justify-between gap-3 text-left">
+              <span>
+                <span className="block text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Life events</span>
+                <span className="block text-sm font-bold" style={{ color: textColor }}>Stress-test the whole dashboard instantly</span>
+              </span>
+              <ArrowRight className={`h-4 w-4 shrink-0 transition-transform ${lifeEventsOpen ? "rotate-90" : ""}`} style={{ color: accentColor }} />
+            </button>
+            {activeLifeEvents.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {activeLifeEvents.map((event) => (
+                  <span key={event.key} className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}55` }}>
+                    {event.label}
+                  </span>
+                ))}
+              </div>
+            )}
+            {lifeEventsOpen && (
+              <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, gridTemplateColumns: "repeat(auto-fit, minmax(min(9rem, 100%), 1fr))" }}>
+                {LIFE_EVENTS.map((event) => {
+                  const checked = lifeEvents.includes(event.key);
+                  return (
+                    <button
+                      key={event.key}
+                      type="button"
+                      onClick={() => toggleLifeEvent(event.key)}
+                      className="rounded-lg p-3 text-left transition-transform hover:scale-[1.01]"
+                      style={{
+                        backgroundColor: checked ? `${accentColor}24` : cardBg,
+                        border: `1px solid ${checked ? accentColor : borderColor}`,
+                        color: textColor,
+                      }}
+                    >
+                      <span className="flex items-center gap-2 text-xs font-bold">
+                        <span className="grid h-4 w-4 place-items-center rounded" style={{ backgroundColor: checked ? accentColor : inputBg, border: `1px solid ${checked ? accentColor : borderColor}` }}>
+                          {checked ? <span style={{ color: tc.buttonText }}>✓</span> : null}
+                        </span>
+                        {event.label}
+                      </span>
+                      <span className="mt-1 block text-[11px]" style={{ color: mutedText }}>{event.detail}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
           <div className="space-y-2 rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
             <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Advisor conversation flags</p><p className="text-sm font-bold" style={{ color: textColor }}>Areas worth discussing{advisorName ? ` with ${advisorName}` : ""}</p></div>
@@ -464,8 +657,8 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           </div>
         </div>
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
-          <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(model.lumpSumRealValue)} real value`} detail={`${compactZar(inputs.futureLumpSum)} today after ${model.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(model.lumpSumRealValue / Math.max(inputs.futureLumpSum, 1)) * 100} />
-          <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={model.debt.canPay ? model.debt.months > 0 ? `${model.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={model.debt.canPay ? `${compactZar(Math.max(0, model.debt.totalPaid - inputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
+          <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(visibleModel.lumpSumRealValue)} real value`} detail={`${compactZar(effectiveInputs.futureLumpSum)} today after ${visibleModel.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.lumpSumRealValue / Math.max(effectiveInputs.futureLumpSum, 1)) * 100} />
+          <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={visibleModel.debt.canPay ? visibleModel.debt.months > 0 ? `${visibleModel.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={visibleModel.debt.canPay ? `${compactZar(Math.max(0, visibleModel.debt.totalPaid - effectiveInputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
         <button type="button" onClick={downloadSummaryPdf} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
           <Download className="h-3.5 w-3.5" /> Download summary
