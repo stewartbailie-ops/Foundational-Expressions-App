@@ -423,6 +423,9 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
   const toggleLifeEvent = (key: LifeEventKey) => {
     setLifeEvents((current) => current.includes(key) ? current.filter((event) => event !== key) : [...current, key]);
   };
+  const activeModeLabel = withAdvisor ? "Advisor optimised" : "Current path";
+  const scoreLiftText = scoreDelta > 0 ? `+${scoreDelta} points available` : "Optimised plan matched";
+  const pressureTone = visibleModel.score >= 75 ? "Momentum is building" : visibleModel.score >= 50 ? "Pressure points are visible" : "This needs attention";
 
   const downloadSummaryPdf = () => {
     const generatedAt = new Date();
@@ -493,31 +496,76 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }} data-testid="financial-dashboard">
-      <div className="p-4" style={{ background: `linear-gradient(135deg, ${accentColor}22 0%, rgba(16,185,129,0.08) 44%, rgba(239,68,68,0.08) 100%)`, borderBottom: `1px solid ${borderColor}` }}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2"><HeartPulse className="h-5 w-5" style={{ color: accentColor }} /><h3 className="text-base font-extrabold" style={{ color: textColor }}>Financial Dashboard</h3></div>
-            <p className="max-w-xl text-xs leading-relaxed" style={{ color: mutedText }}>A live view of tax, inflation, retirement, protection and debt under the same assumptions.</p>
-          </div>
-          <div className="flex flex-col gap-3 rounded-xl p-3 sm:flex-row sm:items-center" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
-            <div className="grid h-16 w-16 place-items-center rounded-full" style={{ background: `conic-gradient(${band.color} ${visibleModel.score}%, rgba(255,255,255,0.08) ${visibleModel.score}% 100%)` }}>
-              <div className="grid h-12 w-12 place-items-center rounded-full text-lg font-black" style={{ backgroundColor: cardBg, color: band.color }}>{visibleModel.score}</div>
+    <section className="overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, boxShadow: "0 18px 48px rgba(0,0,0,0.18)" }} data-testid="financial-dashboard">
+      <div className="p-4 sm:p-5" style={{ background: `linear-gradient(135deg, rgba(10,16,24,0.96) 0%, ${accentColor}2e 42%, rgba(16,185,129,0.26) 100%)`, borderBottom: `1px solid ${borderColor}` }}>
+        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(18rem, 100%), 1fr))" }}>
+          <div className="space-y-3">
+            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase" style={{ backgroundColor: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}66` }}>
+              <HeartPulse className="h-3.5 w-3.5" /> Live simulation engine
+            </span>
+            <div>
+              <h3 className="text-2xl font-black leading-tight sm:text-3xl" style={{ color: "#ffffff" }}>Financial Dashboard</h3>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.72)" }}>One connected view of tax, inflation, retirement, protection, debt and the advisor gap.</p>
             </div>
-            <div className="min-w-0"><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Health score</p><p className="text-sm font-bold" style={{ color: textColor }}>{band.label}</p><p className="text-[11px]" style={{ color: mutedText }}>Educational snapshot</p></div>
-            <div className="grid grid-cols-2 overflow-hidden rounded-lg text-[11px] font-bold" style={{ border: `1px solid ${borderColor}` }}>
-              <button type="button" onClick={() => setWithAdvisor(false)} className="px-3 py-2 transition-colors" style={{ backgroundColor: withAdvisor ? "transparent" : tc.buttonBg, color: withAdvisor ? mutedText : tc.buttonText }}>
-                Without advisor
-              </button>
-              <button type="button" onClick={() => setWithAdvisor(true)} className="px-3 py-2 transition-colors" style={{ backgroundColor: withAdvisor ? "#10b981" : "transparent", color: withAdvisor ? "#ffffff" : mutedText }}>
-                With advisor
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {[activeModeLabel, pressureTone, scoreLiftText].map((label) => (
+                <span key={label} className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: "rgba(255,255,255,0.08)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.14)" }}>
+                  {label}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="rounded-2xl p-3" style={{ backgroundColor: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12)" }}>
+            <div className="grid gap-3 sm:grid-cols-[auto_1fr] sm:items-center">
+              <div className="grid h-28 w-28 place-items-center rounded-full" style={{ background: `conic-gradient(${band.color} ${visibleModel.score}%, rgba(255,255,255,0.12) ${visibleModel.score}% 100%)`, boxShadow: `0 0 30px ${band.color}44` }}>
+                <div className="grid h-20 w-20 place-items-center rounded-full" style={{ backgroundColor: "rgba(8,12,18,0.94)", color: band.color, border: "1px solid rgba(255,255,255,0.12)" }}>
+                  <span className="text-3xl font-black leading-none">{visibleModel.score}</span>
+                </div>
+              </div>
+              <div className="min-w-0 space-y-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase" style={{ color: "rgba(255,255,255,0.62)" }}>Health score</p>
+                  <p className="text-xl font-black" style={{ color: "#ffffff" }}>{band.label}</p>
+                  <p className="text-xs" style={{ color: "rgba(255,255,255,0.62)" }}>Educational snapshot</p>
+                </div>
+                <div className="grid grid-cols-2 overflow-hidden rounded-xl text-[11px] font-black" style={{ border: "1px solid rgba(255,255,255,0.18)" }}>
+                  <button type="button" onClick={() => setWithAdvisor(false)} className="px-3 py-2.5 transition-colors" style={{ backgroundColor: withAdvisor ? "rgba(255,255,255,0.04)" : "#ef4444", color: "#ffffff" }}>
+                    Without advisor
+                  </button>
+                  <button type="button" onClick={() => setWithAdvisor(true)} className="px-3 py-2.5 transition-colors" style={{ backgroundColor: withAdvisor ? "#10b981" : "rgba(255,255,255,0.04)", color: "#ffffff" }}>
+                    With advisor
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(7rem, 100%), 1fr))" }}>
+              {[
+                ["Future", visibleModel.futureScore, futureColor],
+                ["Protection", visibleModel.protectionScore, protectionColor],
+                ["Debt", visibleModel.debtScore, debtColor],
+              ].map(([label, value, color]) => (
+                <div key={label} className="rounded-lg p-2" style={{ backgroundColor: "rgba(0,0,0,0.18)", border: "1px solid rgba(255,255,255,0.12)" }}>
+                  <p className="text-[10px] font-bold uppercase" style={{ color: "rgba(255,255,255,0.56)" }}>{label}</p>
+                  <p className="text-lg font-black" style={{ color: String(color) }}>{value}</p>
+                </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
       <div className="space-y-4 p-4">
-        <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+        <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, ${accentColor}10)`, border: `1px solid ${borderColor}` }}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Live assumptions</p>
+              <p className="text-sm font-black" style={{ color: textColor }}>Move one slider. Watch the whole life picture shift.</p>
+            </div>
+            {activeLifeEvents.length > 0 && (
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ backgroundColor: "rgba(239,68,68,0.14)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.28)" }}>
+                {activeLifeEvents.length} life event{activeLifeEvents.length === 1 ? "" : "s"} active
+              </span>
+            )}
+          </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
             <RangeInput label="Monthly gross income" value={inputs.grossIncome} display={ZAR(inputs.grossIncome)} min={10000} max={250000} step={1000} onChange={(value) => update("grossIncome", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-income" />
             <RangeInput label="Your age" value={inputs.age} display={`${inputs.age} yrs`} min={18} max={70} step={1} onChange={(value) => update("age", Math.min(value, inputs.retirementAge - 1))} accentColor={accentColor} mutedText={mutedText} testId="pulse-age" />
@@ -548,7 +596,16 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           <PulseRing label="Protection" score={visibleModel.protectionScore} value={`${(displayEmergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Debt pressure" score={visibleModel.debtScore} value={`${Math.round(visibleModel.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
         </div>
-        <div className="rounded-xl p-3" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(16,185,129,0.18))", border: `1px solid ${borderColor}` }}>
+        <div className="rounded-2xl p-3" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.16), rgba(245,158,11,0.10) 42%, rgba(16,185,129,0.22))", border: `1px solid ${borderColor}`, boxShadow: "0 12px 30px rgba(0,0,0,0.14)" }}>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Advisor value bridge</p>
+              <p className="text-sm font-black" style={{ color: textColor }}>Same life. Smarter structure. Different trajectory.</p>
+            </div>
+            <span className="rounded-full px-3 py-1 text-xs font-black" style={{ backgroundColor: "rgba(16,185,129,0.18)", color: "#10b981", border: "1px solid rgba(16,185,129,0.38)" }}>
+              {scoreLiftText}
+            </span>
+          </div>
           <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(13rem, 100%), 1fr))" }}>
             <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
               <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Without advisor</p>
@@ -556,10 +613,10 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
               <p className="text-xs" style={{ color: mutedText }}>Retirement: <strong style={{ color: textColor }}>{compactZar(model.retirementPot)}</strong></p>
               <p className="text-xs" style={{ color: mutedText }}>Tax saving: -</p>
             </div>
-            <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.42)" }}>
+            <div className="rounded-lg p-3" style={{ backgroundColor: "rgba(16,185,129,0.16)", border: "1px solid rgba(16,185,129,0.48)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.08)" }}>
               <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>With advisor</p>
               <p className="mt-1 text-base font-black" style={{ color: textColor }}>
-                Score: {advisorScenario.model.score} ({advisedBand.label}) <span style={{ color: "#10b981" }}>+{Math.max(0, scoreDelta)}</span>
+                Score: {advisorScenario.model.score} ({advisedBand.label}) <span className="text-xl" style={{ color: "#10b981" }}>+{Math.max(0, scoreDelta)}</span>
               </p>
               <p className="text-xs" style={{ color: mutedText }}>
                 Retirement: <strong style={{ color: textColor }}>{compactZar(advisorScenario.model.retirementPot)}</strong> <span className="text-sm font-black" style={{ color: "#10b981" }}>+{compactZar(retirementDelta)}</span>
@@ -595,7 +652,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           </div>
         </div>
         <div className="grid gap-3">
-          <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+          <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, rgba(245,158,11,0.10))`, border: `1px solid ${borderColor}` }}>
             <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
               <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>What changes most?</p><p className="text-sm font-bold" style={{ color: textColor }}>Add {ZAR(boost)} to monthly investing</p></div>
               <div className="w-full"><RangeInput label="Monthly boost" value={boost} display={ZAR(boost)} min={0} max={5000} step={250} onChange={setBoost} accentColor={accentColor} mutedText={mutedText} testId="pulse-boost" /></div>
@@ -607,7 +664,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
             </div>
             <div className="mt-3 rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, color: mutedText }}>Starting ten years later with the same monthly investment projects about <strong style={{ color: "#ef4444" }}>{compactZar(visibleModel.delayedValue)}</strong>. The time gap does the loudest talking.</div>
           </div>
-          <div className="rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+          <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, rgba(239,68,68,0.10))`, border: `1px solid ${borderColor}` }}>
             <button type="button" onClick={() => setLifeEventsOpen((current) => !current)} className="flex w-full items-center justify-between gap-3 text-left">
               <span>
                 <span className="block text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Life events</span>
@@ -641,8 +698,8 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
                       }}
                     >
                       <span className="flex items-center gap-2 text-xs font-bold">
-                        <span className="grid h-4 w-4 place-items-center rounded" style={{ backgroundColor: checked ? accentColor : inputBg, border: `1px solid ${checked ? accentColor : borderColor}` }}>
-                          {checked ? <span style={{ color: tc.buttonText }}>✓</span> : null}
+                        <span className="grid h-4 w-4 place-items-center rounded text-[9px] font-black" style={{ backgroundColor: checked ? accentColor : inputBg, border: `1px solid ${checked ? accentColor : borderColor}`, color: checked ? tc.buttonText : mutedText }}>
+                          {checked ? "ON" : ""}
                         </span>
                         {event.label}
                       </span>
@@ -653,7 +710,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
               </div>
             )}
           </div>
-          <div className="space-y-2 rounded-xl p-3" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+          <div className="space-y-2 rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, rgba(16,185,129,0.10))`, border: `1px solid ${borderColor}` }}>
             <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Advisor conversation flags</p><p className="text-sm font-bold" style={{ color: textColor }}>Areas worth discussing{advisorName ? ` with ${advisorName}` : ""}</p></div>
             {flags.length === 0 ? <p className="rounded-lg p-3 text-xs" style={{ backgroundColor: "rgba(16,185,129,0.12)", border: "1px solid rgba(16,185,129,0.32)", color: textColor }}>This snapshot looks balanced. Try a more demanding scenario to see where it bends.</p> : flags.map((flag) => <p key={flag} className="rounded-lg p-2.5 text-xs leading-relaxed" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, color: textColor }}>{flag}</p>)}
             <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.24)", color: mutedText }}>These flags are conversation starters. A full needs analysis still belongs with the advisor.</div>
@@ -663,9 +720,15 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(visibleModel.lumpSumRealValue)} real value`} detail={`${compactZar(effectiveInputs.futureLumpSum)} today after ${visibleModel.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.lumpSumRealValue / Math.max(effectiveInputs.futureLumpSum, 1)) * 100} />
           <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={visibleModel.debt.canPay ? visibleModel.debt.months > 0 ? `${visibleModel.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={visibleModel.debt.canPay ? `${compactZar(Math.max(0, visibleModel.debt.totalPaid - effectiveInputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
-        <button type="button" onClick={downloadSummaryPdf} className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}>
-          <Download className="h-3.5 w-3.5" /> Download summary
-        </button>
+        <div className="flex flex-col gap-2 rounded-xl p-3 sm:flex-row sm:items-center sm:justify-between" style={{ backgroundColor: inputBg, border: `1px solid ${borderColor}` }}>
+          <div>
+            <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Take it into the meeting</p>
+            <p className="text-sm font-bold" style={{ color: textColor }}>Export the snapshot and conversation flags.</p>
+          </div>
+          <button type="button" onClick={downloadSummaryPdf} className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-xs font-black" style={{ backgroundColor: tc.buttonBg, color: tc.buttonText, boxShadow: `0 10px 24px ${accentColor}33` }}>
+            <Download className="h-3.5 w-3.5" /> Download summary
+          </button>
+        </div>
         <p className="text-[11px] leading-relaxed" style={{ color: mutedText }}>Educational estimate only. It uses simplified South African tax assumptions based on 2025/26 SARS rates, inflation, protection and compound-growth assumptions and is not personalised financial advice.</p>
       </div>
     </section>
