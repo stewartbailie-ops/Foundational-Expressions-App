@@ -434,161 +434,194 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
     const generatedAt = new Date();
     const pdf = new jsPDF();
 
-    const scoreRgb = (s: number): [number, number, number] =>
-      s >= 75 ? [16, 185, 129] : s >= 45 ? [245, 158, 11] : [239, 68, 68];
-
-    const drawBar = (x: number, barY: number, score: number) => {
-      const w = 44; const h = 3;
-      pdf.setFillColor(220, 220, 220);
-      pdf.roundedRect(x, barY - 2.5, w, h, 1, 1, "F");
-      const [r, g, b] = scoreRgb(score);
-      pdf.setFillColor(r, g, b);
-      pdf.roundedRect(x, barY - 2.5, Math.max(1, w * score / 100), h, 1, 1, "F");
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 18;
+    const contentWidth = pageWidth - margin * 2;
+    const advisorLabel = advisorName || "Your advisor";
+    const generatedLabel = generatedAt.toLocaleDateString("en-ZA", { year: "numeric", month: "long", day: "numeric" });
+    const accentHex = /^#[0-9a-f]{6}$/i.test(tc.accentColor) ? tc.accentColor : "#f59e0b";
+    const hexToRgb = (hex: string): [number, number, number] => [
+      parseInt(hex.slice(1, 3), 16),
+      parseInt(hex.slice(3, 5), 16),
+      parseInt(hex.slice(5, 7), 16),
+    ];
+    const accentRgb = hexToRgb(accentHex);
+    const darkRgb: [number, number, number] = [15, 23, 42];
+    const scoreRgb = (score: number): [number, number, number] => {
+      if (score >= 75) return [16, 185, 129];
+      if (score >= 50) return [245, 158, 11];
+      return [239, 68, 68];
     };
+    const setRgb = (rgb: [number, number, number], mode: "fill" | "text" | "draw") => {
+      if (mode === "fill") pdf.setFillColor(rgb[0], rgb[1], rgb[2]);
+      if (mode === "text") pdf.setTextColor(rgb[0], rgb[1], rgb[2]);
+      if (mode === "draw") pdf.setDrawColor(rgb[0], rgb[1], rgb[2]);
+    };
+    let pageNumber = 1;
+    let y = margin;
+    let kvIndex = 0;
 
     const addFooter = () => {
-      const n = pdf.getNumberOfPages();
-      for (let i = 1; i <= n; i++) {
-        pdf.setPage(i);
-        pdf.setDrawColor(198, 214, 226);
-        pdf.line(16, 275, 194, 275);
-        pdf.setTextColor(110, 120, 130);
-        pdf.setFontSize(8);
-        pdf.setFont("helvetica", "normal");
-        pdf.text(
-          "Educational estimate only. Simplified SA tax assumptions (2025/26 SARS rates). Not personalised financial advice.",
-          16, 282,
-        );
-        if (advisorName) pdf.text(`Prepared by ${advisorName} via Advisory Connect`, 16, 288);
-        pdf.text(`Page ${i} of ${n}`, 175, 288);
-      }
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(advisorLabel, margin, pageHeight - 12);
+      pdf.text("Advisory Connect | app.advisoryconnect.pro", pageWidth - margin, pageHeight - 12, { align: "right" });
+      pdf.text(`Educational estimate only. Not personalised financial advice. Page ${pageNumber}`, margin, pageHeight - 7);
     };
 
-    let cy = 0;
-    const checkPage = (needed: number) => {
-      if (cy + needed > 265) { pdf.addPage(); cy = 16; }
+    const checkPage = (neededHeight: number) => {
+      if (y + neededHeight <= pageHeight - 24) return;
+      addFooter();
+      pdf.addPage();
+      pageNumber += 1;
+      y = margin;
     };
 
     const sectionHeader = (title: string) => {
-      checkPage(14);
-      pdf.setDrawColor(200, 215, 228);
-      pdf.line(16, cy, 194, cy);
-      cy += 8;
+      checkPage(16);
+      setRgb(accentRgb, "fill");
+      pdf.roundedRect(margin, y - 2, 1.4, 8, 0.7, 0.7, "F");
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(12);
-      pdf.setTextColor(18, 45, 68);
-      pdf.text(title, 16, cy);
-      cy += 8;
+      pdf.setFontSize(14);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(title, margin + 5, y + 4);
+      pdf.setDrawColor(226, 232, 240);
+      pdf.line(margin + 5, y + 8, pageWidth - margin, y + 8);
+      y += 16;
+      kvIndex = 0;
+    };
+
+    const kv = (label: string, value: string) => {
+      const rowHeight = Math.max(9, pdf.splitTextToSize(value, 96).length * 5 + 4);
+      checkPage(rowHeight + 2);
+      if (kvIndex % 2 === 1) {
+        pdf.setFillColor(248, 250, 252);
+        pdf.roundedRect(margin, y - 4, contentWidth, rowHeight, 2, 2, "F");
+      }
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(71, 85, 105);
+      pdf.text(label, margin + 3, y + 2);
       pdf.setFont("helvetica", "normal");
+      pdf.setTextColor(15, 23, 42);
+      const wrapped = pdf.splitTextToSize(value, 96) as string[];
+      pdf.text(wrapped, margin + 68, y + 2);
+      y += rowHeight + 2;
+      kvIndex += 1;
+    };
+
+    const drawBar = (label: string, score: number) => {
+      checkPage(16);
+      const barX = margin + 54;
+      const barY = y - 1;
+      const barWidth = 82;
+      const fillWidth = Math.max(0, Math.min(barWidth, (score / 100) * barWidth));
+      const color = scoreRgb(score);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(9);
+      pdf.setTextColor(51, 65, 85);
+      pdf.text(label, margin, y + 3);
+      pdf.setFillColor(226, 232, 240);
+      pdf.roundedRect(barX, barY, barWidth, 5, 2.5, 2.5, "F");
+      setRgb(color, "fill");
+      pdf.roundedRect(barX, barY, fillWidth, 5, 2.5, 2.5, "F");
+      pdf.circle(barX + fillWidth, barY + 2.5, 2.7, "F");
+      setRgb(color, "text");
       pdf.setFontSize(10);
-      pdf.setTextColor(40, 50, 60);
+      pdf.text(`${score}/100`, barX + barWidth + 8, y + 3);
+      y += 12;
     };
 
-    const kv = (label: string, value: string, rgb?: [number, number, number]) => {
-      checkPage(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(40, 50, 60);
-      pdf.text(label, 16, cy);
+    const scoreRow = (label: string, score: number, value: string) => {
+      drawBar(label, score);
       pdf.setFont("helvetica", "normal");
-      if (rgb) pdf.setTextColor(...rgb); else pdf.setTextColor(40, 50, 60);
-      pdf.text(value, 110, cy);
-      pdf.setTextColor(40, 50, 60);
-      cy += 8;
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text(value, margin + 54, y - 4);
     };
 
-    const scoreRow = (label: string, score: number, suffix = "") => {
-      checkPage(9);
-      pdf.setFont("helvetica", "bold");
-      pdf.setTextColor(40, 50, 60);
-      pdf.text(label, 16, cy);
-      const [r, g, b] = scoreRgb(score);
-      pdf.setTextColor(r, g, b);
-      pdf.setFont("helvetica", "normal");
-      pdf.text(`${score} / 100${suffix}`, 110, cy);
-      drawBar(155, cy, score);
-      pdf.setTextColor(40, 50, 60);
-      cy += 9;
-    };
-
-    // ── Header ─────────────────────────────────────────────────────────────
-    pdf.setFillColor(18, 45, 68);
-    pdf.rect(0, 0, 210, 42, "F");
+    pdf.setFillColor(darkRgb[0], darkRgb[1], darkRgb[2]);
+    pdf.rect(0, 0, pageWidth, pageHeight, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(22);
-    pdf.text("Financial Dashboard", 16, 20);
+    pdf.setFontSize(26);
+    pdf.text("Advisory Connect", margin, 30);
+    setRgb(accentRgb, "text");
+    pdf.setFontSize(14);
+    pdf.text(advisorLabel, margin, 41);
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(30);
+    pdf.text("Financial Health Report", margin, 76);
     pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(10);
-    pdf.text(`Prepared for ${advisorName || "your advisor"}  ·  ${generatedAt.toLocaleDateString("en-ZA")}`, 16, 30);
-    pdf.setTextColor(160, 190, 210);
-    pdf.setFontSize(8);
-    pdf.text(withAdvisor ? "Showing: With advisor scenario" : "Showing: Current path (no advisor)", 16, 38);
-    cy = 54;
+    pdf.setFontSize(13);
+    pdf.setTextColor(203, 213, 225);
+    pdf.text("Personalised scenario analysis", margin, 87);
+    const coverScoreColor = scoreRgb(visibleModel.score);
+    setRgb(coverScoreColor, "fill");
+    pdf.circle(pageWidth / 2, 148, 32, "F");
+    pdf.setFillColor(darkRgb[0], darkRgb[1], darkRgb[2]);
+    pdf.circle(pageWidth / 2, 148, 24, "F");
+    setRgb(coverScoreColor, "text");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(28);
+    pdf.text(`${visibleModel.score}`, pageWidth / 2, 149, { align: "center" });
+    pdf.setFontSize(11);
+    pdf.text("/100", pageWidth / 2, 160, { align: "center" });
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFontSize(13);
+    pdf.text("Overall Score", pageWidth / 2, 188, { align: "center" });
+    pdf.setTextColor(203, 213, 225);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    pdf.text(generatedLabel, pageWidth - margin, pageHeight - 20, { align: "right" });
 
-    // ── Key Inputs ─────────────────────────────────────────────────────────
-    sectionHeader("Key inputs");
+    pdf.addPage();
+    pageNumber += 1;
+    y = margin;
+
+    sectionHeader("Key Inputs");
     kv("Monthly gross income", ZAR(effectiveInputs.grossIncome));
     kv("Current age", `${effectiveInputs.age} years`);
     kv("Retirement age", `${effectiveInputs.retirementAge} years`);
     kv("Monthly investing", ZAR(effectiveInputs.monthlySave));
-    if (effectiveInputs.debtBalance > 0) kv("Debt balance", ZAR(effectiveInputs.debtBalance));
-    if (effectiveInputs.emergencySavings > 0) kv("Emergency savings", ZAR(effectiveInputs.emergencySavings));
-    cy += 4;
+    kv("Essential expenses", ZAR(effectiveInputs.essentialExpenses));
+    kv("Debt balance", ZAR(effectiveInputs.debtBalance));
 
-    // ── Score Snapshot ─────────────────────────────────────────────────────
-    sectionHeader("Score snapshot");
-    scoreRow("Health score", visibleModel.score, `  (${band.label})`);
-    scoreRow("Future readiness", visibleModel.futureScore);
-    scoreRow("Protection", visibleModel.protectionScore);
-    scoreRow("Debt pressure", visibleModel.debtScore);
-    cy += 4;
+    sectionHeader("Score Snapshot");
+    scoreRow("Overall score", visibleModel.score, band.label);
+    scoreRow("Future readiness", visibleModel.futureScore, `${Math.round(visibleModel.retirementRatio * 100)}% of target`);
+    scoreRow("Protection", visibleModel.protectionScore, `${(effectiveInputs.emergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`);
+    scoreRow("Debt pressure", visibleModel.debtScore, `${Math.round(visibleModel.debtToIncome * 100)}% of gross pay`);
 
-    // ── Financial Insights ─────────────────────────────────────────────────
-    sectionHeader("Financial insights");
-    kv("Monthly tax (SARS)", ZAR(visibleModel.taxMonthly), [239, 68, 68]);
-    kv("Take-home pay", ZAR(visibleModel.takeHome));
-    kv("Projected retirement pot", compactZar(visibleModel.retirementPot));
-    kv("Pot in today's money", compactZar(visibleModel.realPot));
-    kv("Retirement target", compactZar(visibleModel.retirementNeed));
-    kv("Emergency fund gap", compactZar(Math.max(0, visibleModel.emergencyTarget - effectiveInputs.emergencySavings)));
-    kv("Life cover gap", compactZar(Math.max(0, visibleModel.lifeCoverNeed - effectiveInputs.existingLifeCover)));
-    if (fireYears > 0) {
-      kv("FIRE number", compactZar(fireNumber));
-      kv("Financial independence age", `${freedomAge} yrs  (${fireYears} years away)`, [16, 185, 129]);
-    }
-    cy += 4;
+    sectionHeader("Financial Insights");
+    kv("Monthly tax estimate", `${ZAR(visibleModel.taxMonthly)} / month`);
+    kv("Projected retirement pot", `${compactZar(visibleModel.retirementPot)} projected, worth ${compactZar(visibleModel.realPot)} in today's money`);
+    kv("Emergency fund target", `${compactZar(visibleModel.emergencyTarget)} target, ${compactZar(Math.max(0, visibleModel.emergencyTarget - effectiveInputs.emergencySavings))} gap`);
+    kv("Life cover lens", `${compactZar(Math.max(0, visibleModel.lifeCoverNeed - effectiveInputs.existingLifeCover))} short against a simple ten-year income target`);
+    kv("Freedom number", `${compactZar(fireNumber)}${fireYears > 0 ? `, reached at age ${freedomAge}` : ", not reached within 60 years at current savings"}`);
 
-    // ── Advisor Uplift ─────────────────────────────────────────────────────
-    if (scoreDelta > 0 || advisorScenario.taxSavingMonthly > 0) {
-      sectionHeader("Advisor uplift — projected improvement");
-      kv("Score improvement", `+${scoreDelta} points`, [16, 185, 129]);
-      kv("Additional retirement savings", `+${compactZar(retirementDelta)}`, [16, 185, 129]);
-      if (advisorScenario.taxSavingMonthly > 0)
-        kv("Monthly tax saving (RA deduction)", `+${ZAR(advisorScenario.taxSavingMonthly)} / month`, [16, 185, 129]);
-      cy += 4;
+    sectionHeader("Advisor Uplift");
+    kv("Score improvement", `${model.score} to ${advisorScenario.model.score} (${scoreDelta > 0 ? "+" : ""}${scoreDelta} points)`);
+    kv("Retirement uplift", `${compactZar(model.retirementPot)} to ${compactZar(advisorScenario.model.retirementPot)} (${compactZar(retirementDelta)} uplift)`);
+    kv("Estimated monthly tax saving", ZAR(advisorScenario.taxSavingMonthly));
+    kv("Illustrative optimisation", "RA contribution, debt restructure, emergency fund gap filled, and simple life-cover gap filled.");
+
+    sectionHeader("Active Life Events");
+    if (activeLifeEvents.length === 0) {
+      kv("Scenario", "No life events selected.");
+    } else {
+      activeLifeEvents.forEach((event) => kv(event.label, event.detail));
     }
 
-    // ── Active Life Events ─────────────────────────────────────────────────
-    if (activeLifeEvents.length > 0) {
-      sectionHeader("Active life event scenarios");
-      checkPage(9);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(40, 50, 60);
-      pdf.text(activeLifeEvents.map(e => `• ${e.label}  (${e.detail})`).join("    "), 16, cy);
-      cy += 12;
+    sectionHeader("Conversation Flags");
+    if (flags.length === 0) {
+      kv("Snapshot", "No urgent flags from this educational snapshot.");
+    } else {
+      flags.forEach((flag, index) => kv(`Flag ${index + 1}`, flag));
     }
 
-    // ── Conversation Flags ─────────────────────────────────────────────────
-    sectionHeader("Advisor conversation flags");
-    const flagLines = flags.length ? flags : ["No urgent flags from this educational snapshot."];
-    flagLines.forEach((flag) => {
-      checkPage(12);
-      const wrapped = pdf.splitTextToSize(`• ${flag}`, 178);
-      pdf.setFont("helvetica", "normal");
-      pdf.setTextColor(40, 50, 60);
-      pdf.text(wrapped, 16, cy);
-      cy += wrapped.length * 5.5 + 3;
-    });
 
     addFooter();
     pdf.save("advisory-connect-financial-dashboard.pdf");
