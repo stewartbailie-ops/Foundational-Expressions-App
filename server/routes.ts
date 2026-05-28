@@ -265,6 +265,31 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
 
+  // Play Store TWA domain verification. Android verifies app ownership by
+  // fetching this URL at install time. TWA_PACKAGE_NAME and
+  // TWA_SHA256_FINGERPRINT must be set in Replit Secrets after PWABuilder
+  // generates the signed APK — the fingerprint is shown on the PWABuilder
+  // download screen and is also in the generated signing-key-info.txt.
+  // Returns 503 (not 404) while unconfigured so the Play Console "domain
+  // not verified" error is clearly a missing-secret rather than a wrong URL.
+  app.get("/.well-known/assetlinks.json", (_req, res) => {
+    const pkg = process.env.TWA_PACKAGE_NAME;
+    const fp  = process.env.TWA_SHA256_FINGERPRINT;
+    if (!pkg || !fp) {
+      return res.status(503).json({ error: "TWA_PACKAGE_NAME and TWA_SHA256_FINGERPRINT not yet configured in Replit Secrets." });
+    }
+    res.set("Content-Type", "application/json");
+    res.set("Cache-Control", "public, max-age=3600");
+    return res.json([{
+      relation: ["delegate_permission/common.handle_all_urls"],
+      target: {
+        namespace: "android_app",
+        package_name: pkg,
+        sha256_cert_fingerprints: [fp],
+      },
+    }]);
+  });
+
   // Dynamic sitemap.xml — includes static legal pages plus every active
   // advisor's primary slug and all of their secondary profile slugs, so
   // Google can discover advisor profiles without us hand-maintaining a
