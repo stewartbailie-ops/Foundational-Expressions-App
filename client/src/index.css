@@ -44,7 +44,7 @@
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
   
-  --font-sans: 'Inter', sans-serif;
+  --font-sans: 'Inter Variable', 'Inter', sans-serif;
 }
 
 /* ADVISORY CONNECT BLUE THEME */

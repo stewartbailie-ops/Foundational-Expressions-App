@@ -544,8 +544,8 @@ const TRANSLATIONS: Record<Lang, {
       c: "Dankie vir die geleentheid om 'n kort oorsig te deel van die waarde wat ek probeer lewer aan my kliënte.\n\nMy doel is om duidelikheid, struktuur en volhoubare groei te lewer deur gedissiplineerde strategie en professionele toesig. 'n Bondige uiteensetting van my dienste is beskikbaar in die afdelings hieronder.\n\nSkuld u, of enigiemand in u netwerk, dit om te ondersoek hoe ons dienste waarde kan toevoeg, is u welkom om hierdie skakel te deel, 'n konsultasie te versoek, of 'n gesprek te reël op 'n tyd wat u pas. Ons sien uit daarna om verder te verbind en te help.",
     },
     indServices: {
-      "tax-efficiency": { name: "Optimiseer Belastingdoeltreffendheid", description: "Strategies belastingbeplanning om u belastinglas te minimeer terwyl volle nakoming gehandhaaf word. Ons ontleed u finansiële situasie om wettige belastingbesparingsgeleenthede te identifiseer en strukture te implementeer wat u na-belasting opbrengste optimiseer." },
-      "tax-investment": { name: "Belastingvrye Spaarrekeninge", description: "Beleggingstrategieë ontwerp om opbrengste te maksimeer terwyl belastingimpak gemimiseer word. Ons struktureer portefeuljes met belastingbevoordeelde voertuie en tydstrategieë om u rykdom doeltreffender te laat groei." },
+      "tax-efficiency": { name: "Optimiseer Belastingdoeltreffendheid", description: "Strategiese belastingbeplanning om u belastinglas te minimeer terwyl volle nakoming gehandhaaf word. Ons ontleed u finansiële situasie om wettige belastingbesparingsgeleenthede te identifiseer en strukture te implementeer wat u na-belasting opbrengste optimiseer." },
+      "tax-investment": { name: "Belastingvrye Spaarrekeninge", description: "Beleggingstrategieë ontwerp om opbrengste te maksimeer terwyl belastingimpak geminimeer word. Ons struktureer portefeuljes met belastingbevoordeelde voertuie en tydstrategieë om u rykdom doeltreffender te laat groei." },
       "personal-risk": { name: "Persoonlike Beskermingsplan", description: "Omvattende risikobeoordeling en versekeringsoplossings om u en u gesin te beskerm. Ons evalueer u unieke omstandighede om gepaste lewens-, ongeskiktheids- en inkomstebeskermingsdekking aan te beveel." },
       "retirement": { name: "Aftreebeplanning", description: "Volledige aftreebeplanning van akkumulasie tot gemaklike aftrede. Ons help u om realistiese doelwitte te stel, gepaste aftreevoertuie te kies, en te beplan vir 'n volhoubare inkomste met aftrede." },
       "medical-aid": { name: "Mediese Hulp", description: "Kundige leiding oor die keuse van die regte mediese hulpplan vir u behoeftes en begroting. Ons vergelyk opsies oor verskaffers heen om te verseker dat u omvattende gesondheidsorgdekking teen die beste moontlike waarde kry." },
@@ -553,7 +553,7 @@ const TRANSLATIONS: Record<Lang, {
       "wills-estates": { name: "Testamente, Boedels & Trusts", description: "Professionele boedelbeplanning en opstel van testamente om te verseker dat u wense duidelik gedokumenteer is en effektiewe boedelbeplanning en erfenisbeskerming ondersteun. As deel van ons verbintenis tot u langtermyn welstand, bied ons 'n gratis Testament aan." },
     },
     corpServices: {
-      "corporate-planning": { name: "Korporatiewe Beplanning", description: "Strategies finansiële beplanning vir besighede. Ons oplossings help besighede om hul mees waardevolle bates aan te trek, te behou en te beskerm: hul mense." },
+      "corporate-planning": { name: "Korporatiewe Beplanning", description: "Strategiese finansiële beplanning vir besighede. Ons oplossings help besighede om hul mees waardevolle bates aan te trek, te behou en te beskerm: hul mense." },
       "group-risk": { name: "Groepsbeskermingsplan", description: "Omvattende groepslewe-, ongeskiktheids- en inkomstebeskermingsoplossings om werknemers te beskerm en besigheidskontinuïteit te verseker in die geval van onvoorsiene omstandighede." },
       "pension-provident": { name: "Pensioen/Voorsieningsfondse", description: "Volledige opstel van aftreefondse wat werknemers in staat stel om hul toekoms te bou met bydraes in 'n aanvaarbare struktuur." },
       "group-medical": { name: "Groep Mediese Hulp", description: "Toegang tot 'n sentrale gesondheidsorgoplossing vir werknemers. Die proses sluit ontleding in om die beste groep mediese hulpverskaffer te bepaal." },
@@ -568,7 +568,7 @@ const TRANSLATIONS: Record<Lang, {
     dismiss: "Vala",
     individualServices: "Izinsiza Zabantu Siqu", corporateServices: "Izinsiza Zezinkampani",
     moneyMap: "Finance Hub", moneyMapSub: "Cela Ulwazi Lwezezimali",
-    claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi", bookMeeting: "Buka Umhlangano",
+    claimWill: "Thatha Ithestamente Lakho Mahhala", requestCallback: "Cela Ukubizwa Futhi", bookMeeting: "Bhuka Umhlangano",
     referFriends: "Phendukela Izihlobo Nabangane", documentsUpload: "Layisha Amaxwebe",
     comingSoon: "Iyakhiwa — Iyoza Maduze",
     linkedin: "Xhumana ku-LinkedIn", facebook: "Landelela ku-Facebook",
@@ -579,7 +579,7 @@ const TRANSLATIONS: Record<Lang, {
     bioOptions: {
       a: "Uxhumano lwakho olulodwa lwazo zonke izidingo zakho zezimali kanye nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza ezinikezwa.\n\nUma ufisa ukuhlola ukuthi izinsiza zethu zokweluleka zingengeza kanjani inani, wamukelekile ukuhlela ukubonana ngesikhathi esikufanele.",
       b: "Uxhumano lwakho olulodwa lwezidingo zakho zezimali nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza nezixazululo ezikhona. Uma wena, noma noma ubani emphakathini wakho, efisa ukuxoxa izidingo zakho ukwengeziwe, wamukelekile ukucela ukubizwa noma ukubonana ngesikhathi esihambisana nawe.",
-      c: "Ngiyabonga ngethuba lokwabelana ngehlolojikelele elifushane lwamanani engizama ukunikezela ngawo kubaxhasi bami.\n\nInhloso yami ukuhlinzeka ngokusobala, uhlaka, nokukhula okuqhubekayo ngokulandela isu eliphucukile kanye nokubhekwa okungokomzila. Uhlolojikelele olufushane lwezinsiza zami luyatholakala ezigabeni ezingezansi.\n\nUma wena, noma noma ubani emphakathini wakho, efisa ukuhlola ukuthi izinsiza zethu zingengeza kanjani inani, wamukelekile ukwabelana nale link, ucele ukubonana, noma uhlele ucingo ngesikhathi esikufanele. Sibheke phambili ukuxhumana nokusize ukwengeziwe.",
+      c: "Ngiyabonga ngethuba lokwabelana ngehlolojikelele elifushane lwamanani engizama ukunikezela ngawo kubaklienti bami.\n\nInhloso yami ukuhlinzeka ngokusobala, uhlaka, nokukhula okuqhubekayo ngokulandela isu eliphucukile kanye nokubhekwa okungokomzila. Uhlolojikelele olufushane lwezinsiza zami luyatholakala ezigabeni ezingezansi.\n\nUma wena, noma noma ubani emphakathini wakho, efisa ukuhlola ukuthi izinsiza zethu zingengeza kanjani inani, wamukelekile ukwabelana nale link, ucele ukubonana, noma uhlele ucingo ngesikhathi esikufanele. Sibheke phambili ukuxhumana nokusize ukwengeziwe.",
     },
     indServices: {
       "tax-efficiency": { name: "Hambisa Ukusebenza Kahle Kwerentisi", description: "Ukuhlelwa ngokuhlakanipha kwerentisi ukunciphisa umthwalo wakho werentisi ngokugcina ukuhlonishwa okugcwele. Siphenywa isimo sakho sezimali ukuze sichane amathuba esemthethweni okonga irentisi bese sisebenzisa izinhlaka eziphumelelisa imiphumela yakho ngemuva kwerentisi." },
