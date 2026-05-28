@@ -2888,7 +2888,7 @@ export default function AdvisorProfile() {
           dailytrivia: (advisor as any).showDailyTrivia ? (
             <DailyTriviaCard tc={tc} />
           ) : null,
-          risk_profile_quiz: (advisor as any).showRiskProfileQuiz ? (
+          riskprofilequiz: (advisor as any).showRiskProfileQuiz ? (
             <RiskProfileQuiz tc={tc} />
           ) : null,
           };

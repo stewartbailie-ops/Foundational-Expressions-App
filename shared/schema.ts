@@ -324,7 +324,7 @@ export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
   "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
-  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard", "sudoku", "dailytrivia",
+  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard", "sudoku", "dailytrivia", "riskprofilequiz",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
@@ -349,6 +349,8 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   calendar: "Financial Calendar",
   financialdashboard: "Financial Health Dashboard",
   sudoku: "Game of the Day",
+  dailytrivia: "Daily Finance Trivia",
+  riskprofilequiz: "Risk Profile Quiz",
 };
 
 // Category-tinted backgrounds for fun-fact cards (dark, professional, white text on top)
