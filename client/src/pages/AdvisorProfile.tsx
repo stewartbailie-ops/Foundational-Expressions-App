@@ -19,6 +19,7 @@ import { ComingSoonCard } from "@/components/tools/ComingSoonCard";
 import { FinancialDashboard } from "@/components/tools/FinancialDashboard";
 import { SudokuCard } from "@/components/tools/SudokuCard";
 import { DailyTriviaCard } from "@/components/tools/DailyTriviaCard";
+import { RiskProfileQuiz } from "@/components/tools/RiskProfileQuiz";
 
 function sanitizeUrl(url: string | null | undefined): string | null {
   if (!url) return null;
@@ -2886,6 +2887,9 @@ export default function AdvisorProfile() {
           ) : null,
           dailytrivia: (advisor as any).showDailyTrivia ? (
             <DailyTriviaCard tc={tc} />
+          ) : null,
+          risk_profile_quiz: (advisor as any).showRiskProfileQuiz ? (
+            <RiskProfileQuiz tc={tc} />
           ) : null,
           };
           return profileSectionOrder.map((key, i) =>

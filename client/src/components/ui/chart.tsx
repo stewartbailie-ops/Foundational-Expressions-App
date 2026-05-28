@@ -74,19 +74,22 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null
   }
 
+  const safeId = id.replace(/[^a-z0-9-_]/gi, "");
+  const cssColorPattern = /^(#[0-9a-f]{3,8}|rgb[a]?\([^)]*\)|hsl[a]?\([^)]*\)|var\(--[a-z0-9-]+\)|[a-z]+)$/i;
   return (
     <style
       dangerouslySetInnerHTML={{
         __html: Object.entries(THEMES)
           .map(
             ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
+${prefix} [data-chart=${safeId}] {
 ${colorConfig
   .map(([key, itemConfig]) => {
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ||
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    if (!color || !cssColorPattern.test(color)) return null;
+    return `  --color-${key}: ${color};`
   })
   .join("\n")}
 }

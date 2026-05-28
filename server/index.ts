@@ -125,7 +125,7 @@ app.use(
       tableName: "session",
       createTableIfMissing: false,
     }),
-    secret: process.env.ADMIN_PASSWORD || "fallback-secret-key",
+    secret: process.env.SESSION_SECRET || process.env.ADMIN_PASSWORD || "fallback-secret-key",
     resave: false,
     saveUninitialized: false,
     proxy: process.env.NODE_ENV === "production",
@@ -197,6 +197,9 @@ process.on("uncaughtException", (err) => {
   // (before any client tries to write PII), not silently later. If the key
   // is NOT configured we log a warning — encryption-dependent endpoints
   // return 503 until the operator sets PII_ENCRYPTION_KEY.
+  if (!process.env.SESSION_SECRET) {
+    console.warn("[startup] SESSION_SECRET not set — session cookies are signed with ADMIN_PASSWORD or the hardcoded fallback. Add SESSION_SECRET to Replit Secrets (openssl rand -base64 48) for proper secret separation.");
+  }
   const { selfTest, keyStatus } = await import("./encryption");
   const ks = keyStatus();
   if (ks === "invalid") {

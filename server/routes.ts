@@ -118,7 +118,7 @@ async function canAccessLead(req: import("express").Request, leadId: number): Pr
 }
 
 function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(crypto.randomInt(100000, 1000000));
 }
 
 const PUBLIC_ADVISOR_FIELDS = [
@@ -161,7 +161,7 @@ const PUBLIC_ADVISOR_FIELDS = [
   // every section would be silently off regardless of advisor settings.
   "showTradingView", "tradingViewSymbols",
   "showDailyQuotes", "dailyQuotesSet",
-  "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar", "showFinancialDashboard", "showSudoku",
+  "showCompoundCalc", "showRetirementCalc", "showFinancialCalendar", "showFinancialDashboard", "showSudoku", "showDailyTrivia", "showRiskProfileQuiz",
   "patternOpacity", "imagePatternKey", "profileSectionOrder", "active",
   "bookingUrl",
 ] as const;
@@ -540,7 +540,8 @@ export async function registerRoutes(
   app.get("/api/advisors/:id", async (req, res) => {
     const advisor = await storage.getAdvisor(Number(req.params.id));
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    res.json(advisor);
+    const { advisorPasswordHash: _ph, ...safe } = advisor as any;
+    res.json(safe);
   });
 
   app.post("/api/advisors", async (req, res) => {
@@ -557,9 +558,12 @@ export async function registerRoutes(
     if (!partial.success) {
       return res.status(400).json({ message: "Invalid data", errors: partial.error.flatten() });
     }
-    const updated = await storage.updateAdvisor(Number(req.params.id), partial.data);
+    // Never allow a caller to overwrite the advisor password hash via this endpoint.
+    const { advisorPasswordHash: _ph, ...safeData } = partial.data as any;
+    const updated = await storage.updateAdvisor(Number(req.params.id), safeData);
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
-    res.json(updated);
+    const { advisorPasswordHash: _rph, ...safeUpdated } = updated as any;
+    res.json(safeUpdated);
   });
 
   app.patch("/api/advisors/:id/toggle", async (req, res) => {
@@ -770,12 +774,17 @@ export async function registerRoutes(
     res.send(bom + csv);
   });
 
-  // Public demo-only lead wiper. Removes ALL leads for a single demo advisor.
+  // Demo-only lead wiper — requires the caller to hold a valid session for that
+  // demo advisor (or be admin). Without this check the endpoint is reachable by
+  // any unauthenticated user since /api/demo-emails is in the public allowlist.
   app.delete("/api/demo-emails/by-advisor/:id", async (req, res) => {
     const advisorId = Number(req.params.id);
     const advisor = await storage.getAdvisor(advisorId);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     if (!advisor.isDemo) return res.status(403).json({ message: "Only demo advisors can be wiped" });
+    if (!(await canAccessAdvisor(req, advisorId))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     const leads = await storage.getEmailsByAdvisor(advisorId);
     let count = 0;
     for (const l of leads) {
@@ -1578,6 +1587,9 @@ export async function registerRoutes(
   app.get("/api/advisors/:slug/profile-stats", async (req, res) => {
     const advisor = await storage.getAdvisorBySlug(req.params.slug);
     if (!advisor) return res.status(404).json({ message: "Not found" });
+    if (!(await canAccessAdvisor(req, advisor.id))) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
     // S7: return both the legacy `totalViews` AND the new `primary`/`secondary`
     // split so existing callers keep working while new UI can show the breakdown.
     const profiles = await storage.getAdvisorProfiles(advisor.id);
