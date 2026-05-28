@@ -955,8 +955,9 @@ function getSAHolidaysPub(year: number): Record<string, string> {
 const PUB_MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const PUB_DAY_NAMES = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
-export function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+export function FinancialCalendarSection({ tc, defaultOpen = false }: { tc: ReturnType<typeof getThemeColors>; defaultOpen?: boolean }) {
   const today = new Date();
+  const [open, setOpen] = useState(defaultOpen);
   const [calYear, setCalYear] = useState(today.getFullYear());
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const saHolidays = getSAHolidaysPub(calYear);
@@ -968,11 +969,15 @@ export function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThem
   const holidaysThisMonth = Object.entries(saHolidays).filter(([k]) => k.startsWith(`${calYear}-${String(calMonth+1).padStart(2,'0')}`));
 
   return (
-    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-financialcalendar">
-      <div className="flex items-center gap-2">
-        <CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />
-        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Financial Calendar</h3>
-      </div>
+    <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-financialcalendar">
+      <button type="button" onClick={() => setOpen(o => !o)} className="flex w-full items-center justify-between p-4 text-left">
+        <div className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4" style={{ color: tc.accentColor }} />
+          <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Financial Calendar</h3>
+        </div>
+        <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ color: tc.mutedText }} />
+      </button>
+      {open && <div className="space-y-3 px-4 pb-4" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
       {/* Month navigation */}
       <div className="flex items-center justify-between">
         <button type="button" onClick={calPrevMonth} className="p-1.5 rounded-lg hover:opacity-70" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>
@@ -1048,6 +1053,7 @@ export function FinancialCalendarSection({ tc }: { tc: ReturnType<typeof getThem
         })}
       </div>
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>2026 dates. Always verify against SARB, SARS and JSE official notices.</p>
+      </div>}
     </div>
   );
 }
@@ -2873,7 +2879,7 @@ export default function AdvisorProfile() {
             <FinancialCalendarSection tc={tc} />
           ) : null,
           financialdashboard: (advisor as any).showFinancialDashboard ? (
-            <FinancialDashboard tc={tc} advisorName={advisor.name} />
+            <FinancialDashboard tc={tc} advisorName={advisor.name} collapsible />
           ) : null,
           sudoku: (advisor as any).showSudoku ? (
             <SudokuCard tc={tc} />

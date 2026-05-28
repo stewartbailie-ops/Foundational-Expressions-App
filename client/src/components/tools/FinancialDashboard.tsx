@@ -3,6 +3,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Banknote,
+  ChevronDown,
   Download,
   HeartPulse,
   PiggyBank,
@@ -16,6 +17,7 @@ import { type getThemeColors } from "@/lib/themeUtils";
 export type FinancialDashboardProps = {
   tc: ReturnType<typeof getThemeColors>;
   advisorName?: string | null;
+  collapsible?: boolean;
 };
 
 type PulseInputs = {
@@ -321,8 +323,9 @@ function buildDashboardModel(inputs: PulseInputs, boost: number, taxableDeductio
   };
 }
 
-export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps) {
+export function FinancialDashboard({ tc, advisorName, collapsible = false }: FinancialDashboardProps) {
   const { accentColor, borderColor, cardBg, inputBg, textColor, mutedText } = tc;
+  const [bodyOpen, setBodyOpen] = useState(!collapsible);
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [withAdvisor, setWithAdvisor] = useState(false);
@@ -593,12 +596,17 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
 
   return (
     <section className="overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, boxShadow: "0 18px 48px rgba(0,0,0,0.18)" }} data-testid="financial-dashboard">
-      <div className="p-4 sm:p-5" style={{ background: `linear-gradient(135deg, rgba(10,16,24,0.96) 0%, ${accentColor}2e 42%, rgba(16,185,129,0.26) 100%)`, borderBottom: `1px solid ${borderColor}` }}>
+      <div className="p-4 sm:p-5" style={{ background: `linear-gradient(135deg, rgba(10,16,24,0.96) 0%, ${accentColor}2e 42%, rgba(16,185,129,0.26) 100%)`, borderBottom: bodyOpen ? `1px solid ${borderColor}` : undefined, cursor: collapsible ? "pointer" : "default" }} onClick={collapsible ? () => setBodyOpen(o => !o) : undefined} role={collapsible ? "button" : undefined}>
         <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(18rem, 100%), 1fr))" }}>
           <div className="space-y-3">
-            <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase" style={{ backgroundColor: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}66` }}>
-              <HeartPulse className="h-3.5 w-3.5" /> Live simulation engine
-            </span>
+            <div className="flex items-center justify-between">
+              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase" style={{ backgroundColor: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}66` }}>
+                <HeartPulse className="h-3.5 w-3.5" /> Live simulation engine
+              </span>
+              {collapsible && (
+                <ChevronDown className={`h-5 w-5 shrink-0 transition-transform duration-200 ${bodyOpen ? "rotate-180" : ""}`} style={{ color: "rgba(255,255,255,0.6)" }} />
+              )}
+            </div>
             <div>
               <h3 className="text-2xl font-black leading-tight sm:text-3xl" style={{ color: "#ffffff" }}>Financial Dashboard</h3>
               <p className="mt-1 max-w-xl text-sm leading-relaxed" style={{ color: "rgba(255,255,255,0.72)" }}>One connected view of tax, inflation, retirement, protection, debt and the advisor gap.</p>
@@ -649,7 +657,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           </div>
         </div>
       </div>
-      <div className="space-y-4 p-4">
+      {bodyOpen && <div className="space-y-4 p-4">
         <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, ${accentColor}10)`, border: `1px solid ${borderColor}` }}>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -826,7 +834,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
           </button>
         </div>
         <p className="text-[11px] leading-relaxed" style={{ color: mutedText }}>Educational estimate only. It uses simplified South African tax assumptions based on 2025/26 SARS rates, inflation, protection and compound-growth assumptions and is not personalised financial advice.</p>
-      </div>
+      </div>}
     </section>
   );
 }

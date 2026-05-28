@@ -322,7 +322,7 @@ export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
   "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
-  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard", "sudoku",
+  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard", "sudoku", "dailytrivia",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {

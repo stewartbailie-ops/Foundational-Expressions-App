@@ -17,6 +17,16 @@ const httpServer = createServer(app);
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
+  // 301 redirect: bare domain and www → app subdomain (SEO consolidation).
+  // Both advisoryconnect.pro and www.advisoryconnect.pro must point to this
+  // server via DNS (A/CNAME records) for this middleware to fire.
+  app.use((req, res, next) => {
+    const host = req.hostname;
+    if (host === "advisoryconnect.pro" || host === "www.advisoryconnect.pro") {
+      return res.redirect(301, `https://app.advisoryconnect.pro${req.originalUrl}`);
+    }
+    next();
+  });
 }
 
 // W1 T6: CSP Reporting API. Modern browsers prefer the `Report-To` /
