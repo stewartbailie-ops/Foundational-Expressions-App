@@ -278,6 +278,10 @@ export async function registerRoutes(
     if (!pkg || !fp) {
       return res.status(503).json({ error: "TWA_PACKAGE_NAME and TWA_SHA256_FINGERPRINT not yet configured in Replit Secrets." });
     }
+    // TWA_SHA256_FINGERPRINT may be a single fingerprint or a comma-separated
+    // list — Play App Signing produces one cert and the upload key produces
+    // another, both need to verify so the install doesn't reject either.
+    const fingerprints = fp.split(",").map(s => s.trim()).filter(Boolean);
     res.set("Content-Type", "application/json");
     res.set("Cache-Control", "public, max-age=3600");
     return res.json([{
@@ -285,7 +289,7 @@ export async function registerRoutes(
       target: {
         namespace: "android_app",
         package_name: pkg,
-        sha256_cert_fingerprints: [fp],
+        sha256_cert_fingerprints: fingerprints,
       },
     }]);
   });
