@@ -374,6 +374,9 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
   }, [boost, effectiveInputs, model.taxMonthly]);
 
   const visibleModel = withAdvisor ? advisorScenario.model : model;
+  const displayEmergencySavings = withAdvisor
+    ? Math.max(effectiveInputs.emergencySavings, effectiveInputs.essentialExpenses * 6)
+    : effectiveInputs.emergencySavings;
 
   const band = scoreBand(visibleModel.score);
   const advisedBand = scoreBand(advisorScenario.model.score);
@@ -542,7 +545,7 @@ export function FinancialDashboard({ tc, advisorName }: FinancialDashboardProps)
         </div>
         <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(11rem, 100%), 1fr))" }}>
           <PulseRing label="Future readiness" score={visibleModel.futureScore} value={`${Math.round(visibleModel.retirementRatio * 100)}% of target`} color={futureColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
-          <PulseRing label="Protection" score={visibleModel.protectionScore} value={`${(effectiveInputs.emergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
+          <PulseRing label="Protection" score={visibleModel.protectionScore} value={`${(displayEmergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Debt pressure" score={visibleModel.debtScore} value={`${Math.round(visibleModel.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
         </div>
         <div className="rounded-xl p-3" style={{ background: "linear-gradient(135deg, rgba(239,68,68,0.12), rgba(16,185,129,0.18))", border: `1px solid ${borderColor}` }}>
