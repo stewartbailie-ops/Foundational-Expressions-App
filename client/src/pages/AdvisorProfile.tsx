@@ -739,7 +739,7 @@ export function TradingViewSection({ tc, advisor }: { tc: ReturnType<typeof getT
       <p className="text-xs" style={{ color: tc.mutedText }}>
         Live chart data via TradingView. Tracking {symbols.length} instrument{symbols.length === 1 ? "" : "s"}.
       </p>
-      <div ref={hostRef} style={{ minHeight: 400, width: "100%" }} />
+      <div ref={hostRef} style={{ minHeight: 320, width: "100%" }} />
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>
         Powered by TradingView · Prices for illustration only, not investment advice.
       </p>

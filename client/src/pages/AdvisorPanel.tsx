@@ -6837,21 +6837,28 @@ function MediaLinksCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<type
 }
 
 function DisplaysTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const [open, setOpen] = useState<Record<string, boolean>>({ tv: false, dq: false, cal: false });
+  const [open, setOpen] = useState<Record<string, boolean>>({ tv: false, dq: false, cal: false, dash: false });
   const toggle = (key: string) => setOpen(p => ({ ...p, [key]: !p[key] }));
   const ls = { color: tc.mutedText };
 
-  const sections: Array<{ key: string; title: string; subtitle: string; content: React.ReactNode }> = [
-    { key: "tv",  title: "Live Markets",       subtitle: "Real-time JSE & global market data.",             content: <TradingViewSection tc={tc} advisor={advisor} /> },
-    { key: "dq",  title: "Daily Quote",        subtitle: "Inspirational financial quote, updated daily.",   content: <DailyQuoteSection tc={tc} advisor={advisor} /> },
-    { key: "cal", title: "Financial Calendar", subtitle: "SA public holidays, SARB MPC, SARS & JSE dates.", content: <FullCalendarCard tc={tc} /> },
+  const allSections: Array<{ key: string; title: string; subtitle: string; enabled: boolean; content: React.ReactNode }> = [
+    { key: "tv",   title: "Live Markets",         subtitle: "Real-time JSE & global market data.",              enabled: !!(advisor as any).showTradingView,        content: <TradingViewSection tc={tc} advisor={advisor} /> },
+    { key: "dq",   title: "Daily Quote",          subtitle: "Inspirational financial quote, updated daily.",    enabled: !!(advisor as any).showDailyQuotes,         content: <DailyQuoteSection tc={tc} advisor={advisor} /> },
+    { key: "cal",  title: "Financial Calendar",   subtitle: "SA public holidays, SARB MPC, SARS & JSE dates.", enabled: !!(advisor as any).showFinancialCalendar,   content: <FullCalendarCard tc={tc} /> },
+    { key: "dash", title: "Financial Dashboard",  subtitle: "Tax, retirement, protection & debt — live.",      enabled: !!(advisor as any).showFinancialDashboard,  content: <FinancialDashboard tc={tc} advisorName={advisor.name} /> },
   ];
+  const sections = allSections.filter(s => s.enabled);
 
   return (
     <div className="flex flex-col gap-3 pb-6">
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <p className="text-xs leading-relaxed" style={ls}>Your live market widget, daily quote and financial calendar — as they appear on your public profile.</p>
+        <p className="text-xs leading-relaxed" style={ls}>Displays toggled on in your profile settings appear here. Click any card to expand it.</p>
       </div>
+      {sections.length === 0 && (
+        <div className="rounded-xl p-4 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <p className="text-xs" style={ls}>No displays are active yet. Enable them from <strong>Profile Edit → Profile Displays</strong>.</p>
+        </div>
+      )}
       {sections.map(s => (
         <div key={s.key} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
           <div className="p-4">
