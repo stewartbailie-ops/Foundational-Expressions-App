@@ -2813,102 +2813,101 @@ export async function registerRoutes(
   });
 
   // ── Book of Life ────────────────────────────────────────────────────────────
-  {
+  // Public emergency view — no auth, rate-limited.
+  app.get("/api/bol/:token", publicReadLimiter, async (req, res) => {
     const { db: bolDb } = await import("./db");
     const { sql: bolSql } = await import("drizzle-orm");
-
-    // Public emergency view — no auth, rate-limited. Token is 32-char hex
-    // (CSPRNG) so it is effectively unguessable. Returns only emergency-safe
-    // fields — policy numbers and advisor notes are never exposed publicly.
-    app.get("/api/bol/:token", publicReadLimiter, async (req, res) => {
-      const token = routeParam(req.params.token).replace(/[^a-f0-9]/gi, "");
-      if (token.length !== 32) return res.status(404).json({ message: "Not found" });
-      const result = await bolDb.execute<any>(bolSql`
-        SELECT * FROM book_of_life WHERE bol_token = ${token}
-      `);
-      const row = result.rows?.[0];
-      if (!row) return res.status(404).json({ message: "Not found" });
-      res.json({
-        clientName: row.client_name,
-        bloodType: row.blood_type,
-        allergies: row.allergies,
-        chronicMedications: row.chronic_medications,
-        medicalConditions: row.medical_conditions,
-        ec1Name: row.ec1_name, ec1Relation: row.ec1_relation, ec1Phone: row.ec1_phone,
-        ec2Name: row.ec2_name, ec2Relation: row.ec2_relation, ec2Phone: row.ec2_phone,
-        medicalAidScheme: row.medical_aid_scheme, medicalAidNumber: row.medical_aid_number,
-        medicalAidPlan: row.medical_aid_plan, medicalAidEmergencyLine: row.medical_aid_emergency_line,
-        gpName: row.gp_name, gpPhone: row.gp_phone,
-        hospitalPreference: row.hospital_preference,
-        paramedicNotes: row.paramedic_notes,
-        updatedAt: row.updated_at,
-      });
+    const token = routeParam(req.params.token).replace(/[^a-f0-9]/gi, "");
+    if (token.length !== 32) return res.status(404).json({ message: "Not found" });
+    const result = await bolDb.execute<any>(bolSql`
+      SELECT * FROM book_of_life WHERE bol_token = ${token}
+    `);
+    const row = result.rows?.[0];
+    if (!row) return res.status(404).json({ message: "Not found" });
+    res.json({
+      clientName: row.client_name,
+      bloodType: row.blood_type,
+      allergies: row.allergies,
+      chronicMedications: row.chronic_medications,
+      medicalConditions: row.medical_conditions,
+      ec1Name: row.ec1_name, ec1Relation: row.ec1_relation, ec1Phone: row.ec1_phone,
+      ec2Name: row.ec2_name, ec2Relation: row.ec2_relation, ec2Phone: row.ec2_phone,
+      medicalAidScheme: row.medical_aid_scheme, medicalAidNumber: row.medical_aid_number,
+      medicalAidPlan: row.medical_aid_plan, medicalAidEmergencyLine: row.medical_aid_emergency_line,
+      gpName: row.gp_name, gpPhone: row.gp_phone,
+      hospitalPreference: row.hospital_preference,
+      paramedicNotes: row.paramedic_notes,
+      updatedAt: row.updated_at,
     });
+  });
 
-    // Find-or-create BoL for advisor + client label
-    app.get("/api/advisors/:advisorId/bol", async (req, res) => {
-      const advisorId = Number(req.params.advisorId);
-      if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
-      const label = String(req.query.label || "").trim();
-      if (!label) return res.status(400).json({ message: "label required" });
-      const existing = await bolDb.execute<any>(bolSql`
-        SELECT * FROM book_of_life WHERE advisor_id = ${advisorId} AND client_name = ${label} LIMIT 1
-      `);
-      if (existing.rows?.[0]) return res.json(existing.rows[0]);
-      const { randomBytes } = await import("crypto");
-      const token = randomBytes(16).toString("hex");
-      const created = await bolDb.execute<any>(bolSql`
-        INSERT INTO book_of_life (advisor_id, bol_token, client_name)
-        VALUES (${advisorId}, ${token}, ${label}) RETURNING *
-      `);
-      res.status(201).json(created.rows[0]);
-    });
+  // Find-or-create BoL for advisor + client label
+  app.get("/api/advisors/:advisorId/bol", async (req, res) => {
+    const { db: bolDb } = await import("./db");
+    const { sql: bolSql } = await import("drizzle-orm");
+    const advisorId = Number(req.params.advisorId);
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const label = String(req.query.label || "").trim();
+    if (!label) return res.status(400).json({ message: "label required" });
+    const existing = await bolDb.execute<any>(bolSql`
+      SELECT * FROM book_of_life WHERE advisor_id = ${advisorId} AND client_name = ${label} LIMIT 1
+    `);
+    if (existing.rows?.[0]) return res.json(existing.rows[0]);
+    const { randomBytes } = await import("crypto");
+    const token = randomBytes(16).toString("hex");
+    const created = await bolDb.execute<any>(bolSql`
+      INSERT INTO book_of_life (advisor_id, bol_token, client_name)
+      VALUES (${advisorId}, ${token}, ${label}) RETURNING *
+    `);
+    res.status(201).json(created.rows[0]);
+  });
 
-    // Upsert BoL fields — advisor-auth, fully parameterised
-    app.put("/api/advisors/:advisorId/bol/:token", async (req, res) => {
-      const advisorId = Number(req.params.advisorId);
-      if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
-      const token = routeParam(req.params.token).replace(/[^a-f0-9]/gi, "");
-      if (token.length !== 32) return res.status(400).json({ message: "Invalid token" });
-      const b = req.body || {};
-      const s = (v: any) => (v !== undefined && v !== null ? String(v) : null);
-      const updated = await bolDb.execute<any>(bolSql`
-        UPDATE book_of_life SET
-          blood_type               = COALESCE(${s(b.bloodType)},               blood_type),
-          allergies                = COALESCE(${s(b.allergies)},                allergies),
-          chronic_medications      = COALESCE(${s(b.chronicMedications)},       chronic_medications),
-          medical_conditions       = COALESCE(${s(b.medicalConditions)},        medical_conditions),
-          ec1_name                 = COALESCE(${s(b.ec1Name)},                  ec1_name),
-          ec1_relation             = COALESCE(${s(b.ec1Relation)},              ec1_relation),
-          ec1_phone                = COALESCE(${s(b.ec1Phone)},                 ec1_phone),
-          ec2_name                 = COALESCE(${s(b.ec2Name)},                  ec2_name),
-          ec2_relation             = COALESCE(${s(b.ec2Relation)},              ec2_relation),
-          ec2_phone                = COALESCE(${s(b.ec2Phone)},                 ec2_phone),
-          medical_aid_scheme       = COALESCE(${s(b.medicalAidScheme)},         medical_aid_scheme),
-          medical_aid_number       = COALESCE(${s(b.medicalAidNumber)},         medical_aid_number),
-          medical_aid_plan         = COALESCE(${s(b.medicalAidPlan)},           medical_aid_plan),
-          medical_aid_emergency_line = COALESCE(${s(b.medicalAidEmergencyLine)},medical_aid_emergency_line),
-          gp_name                  = COALESCE(${s(b.gpName)},                   gp_name),
-          gp_phone                 = COALESCE(${s(b.gpPhone)},                  gp_phone),
-          hospital_preference      = COALESCE(${s(b.hospitalPreference)},       hospital_preference),
-          life_insurer             = COALESCE(${s(b.lifeInsurer)},              life_insurer),
-          life_policy_number       = COALESCE(${s(b.lifePolicyNumber)},         life_policy_number),
-          life_claims_line         = COALESCE(${s(b.lifeClaimsLine)},           life_claims_line),
-          has_will                 = COALESCE(${b.hasWill !== undefined ? !!b.hasWill : null}, has_will),
-          will_attorney            = COALESCE(${s(b.willAttorney)},             will_attorney),
-          nok_name                 = COALESCE(${s(b.nokName)},                  nok_name),
-          nok_relation             = COALESCE(${s(b.nokRelation)},              nok_relation),
-          nok_phone                = COALESCE(${s(b.nokPhone)},                 nok_phone),
-          paramedic_notes          = COALESCE(${s(b.paramedicNotes)},           paramedic_notes),
-          advisor_notes            = COALESCE(${s(b.advisorNotes)},             advisor_notes),
-          updated_at               = now()
-        WHERE bol_token = ${token} AND advisor_id = ${advisorId}
-        RETURNING *
-      `);
-      if (!updated.rows?.[0]) return res.status(404).json({ message: "Not found" });
-      res.json(updated.rows[0]);
-    });
-  }
+  // Upsert BoL fields — advisor-auth, fully parameterised
+  app.put("/api/advisors/:advisorId/bol/:token", async (req, res) => {
+    const { db: bolDb } = await import("./db");
+    const { sql: bolSql } = await import("drizzle-orm");
+    const advisorId = Number(req.params.advisorId);
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const token = routeParam(req.params.token).replace(/[^a-f0-9]/gi, "");
+    if (token.length !== 32) return res.status(400).json({ message: "Invalid token" });
+    const b = req.body || {};
+    const s = (v: any) => (v !== undefined && v !== null ? String(v) : null);
+    const updated = await bolDb.execute<any>(bolSql`
+      UPDATE book_of_life SET
+        blood_type               = COALESCE(${s(b.bloodType)},               blood_type),
+        allergies                = COALESCE(${s(b.allergies)},                allergies),
+        chronic_medications      = COALESCE(${s(b.chronicMedications)},       chronic_medications),
+        medical_conditions       = COALESCE(${s(b.medicalConditions)},        medical_conditions),
+        ec1_name                 = COALESCE(${s(b.ec1Name)},                  ec1_name),
+        ec1_relation             = COALESCE(${s(b.ec1Relation)},              ec1_relation),
+        ec1_phone                = COALESCE(${s(b.ec1Phone)},                 ec1_phone),
+        ec2_name                 = COALESCE(${s(b.ec2Name)},                  ec2_name),
+        ec2_relation             = COALESCE(${s(b.ec2Relation)},              ec2_relation),
+        ec2_phone                = COALESCE(${s(b.ec2Phone)},                 ec2_phone),
+        medical_aid_scheme       = COALESCE(${s(b.medicalAidScheme)},         medical_aid_scheme),
+        medical_aid_number       = COALESCE(${s(b.medicalAidNumber)},         medical_aid_number),
+        medical_aid_plan         = COALESCE(${s(b.medicalAidPlan)},           medical_aid_plan),
+        medical_aid_emergency_line = COALESCE(${s(b.medicalAidEmergencyLine)},medical_aid_emergency_line),
+        gp_name                  = COALESCE(${s(b.gpName)},                   gp_name),
+        gp_phone                 = COALESCE(${s(b.gpPhone)},                  gp_phone),
+        hospital_preference      = COALESCE(${s(b.hospitalPreference)},       hospital_preference),
+        life_insurer             = COALESCE(${s(b.lifeInsurer)},              life_insurer),
+        life_policy_number       = COALESCE(${s(b.lifePolicyNumber)},         life_policy_number),
+        life_claims_line         = COALESCE(${s(b.lifeClaimsLine)},           life_claims_line),
+        has_will                 = COALESCE(${b.hasWill !== undefined ? !!b.hasWill : null}, has_will),
+        will_attorney            = COALESCE(${s(b.willAttorney)},             will_attorney),
+        nok_name                 = COALESCE(${s(b.nokName)},                  nok_name),
+        nok_relation             = COALESCE(${s(b.nokRelation)},              nok_relation),
+        nok_phone                = COALESCE(${s(b.nokPhone)},                 nok_phone),
+        paramedic_notes          = COALESCE(${s(b.paramedicNotes)},           paramedic_notes),
+        advisor_notes            = COALESCE(${s(b.advisorNotes)},             advisor_notes),
+        updated_at               = now()
+      WHERE bol_token = ${token} AND advisor_id = ${advisorId}
+      RETURNING *
+    `);
+    if (!updated.rows?.[0]) return res.status(404).json({ message: "Not found" });
+    res.json(updated.rows[0]);
+  });
 
   return httpServer;
 }
