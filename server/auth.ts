@@ -78,15 +78,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
-  // Task #25 — advisor sessions reach /api/clients* (their own client data
-  // and documents). Handlers enforce per-advisor isolation by passing
-  // session.advisorId into every storage call. Admin sessions already
-  // passed the authenticated check above.
-  if (
-    typeof (req.session as any)?.advisorId === "number" &&
-    req.path.startsWith("/api/clients")
-  ) {
-    return next();
+  // Task #25 — advisor sessions reach /api/clients*. Accept both the canonical
+  // session.advisorId form AND the legacy advisor_${slug} form so that old
+  // session cookies continue to work without forcing a re-login.
+  if (req.path.startsWith("/api/clients")) {
+    const s = req.session as any;
+    const hasAdvisorId = typeof s?.advisorId === "number";
+    const hasSlugKey = Object.keys(s || {}).some(k => k.startsWith("advisor_") && s[k] === true);
+    if (hasAdvisorId || hasSlugKey) return next();
   }
 
   // Task #26 — advisor sessions reach /api/billing/* (checkout, status, cancel,

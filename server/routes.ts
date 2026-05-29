@@ -2250,6 +2250,24 @@ export async function registerRoutes(
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
+  // Async variant — also handles old-style advisor_${slug} sessions.
+  async function advisorIdFromSession(req: import("express").Request): Promise<number | null> {
+    const role = sessionRole(req);
+    if (role === "admin") {
+      const raw = (req.query.advisorId ?? req.body?.advisorId);
+      const n = Number(raw);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    }
+    if (role === "advisor") return (req.session as any).advisorId as number;
+    const s = req.session as any;
+    const slugKey = Object.keys(s || {}).find(k => k.startsWith("advisor_") && s[k] === true);
+    if (!slugKey) return null;
+    const slug = slugKey.replace("advisor_", "");
+    const advisor = await storage.getAdvisorBySlug(slug);
+    if (advisor) { s.advisorId = advisor.id; req.session.save(() => {}); return advisor.id; }
+    return null;
+  }
+
   function auditCtx(req: import("express").Request) {
     return {
       actorRole: sessionRole(req) || "anon",
@@ -2261,7 +2279,7 @@ export async function registerRoutes(
 
   // List clients for the calling advisor (admin must scope with ?advisorId=).
   app.get("/api/clients", async (req, res) => {
-    const advisorId = effectiveAdvisorId(req);
+    const advisorId = await advisorIdFromSession(req);
     if (!advisorId) return res.status(400).json({ message: "advisorId required" });
     if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
     let rows;
@@ -2278,7 +2296,7 @@ export async function registerRoutes(
   });
 
   app.get("/api/clients/:id", async (req, res) => {
-    const advisorId = effectiveAdvisorId(req);
+    const advisorId = await advisorIdFromSession(req);
     if (!advisorId) return res.status(400).json({ message: "advisorId required" });
     if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
     const id = Number(req.params.id);
@@ -2298,7 +2316,7 @@ export async function registerRoutes(
     if (!isEncryptionConfigured()) {
       return res.status(503).json({ message: "PII encryption key not configured. See server logs." });
     }
-    const advisorId = effectiveAdvisorId(req);
+    const advisorId = await advisorIdFromSession(req);
     if (!advisorId) return res.status(400).json({ message: "advisorId required" });
     if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
     const schema = z.object({
@@ -2333,7 +2351,7 @@ export async function registerRoutes(
     if (!isEncryptionConfigured()) {
       return res.status(503).json({ message: "PII encryption key not configured. See server logs." });
     }
-    const advisorId = effectiveAdvisorId(req);
+    const advisorId = await advisorIdFromSession(req);
     if (!advisorId) return res.status(400).json({ message: "advisorId required" });
     if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
     const id = Number(req.params.id);
