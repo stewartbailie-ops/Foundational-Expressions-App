@@ -8707,11 +8707,12 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "billing" | "settings">(() => {
-    // Task #26 — deep-link from trial-expiry email and Paystack post-checkout redirect.
+  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">(() => {
+    // Billing deep-link (?tab=billing) from trial-expiry emails and Paystack
+    // post-checkout redirects now opens Settings (billing lives inside Settings).
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      if (params.get("tab") === "billing") return "billing";
+      if (params.get("tab") === "billing") return "settings";
     }
     return "home";
   });
@@ -8822,10 +8823,9 @@ export default function AdvisorPanel() {
   // Settings moved out of the bottom tab strip — now a cog in the top-right
   // header next to Sign-out. Only Home + Registry remain as primary tabs.
   const tabs = [
-    { key: "home" as const, label: "Home", icon: Home },
-    { key: "registry" as const, label: "Registry", icon: Inbox },
-    { key: "clients" as const, label: "My Clients", icon: Users },
-    { key: "billing" as const, label: "Billing", icon: CreditCard },
+    { key: "home" as const,     label: "Home",       icon: Home  },
+    { key: "registry" as const, label: "Registry",   icon: Inbox },
+    { key: "clients" as const,  label: "My Clients", icon: Users },
   ];
 
   return (
@@ -8909,8 +8909,14 @@ export default function AdvisorPanel() {
           {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
           {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} />}
-          {activeTab === "billing" && <BillingTab advisor={advisor} tc={tc} />}
-          {activeTab === "settings" && <SettingsTab advisor={advisor} slug={slug} tc={tc} />}
+          {activeTab === "settings" && (
+            <>
+              <BillingTab advisor={advisor} tc={tc} />
+              <div className="mt-6">
+                <SettingsTab advisor={advisor} slug={slug} tc={tc} />
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
