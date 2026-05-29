@@ -7385,25 +7385,64 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
   );
 }
 
-function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+type RealClient = { id: number; name: string; email: string | null; phone: string | null; createdAt: string; sourceLeadId: number | null; };
+
+function clientInitials(name: string) {
+  const parts = name.trim().split(/\s+/);
+  return parts.length >= 2 ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase() : name.slice(0, 2).toUpperCase();
+}
+
+function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors>; leads: Email[] }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [activeSection, setActiveSection] = useState<"personal" | "financial" | "book" | "astute" | "history">("personal");
-  // Local-only field state — placeholder, nothing persists.
   const [draft, setDraft] = useState<Record<string, string>>({});
+  const [promoteOpen, setPromoteOpen] = useState(false);
   const setField = (k: string, v: string) => setDraft(prev => ({ ...prev, [k]: v }));
 
-  const filtered = STUB_CLIENTS.filter(c =>
-    !search.trim() || c.name.toLowerCase().includes(search.toLowerCase()) || c.email.toLowerCase().includes(search.toLowerCase())
+  const { data: clients = [], isLoading: clientsLoading } = useQuery<RealClient[]>({
+    queryKey: ["/api/clients"],
+    queryFn: async () => { const r = await apiRequest("GET", "/api/clients"); return r.ok ? r.json() : []; },
+  });
+
+  const promoteMutation = useMutation({
+    mutationFn: async (lead: Email) => {
+      const r = await apiRequest("POST", "/api/clients", {
+        name: lead.senderName || lead.senderEmail || "Unknown",
+        email: lead.senderEmail || null,
+        phone: (lead as any).clientPhone || null,
+        sourceLeadId: lead.id,
+        consentText: "Promoted from lead registry by advisor",
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.message || "Promote failed"); }
+      return r.json() as Promise<RealClient>;
+    },
+    onSuccess: (c) => {
+      qc.invalidateQueries({ queryKey: ["/api/clients"] });
+      setPromoteOpen(false);
+      setSelectedId(c.id);
+      toast({ title: "Lead promoted!", description: `${c.name} added to your clients.` });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  // Leads not yet promoted
+  const promotedLeadIds = new Set(clients.map(c => c.sourceLeadId).filter(Boolean));
+  const unpromoted = leads.filter(l => !promotedLeadIds.has(l.id));
+
+  const filtered = clients.filter(c =>
+    !search.trim() || c.name.toLowerCase().includes(search.toLowerCase()) || (c.email || "").toLowerCase().includes(search.toLowerCase())
   );
-  const selected = STUB_CLIENTS.find(c => c.id === selectedId) || null;
+  const selected = clients.find(c => c.id === selectedId) || null;
 
   const showPlaceholder = () => alert("Demo only — saving will be wired in the next build session.");
 
   if (selected) {
     return (
       <div className="space-y-4" data-testid="view-client-detail">
-        {/* Top bar — back + name + status */}
+        {/* Top bar */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => { setSelectedId(null); setActiveSection("personal"); setDraft({}); }}
@@ -7418,17 +7457,16 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
             className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
             style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
           >
-            {selected.initials}
+            {clientInitials(selected.name)}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{selected.name}</div>
-            <div className="text-[11px]" style={{ color: tc.mutedText }}>Client since — / {selected.city}</div>
+            <div className="text-[11px]" style={{ color: tc.mutedText }}>
+              Client since {selected.createdAt ? new Date(selected.createdAt).toLocaleDateString("en-ZA", { month: "short", year: "numeric" }) : "—"}
+            </div>
           </div>
-          <span
-            className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-semibold"
-            style={{ backgroundColor: selected.status === "active" ? "#22c55e22" : "#f59e0b22", color: selected.status === "active" ? "#16a34a" : "#d97706" }}
-          >
-            {selected.status}
+          <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-full font-semibold" style={{ backgroundColor: "#22c55e22", color: "#16a34a" }}>
+            Active
           </span>
         </div>
 
@@ -7711,14 +7749,58 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
   // ── List view ──
   return (
     <div className="space-y-4" data-testid="view-client-list">
+      {/* Promote modal */}
+      {promoteOpen && createPortal(
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.6)" }}>
+          <div className="w-full max-w-lg rounded-2xl overflow-hidden" style={{ backgroundColor: tc.bgColor }}>
+            <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${tc.borderColor}` }}>
+              <div className="flex items-center gap-2">
+                <UserPlus className="h-4 w-4" style={{ color: tc.accentColor }} />
+                <span className="text-sm font-semibold" style={{ color: tc.textColor }}>Promote Lead to Client</span>
+              </div>
+              <button onClick={() => setPromoteOpen(false)} className="p-1 rounded" style={{ color: tc.mutedText }}>
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="p-4 max-h-80 overflow-y-auto space-y-2">
+              {unpromoted.length === 0 ? (
+                <div className="text-center py-6 text-sm" style={{ color: tc.mutedText }}>
+                  All leads have already been promoted, or you have no leads yet.
+                </div>
+              ) : unpromoted.map(lead => (
+                <div key={lead.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+                  <div className="h-9 w-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor }}>
+                    {clientInitials(lead.senderName || lead.senderEmail || "?")}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-semibold truncate" style={{ color: tc.textColor }}>{lead.senderName || lead.senderEmail}</div>
+                    <div className="text-[10px] truncate" style={{ color: tc.mutedText }}>{lead.senderEmail}{(lead as any).clientPhone ? ` · ${(lead as any).clientPhone}` : ""}</div>
+                  </div>
+                  <button
+                    onClick={() => promoteMutation.mutate(lead)}
+                    disabled={promoteMutation.isPending}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold shrink-0"
+                    style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                  >
+                    {promoteMutation.isPending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserPlus className="h-3 w-3" />}
+                    Promote
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* Header + actions */}
       <div className="flex items-center gap-2">
         <div className="min-w-0 flex-1">
           <div className="text-base font-semibold" style={{ color: tc.textColor }}>My Clients</div>
-          <div className="text-[11px]" style={{ color: tc.mutedText }}>Personal book — promote a lead once they sign on.</div>
+          <div className="text-[11px]" style={{ color: tc.mutedText }}>Promote a lead once they sign on to add them here.</div>
         </div>
         <button
-          onClick={showPlaceholder}
+          onClick={() => setPromoteOpen(true)}
           className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold shrink-0"
           style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
           data-testid="button-promote-lead"
@@ -7729,42 +7811,40 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
       </div>
 
       {/* Snapshot tiles */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {[
-          { label: "Active",  value: STUB_CLIENTS.filter(c => c.status === "active").length, accent: "#16a34a" },
-          { label: "Leads",   value: STUB_CLIENTS.filter(c => c.status === "lead").length,   accent: "#3B82F6" },
-          { label: "Lapsed",  value: STUB_CLIENTS.filter(c => c.status === "lapsed").length, accent: "#94a3b8" },
+          { label: "Clients",       value: clients.length,     accent: "#16a34a" },
+          { label: "Ready to promote", value: unpromoted.length, accent: "#3B82F6" },
         ].map(s => (
           <div key={s.label} className="rounded-xl p-3 text-center" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="text-xl font-bold" style={{ color: s.accent }}>{s.value}</div>
+            <div className="text-xl font-bold" style={{ color: s.accent }}>{clientsLoading ? "—" : s.value}</div>
             <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search clients by name or email…"
-          className="w-full px-3 py-2 rounded-lg text-xs outline-none"
-          style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
-          data-testid="input-client-search"
-        />
-      </div>
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        placeholder="Search clients by name or email…"
+        className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+        style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+        data-testid="input-client-search"
+      />
 
       {/* List or empty state */}
-      {filtered.length === 0 ? (
-        <div
-          className="rounded-xl p-6 text-center space-y-2"
-          style={{ backgroundColor: tc.cardBg, border: `1px dashed ${tc.borderColor}` }}
-          data-testid="empty-clients"
-        >
+      {clientsLoading ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} /></div>
+      ) : filtered.length === 0 ? (
+        <div className="rounded-xl p-6 text-center space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px dashed ${tc.borderColor}` }} data-testid="empty-clients">
           <Users className="h-8 w-8 mx-auto" style={{ color: tc.mutedText }} />
           <div className="text-sm font-semibold" style={{ color: tc.textColor }}>No clients yet</div>
-          <div className="text-[11px]" style={{ color: tc.mutedText }}>Promote a lead from your Registry to start your book.</div>
+          <div className="text-[11px]" style={{ color: tc.mutedText }}>Use "Promote Lead" to move a lead from your Registry into your client book.</div>
+          <button onClick={() => setPromoteOpen(true)} className="mx-auto flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold" style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}>
+            <UserPlus className="h-3.5 w-3.5" /> Promote your first lead
+          </button>
         </div>
       ) : (
         <div className="space-y-2">
@@ -7776,45 +7856,24 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
               style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
               data-testid={`button-client-${c.id}`}
             >
-              <div
-                className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
-                style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}
-              >
-                {c.initials}
+              <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}>
+                {clientInitials(c.name)}
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{c.name}</div>
-                <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{c.email} · {c.city}</div>
+                <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{c.email || "No email"}{c.phone ? ` · ${c.phone}` : ""}</div>
               </div>
               <div className="text-right shrink-0">
-                <span
-                  className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold"
-                  style={{
-                    backgroundColor: c.status === "active" ? "#22c55e22" : c.status === "lead" ? "#3B82F622" : "#94a3b822",
-                    color: c.status === "active" ? "#16a34a" : c.status === "lead" ? "#2563eb" : "#64748b",
-                  }}
-                >
-                  {c.status}
-                </span>
-                <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>{c.lastContact}</div>
+                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: "#22c55e22", color: "#16a34a" }}>Active</span>
+                <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>
+                  {c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : "—"}
+                </div>
               </div>
               <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
             </button>
           ))}
         </div>
       )}
-
-      {/* Footer note — make it loud that this is a placeholder */}
-      <div
-        className="rounded-xl p-3 flex items-start gap-2"
-        style={{ backgroundColor: "#f59e0b14", border: "1px solid #f59e0b50" }}
-        data-testid="placeholder-banner"
-      >
-        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" style={{ color: "#f59e0b" }} />
-        <div className="text-[11px]" style={{ color: tc.textColor }}>
-          <strong>Demo layout.</strong> Sample clients and uploads do not save yet — wiring the database, encrypted storage and audit log is the next build session.
-        </div>
-      </div>
     </div>
   );
 }
@@ -8908,7 +8967,7 @@ export default function AdvisorPanel() {
         <div className="p-5 pb-12">
           {activeTab === "home" && <HomeTab advisor={advisor} tc={tc} />}
           {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
-          {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} />}
+          {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} leads={panelLeads} />}
           {activeTab === "settings" && (
             <>
               <BillingTab advisor={advisor} tc={tc} />
