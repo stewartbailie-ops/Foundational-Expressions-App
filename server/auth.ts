@@ -26,6 +26,10 @@ const PUBLIC_API_ROUTES = [
   "/api/forex/",
   "/api/csp-report",
   "/api/manifest",
+  // Book of Life public emergency endpoint — intentionally unauthenticated
+  // so emergency services can access it with no session (the token acts as
+  // the access credential via CSPRNG unguessability).
+  "/api/bol/",
   // Task #26 — Paystack webhook. No session; signature verified in handler.
   "/api/webhook/paystack",
   "/uploads/",
