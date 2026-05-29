@@ -23,6 +23,7 @@ const EditAdvisor = lazy(() => import("@/pages/EditAdvisor"));
 // Less-trafficked public pages
 const AdvisorPanel = lazy(() => import("@/pages/AdvisorPanel"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
+const BookOfLifePage = lazy(() => import("@/pages/BookOfLifePage"));
 
 function PageFallback() {
   return (
@@ -73,6 +74,7 @@ function Router() {
   return (
     <Suspense fallback={<PageFallback />}>
     <Switch>
+      <Route path="/bol/:token" component={BookOfLifePage} />
       <Route path="/privacy-policy">{() => <LegalPage section="privacy" />}</Route>
       <Route path="/terms">{() => <LegalPage section="terms" />}</Route>
       <Route path="/advisor/:slug" component={AdvisorPanel} />

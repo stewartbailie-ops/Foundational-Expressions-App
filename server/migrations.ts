@@ -281,4 +281,53 @@ export async function runStartupMigrations() {
     `CREATE INDEX IF NOT EXISTS "IDX_client_documents_client" ON "client_documents" ("client_id");`
   ));
   console.log("[migrations] PII tables verified");
+
+  // Book of Life — advisor-managed emergency profile per client.
+  // Decoupled from the clients table so advisors can create a BoL for any
+  // person without a formal client record. bol_token is a CSPRNG hex string
+  // used as the unguessable public URL slug (/bol/:token).
+  await db.execute(sql.raw(`
+    CREATE TABLE IF NOT EXISTS "book_of_life" (
+      "id" serial PRIMARY KEY,
+      "advisor_id" integer NOT NULL,
+      "bol_token" text UNIQUE NOT NULL,
+      "client_name" text NOT NULL,
+      "blood_type" text,
+      "allergies" text,
+      "chronic_medications" text,
+      "medical_conditions" text,
+      "ec1_name" text,
+      "ec1_relation" text,
+      "ec1_phone" text,
+      "ec2_name" text,
+      "ec2_relation" text,
+      "ec2_phone" text,
+      "medical_aid_scheme" text,
+      "medical_aid_number" text,
+      "medical_aid_plan" text,
+      "medical_aid_emergency_line" text,
+      "gp_name" text,
+      "gp_phone" text,
+      "hospital_preference" text,
+      "life_insurer" text,
+      "life_policy_number" text,
+      "life_claims_line" text,
+      "has_will" boolean DEFAULT false,
+      "will_attorney" text,
+      "nok_name" text,
+      "nok_relation" text,
+      "nok_phone" text,
+      "paramedic_notes" text,
+      "advisor_notes" text,
+      "created_at" timestamp DEFAULT now() NOT NULL,
+      "updated_at" timestamp DEFAULT now() NOT NULL
+    );
+  `));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_bol_advisor" ON "book_of_life" ("advisor_id");`
+  ));
+  await db.execute(sql.raw(
+    `CREATE INDEX IF NOT EXISTS "IDX_bol_token" ON "book_of_life" ("bol_token");`
+  ));
+  console.log("[migrations] book_of_life table verified");
 }

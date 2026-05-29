@@ -38,6 +38,7 @@ import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { QRCodeSVG } from "qrcode.react";
 
 type EmailRow = Email & { advisorName?: string };
 
@@ -7039,17 +7040,350 @@ const STUB_CLIENTS: StubClient[] = [
   { id: "c-003", name: "Pieter van Wyk", initials: "PV", status: "lead",   email: "pieter.vw@example.com",  phone: "+27 84 207 9911", lastContact: "Yesterday",    age: 51, city: "Stellenbosch" },
 ];
 
-const BOOK_OF_LIFE_CATEGORIES = [
-  { key: "will",        label: "Latest Will & Testament", hint: "Signed will, executor, beneficiaries"        },
-  { key: "medical",     label: "Medical Aid Details",     hint: "Scheme, plan, dependants"                    },
-  { key: "short-term",  label: "Short Term Insurance",    hint: "Vehicle, household, all-risk policies"       },
-  { key: "long-term",   label: "Long Term Insurance",     hint: "Endowments, tax-free savings"                },
-  { key: "life",        label: "Life Cover",              hint: "Beneficiaries, sum assured, premiums"        },
-  { key: "risk",        label: "Risk Cover",              hint: "Disability, dread disease, income protection"},
-  { key: "corporate",   label: "Corporate Benefits",      hint: "Group risk, pension/provident, GMA"          },
-  { key: "investments", label: "Investments",             hint: "Unit trusts, RAs, share portfolios"          },
-  { key: "savings",     label: "Savings Accounts",        hint: "Cash, money market, fixed deposits"          },
-];
+type BolRow = {
+  bol_token: string;
+  blood_type?: string; allergies?: string; chronic_medications?: string; medical_conditions?: string;
+  ec1_name?: string; ec1_relation?: string; ec1_phone?: string;
+  ec2_name?: string; ec2_relation?: string; ec2_phone?: string;
+  medical_aid_scheme?: string; medical_aid_number?: string; medical_aid_plan?: string; medical_aid_emergency_line?: string;
+  gp_name?: string; gp_phone?: string; hospital_preference?: string;
+  life_insurer?: string; life_policy_number?: string; life_claims_line?: string;
+  has_will?: boolean; will_attorney?: string;
+  nok_name?: string; nok_relation?: string; nok_phone?: string;
+  paramedic_notes?: string; advisor_notes?: string;
+};
+
+function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; clientName: string; tc: ReturnType<typeof getThemeColors> }) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const bolKey = [`/api/advisors/${advisorId}/bol?label=${encodeURIComponent(clientName)}`];
+
+  const { data: bol, isLoading } = useQuery<BolRow>({
+    queryKey: bolKey,
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/advisors/${advisorId}/bol?label=${encodeURIComponent(clientName)}`);
+      return r.json();
+    },
+    retry: false,
+  });
+
+  const [f, setF] = useState<Partial<BolRow>>({});
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [nfcOpen, setNfcOpen] = useState(false);
+
+  useEffect(() => { if (bol) setF(bol); }, [bol]);
+
+  const bolUrl = bol ? `${window.location.origin}/bol/${bol.bol_token}` : "";
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!bol) return;
+      const payload = {
+        bloodType: f.blood_type, allergies: f.allergies, chronicMedications: f.chronic_medications,
+        medicalConditions: f.medical_conditions,
+        ec1Name: f.ec1_name, ec1Relation: f.ec1_relation, ec1Phone: f.ec1_phone,
+        ec2Name: f.ec2_name, ec2Relation: f.ec2_relation, ec2Phone: f.ec2_phone,
+        medicalAidScheme: f.medical_aid_scheme, medicalAidNumber: f.medical_aid_number,
+        medicalAidPlan: f.medical_aid_plan, medicalAidEmergencyLine: f.medical_aid_emergency_line,
+        gpName: f.gp_name, gpPhone: f.gp_phone, hospitalPreference: f.hospital_preference,
+        lifeInsurer: f.life_insurer, lifePolicyNumber: f.life_policy_number, lifeClaimsLine: f.life_claims_line,
+        hasWill: f.has_will, willAttorney: f.will_attorney,
+        nokName: f.nok_name, nokRelation: f.nok_relation, nokPhone: f.nok_phone,
+        paramedicNotes: f.paramedic_notes, advisorNotes: f.advisor_notes,
+      };
+      const r = await apiRequest("PUT", `/api/advisors/${advisorId}/bol/${bol.bol_token}`, payload);
+      if (!r.ok) throw new Error("Save failed");
+      return r.json();
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: bolKey }); setSaved(true); setTimeout(() => setSaved(false), 2000); },
+    onError: () => toast({ title: "Error", description: "Could not save Book of Life", variant: "destructive" }),
+  });
+
+  const ff = (key: keyof BolRow) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+    setF(prev => ({ ...prev, [key]: e.target.value }));
+
+  const inputCls = "w-full px-3 py-2 rounded-lg text-xs outline-none";
+  const inputStyle = { backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` };
+  const labelCls = "text-[11px] font-medium block mb-1";
+
+  const SectionHead = ({ label, color = tc.accentColor }: { label: string; color?: string }) => (
+    <div className="flex items-center gap-2 pt-2">
+      <div className="h-px flex-1" style={{ backgroundColor: tc.borderColor }} />
+      <span className="text-[10px] font-bold uppercase tracking-widest px-2" style={{ color }}>{label}</span>
+      <div className="h-px flex-1" style={{ backgroundColor: tc.borderColor }} />
+    </div>
+  );
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center py-8">
+      <Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} />
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* QR + NFC distribution card */}
+      {bol && (
+        <div className="rounded-xl overflow-hidden" style={{ border: `2px solid #dc2626` }}>
+          <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#dc262618" }}>
+            <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#dc2626" }}>Book of Life — Emergency Card</span>
+          </div>
+          <div className="p-4 space-y-4" style={{ backgroundColor: tc.cardBg }}>
+            <div className="flex gap-4 items-start">
+              {/* QR code */}
+              <div className="rounded-xl p-2 shrink-0" style={{ backgroundColor: "#ffffff", border: `1px solid ${tc.borderColor}` }}>
+                <QRCodeSVG value={bolUrl} size={90} bgColor="#ffffff" fgColor="#0f172a" />
+              </div>
+              <div className="flex-1 min-w-0 space-y-2">
+                <div className="text-xs font-semibold" style={{ color: tc.textColor }}>Emergency URL</div>
+                <div className="text-[10px] break-all px-2 py-1.5 rounded-lg" style={{ backgroundColor: tc.inputBg, color: tc.mutedText, border: `1px solid ${tc.borderColor}` }}>{bolUrl}</div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(bolUrl); setCopied(true); setTimeout(() => setCopied(false), 2000); }}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                  >
+                    {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    {copied ? "Copied!" : "Copy URL"}
+                  </button>
+                  <a
+                    href={bolUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+                  >
+                    <ExternalLink className="h-3 w-3" /> Preview
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* NFC Tag distribution */}
+            <button
+              onClick={() => setNfcOpen(v => !v)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold"
+              style={{ backgroundColor: "#0f172a", color: "#ffffff", border: "1px solid #1e293b" }}
+            >
+              <div className="flex items-center gap-2">
+                <Zap className="h-3.5 w-3.5 text-yellow-400" />
+                <span>NFC Tag — One tap in any emergency</span>
+              </div>
+              {nfcOpen ? <ChevronUp className="h-3.5 w-3.5 text-white/50" /> : <ChevronDown className="h-3.5 w-3.5 text-white/50" />}
+            </button>
+
+            {nfcOpen && (
+              <div className="rounded-xl p-3 space-y-3" style={{ backgroundColor: "#0f172a", border: "1px solid #1e293b" }}>
+                <p className="text-[11px] text-white/60 leading-relaxed">
+                  Program any NFC sticker with this URL. Stick it in the client's wallet, on their phone case, car cubbyhole, or fridge. Emergency services tap their phone — the full emergency profile opens instantly. When you update the BoL, the tag is automatically current. No new tag needed, ever.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  <a
+                    href="https://play.google.com/store/apps/details?id=com.wakdev.wdnfc"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: "#1e293b", color: "#ffffff" }}
+                  >
+                    <div className="h-6 w-6 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: "#22c55e" }}>
+                      <Zap className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white text-[11px] font-semibold">NFC Tools — Free app</div>
+                      <div className="text-white/40 text-[10px]">Write the URL to any NFC sticker</div>
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-white/30 ml-auto shrink-0" />
+                  </a>
+                  <a
+                    href="https://www.takealot.com/catalogsearch/result/?q=nfc+sticker+tag"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: "#1e293b", color: "#ffffff" }}
+                  >
+                    <div className="h-6 w-6 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: "#3b82f6" }}>
+                      <Share2 className="h-3.5 w-3.5 text-white" />
+                    </div>
+                    <div>
+                      <div className="text-white text-[11px] font-semibold">Order NFC Stickers — Takealot</div>
+                      <div className="text-white/40 text-[10px]">~R10 each · wallet, phone case, fridge, car</div>
+                    </div>
+                    <ExternalLink className="h-3 w-3 text-white/30 ml-auto shrink-0" />
+                  </a>
+                </div>
+                <div className="rounded-lg px-3 py-2" style={{ backgroundColor: "#0f172a", border: "1px solid #334155" }}>
+                  <div className="text-[10px] text-yellow-400 font-semibold mb-1">How to program your NFC tag:</div>
+                  <ol className="text-[10px] text-white/50 space-y-0.5 list-decimal list-inside">
+                    <li>Install NFC Tools (free) on your phone</li>
+                    <li>Tap "Write" → "Add a record" → "URL/URI"</li>
+                    <li>Paste the BoL URL above</li>
+                    <li>Hold your phone to the NFC sticker</li>
+                    <li>Done — give the sticker to your client</li>
+                  </ol>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Emergency profile form */}
+      <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+        <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+          <Heart className="h-4 w-4" style={{ color: "#dc2626" }} />
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Emergency Profile</div>
+          <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#dc262618", color: "#dc2626" }}>Public</span>
+        </div>
+
+        <SectionHead label="Critical Medical" color="#dc2626" />
+        {[
+          { k: "blood_type" as const, label: "Blood Type", placeholder: "e.g. O+" },
+          { k: "allergies" as const, label: "Allergies", placeholder: "e.g. Penicillin, peanuts — None if none" },
+          { k: "chronic_medications" as const, label: "Chronic Medications", placeholder: "e.g. Metformin 500mg, Atorvastatin 20mg" },
+          { k: "medical_conditions" as const, label: "Medical Conditions", placeholder: "e.g. Type 2 Diabetes, Hypertension" },
+        ].map(({ k, label, placeholder }) => (
+          <div key={k}>
+            <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+            <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+          </div>
+        ))}
+
+        <SectionHead label="Emergency Contact 1" color="#2563eb" />
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { k: "ec1_name" as const, label: "Name", placeholder: "Full name" },
+            { k: "ec1_relation" as const, label: "Relationship", placeholder: "e.g. Spouse" },
+          ].map(({ k, label, placeholder }) => (
+            <div key={k}>
+              <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+              <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+        <div>
+          <label className={labelCls} style={{ color: tc.mutedText }}>Phone</label>
+          <input value={f.ec1_phone ?? ""} onChange={ff("ec1_phone")} placeholder="+27 82 …" className={inputCls} style={inputStyle} />
+        </div>
+
+        <SectionHead label="Emergency Contact 2" color="#2563eb" />
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { k: "ec2_name" as const, label: "Name", placeholder: "Full name" },
+            { k: "ec2_relation" as const, label: "Relationship", placeholder: "e.g. Parent" },
+          ].map(({ k, label, placeholder }) => (
+            <div key={k}>
+              <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+              <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+        <div>
+          <label className={labelCls} style={{ color: tc.mutedText }}>Phone</label>
+          <input value={f.ec2_phone ?? ""} onChange={ff("ec2_phone")} placeholder="+27 71 …" className={inputCls} style={inputStyle} />
+        </div>
+
+        <SectionHead label="Medical Aid" color="#059669" />
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { k: "medical_aid_scheme" as const, label: "Scheme", placeholder: "e.g. Discovery" },
+            { k: "medical_aid_plan" as const, label: "Plan", placeholder: "e.g. Comprehensive" },
+            { k: "medical_aid_number" as const, label: "Membership No.", placeholder: "—" },
+            { k: "medical_aid_emergency_line" as const, label: "Emergency Line", placeholder: "e.g. 0860 999 …" },
+          ].map(({ k, label, placeholder }) => (
+            <div key={k}>
+              <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+              <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+
+        <SectionHead label="GP & Hospital" color="#7c3aed" />
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { k: "gp_name" as const, label: "GP Name", placeholder: "Dr …" },
+            { k: "gp_phone" as const, label: "GP Phone", placeholder: "+27 …" },
+          ].map(({ k, label, placeholder }) => (
+            <div key={k}>
+              <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+              <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+        <div>
+          <label className={labelCls} style={{ color: tc.mutedText }}>Preferred Hospital</label>
+          <input value={f.hospital_preference ?? ""} onChange={ff("hospital_preference")} placeholder="e.g. Netcare Milpark" className={inputCls} style={inputStyle} />
+        </div>
+
+        <SectionHead label="Paramedic Notes" color="#d97706" />
+        <textarea
+          value={f.paramedic_notes ?? ""
+          }
+          onChange={ff("paramedic_notes")}
+          placeholder="Any extra info for first responders — e.g. pacemaker, insulin-dependent, prior surgeries"
+          rows={3}
+          className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
+          style={inputStyle}
+        />
+
+        <SectionHead label="Private — Advisor Only" color={tc.mutedText} />
+        <div className="grid grid-cols-2 gap-2">
+          {[
+            { k: "life_insurer" as const, label: "Life Insurer", placeholder: "e.g. Sanlam" },
+            { k: "life_policy_number" as const, label: "Policy No.", placeholder: "—" },
+            { k: "life_claims_line" as const, label: "Claims Line", placeholder: "0860 …" },
+            { k: "nok_name" as const, label: "Next of Kin", placeholder: "Full name" },
+            { k: "nok_relation" as const, label: "Relationship", placeholder: "e.g. Child" },
+            { k: "nok_phone" as const, label: "NOK Phone", placeholder: "+27 …" },
+          ].map(({ k, label, placeholder }) => (
+            <div key={k}>
+              <label className={labelCls} style={{ color: tc.mutedText }}>{label}</label>
+              <input value={f[k] ?? ""} onChange={ff(k)} placeholder={placeholder} className={inputCls} style={inputStyle} />
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 py-1">
+          <input
+            type="checkbox"
+            id="bol-has-will"
+            checked={!!f.has_will}
+            onChange={e => setF(prev => ({ ...prev, has_will: e.target.checked }))}
+            className="h-3.5 w-3.5 rounded"
+          />
+          <label htmlFor="bol-has-will" className="text-xs" style={{ color: tc.textColor }}>Has a will</label>
+        </div>
+        {f.has_will && (
+          <div>
+            <label className={labelCls} style={{ color: tc.mutedText }}>Will Attorney / Executor</label>
+            <input value={f.will_attorney ?? ""} onChange={ff("will_attorney")} placeholder="Attorney name + firm" className={inputCls} style={inputStyle} />
+          </div>
+        )}
+        <div>
+          <label className={labelCls} style={{ color: tc.mutedText }}>Advisor Notes (private)</label>
+          <textarea
+            value={f.advisor_notes ?? ""}
+            onChange={ff("advisor_notes")}
+            placeholder="Internal notes — never shown on the emergency page"
+            rows={2}
+            className="w-full px-3 py-2 rounded-lg text-xs outline-none resize-none"
+            style={inputStyle}
+          />
+        </div>
+
+        <button
+          onClick={() => saveMutation.mutate()}
+          disabled={saveMutation.isPending}
+          className="w-full py-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 mt-2"
+          style={{ backgroundColor: saved ? "#22c55e" : "#dc2626", color: "#ffffff" }}
+        >
+          {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : saved ? <Check className="h-3.5 w-3.5" /> : <Heart className="h-3.5 w-3.5 fill-white" />}
+          {saved ? "Saved!" : "Save Book of Life"}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -7229,38 +7563,7 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
 
         {/* BOOK OF LIFE ─────────────────────────── */}
         {activeSection === "book" && (
-          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
-              <Briefcase className="h-4 w-4" style={{ color: tc.accentColor }} />
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Book of Life</div>
-              <span className="ml-auto text-[10px]" style={{ color: tc.mutedText }}>Policy documents per category</span>
-            </div>
-            <div className="space-y-2">
-              {BOOK_OF_LIFE_CATEGORIES.map(cat => (
-                <div
-                  key={cat.key}
-                  className="rounded-lg p-3 flex items-center gap-3"
-                  style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}
-                  data-testid={`book-category-${cat.key}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold" style={{ color: tc.textColor }}>{cat.label}</div>
-                    <div className="text-[10px]" style={{ color: tc.mutedText }}>{cat.hint}</div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.mutedText }}>0 docs</span>
-                  <button
-                    onClick={showPlaceholder}
-                    className="p-2 rounded-lg shrink-0"
-                    style={{ backgroundColor: tc.accentColor + "22", color: tc.accentColor }}
-                    aria-label={`Upload ${cat.label} document`}
-                    data-testid={`button-book-upload-${cat.key}`}
-                  >
-                    <Upload className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BookOfLifeSection advisorId={advisor.id} clientName={selected.name} tc={tc} />
         )}
 
         {/* DRAW ASTUTE ─────────────────────────── */}
