@@ -1919,6 +1919,13 @@ export async function registerRoutes(
       return res.json({ authenticated: true, isDemo: true });
     }
     const authenticated = !!(req.session as any)?.[`advisor_${req.params.slug}`];
+    // Backfill session.advisorId for sessions established before Task #24 added
+    // this field. The panel calls this endpoint on every load, so old sessions
+    // get upgraded transparently on the next page view.
+    if (authenticated && advisor && typeof (req.session as any).advisorId !== "number") {
+      (req.session as any).advisorId = advisor.id;
+      req.session.save(() => {});
+    }
     res.json({ authenticated });
   });
 
