@@ -7412,13 +7412,14 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
   const setField = (k: string, v: string) => setDraft(prev => ({ ...prev, [k]: v }));
 
   const { data: clients = [], isLoading: clientsLoading } = useQuery<RealClient[]>({
-    queryKey: ["/api/clients"],
-    queryFn: async () => { const r = await apiRequest("GET", "/api/clients"); return r.ok ? r.json() : []; },
+    queryKey: ["/api/clients", advisor.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/clients?advisorId=${advisor.id}`); return r.ok ? r.json() : []; },
   });
 
   const promoteMutation = useMutation({
     mutationFn: async (lead: Email) => {
       const r = await apiRequest("POST", "/api/clients", {
+        advisorId: advisor.id,
         name: lead.senderName || lead.senderEmail || "Unknown",
         email: lead.senderEmail || null,
         phone: (lead as any).clientPhone || null,
@@ -7429,7 +7430,7 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
       return r.json() as Promise<RealClient>;
     },
     onSuccess: (c) => {
-      qc.invalidateQueries({ queryKey: ["/api/clients"] });
+      qc.invalidateQueries({ queryKey: ["/api/clients", advisor.id] });
       setPromoteOpen(false);
       setSelectedId(c.id);
       toast({ title: "Lead promoted!", description: `${c.name} added to your clients.` });

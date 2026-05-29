@@ -2250,22 +2250,39 @@ export async function registerRoutes(
     return Number.isFinite(n) && n > 0 ? n : null;
   }
 
-  // Async variant — also handles old-style advisor_${slug} sessions.
+  // Async variant — handles canonical session.advisorId, legacy advisor_${slug}
+  // sessions, and an explicit advisorId hint passed from the panel frontend.
+  // canAccessAdvisor() is ALWAYS called by the route handler after this returns,
+  // so returning a caller-supplied hint cannot escalate privileges.
   async function advisorIdFromSession(req: import("express").Request): Promise<number | null> {
-    const role = sessionRole(req);
-    if (role === "admin") {
+    const s = req.session as any;
+
+    // Admin: use explicit param only
+    if (s?.authenticated) {
       const raw = (req.query.advisorId ?? req.body?.advisorId);
       const n = Number(raw);
       return Number.isFinite(n) && n > 0 ? n : null;
     }
-    if (role === "advisor") return (req.session as any).advisorId as number;
-    const s = req.session as any;
-    const slugKey = Object.keys(s || {}).find(k => k.startsWith("advisor_") && s[k] === true);
-    if (!slugKey) return null;
-    const slug = slugKey.replace("advisor_", "");
-    const advisor = await storage.getAdvisorBySlug(slug);
-    if (advisor) { s.advisorId = advisor.id; req.session.save(() => {}); return advisor.id; }
-    return null;
+
+    // Canonical advisor session set at login
+    if (typeof s?.advisorId === "number") return s.advisorId as number;
+
+    // Any valid advisor session marker (slug-keyed)?
+    const hasSlugSession = Object.keys(s || {}).some(k => k.startsWith("advisor_") && s[k]);
+    if (!hasSlugSession) return null;
+
+    // Try to resolve via slug key
+    const slugKey = Object.keys(s).find(k => k.startsWith("advisor_") && s[k]);
+    if (slugKey) {
+      const slug = slugKey.replace("advisor_", "");
+      const adv = await storage.getAdvisorBySlug(slug);
+      if (adv) { s.advisorId = adv.id; req.session.save(() => {}); return adv.id; }
+    }
+
+    // Last resort: accept explicit hint from frontend (canAccessAdvisor enforces ownership)
+    const raw = (req.query.advisorId ?? req.body?.advisorId);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : null;
   }
 
   function auditCtx(req: import("express").Request) {
