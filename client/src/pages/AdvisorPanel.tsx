@@ -7157,6 +7157,15 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                   >
                     <ExternalLink className="h-3 w-3" /> Preview
                   </a>
+                  <a
+                    href={`${bolUrl}/card`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: "#dc262618", color: "#dc2626", border: "1px solid #dc262633" }}
+                  >
+                    <FileText className="h-3 w-3" /> Print Card
+                  </a>
                 </div>
               </div>
             </div>
