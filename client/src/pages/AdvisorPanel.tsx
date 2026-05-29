@@ -7568,35 +7568,110 @@ function MyClientsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
 
         {/* DRAW ASTUTE ─────────────────────────── */}
         {activeSection === "astute" && (
-          <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-            <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
-              <Download className="h-4 w-4" style={{ color: tc.accentColor }} />
-              <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Draw from Astute</div>
-              <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#3B82F622", color: "#2563eb" }}>Integration</span>
+          <div className="space-y-3">
+            {/* CCP Summary card — manually entered after pulling from Astute */}
+            {draft["ccp_ref"] && (
+              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid #3B82F655` }}>
+                <div className="px-4 py-2.5 flex items-center gap-2" style={{ backgroundColor: "#3B82F618" }}>
+                  <FileText className="h-3.5 w-3.5" style={{ color: "#2563eb" }} />
+                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: "#2563eb" }}>Astute CCP Summary</span>
+                  <span className="ml-auto text-[10px]" style={{ color: "#2563eb99" }}>{draft["ccp_date"] || "—"}</span>
+                </div>
+                <div className="p-3 space-y-2" style={{ backgroundColor: tc.cardBg }}>
+                  <div className="text-[10px] font-mono" style={{ color: tc.mutedText }}>Ref: {draft["ccp_ref"]}</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { label: "Life Cover",    value: draft["ccp_life"],       color: "#2563eb" },
+                      { label: "Disability",    value: draft["ccp_disability"], color: "#7c3aed" },
+                      { label: "Dread Disease", value: draft["ccp_dread"],      color: "#dc2626" },
+                    ].filter(x => x.value).map(x => (
+                      <div key={x.label} className="rounded-lg p-2 text-center" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                        <div className="text-[10px] font-bold truncate" style={{ color: x.color }}>{x.value}</div>
+                        <div className="text-[9px] mt-0.5" style={{ color: tc.mutedText }}>{x.label}</div>
+                      </div>
+                    ))}
+                  </div>
+                  {(draft["ccp_premium"] || draft["ccp_invest"]) && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {draft["ccp_premium"] && (
+                        <div className="rounded-lg p-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                          <div className="text-[10px] font-bold" style={{ color: "#059669" }}>{draft["ccp_premium"]}</div>
+                          <div className="text-[9px]" style={{ color: tc.mutedText }}>Total Premium/mo</div>
+                        </div>
+                      )}
+                      {draft["ccp_invest"] && (
+                        <div className="rounded-lg p-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                          <div className="text-[10px] font-bold" style={{ color: "#0891b2" }}>{draft["ccp_invest"]}</div>
+                          <div className="text-[9px]" style={{ color: tc.mutedText }}>Investment Value</div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {draft["ccp_providers"] && (
+                    <div className="text-[10px] pt-1" style={{ color: tc.mutedText }}>
+                      <span className="font-medium" style={{ color: tc.textColor }}>Providers: </span>{draft["ccp_providers"]}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Manual CCP entry form */}
+            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="flex items-center gap-2 pb-2 border-b" style={{ borderColor: tc.borderColor }}>
+                <Download className="h-4 w-4" style={{ color: tc.accentColor }} />
+                <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>CCP Summary Entry</div>
+                <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#3B82F622", color: "#2563eb" }}>Manual</span>
+              </div>
+              <p className="text-[11px]" style={{ color: tc.mutedText }}>After pulling the Astute CCP, capture the key figures here for a quick at-a-glance summary.</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { k: "ccp_ref",        label: "CCP Reference",       placeholder: "CCP2026/02/16-2471" },
+                  { k: "ccp_date",       label: "Date Pulled",         placeholder: "16 Feb 2026" },
+                  { k: "ccp_providers",  label: "Active Providers",    placeholder: "Sanlam, Discovery…" },
+                  { k: "ccp_premium",    label: "Total Premium/mo",    placeholder: "R1 209.58" },
+                  { k: "ccp_life",       label: "Life Cover",          placeholder: "R2 070 000" },
+                  { k: "ccp_disability", label: "Disability",          placeholder: "R2 070 000" },
+                  { k: "ccp_dread",      label: "Dread Disease",       placeholder: "R2 070 000" },
+                  { k: "ccp_invest",     label: "Investment Value",     placeholder: "R102 773" },
+                ].map(f => (
+                  <div key={f.k}>
+                    <label className="text-[11px] font-medium block mb-1" style={{ color: tc.mutedText }}>{f.label}</label>
+                    <input
+                      value={draft[f.k] ?? ""}
+                      onChange={e => setField(f.k, e.target.value)}
+                      placeholder={f.placeholder}
+                      className="w-full px-2.5 py-1.5 rounded-lg text-xs outline-none"
+                      style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-            <p className="text-[11px] leading-relaxed" style={{ color: tc.mutedText }}>
-              Pull the latest policy, investment and contract data straight from Astute. Once your Astute credentials are linked, you'll be able to refresh a client's full record in one click.
-            </p>
-            <div className="rounded-lg p-3 space-y-2" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
-              <div className="text-[11px] font-semibold" style={{ color: tc.textColor }}>Last drawn</div>
-              <div className="text-[11px]" style={{ color: tc.mutedText }}>Never — connect your Astute account to begin.</div>
+
+            {/* Astute integration buttons */}
+            <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              <div className="rounded-lg p-3 space-y-1" style={{ backgroundColor: tc.inputBg, border: `1px solid ${tc.borderColor}` }}>
+                <div className="text-[11px] font-semibold" style={{ color: tc.textColor }}>Last drawn</div>
+                <div className="text-[11px]" style={{ color: tc.mutedText }}>{draft["ccp_date"] ? `${draft["ccp_date"]} — ${draft["ccp_ref"] || "No ref"}` : "Never — connect your Astute account to begin."}</div>
+              </div>
+              <button
+                onClick={showPlaceholder}
+                className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                data-testid="button-draw-astute"
+              >
+                <Download className="h-3.5 w-3.5" /> Draw Latest from Astute
+              </button>
+              <button
+                onClick={showPlaceholder}
+                className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
+                style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="button-link-astute"
+              >
+                <KeyRound className="h-3.5 w-3.5" /> Link Astute Account
+              </button>
             </div>
-            <button
-              onClick={showPlaceholder}
-              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
-              data-testid="button-draw-astute"
-            >
-              <Download className="h-3.5 w-3.5" /> Draw Latest from Astute
-            </button>
-            <button
-              onClick={showPlaceholder}
-              className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
-              style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
-              data-testid="button-link-astute"
-            >
-              <KeyRound className="h-3.5 w-3.5" /> Link Astute Account
-            </button>
           </div>
         )}
 

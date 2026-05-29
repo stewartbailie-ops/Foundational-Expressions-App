@@ -1,6 +1,7 @@
 import { useParams } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import { Phone, Heart, AlertTriangle, Shield, User, Building2, Stethoscope, BookOpen } from "lucide-react";
+import { EMERGENCY_CONTACTS } from "@shared/schema";
 
 type BolData = {
   clientName: string;
@@ -207,6 +208,24 @@ export default function BookOfLifePage() {
             <p className="text-sm text-gray-800 leading-relaxed">{d.paramedicNotes}</p>
           </Section>
         )}
+
+        {/* SA Emergency Numbers */}
+        <Section icon={Phone} title="SA Emergency Numbers" color="#dc2626">
+          <div className="grid grid-cols-1 gap-1.5">
+            {EMERGENCY_CONTACTS.map(c => (
+              <a
+                key={c.key}
+                href={`tel:${c.number}`}
+                className="flex items-center justify-between py-1.5 px-1 rounded-lg active:bg-gray-50"
+              >
+                <span className="text-xs text-gray-600">{c.label}</span>
+                <span className="text-sm font-bold flex items-center gap-1.5" style={{ color: "#dc2626" }}>
+                  <Phone className="h-3 w-3" />{c.number}
+                </span>
+              </a>
+            ))}
+          </div>
+        </Section>
 
         {/* Footer */}
         <div className="rounded-2xl p-4 text-center space-y-1" style={{ backgroundColor: "#0f172a" }}>
