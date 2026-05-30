@@ -32,7 +32,7 @@ import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
 import { getThemeColors, getInitialsBadgeColors, getThemeBackground, THEME_OPTIONS, BACKGROUND_STYLE_OPTIONS } from "@/lib/themeUtils";
 import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
-import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
+import { shareOrDownloadCard, shareOrDownloadBolCard, canShareCardNatively, type CardVariant, type BolCardData } from "@/lib/businessCard";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
 import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
@@ -7071,6 +7071,9 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [nfcOpen, setNfcOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [shareVariant, setShareVariant] = useState<CardVariant>("portrait");
+  const [shareWorking, setShareWorking] = useState(false);
 
   useEffect(() => { if (bol) setF(bol); }, [bol]);
 
@@ -7128,7 +7131,7 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
         <div className="rounded-xl overflow-hidden" style={{ border: `2px solid #dc2626` }}>
           <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: "#dc262618" }}>
             <Heart className="h-4 w-4 fill-red-500 text-red-500" />
-            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#dc2626" }}>Book of Life — Emergency Card</span>
+            <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "#dc2626" }}>Book of Life | Emergency ICE Profile</span>
           </div>
           <div className="p-4 space-y-4" style={{ backgroundColor: tc.cardBg }}>
             <div className="flex gap-4 items-start">
@@ -7205,10 +7208,7 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                     </div>
                     <ExternalLink className="h-3 w-3 text-white/30 ml-auto shrink-0" />
                   </a>
-                  <a
-                    href="https://www.takealot.com/catalogsearch/result/?q=nfc+sticker+tag"
-                    target="_blank"
-                    rel="noopener noreferrer"
+                  <div
                     className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold"
                     style={{ backgroundColor: "#1e293b", color: "#ffffff" }}
                   >
@@ -7216,11 +7216,10 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                       <Share2 className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div>
-                      <div className="text-white text-[11px] font-semibold">Order NFC Stickers — Takealot</div>
-                      <div className="text-white/40 text-[10px]">~R10 each · wallet, phone case, fridge, car</div>
+                      <div className="text-white text-[11px] font-semibold">Order NFC Sticker — Advisory Connect</div>
+                      <div className="text-white/40 text-[10px]">Wallet · phone case · fridge · car · coming soon</div>
                     </div>
-                    <ExternalLink className="h-3 w-3 text-white/30 ml-auto shrink-0" />
-                  </a>
+                  </div>
                 </div>
                 <div className="rounded-lg px-3 py-2" style={{ backgroundColor: "#0f172a", border: "1px solid #334155" }}>
                   <div className="text-[10px] text-yellow-400 font-semibold mb-1">How to program your NFC tag:</div>
@@ -7326,9 +7325,11 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
         </div>
 
         <SectionHead label="Paramedic Notes" color="#d97706" />
+        <div className="rounded-lg px-3 py-2 text-[10px]" style={{ backgroundColor: "#f59e0b14", border: "1px solid #f59e0b44", color: "#d97706" }}>
+          Do not include ID numbers, bank details, policy numbers, or private financial notes here — this section is publicly visible.
+        </div>
         <textarea
-          value={f.paramedic_notes ?? ""
-          }
+          value={f.paramedic_notes ?? ""}
           onChange={ff("paramedic_notes")}
           placeholder="Any extra info for first responders — e.g. pacemaker, insulin-dependent, prior surgeries"
           rows={3}
@@ -7447,7 +7448,60 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
   );
   const selected = clients.find(c => c.id === selectedId) || null;
 
-  const showPlaceholder = () => alert("Demo only — saving will be wired in the next build session.");
+  // Load full client record (includes encrypted fields + notes) when selected
+  const { data: clientDetail } = useQuery<any>({
+    queryKey: ["/api/clients/detail", selectedId, advisor.id],
+    queryFn: async () => {
+      const r = await apiRequest("GET", `/api/clients/${selectedId}?advisorId=${advisor.id}`);
+      return r.ok ? r.json() : null;
+    },
+    enabled: !!selectedId,
+  });
+
+  // Pre-populate draft from stored notes JSON + encrypted fields
+  useEffect(() => {
+    if (!clientDetail) return;
+    try {
+      const stored = clientDetail.notes ? JSON.parse(clientDetail.notes) : {};
+      setDraft({
+        ...stored,
+        id_number: clientDetail.idNumber || stored.id_number || "",
+        tax_number: clientDetail.taxNumber || stored.tax_number || "",
+        bank_account: clientDetail.bankAccount || stored.bank_account || "",
+        bank_branch: clientDetail.bankBranch || stored.bank_branch || "",
+      });
+    } catch {
+      setDraft({
+        id_number: clientDetail.idNumber || "",
+        tax_number: clientDetail.taxNumber || "",
+        bank_account: clientDetail.bankAccount || "",
+        bank_branch: clientDetail.bankBranch || "",
+      });
+    }
+  }, [clientDetail]);
+
+  // Save personal or financial details via PATCH
+  const saveClientMutation = useMutation({
+    mutationFn: async () => {
+      const r = await apiRequest("PATCH", `/api/clients/${selectedId}`, {
+        advisorId: advisor.id,
+        idNumber: draft.id_number || null,
+        taxNumber: draft.tax_number || null,
+        bankAccount: draft.bank_account || null,
+        bankBranch: draft.bank_branch || null,
+        notes: JSON.stringify(draft),
+      });
+      if (!r.ok) { const d = await r.json(); throw new Error(d.message || "Save failed"); }
+      return r.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["/api/clients/detail", selectedId, advisor.id] });
+      toast({ title: "Saved", description: "Client details updated." });
+    },
+    onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
+  });
+
+  const showPlaceholder = () => {}; // retired — all saves now wired
 
   if (selected) {
     return (
@@ -7480,26 +7534,41 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
           </span>
         </div>
 
-        {/* Section nav */}
-        <div className="flex gap-1 overflow-x-auto pb-1">
-          {[
-            { key: "personal"  as const, label: "Personal",     icon: User       },
-            { key: "financial" as const, label: "Financial",    icon: CreditCard },
-            { key: "book"      as const, label: "Book of Life", icon: Briefcase  },
-            { key: "astute"    as const, label: "Draw Astute",  icon: Download   },
-            { key: "history"   as const, label: "History",      icon: Clock      },
-          ].map(s => {
+        {/* Quick-access shortcuts */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setActiveSection("book")}
+            className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
+            style={{ backgroundColor: activeSection === "book" ? "#dc262622" : "#dc262610", color: "#dc2626", border: `1px solid ${activeSection === "book" ? "#dc262666" : "#dc262630"}` }}
+          >
+            <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" /> Book of Life
+          </button>
+          <button
+            onClick={() => setActiveSection("astute")}
+            className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
+            style={{ backgroundColor: activeSection === "astute" ? "#2563eb22" : "#2563eb10", color: "#2563eb", border: `1px solid ${activeSection === "astute" ? "#2563eb66" : "#2563eb30"}` }}
+          >
+            <Download className="h-3.5 w-3.5" /> Astute Details
+          </button>
+        </div>
+        {/* Section nav — details tabs */}
+        <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
+          {([
+            { key: "personal"  as const, label: "Personal",  icon: User      },
+            { key: "financial" as const, label: "Financial", icon: CreditCard },
+            { key: "history"   as const, label: "History",   icon: Clock     },
+          ] as const).map(s => {
             const Icon = s.icon;
             const isActive = activeSection === s.key;
             return (
               <button
                 key={s.key}
                 onClick={() => setActiveSection(s.key)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap"
+                className="flex-1 flex items-center justify-center gap-1 py-2.5 text-xs font-medium"
                 style={{
-                  backgroundColor: isActive ? tc.accentColor + "22" : tc.buttonSecondaryBg,
+                  backgroundColor: isActive ? tc.accentColor + "22" : tc.cardBg,
                   color: isActive ? tc.accentColor : tc.mutedText,
-                  border: isActive ? `1px solid ${tc.accentColor}55` : "1px solid transparent",
+                  borderRight: s.key !== "history" ? `1px solid ${tc.borderColor}` : "none",
                 }}
                 data-testid={`tab-client-section-${s.key}`}
               >
@@ -7541,12 +7610,14 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
               </div>
             ))}
             <button
-              onClick={showPlaceholder}
+              onClick={() => saveClientMutation.mutate()}
+              disabled={saveClientMutation.isPending}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
               style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-save-personal"
             >
-              <Save className="h-3.5 w-3.5 inline mr-1" /> Save Personal Details
+              {saveClientMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5 inline mr-1" />}
+              Save Personal Details
             </button>
           </div>
         )}
@@ -7599,12 +7670,14 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
               ))}
             </div>
             <button
-              onClick={showPlaceholder}
+              onClick={() => saveClientMutation.mutate()}
+              disabled={saveClientMutation.isPending}
               className="w-full py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5"
               style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
               data-testid="button-save-financial"
             >
-              <Save className="h-3.5 w-3.5" /> Save Financial Profile
+              {saveClientMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+              Save Financial Profile
             </button>
           </div>
         )}
@@ -7859,28 +7932,46 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
       ) : (
         <div className="space-y-2">
           {filtered.map(c => (
-            <button
-              key={c.id}
-              onClick={() => setSelectedId(c.id)}
-              className="w-full rounded-xl p-3 flex items-center gap-3 text-left transition-opacity hover:opacity-90"
-              style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
-              data-testid={`button-client-${c.id}`}
-            >
-              <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}>
-                {clientInitials(c.name)}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{c.name}</div>
-                <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{c.email || "No email"}{c.phone ? ` · ${c.phone}` : ""}</div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: "#22c55e22", color: "#16a34a" }}>Active</span>
-                <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>
-                  {c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : "—"}
+            <div key={c.id} className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+              {/* Main row — click to open detail */}
+              <button
+                onClick={() => { setSelectedId(c.id); setActiveSection("personal"); }}
+                className="w-full p-3 flex items-center gap-3 text-left transition-opacity hover:opacity-90"
+                data-testid={`button-client-${c.id}`}
+              >
+                <div className="h-10 w-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0" style={{ backgroundColor: tc.initialsCircleBg, color: tc.accentColor, border: `1px solid ${tc.initialsCircleBorder}` }}>
+                  {clientInitials(c.name)}
                 </div>
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-semibold truncate" style={{ color: tc.textColor }}>{c.name}</div>
+                  <div className="text-[11px] truncate" style={{ color: tc.mutedText }}>{c.email || "No email"}{c.phone ? ` · ${c.phone}` : ""}</div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full font-semibold" style={{ backgroundColor: "#22c55e22", color: "#16a34a" }}>Active</span>
+                  <div className="text-[10px] mt-1" style={{ color: tc.mutedText }}>
+                    {c.createdAt ? new Date(c.createdAt).toLocaleDateString("en-ZA", { day: "numeric", month: "short" }) : "—"}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
+              </button>
+              {/* Shortcut buttons */}
+              <div className="flex border-t" style={{ borderColor: tc.borderColor }}>
+                <button
+                  onClick={() => { setSelectedId(c.id); setActiveSection("book"); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold border-r"
+                  style={{ color: "#dc2626", borderColor: tc.borderColor, backgroundColor: "#dc262608" }}
+                >
+                  <Heart className="h-3 w-3 fill-red-500 text-red-500" /> Book of Life
+                </button>
+                <button
+                  onClick={() => { setSelectedId(c.id); setActiveSection("astute"); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 text-[11px] font-semibold"
+                  style={{ color: "#2563eb", backgroundColor: "#2563eb08" }}
+                >
+                  <Download className="h-3 w-3" /> Astute Details
+                </button>
               </div>
-              <ChevronRight className="h-4 w-4 shrink-0" style={{ color: tc.mutedText }} />
-            </button>
+            </div>
           ))}
         </div>
       )}

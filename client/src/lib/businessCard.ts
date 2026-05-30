@@ -502,6 +502,164 @@ export async function shareOrDownloadCard(opts: {
   return "downloaded";
 }
 
+// ── Book of Life shareable card ──────────────────────────────────────────────
+
+export type BolCardData = {
+  clientName: string;
+  bolUrl: string;
+  bloodType?: string | null;
+  allergies?: string | null;
+  chronicMedications?: string | null;
+  ec1Name?: string | null;
+  ec1Relation?: string | null;
+  ec1Phone?: string | null;
+  ec2Name?: string | null;
+  ec2Phone?: string | null;
+  medicalAidScheme?: string | null;
+  medicalAidEmergencyLine?: string | null;
+  gpName?: string | null;
+  gpPhone?: string | null;
+  hospitalPreference?: string | null;
+};
+
+export async function renderBolCard(opts: { data: BolCardData; variant: CardVariant; qrImg: HTMLImageElement | null }): Promise<Blob> {
+  const { data, variant, qrImg } = opts;
+  const { w, h } = CARD_DIMENSIONS[variant];
+  const canvas = document.createElement("canvas");
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas 2D context unavailable");
+
+  const BG = "#0f172a";
+  const RED = "#dc2626";
+  const WHITE = "#ffffff";
+  const MUTED = "rgba(255,255,255,0.55)";
+  const PAD = Math.round(w * 0.07);
+
+  // Background
+  ctx.fillStyle = BG;
+  ctx.fillRect(0, 0, w, h);
+
+  // Red header stripe
+  const HEADER_H = Math.round(h * 0.10);
+  ctx.fillStyle = RED;
+  ctx.fillRect(0, 0, w, HEADER_H);
+
+  // Heart icon (drawn as text ♥)
+  ctx.fillStyle = WHITE;
+  ctx.font = `bold ${Math.round(HEADER_H * 0.42)}px Arial`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("♥", PAD, HEADER_H / 2);
+
+  // Header title
+  ctx.font = `bold ${Math.round(HEADER_H * 0.30)}px Arial`;
+  ctx.textBaseline = "middle";
+  ctx.fillText("ADVISORY CONNECT — BOOK OF LIFE", PAD + Math.round(HEADER_H * 0.6), HEADER_H / 2);
+
+  // QR code centred block
+  const QR_SIZE = Math.round(w * 0.52);
+  const QR_X = (w - QR_SIZE) / 2;
+  const QR_Y = HEADER_H + Math.round(h * 0.05);
+  const QR_PAD = Math.round(QR_SIZE * 0.04);
+  ctx.fillStyle = WHITE;
+  roundRect(ctx, QR_X - QR_PAD, QR_Y - QR_PAD, QR_SIZE + QR_PAD * 2, QR_SIZE + QR_PAD * 2, Math.round(QR_PAD * 1.5));
+  ctx.fill();
+  if (qrImg) ctx.drawImage(qrImg, QR_X, QR_Y, QR_SIZE, QR_SIZE);
+
+  // "SCAN IN EMERGENCY" badge below QR
+  const BADGE_Y = QR_Y + QR_SIZE + QR_PAD * 2 + Math.round(h * 0.018);
+  const BADGE_H = Math.round(h * 0.038);
+  const badgeLabel = "SCAN IN EMERGENCY";
+  ctx.font = `bold ${Math.round(BADGE_H * 0.52)}px Arial`;
+  const badgeW = ctx.measureText(badgeLabel).width + Math.round(BADGE_H * 1.2);
+  const badgeX = (w - badgeW) / 2;
+  ctx.fillStyle = RED;
+  roundRect(ctx, badgeX, BADGE_Y, badgeW, BADGE_H, Math.round(BADGE_H * 0.3));
+  ctx.fill();
+  ctx.fillStyle = WHITE;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(badgeLabel, w / 2, BADGE_Y + BADGE_H / 2);
+
+  // Client name
+  let infoY = BADGE_Y + BADGE_H + Math.round(h * 0.04);
+  ctx.fillStyle = WHITE;
+  ctx.font = `bold ${Math.round(h * 0.038)}px Arial`;
+  ctx.textAlign = "center"; ctx.textBaseline = "top";
+  ctx.fillText(truncateToWidth(ctx, data.clientName, w - PAD * 2), w / 2, infoY);
+  infoY += Math.round(h * 0.05);
+
+  // Divider
+  ctx.fillStyle = "rgba(255,255,255,0.12)";
+  ctx.fillRect(PAD, infoY, w - PAD * 2, 2);
+  infoY += Math.round(h * 0.025);
+
+  // Info rows
+  const ROW_H = Math.round(h * 0.034);
+  const LABEL_W = Math.round(w * 0.28);
+  const rows: [string, string, string][] = [];
+  if (data.bloodType)              rows.push([RED, "BLOOD TYPE", data.bloodType]);
+  if (data.ec1Name && data.ec1Phone) rows.push([MUTED, "ICE 1", `${data.ec1Name}${data.ec1Relation ? ` (${data.ec1Relation})` : ""} · ${data.ec1Phone}`]);
+  if (data.ec2Name && data.ec2Phone) rows.push([MUTED, "ICE 2", `${data.ec2Name} · ${data.ec2Phone}`]);
+  if (data.medicalAidScheme)       rows.push([MUTED, "MEDICAL AID", data.medicalAidScheme + (data.medicalAidEmergencyLine ? ` · ${data.medicalAidEmergencyLine}` : "")]);
+  if (data.gpName)                 rows.push([MUTED, "GP", data.gpName + (data.gpPhone ? ` · ${data.gpPhone}` : "")]);
+  if (data.hospitalPreference)     rows.push([MUTED, "HOSPITAL", data.hospitalPreference]);
+  if (data.allergies)              rows.push([MUTED, "ALLERGIES", data.allergies]);
+  if (data.chronicMedications)     rows.push([MUTED, "MEDICATIONS", data.chronicMedications]);
+
+  for (const [color, label, value] of rows) {
+    if (infoY + ROW_H > h - Math.round(h * 0.10)) break;
+    ctx.font = `bold ${Math.round(ROW_H * 0.52)}px Arial`;
+    ctx.fillStyle = color;
+    ctx.textAlign = "left"; ctx.textBaseline = "top";
+    ctx.fillText(label, PAD, infoY);
+    ctx.fillStyle = WHITE;
+    ctx.font = `${Math.round(ROW_H * 0.52)}px Arial`;
+    ctx.fillText(truncateToWidth(ctx, value, w - PAD - LABEL_W - Math.round(w * 0.02)), PAD + LABEL_W, infoY);
+    infoY += Math.round(ROW_H * 1.4);
+  }
+
+  // Footer
+  const FOOT_H = Math.round(h * 0.07);
+  ctx.fillStyle = "rgba(255,255,255,0.06)";
+  ctx.fillRect(0, h - FOOT_H, w, FOOT_H);
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  ctx.font = `${Math.round(FOOT_H * 0.25)}px Arial`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("Advisory Connect · advisoryconnect.pro", w / 2, h - FOOT_H / 2);
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error("Failed to encode BoL card PNG")), "image/png", 0.95);
+  });
+}
+
+export async function shareOrDownloadBolCard(opts: {
+  data: BolCardData;
+  variant: CardVariant;
+  mode: "share" | "download";
+}): Promise<"shared" | "downloaded" | "cancelled"> {
+  const qrSvg = renderToStaticMarkup(
+    createElement(QRCodeSVG as any, { value: opts.data.bolUrl, size: 512, level: "M", includeMargin: false })
+  );
+  const qrImg = await svgStringToImage(qrSvg);
+  const blob = await renderBolCard({ data: opts.data, variant: opts.variant, qrImg });
+  const filename = `book-of-life-${opts.data.clientName.replace(/\s+/g, "-").toLowerCase()}-${opts.variant}.png`;
+  const file = new File([blob], filename, { type: "image/png" });
+  const nav = navigator as any;
+  if (opts.mode === "share" && typeof nav?.canShare === "function" && nav.canShare({ files: [file] }) && typeof nav.share === "function") {
+    try {
+      await nav.share({ files: [file], title: `${opts.data.clientName} — Book of Life`, text: "Emergency profile — scan QR code for immediate access." });
+      return "shared";
+    } catch (e: any) { if (e?.name === "AbortError") return "cancelled"; }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  return "downloaded";
+}
+
 export function canShareCardNatively(): boolean {
   if (typeof navigator === "undefined") return false;
   const nav = navigator as any;
