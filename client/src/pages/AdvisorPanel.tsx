@@ -7169,9 +7169,110 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                   >
                     <FileText className="h-3 w-3" /> Print Card
                   </a>
+                  <button
+                    onClick={() => setShareOpen(true)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-semibold"
+                    style={{ backgroundColor: tc.accentColor + "22", color: tc.accentColor, border: `1px solid ${tc.accentColor}44` }}
+                  >
+                    <Share2 className="h-3 w-3" /> Share Card
+                  </button>
                 </div>
               </div>
             </div>
+
+            {/* Share BoL Card modal */}
+            {shareOpen && createPortal(
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.7)" }}>
+                <div className="w-full max-w-sm rounded-2xl overflow-hidden" style={{ backgroundColor: tc.bgColor }}>
+                  <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: `1px solid ${tc.borderColor}` }}>
+                    <span className="text-sm font-semibold" style={{ color: tc.textColor }}>Share your Book of Life card</span>
+                    <button onClick={() => setShareOpen(false)} style={{ color: tc.mutedText }}><X className="h-4 w-4" /></button>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div>
+                      <div className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: tc.mutedText }}>SIZE</div>
+                      <div className="grid grid-cols-2 gap-3">
+                        {([
+                          { v: "portrait" as CardVariant, label: "Portrait", sub: "1080×1920 · Stories" },
+                          { v: "square"   as CardVariant, label: "Square",   sub: "1080×1080 · Feed"    },
+                        ]).map(opt => (
+                          <button
+                            key={opt.v}
+                            onClick={() => setShareVariant(opt.v)}
+                            className="rounded-xl p-3 flex flex-col items-center gap-2"
+                            style={{ border: `2px solid ${shareVariant === opt.v ? tc.accentColor : tc.borderColor}`, backgroundColor: shareVariant === opt.v ? tc.accentColor + "11" : tc.cardBg }}
+                          >
+                            <div className="rounded" style={{
+                              width: opt.v === "portrait" ? 28 : 40,
+                              height: opt.v === "portrait" ? 48 : 40,
+                              backgroundColor: shareVariant === opt.v ? tc.accentColor : tc.mutedText,
+                              opacity: shareVariant === opt.v ? 0.9 : 0.3,
+                            }} />
+                            <div>
+                              <div className="text-xs font-semibold" style={{ color: tc.textColor }}>{opt.label}</div>
+                              <div className="text-[10px]" style={{ color: tc.mutedText }}>{opt.sub}</div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      disabled={shareWorking}
+                      onClick={async () => {
+                        setShareWorking(true);
+                        try {
+                          await shareOrDownloadBolCard({
+                            data: {
+                              clientName, bolUrl,
+                              bloodType: f.blood_type, allergies: f.allergies, chronicMedications: f.chronic_medications,
+                              ec1Name: f.ec1_name, ec1Relation: f.ec1_relation, ec1Phone: f.ec1_phone,
+                              ec2Name: f.ec2_name, ec2Phone: f.ec2_phone,
+                              medicalAidScheme: f.medical_aid_scheme, medicalAidEmergencyLine: f.medical_aid_emergency_line,
+                              gpName: f.gp_name, gpPhone: f.gp_phone,
+                              hospitalPreference: f.hospital_preference,
+                            },
+                            variant: shareVariant,
+                            mode: "share",
+                          });
+                        } finally { setShareWorking(false); setShareOpen(false); }
+                      }}
+                      className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                      style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                    >
+                      {shareWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Share2 className="h-4 w-4" />}
+                      Share card
+                    </button>
+                    <button
+                      disabled={shareWorking}
+                      onClick={async () => {
+                        setShareWorking(true);
+                        try {
+                          await shareOrDownloadBolCard({
+                            data: {
+                              clientName, bolUrl,
+                              bloodType: f.blood_type, allergies: f.allergies, chronicMedications: f.chronic_medications,
+                              ec1Name: f.ec1_name, ec1Relation: f.ec1_relation, ec1Phone: f.ec1_phone,
+                              ec2Name: f.ec2_name, ec2Phone: f.ec2_phone,
+                              medicalAidScheme: f.medical_aid_scheme, medicalAidEmergencyLine: f.medical_aid_emergency_line,
+                              gpName: f.gp_name, gpPhone: f.gp_phone,
+                              hospitalPreference: f.hospital_preference,
+                            },
+                            variant: shareVariant,
+                            mode: "download",
+                          });
+                        } finally { setShareWorking(false); setShareOpen(false); }
+                      }}
+                      className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
+                      style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+                    >
+                      {shareWorking ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                      Download PNG
+                    </button>
+                  </div>
+                </div>
+              </div>,
+              document.body
+            )}
 
             {/* NFC Tag distribution */}
             <button
