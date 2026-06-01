@@ -856,6 +856,59 @@ export function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColo
         </div>
       </div>
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Educational only — fees, tax and inflation are not modelled. Speak to an advisor for personalised advice.</p>
+      <button
+        onClick={async () => {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+          doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
+          doc.text("Advisory Connect", 14, 16);
+          doc.setFontSize(11); doc.setFont("helvetica","normal");
+          doc.text("Compound Interest Summary", 14, 26);
+          doc.setFontSize(9); doc.setTextColor(148,163,184);
+          doc.text(new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" }), 14, 33);
+          let y = 50;
+          doc.setTextColor(30,30,30); doc.setFontSize(12); doc.setFont("helvetica","bold");
+          doc.text("Inputs", 14, y); y += 8;
+          const inputs: [string, string][] = [
+            ["Starting Amount", `R ${Number(principal).toLocaleString("en-ZA")}`],
+            ["Monthly Contribution", `R ${Number(monthly).toLocaleString("en-ZA")}`],
+            ["Annual Return", `${rate}%`],
+            ["Term", `${years} years`],
+          ];
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          for (const [k, v] of inputs) {
+            doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setTextColor(30,30,30); doc.text(v, 120, y); y += 7;
+          }
+          y += 4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(30,30,30);
+          doc.text("Results", 14, y); y += 8;
+          const results: [string, string, string][] = [
+            ["Future Value", fmt(result.total), "#1d4ed8"],
+            ["Total Contributions", fmt(result.contributions), "#111827"],
+            ["Interest Earned", fmt(result.interest), "#059669"],
+          ];
+          doc.setFontSize(10);
+          for (const [k, v, col] of results) {
+            doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            const rgb = col === "#1d4ed8" ? [29,78,216] : col === "#059669" ? [5,150,105] : [17,24,39];
+            doc.setFont("helvetica","bold"); doc.setTextColor(rgb[0], rgb[1], rgb[2]); doc.text(v, 120, y); y += 8;
+          }
+          y += 6;
+          doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text("Educational only — fees, tax and inflation are not modelled. Consult a qualified financial advisor.", 14, y, { maxWidth: 182 });
+          doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(8);
+          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.save("compound-interest-summary.pdf");
+        }}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
+        style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+      >
+        <Download className="h-3.5 w-3.5" /> Download Summary PDF
+      </button>
     </div>
   );
 }
@@ -928,6 +981,61 @@ export function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeCo
         </div>
       </div>
       <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Educational only — does not model inflation, tax, or fees. Speak to an advisor for personalised advice.</p>
+      <button
+        onClick={async () => {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          const fmtR = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+          doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
+          doc.text("Advisory Connect", 14, 16);
+          doc.setFontSize(11); doc.setFont("helvetica","normal");
+          doc.text("Retirement Savings Summary", 14, 26);
+          doc.setFontSize(9); doc.setTextColor(148,163,184);
+          doc.text(new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" }), 14, 33);
+          let y = 50;
+          doc.setTextColor(30,30,30); doc.setFontSize(12); doc.setFont("helvetica","bold");
+          doc.text("Inputs", 14, y); y += 8;
+          const inputs: [string, string][] = [
+            ["Current Age", currentAge],
+            ["Retirement Age", retireAge],
+            ["Current Savings", fmtR(parseFloat(savings)||0)],
+            ["Monthly Contribution", fmtR(parseFloat(monthly)||0)],
+            ["Expected Return", `${returnPct}%`],
+            ["Target Monthly Income", fmtR(parseFloat(targetMonthly)||0)],
+          ];
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          for (const [k, v] of inputs) {
+            doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setTextColor(30,30,30); doc.text(v, 120, y); y += 7;
+          }
+          y += 4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(30,30,30);
+          doc.text("Results", 14, y); y += 8;
+          doc.setFontSize(10);
+          const rows: [string, string, [number,number,number]][] = [
+            ["Years to Retirement", String(result.t), [30,30,30]],
+            ["Projected Pot at Retirement", fmtR(result.total), [29,78,216]],
+            ["Sustainable Income (4% rule)", `${fmtR(result.sustainableMonthly)}/mo`, [5,150,105]],
+            ["Status", onTrack ? "On Track ✓" : "Shortfall — review contributions", onTrack ? [5,150,105] : [217,119,6]],
+          ];
+          for (const [k, v, rgb] of rows) {
+            doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setFont("helvetica","bold"); doc.setTextColor(rgb[0],rgb[1],rgb[2]); doc.text(v, 120, y); y += 8;
+          }
+          y += 6;
+          doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text("Educational only — does not model inflation, tax, or fees. Consult a qualified financial advisor.", 14, y, { maxWidth: 182 });
+          doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(8);
+          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.save("retirement-savings-summary.pdf");
+        }}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
+        style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+      >
+        <Download className="h-3.5 w-3.5" /> Download Summary PDF
+      </button>
     </div>
   );
 }
