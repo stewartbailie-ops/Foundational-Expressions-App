@@ -3366,6 +3366,14 @@ export default function AdvisorProfile() {
               />
             </div>
             <p className="text-xs text-center" style={{ color: mutedText }} data-testid="text-profile-url">{profileUrl}</p>
+            <div className="max-w-sm text-center space-y-1.5 px-3">
+              <h3 className="text-lg font-extrabold leading-tight" style={{ color: textColor }}>
+                Protect a Legacy. Earn a Reward
+              </h3>
+              <p className="text-sm font-semibold leading-relaxed" style={{ color: mutedText }}>
+                Refer someone for a Legacy Protection Plan and, upon successful onboarding, you will be eligible for a referral reward.
+              </p>
+            </div>
           </div>
         )}
 

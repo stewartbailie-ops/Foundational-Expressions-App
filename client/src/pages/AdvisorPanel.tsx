@@ -6918,7 +6918,7 @@ const PLATFORM_ICON_MAP: Record<string, any> = {
 };
 
 function PlatformsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const [open, setOpen] = useState<Record<string, boolean>>({ scan: false, email: false, media: false, platforms: false });
+  const [open, setOpen] = useState<Record<string, boolean>>({ scan: false, platforms: false });
   const toggle = (key: string) => setOpen(p => ({ ...p, [key]: !p[key] }));
   const ls = { color: tc.mutedText };
 
@@ -6937,28 +6937,6 @@ function PlatformsTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof
       title: "My Documents",
       subtitle: "Scan, capture and share documents using your camera.",
       content: <ScanDocumentsCard tc={tc} />,
-    },
-    {
-      key: "email",
-      title: "My Email",
-      subtitle: `Compose to ${advisor.email || "your inbox"}.`,
-      content: (
-        <div className="space-y-3">
-          <p className="text-xs leading-relaxed" style={ls}>One-tap shortcut to compose to your own primary email — handy when you need to forward something to yourself.</p>
-          <a
-            href={advisor.email ? `mailto:${advisor.email}` : "#"}
-            className="w-full block text-center py-2.5 rounded-lg text-sm font-semibold transition-opacity hover:opacity-90"
-            style={{ backgroundColor: tc.accentColor, color: tc.isDark ? "#000" : "#fff" }}>
-            <Mail className="h-4 w-4 inline mr-1.5" /> Open Email to {advisor.email || "—"}
-          </a>
-        </div>
-      ),
-    },
-    {
-      key: "media",
-      title: "Media Links",
-      subtitle: "Financial news, facts and video links for your profile.",
-      content: <MediaLinksCard advisor={advisor} tc={tc} />,
     },
   ];
 
@@ -7326,15 +7304,25 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                     <ExternalLink className="h-3 w-3 text-white/30 ml-auto shrink-0" />
                   </a>
                   <div
-                    className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold"
+                    className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg text-[11px] font-semibold"
                     style={{ backgroundColor: "#1e293b", color: "#ffffff" }}
                   >
                     <div className="h-6 w-6 rounded flex items-center justify-center shrink-0" style={{ backgroundColor: "#3b82f6" }}>
                       <Share2 className="h-3.5 w-3.5 text-white" />
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-white text-[11px] font-semibold">Order NFC Sticker — Advisory Connect</div>
-                      <div className="text-white/40 text-[10px]">Wallet · phone case · fridge · car · coming soon</div>
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {["NFC Tag", "NFC Sticker", "Key-chain", "Wrist-band", "Fridge Magnet", "Wallet Card", "Phone Case"].map((option) => (
+                          <span
+                            key={option}
+                            className="rounded-full px-2 py-0.5 text-[9px] font-semibold"
+                            style={{ backgroundColor: "rgba(59, 130, 246, 0.16)", color: "rgba(255,255,255,0.78)", border: "1px solid rgba(59, 130, 246, 0.28)" }}
+                          >
+                            {option}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -50,6 +50,9 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
       <div className="text-[11px] font-medium" style={{ color: t.textColor }}>
         {poweredByLabel || "Powered by Advisory Connect"}
       </div>
+      <div className="text-[10px] font-semibold" style={{ color: t.mutedText }}>
+        Made with pride by Advisors for Advisors
+      </div>
       <div className="text-[10px] flex flex-wrap items-center justify-center gap-x-1.5" style={{ color: t.mutedText }}>
         <span>Elevate your professional presence</span>
         <span aria-hidden>·</span>
