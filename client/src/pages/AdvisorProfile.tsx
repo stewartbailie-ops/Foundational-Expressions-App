@@ -3234,16 +3234,24 @@ export default function AdvisorProfile() {
             <DailyQuoteSection tc={tc} advisor={advisor} />
           ) : null,
           compoundcalc: (advisor as any).showCompoundCalc ? (
-            <CompoundCalcSection tc={tc} />
+            <CollapsibleTool icon={Calculator} label="Compound Interest Calculator">
+              <CompoundCalcSection tc={tc} />
+            </CollapsibleTool>
           ) : null,
           retirementcalc: (advisor as any).showRetirementCalc ? (
-            <RetirementCalcSection tc={tc} />
+            <CollapsibleTool icon={PiggyBank} label="Retirement Savings Calculator">
+              <RetirementCalcSection tc={tc} />
+            </CollapsibleTool>
           ) : null,
           capitalgainscalc: (advisor as any).showCapitalGainsCalc ? (
-            <CapitalGainsCalcSection tc={tc} />
+            <CollapsibleTool icon={TrendingUp} label="Capital Gains Tax Calculator">
+              <CapitalGainsCalcSection tc={tc} />
+            </CollapsibleTool>
           ) : null,
           pensioncalc: (advisor as any).showPensionCalc ? (
-            <PensionCalcSection tc={tc} />
+            <CollapsibleTool icon={PiggyBank} label="Pension / Provident Fund Calculator">
+              <PensionCalcSection tc={tc} />
+            </CollapsibleTool>
           ) : null,
           calendar: (advisor as any).showFinancialCalendar ? (
             <FinancialCalendarSection tc={tc} />
