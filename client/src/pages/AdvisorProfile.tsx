@@ -1040,6 +1040,244 @@ export function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeCo
   );
 }
 
+// ── Capital Gains Tax Calculator ──────────────────────────────────────────────
+export function CapitalGainsCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [proceeds, setProceeds] = useState("1500000");
+  const [baseCost, setBaseCost] = useState("800000");
+  const [entityType, setEntityType] = useState<"individual" | "company">("individual");
+  const [marginalRate, setMarginalRate] = useState("41");
+
+  const result = useMemo(() => {
+    const P = parseFloat(proceeds) || 0;
+    const B = parseFloat(baseCost) || 0;
+    const rate = parseFloat(marginalRate) || 0;
+    const gain = Math.max(0, P - B);
+    const exclusion = entityType === "individual" ? 40000 : 0;
+    const taxableGain = Math.max(0, gain - exclusion);
+    const inclusionRate = entityType === "individual" ? 0.40 : 0.80;
+    const includedGain = taxableGain * inclusionRate;
+    const taxPayable = includedGain * (rate / 100);
+    const effectiveCGTRate = gain > 0 ? (taxPayable / gain) * 100 : 0;
+    return { gain, exclusion, taxableGain, includedGain, taxPayable, effectiveCGTRate, inclusionRate };
+  }, [proceeds, baseCost, entityType, marginalRate]);
+
+  const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+  const inputStyle = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-capitalgains">
+      <div className="flex items-center gap-2">
+        <TrendingUp className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Capital Gains Tax Calculator</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>Estimate your CGT liability when selling a property, shares or other assets.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="col-span-2 space-y-1">
+          <span className="text-xs" style={{ color: tc.mutedText }}>Entity type</span>
+          <select value={entityType} onChange={e => setEntityType(e.target.value as any)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle}>
+            <option value="individual">Individual (excl. R40,000 / 40% inclusion)</option>
+            <option value="company">Company (no exclusion / 80% inclusion)</option>
+          </select>
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Sale proceeds (R)</span>
+          <input type="number" value={proceeds} onChange={e => setProceeds(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Base cost / purchase price (R)</span>
+          <input type="number" value={baseCost} onChange={e => setBaseCost(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="col-span-2 space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Your marginal income tax rate (%)</span>
+          <input type="number" step="1" min="18" max="45" value={marginalRate} onChange={e => setMarginalRate(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+      </div>
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Capital gain</span><span style={{ color: tc.textColor }}>{fmt(result.gain)}</span></div>
+        {entityType === "individual" && <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Annual exclusion</span><span style={{ color: "#10B981" }}>−{fmt(result.exclusion)}</span></div>}
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Taxable gain</span><span style={{ color: tc.textColor }}>{fmt(result.taxableGain)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Included at {(result.inclusionRate * 100).toFixed(0)}%</span><span style={{ color: tc.textColor }}>{fmt(result.includedGain)}</span></div>
+        <div className="border-t pt-1.5" style={{ borderColor: tc.borderColor }}>
+          <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Estimated CGT payable</span><span className="font-bold" style={{ color: tc.accentColor }}>{fmt(result.taxPayable)}</span></div>
+          <div className="flex justify-between text-xs mt-1"><span style={{ color: tc.mutedText }}>Effective CGT rate on gain</span><span style={{ color: tc.textColor }}>{result.effectiveCGTRate.toFixed(1)}%</span></div>
+        </div>
+      </div>
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Indicative estimate only. Excludes primary residence exclusion, rollover relief and other adjustments. Consult a tax advisor.</p>
+      <button
+        onClick={async () => {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
+          doc.text("Advisory Connect", 14, 16);
+          doc.setFontSize(11); doc.setFont("helvetica","normal");
+          doc.text("Capital Gains Tax Summary", 14, 26);
+          doc.setFontSize(9); doc.setTextColor(148,163,184);
+          doc.text(new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" }), 14, 33);
+          let y = 50;
+          doc.setTextColor(30,30,30); doc.setFontSize(12); doc.setFont("helvetica","bold");
+          doc.text("Inputs", 14, y); y += 8;
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          for (const [k, v] of [
+            ["Entity Type", entityType === "individual" ? "Individual" : "Company"],
+            ["Sale Proceeds", fmt(parseFloat(proceeds)||0)],
+            ["Base Cost", fmt(parseFloat(baseCost)||0)],
+            ["Marginal Tax Rate", `${marginalRate}%`],
+          ] as [string,string][]) {
+            doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setTextColor(30,30,30); doc.text(v, 120, y); y += 7;
+          }
+          y += 4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(30,30,30);
+          doc.text("Results", 14, y); y += 8;
+          doc.setFontSize(10);
+          for (const [k, v, rgb] of [
+            ["Capital Gain", fmt(result.gain), [30,30,30]],
+            ["Annual Exclusion", entityType==="individual"?`−${fmt(result.exclusion)}`:"N/A", [5,150,105]],
+            ["Taxable Gain", fmt(result.taxableGain), [30,30,30]],
+            [`Included at ${(result.inclusionRate*100).toFixed(0)}%`, fmt(result.includedGain), [30,30,30]],
+            ["Estimated CGT Payable", fmt(result.taxPayable), [29,78,216]],
+            ["Effective CGT Rate", `${result.effectiveCGTRate.toFixed(1)}%`, [100,100,100]],
+          ] as [string,string,[number,number,number]][]) {
+            doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setFont("helvetica","bold"); doc.setTextColor(rgb[0],rgb[1],rgb[2]); doc.text(v, 120, y); y += 7;
+          }
+          y += 6;
+          doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text("Indicative estimate only. Excludes primary residence exclusion, rollover relief and other adjustments.", 14, y, { maxWidth: 182 });
+          doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(8);
+          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.save("capital-gains-tax-summary.pdf");
+        }}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
+        style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+      >
+        <Download className="h-3.5 w-3.5" /> Download Summary PDF
+      </button>
+    </div>
+  );
+}
+
+// ── Pension / Provident Fund Calculator ───────────────────────────────────────
+export function PensionCalcSection({ tc }: { tc: ReturnType<typeof getThemeColors> }) {
+  const [salary, setSalary] = useState("30000");
+  const [empContr, setEmpContr] = useState("7.5");
+  const [emplContr, setEmplContr] = useState("7.5");
+  const [currentPot, setCurrentPot] = useState("0");
+  const [years, setYears] = useState("25");
+  const [returnPct, setReturnPct] = useState("9");
+
+  const result = useMemo(() => {
+    const S = parseFloat(salary) || 0;
+    const ec = (parseFloat(empContr) || 0) / 100;
+    const er = (parseFloat(emplContr) || 0) / 100;
+    const P = parseFloat(currentPot) || 0;
+    const t = parseFloat(years) || 0;
+    const r = (parseFloat(returnPct) || 0) / 100;
+    const monthlyContr = S * (ec + er);
+    const n = 12;
+    let total = P;
+    for (let m = 0; m < t * n; m++) total = total * (1 + r / n) + monthlyContr;
+    const annuityMonthly = (total * 0.04) / 12;
+    const replacementRatio = S > 0 ? (annuityMonthly / S) * 100 : 0;
+    return { total, monthlyContr, annuityMonthly, replacementRatio };
+  }, [salary, empContr, emplContr, currentPot, years, returnPct]);
+
+  const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
+  const inputStyle = { backgroundColor: tc.inputBg, border: `1px solid ${tc.inputBorder}`, color: tc.textColor };
+  const onTrack = result.replacementRatio >= 75;
+
+  return (
+    <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="section-pensioncalc">
+      <div className="flex items-center gap-2">
+        <PiggyBank className="h-4 w-4" style={{ color: tc.accentColor }} />
+        <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Pension / Provident Fund Calculator</h3>
+      </div>
+      <p className="text-xs" style={{ color: tc.mutedText }}>See what your pension or provident fund will look like at retirement based on current contributions.</p>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="col-span-2 space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Monthly salary (R)</span>
+          <input type="number" value={salary} onChange={e => setSalary(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Your contribution (%)</span>
+          <input type="number" step="0.5" value={empContr} onChange={e => setEmpContr(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Employer contribution (%)</span>
+          <input type="number" step="0.5" value={emplContr} onChange={e => setEmplContr(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Current fund balance (R)</span>
+          <input type="number" value={currentPot} onChange={e => setCurrentPot(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Years to retirement</span>
+          <input type="number" value={years} onChange={e => setYears(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+        <label className="col-span-2 space-y-1"><span className="text-xs" style={{ color: tc.mutedText }}>Expected annual return (%)</span>
+          <input type="number" step="0.5" value={returnPct} onChange={e => setReturnPct(e.target.value)} className="w-full px-2 py-1.5 rounded-md text-sm outline-none" style={inputStyle} />
+        </label>
+      </div>
+      <div className="rounded-lg p-3 space-y-1.5" style={{ backgroundColor: tc.inputBg }}>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Total monthly contribution</span><span style={{ color: tc.textColor }}>{fmt(result.monthlyContr)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Projected fund at retirement</span><span className="font-bold" style={{ color: tc.accentColor }}>{fmt(result.total)}</span></div>
+        <div className="flex justify-between text-xs"><span style={{ color: tc.mutedText }}>Estimated monthly pension (4%)</span><span style={{ color: tc.textColor }}>{fmt(result.annuityMonthly)}/mo</span></div>
+        <div className="flex justify-between text-xs">
+          <span style={{ color: tc.mutedText }}>Replacement ratio</span>
+          <span className="font-semibold" style={{ color: onTrack ? "#10B981" : "#F59E0B" }}>{result.replacementRatio.toFixed(0)}% {onTrack ? "✓" : "— below 75% target"}</span>
+        </div>
+      </div>
+      <p className="text-[10px] text-center" style={{ color: tc.mutedText }}>Educational estimate only. Excludes inflation, fees, and tax on withdrawal. Consult a registered financial planner.</p>
+      <button
+        onClick={async () => {
+          const { jsPDF } = await import("jspdf");
+          const doc = new jsPDF();
+          doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
+          doc.text("Advisory Connect", 14, 16);
+          doc.setFontSize(11); doc.setFont("helvetica","normal");
+          doc.text("Pension / Provident Fund Summary", 14, 26);
+          doc.setFontSize(9); doc.setTextColor(148,163,184);
+          doc.text(new Date().toLocaleDateString("en-ZA", { day:"numeric", month:"long", year:"numeric" }), 14, 33);
+          let y = 50;
+          doc.setTextColor(30,30,30); doc.setFontSize(12); doc.setFont("helvetica","bold");
+          doc.text("Inputs", 14, y); y += 8;
+          doc.setFont("helvetica","normal"); doc.setFontSize(10);
+          for (const [k, v] of [
+            ["Monthly Salary", fmt(parseFloat(salary)||0)],
+            ["Your Contribution", `${empContr}%`],
+            ["Employer Contribution", `${emplContr}%`],
+            ["Current Fund Balance", fmt(parseFloat(currentPot)||0)],
+            ["Years to Retirement", years],
+            ["Expected Return", `${returnPct}%`],
+          ] as [string,string][]) {
+            doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setTextColor(30,30,30); doc.text(v, 120, y); y += 7;
+          }
+          y += 4;
+          doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(30,30,30);
+          doc.text("Results", 14, y); y += 8;
+          doc.setFontSize(10);
+          for (const [k, v, rgb] of [
+            ["Total Monthly Contribution", fmt(result.monthlyContr), [30,30,30]],
+            ["Projected Fund at Retirement", fmt(result.total), [29,78,216]],
+            ["Estimated Monthly Pension", `${fmt(result.annuityMonthly)}/mo`, [5,150,105]],
+            ["Replacement Ratio", `${result.replacementRatio.toFixed(0)}% ${onTrack?"(On track)":"(Review needed)"}`, onTrack?[5,150,105]:[217,119,6]],
+          ] as [string,string,[number,number,number]][]) {
+            doc.setFont("helvetica","normal"); doc.setTextColor(100,100,100); doc.text(k, 14, y);
+            doc.setFont("helvetica","bold"); doc.setTextColor(rgb[0],rgb[1],rgb[2]); doc.text(v, 120, y); y += 8;
+          }
+          y += 6;
+          doc.setFont("helvetica","normal"); doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text("Educational estimate only. Excludes inflation, fees, and tax on withdrawal. Consult a registered financial planner.", 14, y, { maxWidth: 182 });
+          doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
+          doc.setTextColor(255,255,255); doc.setFontSize(8);
+          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.save("pension-fund-summary.pdf");
+        }}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
+        style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor, border: `1px solid ${tc.borderColor}` }}
+      >
+        <Download className="h-3.5 w-3.5" /> Download Summary PDF
+      </button>
+    </div>
+  );
+}
+
 function getEasterPub(year: number) {
   const a = year % 19, b = Math.floor(year / 100), c = year % 100;
   const d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
@@ -3000,6 +3238,12 @@ export default function AdvisorProfile() {
           ) : null,
           retirementcalc: (advisor as any).showRetirementCalc ? (
             <RetirementCalcSection tc={tc} />
+          ) : null,
+          capitalgainscalc: (advisor as any).showCapitalGainsCalc ? (
+            <CapitalGainsCalcSection tc={tc} />
+          ) : null,
+          pensioncalc: (advisor as any).showPensionCalc ? (
+            <PensionCalcSection tc={tc} />
           ) : null,
           calendar: (advisor as any).showFinancialCalendar ? (
             <FinancialCalendarSection tc={tc} />

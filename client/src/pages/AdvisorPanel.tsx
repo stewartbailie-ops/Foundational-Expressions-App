@@ -2799,6 +2799,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
   const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((advisor as any).dailyQuotesSet || "general");
   const [showCompoundCalc, setShowCompoundCalc] = useState(!!(advisor as any).showCompoundCalc);
   const [showRetirementCalc, setShowRetirementCalc] = useState(!!(advisor as any).showRetirementCalc);
+  const [showCapitalGainsCalc, setShowCapitalGainsCalc] = useState(!!(advisor as any).showCapitalGainsCalc);
+  const [showPensionCalc, setShowPensionCalc] = useState(!!(advisor as any).showPensionCalc);
   const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(advisor as any).showFinancialCalendar);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(!!(advisor as any).showFinancialDashboard);
   const [showSudoku, setShowSudoku] = useState(!!(advisor as any).showSudoku);
@@ -2905,6 +2907,8 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
         dailyQuotesSet,
         showCompoundCalc,
         showRetirementCalc,
+        showCapitalGainsCalc,
+        showPensionCalc,
         showFinancialCalendar,
         showFinancialDashboard,
         showSudoku,
@@ -3434,6 +3438,10 @@ function ProfileTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc:
           { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
           { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
           { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
+          { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
+          { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
+          { label: "Capital Gains Tax Calculator", value: showCapitalGainsCalc, set: setShowCapitalGainsCalc },
+          { label: "Pension / Provident Fund Calculator", value: showPensionCalc, set: setShowPensionCalc },
           { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
           { label: "Financial Health Dashboard", value: showFinancialDashboard, set: setShowFinancialDashboard },
           { label: "Game of the Day (Sudoku)", value: showSudoku, set: setShowSudoku },
@@ -3923,6 +3931,8 @@ function AdditionalProfileForm({
   const [dailyQuotesSet, setDailyQuotesSet] = useState<string>((existingProfile as any)?.dailyQuotesSet || "general");
   const [showCompoundCalc, setShowCompoundCalc] = useState(!!(existingProfile as any)?.showCompoundCalc);
   const [showRetirementCalc, setShowRetirementCalc] = useState(!!(existingProfile as any)?.showRetirementCalc);
+  const [showCapitalGainsCalc, setShowCapitalGainsCalc] = useState(!!(existingProfile as any)?.showCapitalGainsCalc);
+  const [showPensionCalc, setShowPensionCalc] = useState(!!(existingProfile as any)?.showPensionCalc);
   const [showFinancialCalendar, setShowFinancialCalendar] = useState(!!(existingProfile as any)?.showFinancialCalendar);
   const [showFinancialDashboard, setShowFinancialDashboard] = useState(!!(existingProfile as any)?.showFinancialDashboard);
   const [showSudoku, setShowSudoku] = useState(!!(existingProfile as any)?.showSudoku);
@@ -4020,6 +4030,8 @@ function AdditionalProfileForm({
         dailyQuotesSet,
         showCompoundCalc,
         showRetirementCalc,
+        showCapitalGainsCalc,
+        showPensionCalc,
         showFinancialCalendar,
         showFinancialDashboard,
         showSudoku,
@@ -4390,6 +4402,10 @@ function AdditionalProfileForm({
             { label: "Emergency Contacts", value: showEmergencyContacts, set: setShowEmergencyContacts },
             { label: "Live Markets (TradingView)", value: showTradingView, set: setShowTradingView },
             { label: "Daily Quote Card", value: showDailyQuotes, set: setShowDailyQuotes },
+            { label: "Compound Interest Calculator", value: showCompoundCalc, set: setShowCompoundCalc },
+            { label: "Retirement Savings Calculator", value: showRetirementCalc, set: setShowRetirementCalc },
+            { label: "Capital Gains Tax Calculator", value: showCapitalGainsCalc, set: setShowCapitalGainsCalc },
+            { label: "Pension / Provident Fund Calculator", value: showPensionCalc, set: setShowPensionCalc },
             { label: "Financial Calendar Widget", value: showFinancialCalendar, set: setShowFinancialCalendar },
             { label: "Financial Health Dashboard", value: showFinancialDashboard, set: setShowFinancialDashboard },
             { label: "Game of the Day (Sudoku)", value: showSudoku, set: setShowSudoku },

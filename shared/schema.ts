@@ -77,6 +77,8 @@ export const advisorProfiles = pgTable("advisor_profiles", {
   dailyQuotesSet: text("daily_quotes_set").default("general"),
   showCompoundCalc: boolean("show_compound_calc").default(false),
   showRetirementCalc: boolean("show_retirement_calc").default(false),
+  showCapitalGainsCalc: boolean("show_capital_gains_calc").default(false),
+  showPensionCalc: boolean("show_pension_calc").default(false),
   showFinancialCalendar: boolean("show_financial_calendar").default(false),
   showFinancialDashboard: boolean("show_financial_dashboard").default(false),
   showSudoku: boolean("show_sudoku").default(false),
@@ -181,6 +183,8 @@ export const advisors = pgTable("advisors", {
   dailyQuotesSet: text("daily_quotes_set").default("general"),
   showCompoundCalc: boolean("show_compound_calc").default(false),
   showRetirementCalc: boolean("show_retirement_calc").default(false),
+  showCapitalGainsCalc: boolean("show_capital_gains_calc").default(false),
+  showPensionCalc: boolean("show_pension_calc").default(false),
   showFinancialCalendar: boolean("show_financial_calendar").default(false),
   showFinancialDashboard: boolean("show_financial_dashboard").default(false),
   showSudoku: boolean("show_sudoku").default(false),
@@ -324,7 +328,7 @@ export const DEFAULT_PROFILE_SECTION_ORDER = [
   "bio", "moneyweb", "secondnews", "forex", "interactive", "funfacts",
   "individual", "corporate", "socials",
   "callback", "referral", "will", "tools", "platforms",
-  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "calendar", "financialdashboard", "sudoku", "dailytrivia", "riskprofilequiz",
+  "tradingview", "dailyquotes", "compoundcalc", "retirementcalc", "capitalgainscalc", "pensioncalc", "calendar", "financialdashboard", "sudoku", "dailytrivia", "riskprofilequiz",
 ] as const;
 
 export const PROFILE_SECTION_LABELS: Record<string, string> = {
@@ -346,6 +350,8 @@ export const PROFILE_SECTION_LABELS: Record<string, string> = {
   dailyquotes: "Quote of the Day",
   compoundcalc: "Compound Interest Calculator",
   retirementcalc: "Retirement Savings Calculator",
+  capitalgainscalc: "Capital Gains Tax Calculator",
+  pensioncalc: "Pension / Provident Fund Calculator",
   calendar: "Financial Calendar",
   financialdashboard: "Financial Health Dashboard",
   sudoku: "Game of the Day",
