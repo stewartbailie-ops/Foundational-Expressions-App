@@ -18,7 +18,6 @@ export const BACKGROUND_STYLE_OPTIONS = [
   { value: 4, label: "Diamond Grid" },
   { value: 5, label: "Crosshatch" },
   { value: 6, label: "Concentric Rings" },
-  { value: 7, label: "Tiled Name" },
 ] as const;
 
 // Premium image-pattern presets. Files live under `client/public/patterns/`

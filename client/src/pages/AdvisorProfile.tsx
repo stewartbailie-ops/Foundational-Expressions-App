@@ -2038,6 +2038,23 @@ export default function AdvisorProfile() {
 
         {/* Ordered Sections */}
         {(() => {
+          // Reusable collapsible wrapper for tool sections
+          const CollapsibleTool = ({ icon: Icon, label, children }: { icon: React.ElementType; label: string; children: React.ReactNode }) => {
+            const [open, setOpen] = useState(false);
+            return (
+              <div className="rounded-xl overflow-hidden" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+                <button type="button" onClick={() => setOpen(o => !o)} className="flex w-full items-center justify-between p-4 text-left">
+                  <div className="flex items-center gap-2">
+                    <Icon className="h-4 w-4" style={{ color: tc.accentColor }} />
+                    <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>{label}</h3>
+                  </div>
+                  <ChevronDown className={`h-4 w-4 shrink-0 transition-transform duration-200 ${open ? "rotate-180" : ""}`} style={{ color: tc.mutedText }} />
+                </button>
+                {open && <div style={{ borderTop: `1px solid ${tc.borderColor}` }}>{children}</div>}
+              </div>
+            );
+          };
+
           const sectionMap: Record<string, React.ReactNode> = {
             moneyweb: !!(advisor as any).showMoneywebFeed ? (
               <NewsHero accentColor={accentColor} borderColor={tc.borderColor} cardBg={cardBg} />
@@ -2883,13 +2900,19 @@ export default function AdvisorProfile() {
             <FinancialDashboard tc={tc} advisorName={advisor.name} collapsible />
           ) : null,
           sudoku: (advisor as any).showSudoku ? (
-            <SudokuCard tc={tc} />
+            <CollapsibleTool icon={Lightbulb} label="Game of the Day">
+              <SudokuCard tc={tc} />
+            </CollapsibleTool>
           ) : null,
           dailytrivia: (advisor as any).showDailyTrivia ? (
-            <DailyTriviaCard tc={tc} />
+            <CollapsibleTool icon={TrendingUp} label="Daily Finance Trivia">
+              <DailyTriviaCard tc={tc} />
+            </CollapsibleTool>
           ) : null,
           riskprofilequiz: (advisor as any).showRiskProfileQuiz ? (
-            <RiskProfileQuiz tc={tc} />
+            <CollapsibleTool icon={Users} label="Risk Profile Quiz">
+              <RiskProfileQuiz tc={tc} />
+            </CollapsibleTool>
           ) : null,
           };
           return profileSectionOrder.map((key, i) =>
