@@ -25,14 +25,27 @@ export const BACKGROUND_STYLE_OPTIONS = [
 // step with that file; the JSON is documentation, not fetched at runtime).
 // Gated behind `image_pattern_presets` Premium feature flag at the UI layer.
 export const IMAGE_PATTERN_OPTIONS = [
-  { key: "lattice",     label: "Lattice",     file: "dark_3d_lattice_scaffolding.jpg" },
-  { key: "stone",       label: "Stone",       file: "textured_grey_stone_cubes.jpg" },
-  { key: "carbon-gold", label: "Carbon Gold", file: "maroon_carbon_fiber_gold_trim.jpg" },
-  { key: "smoke",       label: "Smoke",       file: "teal_smoky_translucent_circles.jpg" },
-  { key: "hextech",     label: "Hextech",     file: "hexagons_orange_white_black.jpg" },
-  { key: "topographic", label: "Topographic", file: "topographic_lines_red_on_black.jpg" },
-  { key: "pentagons",   label: "Pentagons",   file: "neon_outlined_pentagons_black.jpg" },
-  { key: "neon-wave",   label: "Neon Wave",   file: "red_neon_wave_purple_ridges.jpg" },
+  { key: "lattice",        label: "Lattice",        file: "dark_3d_lattice_scaffolding.jpg" },
+  { key: "stone",          label: "Stone",          file: "textured_grey_stone_cubes.jpg" },
+  { key: "carbon-gold",    label: "Carbon Gold",    file: "maroon_carbon_fiber_gold_trim.jpg" },
+  { key: "smoke",          label: "Smoke",          file: "teal_smoky_translucent_circles.jpg" },
+  { key: "hextech",        label: "Hextech",        file: "hexagons_orange_white_black.jpg" },
+  { key: "topographic",    label: "Topographic",    file: "topographic_lines_red_on_black.jpg" },
+  { key: "pentagons",      label: "Pentagons",      file: "neon_outlined_pentagons_black.jpg" },
+  { key: "neon-wave",      label: "Neon Wave",      file: "red_neon_wave_purple_ridges.jpg" },
+  { key: "red-polygon",    label: "Red Polygon",    file: "cracked_black_polygons_red_veins.jpg" },
+  { key: "neon-blocks",    label: "Neon Blocks",    file: "geometric_blocks_teal_orange_pink_diagonal.jpg" },
+  { key: "urban-grunge",   label: "Urban Grunge",   file: "grunge_red_teal_chevrons.jpg" },
+  { key: "crimson-marble", label: "Crimson Marble", file: "navy_red_liquid_marble_swirls.jpg" },
+  { key: "rainbow-maze",   label: "Rainbow Maze",   file: "rainbow_maze_lines_pacman_style.jpg" },
+  { key: "red-topo",       label: "Red Topo",       file: "dense_red_contour_ridges.jpg" },
+  { key: "depth-blocks",   label: "Depth Blocks",   file: "red_teal_woodgrain_rounded_blocks.jpg" },
+  { key: "aqua-circles",   label: "Aqua Circles",   file: "teal_mountain_circles_collage.jpg" },
+  { key: "ember-bokeh",    label: "Ember Bokeh",    file: "teal_orange_bokeh_circles.jpg" },
+  { key: "lit-panels",     label: "Lit Panels",     file: "wooden_chevrons_orange_glow_blue.jpg" },
+  { key: "neon-pipes",     label: "Neon Pipes",     file: "3d_zigzag_pipes_neon_orange_teal_pink.jpg" },
+  { key: "red-lava",       label: "Red Lava",       file: "red_lava_marble_tight_crop.jpg" },
+  { key: "lava-wide",      label: "Lava Wide",      file: "red_black_lava_marble_wide.jpg" },
 ] as const;
 
 export function getImagePatternUrl(key: string | null | undefined): string | null {
