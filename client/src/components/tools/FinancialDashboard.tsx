@@ -325,6 +325,7 @@ function buildDashboardModel(inputs: PulseInputs, boost: number, taxableDeductio
 
 export function FinancialDashboard({ tc, advisorName, collapsible = false }: FinancialDashboardProps) {
   const { accentColor, borderColor, cardBg, inputBg, textColor, mutedText } = tc;
+  const gridColumns = (minRem: number) => ({ gridTemplateColumns: `repeat(auto-fit, minmax(min(${minRem}rem, 100%), 1fr))` });
   const [bodyOpen, setBodyOpen] = useState(!collapsible);
   const [inputs, setInputs] = useState(DEFAULT_INPUTS);
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -628,10 +629,10 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
   };
 
   return (
-    <section className="overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, boxShadow: "0 18px 48px rgba(0,0,0,0.18)" }} data-testid="financial-dashboard">
+    <section className="min-w-0 overflow-hidden rounded-2xl" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}`, boxShadow: "0 18px 48px rgba(0,0,0,0.18)" }} data-testid="financial-dashboard">
       <div className="p-4 sm:p-5" style={{ background: `linear-gradient(135deg, rgba(10,16,24,0.96) 0%, ${accentColor}2e 42%, rgba(16,185,129,0.26) 100%)`, borderBottom: bodyOpen ? `1px solid ${borderColor}` : undefined, cursor: collapsible ? "pointer" : "default" }} onClick={collapsible ? () => setBodyOpen(o => !o) : undefined} role={collapsible ? "button" : undefined}>
-        <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(18rem, 100%), 1fr))" }}>
-          <div className="space-y-3">
+        <div className="grid gap-4" style={gridColumns(21)}>
+          <div className="min-w-0 space-y-3">
             <div className="flex items-center justify-between">
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[11px] font-black uppercase" style={{ backgroundColor: `${accentColor}22`, color: accentColor, border: `1px solid ${accentColor}66` }}>
                 <HeartPulse className="h-3.5 w-3.5" /> Live simulation engine
@@ -666,16 +667,16 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
                   <p className="text-xs" style={{ color: "rgba(255,255,255,0.62)" }}>Educational snapshot</p>
                 </div>
                 <div className="grid grid-cols-2 overflow-hidden rounded-xl text-[11px] font-black" style={{ border: "1px solid rgba(255,255,255,0.18)" }}>
-                  <button type="button" onClick={() => setWithAdvisor(false)} className="px-3 py-2.5 transition-colors" style={{ backgroundColor: withAdvisor ? "rgba(255,255,255,0.04)" : "#ef4444", color: "#ffffff" }}>
+                  <button type="button" onClick={() => setWithAdvisor(false)} className="px-2.5 py-2.5 leading-tight transition-colors" style={{ backgroundColor: withAdvisor ? "rgba(255,255,255,0.04)" : "#ef4444", color: "#ffffff" }}>
                     Without advisor
                   </button>
-                  <button type="button" onClick={() => setWithAdvisor(true)} className="px-3 py-2.5 transition-colors" style={{ backgroundColor: withAdvisor ? "#10b981" : "rgba(255,255,255,0.04)", color: "#ffffff" }}>
+                  <button type="button" onClick={() => setWithAdvisor(true)} className="px-2.5 py-2.5 leading-tight transition-colors" style={{ backgroundColor: withAdvisor ? "#10b981" : "rgba(255,255,255,0.04)", color: "#ffffff" }}>
                     With advisor
                   </button>
                 </div>
               </div>
             </div>
-            <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(7rem, 100%), 1fr))" }}>
+            <div className="mt-3 grid gap-2" style={gridColumns(8)}>
               {[
                 ["Future", visibleModel.futureScore, futureColor],
                 ["Protection", visibleModel.protectionScore, protectionColor],
@@ -703,7 +704,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
               </span>
             )}
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
+          <div className="grid gap-3" style={gridColumns(13)}>
             <RangeInput label="Monthly gross income" value={inputs.grossIncome} display={ZAR(inputs.grossIncome)} min={10000} max={250000} step={1000} onChange={(value) => update("grossIncome", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-income" />
             <RangeInput label="Your age" value={inputs.age} display={`${inputs.age} yrs`} min={18} max={70} step={1} onChange={(value) => update("age", Math.min(value, inputs.retirementAge - 1))} accentColor={accentColor} mutedText={mutedText} testId="pulse-age" />
             <RangeInput label="Monthly investing" value={inputs.monthlySave} display={ZAR(inputs.monthlySave)} min={0} max={30000} step={250} onChange={(value) => update("monthlySave", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-saving" />
@@ -712,7 +713,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
             {advancedOpen ? "Hide" : "Tune"} assumptions and protection inputs <ArrowRight className={`h-3.5 w-3.5 transition-transform ${advancedOpen ? "rotate-90" : ""}`} />
           </button>
           {advancedOpen && (
-            <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
+            <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, ...gridColumns(12) }}>
               <NumberField label="Retirement age" value={inputs.retirementAge} min={inputs.age + 1} onChange={(value) => update("retirementAge", value)} suffix="yrs" inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
               <NumberField label="Investments now" value={inputs.currentInvestments} onChange={(value) => update("currentInvestments", value)} inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
               <NumberField label="Essential expenses" value={inputs.essentialExpenses} onChange={(value) => update("essentialExpenses", value)} inputBg={cardBg} borderColor={borderColor} textColor={textColor} mutedText={mutedText} />
@@ -728,7 +729,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
             </div>
           )}
         </div>
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(11rem, 100%), 1fr))" }}>
+        <div className="grid gap-2" style={gridColumns(12)}>
           <PulseRing label="Future readiness" score={visibleModel.futureScore} value={`${Math.round(visibleModel.retirementRatio * 100)}% of target`} color={futureColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Protection" score={visibleModel.protectionScore} value={`${(displayEmergencySavings / Math.max(effectiveInputs.essentialExpenses, 1)).toFixed(1)} months cash`} color={protectionColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
           <PulseRing label="Debt pressure" score={visibleModel.debtScore} value={`${Math.round(visibleModel.debtToIncome * 100)}% of gross pay`} color={debtColor} textColor={textColor} mutedText={mutedText} borderColor={borderColor} inputBg={inputBg} />
@@ -743,7 +744,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
               {scoreLiftText}
             </span>
           </div>
-          <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(13rem, 100%), 1fr))" }}>
+          <div className="grid gap-3" style={gridColumns(16)}>
             <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}>
               <p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Without advisor</p>
               <p className="mt-1 text-base font-black" style={{ color: textColor }}>Score: {model.score} ({scoreBand(model.score).label})</p>
@@ -763,7 +764,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
           </div>
           <p className="mt-2 text-[11px] leading-relaxed" style={{ color: mutedText }}>Illustrative optimisation. Actual results depend on your full financial plan.</p>
         </div>
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
+        <div className="grid gap-2" style={gridColumns(16)}>
           <InsightCard icon={<Banknote className="h-4 w-4" />} title="What SARS takes" value={`${ZAR(visibleModel.taxMonthly)} / month`} detail={`${ZAR(visibleModel.takeHome)} remains before the rest of life starts spending it.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.taxMonthly / Math.max(effectiveInputs.grossIncome, 1)) * 100} />
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation squeeze" value={`${ZAR(visibleModel.futureIncomeValue)} real pay`} detail={`Your ${ZAR(effectiveInputs.grossIncome)} monthly income only feels like this in ${visibleModel.years} years at ${effectiveInputs.inflation}% inflation.`} color="#f59e0b" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.futureIncomeValue / Math.max(effectiveInputs.grossIncome, 1)) * 100} />
           <InsightCard icon={<PiggyBank className="h-4 w-4" />} title="Retirement gap" value={visibleModel.retirementRatio >= 1 ? "Target covered" : `${compactZar(visibleModel.retirementNeed - visibleModel.retirementPot)} gap`} detail={`${compactZar(visibleModel.retirementPot)} projected pot, worth ${compactZar(visibleModel.realPot)} in today's money.`} color={futureColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={visibleModel.retirementRatio * 100} />
@@ -790,11 +791,11 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
         </div>
         <div className="grid gap-3">
           <div className="rounded-xl p-3" style={{ background: `linear-gradient(135deg, ${inputBg}, rgba(245,158,11,0.10))`, border: `1px solid ${borderColor}` }}>
-            <div className="grid gap-3" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(10rem, 100%), 1fr))" }}>
+            <div className="grid gap-3" style={gridColumns(14)}>
               <div><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>What changes most?</p><p className="text-sm font-bold" style={{ color: textColor }}>Add {ZAR(boost)} to monthly investing</p></div>
               <div className="w-full"><RangeInput label="Monthly boost" value={boost} display={ZAR(boost)} min={0} max={5000} step={250} onChange={setBoost} accentColor={accentColor} mutedText={mutedText} testId="pulse-boost" /></div>
             </div>
-            <div className="mt-3 grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(8rem, 100%), 1fr))" }}>
+            <div className="mt-3 grid gap-2" style={gridColumns(9)}>
               <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Current path</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(visibleModel.retirementPot)}</p></div>
               <div className="rounded-lg p-3" style={{ backgroundColor: cardBg, border: `1px solid ${borderColor}` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Small change</p><p className="text-lg font-black" style={{ color: accentColor }}>{compactZar(visibleModel.improvedPot)}</p></div>
               <div className="rounded-lg p-3" style={{ backgroundColor: `${accentColor}16`, border: `1px solid ${accentColor}55` }}><p className="text-[11px] font-semibold uppercase" style={{ color: mutedText }}>Difference</p><p className="text-lg font-black" style={{ color: textColor }}>{compactZar(visibleModel.improvedPot - visibleModel.retirementPot)}</p></div>
@@ -819,7 +820,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
               </div>
             )}
             {lifeEventsOpen && (
-              <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, gridTemplateColumns: "repeat(auto-fit, minmax(min(9rem, 100%), 1fr))" }}>
+              <div className="mt-3 grid gap-2 border-t pt-3" style={{ borderColor, ...gridColumns(10.5) }}>
                 {LIFE_EVENTS.map((event) => {
                   const checked = lifeEvents.includes(event.key);
                   return (
@@ -853,7 +854,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
             <div className="rounded-lg p-3 text-xs leading-relaxed" style={{ backgroundColor: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.24)", color: mutedText }}>These flags are conversation starters. A full needs analysis still belongs with the advisor.</div>
           </div>
         </div>
-        <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(min(14rem, 100%), 1fr))" }}>
+        <div className="grid gap-2" style={gridColumns(16)}>
           <InsightCard icon={<TrendingDown className="h-4 w-4" />} title="Inflation eats the lump sum" value={`${compactZar(visibleModel.lumpSumRealValue)} real value`} detail={`${compactZar(effectiveInputs.futureLumpSum)} today after ${visibleModel.years} years of inflation pressure.`} color="#ef4444" borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} bar={(visibleModel.lumpSumRealValue / Math.max(effectiveInputs.futureLumpSum, 1)) * 100} />
           <InsightCard icon={<AlertTriangle className="h-4 w-4" />} title="Debt freedom" value={visibleModel.debt.canPay ? visibleModel.debt.months > 0 ? `${visibleModel.debt.months} months` : "No debt loaded" : "Payment stalls"} detail={visibleModel.debt.canPay ? `${compactZar(Math.max(0, visibleModel.debt.totalPaid - effectiveInputs.debtBalance))} estimated interest on the current payoff path.` : "The current payment does not clear monthly interest. Raise the payment or lower the rate."} color={debtColor} borderColor={borderColor} inputBg={inputBg} textColor={textColor} mutedText={mutedText} />
         </div>
