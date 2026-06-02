@@ -206,4 +206,48 @@ The following constitute proprietary intellectual property covered by this agree
 
 ---
 
+## 12. Acknowledgement and Signatures
+
+By signing below, the undersigned directors confirm, on behalf of their respective companies, that they have read and understood this System Technical Description and agree that it forms part of, and is governed by, the associated Non-Disclosure Agreement. Each party acknowledges that the elements identified in Section 11 constitute confidential and proprietary information.
+
+**Date of execution:** _______________________
+
+---
+
+### Disclosing Party — Core Financials
+
+Signed by a duly authorised director:
+
+| | |
+|---|---|
+| Signature | _________________________________ |
+| Full name | _________________________________ |
+| Title / Position | _________________________________ |
+| Date | _________________________________ |
+
+---
+
+### Receiving Party — ______________________________________
+
+Signed by a duly authorised director:
+
+| | |
+|---|---|
+| Signature | _________________________________ |
+| Full name | _________________________________ |
+| Title / Position | _________________________________ |
+| Date | _________________________________ |
+
+---
+
+### Witness
+
+| | |
+|---|---|
+| Signature | _________________________________ |
+| Full name | _________________________________ |
+| Date | _________________________________ |
+
+---
+
 *This document provides a plain-English technical summary of the Advisory Connect platform for the purpose of defining the scope of confidential information covered by the associated Non-Disclosure Agreement. It does not constitute complete technical documentation and is not intended for use as a deployment or development guide.*
