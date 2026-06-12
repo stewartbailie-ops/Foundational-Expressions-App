@@ -705,7 +705,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
             )}
           </div>
           <div className="grid gap-3" style={gridColumns(13)}>
-            <RangeInput label="Monthly gross income" value={inputs.grossIncome} display={ZAR(inputs.grossIncome)} min={10000} max={1000000} step={5000} onChange={(value) => update("grossIncome", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-income" />
+            <RangeInput label="Monthly gross income" value={inputs.grossIncome} display={ZAR(inputs.grossIncome)} min={10000} max={250000} step={1000} onChange={(value) => update("grossIncome", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-income" />
             <RangeInput label="Your age" value={inputs.age} display={`${inputs.age} yrs`} min={18} max={70} step={1} onChange={(value) => update("age", Math.min(value, inputs.retirementAge - 1))} accentColor={accentColor} mutedText={mutedText} testId="pulse-age" />
             <RangeInput label="Monthly investing" value={inputs.monthlySave} display={ZAR(inputs.monthlySave)} min={0} max={30000} step={250} onChange={(value) => update("monthlySave", value)} accentColor={accentColor} mutedText={mutedText} testId="pulse-saving" />
           </div>

@@ -102,6 +102,7 @@ export type AdvisorProfile = typeof advisorProfiles.$inferSelect;
 
 export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),
+  orgId: integer("org_id"),
   name: text("name").notNull(),
   email: text("email").notNull(),
   contactNumber: text("contact_number"),

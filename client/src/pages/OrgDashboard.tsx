@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import {
   Users, Activity, Mail, MousePointerClick,
-  Loader2, LogOut, Plus, Building2,
+  Loader2, LogOut, Plus, Building2, ShieldCheck, Trash2, UserPlus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -12,6 +12,8 @@ type OrgSession = {
   orgId: number;
   orgName: string;
   seatLimit: number;
+  adminName: string;
+  adminRole: string;
 };
 
 type OrgStats = {
@@ -28,6 +30,15 @@ type OrgAdvisor = {
   profileSlug: string;
   active: boolean;
   createdAt: string;
+};
+
+type OrgTeamMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: "owner" | "admin" | string;
+  createdAt: string | null;
+  isSelf: boolean;
 };
 
 const GLASS_BG = "rgba(255,255,255,0.06)";
@@ -214,9 +225,132 @@ function AddAdvisorModal({
   );
 }
 
+function AddTeamMemberModal({
+  onClose, onSuccess,
+}: {
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [role, setRole] = useState<"owner" | "admin">("admin");
+  const [showPw, setShowPw] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/org/team", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          password,
+          role,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || "Failed to add team member");
+        setLoading(false);
+        return;
+      }
+      onSuccess();
+      onClose();
+    } catch {
+      setError("Connection error. Please try again.");
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div
+        className="w-full max-w-md rounded-2xl p-6 space-y-4"
+        style={{ backgroundColor: "#111", border: "1px solid rgba(255,255,255,0.12)" }}
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold text-white">Add Team Member</h2>
+          <button onClick={onClose} className="text-white/40 hover:text-white/70 text-2xl leading-none">&times;</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="text"
+            placeholder="Full name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
+          />
+          <input
+            type="email"
+            placeholder="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
+          />
+          <div className="relative">
+            <input
+              type={showPw ? "text" : "password"}
+              placeholder="Temporary password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              minLength={8}
+              className="w-full px-4 py-3 pr-16 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 min-h-[44px] px-2 text-xs text-white/40 hover:text-white/70 transition-colors"
+            >
+              {showPw ? "Hide" : "Show"}
+            </button>
+          </div>
+          <select
+            value={role}
+            onChange={(e) => setRole(e.target.value as "owner" | "admin")}
+            className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white text-sm focus:outline-none focus:border-white/40 transition-colors"
+          >
+            <option value="admin" className="bg-black">Admin</option>
+            <option value="owner" className="bg-black">Owner</option>
+          </select>
+
+          {error && <p className="text-red-300 text-sm">{error}</p>}
+
+          <div className="flex gap-2 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl border border-white/15 text-white/60 text-sm hover:text-white/80 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 disabled:opacity-40 transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Member"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function OrgDashboard() {
-  const [tab, setTab] = useState<"overview" | "advisors" | "subscription">("overview");
+  const [tab, setTab] = useState<"overview" | "advisors" | "team" | "subscription">("overview");
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddTeamModal, setShowAddTeamModal] = useState(false);
   const [, navigate] = useLocation();
   const queryClient = useQueryClient();
 
@@ -232,6 +366,11 @@ export default function OrgDashboard() {
 
   const { data: advisors = [] } = useQuery<OrgAdvisor[]>({
     queryKey: ["/api/org/advisors"],
+    enabled: !!session?.authenticated,
+  });
+
+  const { data: team = [] } = useQuery<OrgTeamMember[]>({
+    queryKey: ["/api/org/team"],
     enabled: !!session?.authenticated,
   });
 
@@ -251,6 +390,20 @@ export default function OrgDashboard() {
     },
   });
 
+  const deleteTeamMember = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/org/team/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to remove team member");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/org/team"] });
+    },
+  });
+
   const handleLogout = async () => {
     await fetch("/api/org/logout", { method: "POST" });
     navigate("/org/login");
@@ -260,6 +413,7 @@ export default function OrgDashboard() {
   const seatLimit = session?.seatLimit ?? 50;
   const seatPct = seatLimit > 0 ? Math.round((seatsUsed / seatLimit) * 100) : 0;
   const seatColor = seatPct >= 90 ? "#EF4444" : seatPct >= 70 ? "#F59E0B" : "#10B981";
+  const ownerCount = team.filter((member) => member.role === "owner").length;
 
   return (
     <OrgAuthGate>
@@ -273,7 +427,9 @@ export default function OrgDashboard() {
               <h1 className="text-white font-semibold text-sm leading-tight">
                 {session?.orgName ?? "Organisation"}
               </h1>
-              <p className="text-white/40 text-xs">Organisation Dashboard</p>
+              <p className="text-white/40 text-xs">
+                {session?.adminName ? `${session.adminName} - ${session.adminRole}` : "Organisation Dashboard"}
+              </p>
             </div>
           </div>
           <button
@@ -288,7 +444,7 @@ export default function OrgDashboard() {
         {/* Tabs */}
         <div className="border-b border-white/10 px-6">
           <div className="flex gap-1">
-            {(["overview", "advisors", "subscription"] as const).map((t) => (
+            {(["overview", "advisors", "team", "subscription"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -430,6 +586,106 @@ export default function OrgDashboard() {
             </div>
           )}
 
+          {tab === "team" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-white text-xl font-bold">Team</h2>
+                  <p className="text-white/50 text-sm mt-1">Manage organisation admins and owners</p>
+                </div>
+                <button
+                  onClick={() => setShowAddTeamModal(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition-all"
+                >
+                  <UserPlus className="h-4 w-4" />
+                  Add Team Member
+                </button>
+              </div>
+
+              <div
+                className="rounded-xl p-4 flex items-start gap-3"
+                style={{ backgroundColor: "rgba(245,158,11,0.08)", border: "1px solid rgba(245,158,11,0.2)" }}
+              >
+                <ShieldCheck className="h-5 w-5 text-amber-300 mt-0.5 flex-shrink-0" />
+                <div>
+                  <div className="text-white font-medium text-sm">Owner access controls the organisation.</div>
+                  <div className="text-white/50 text-sm mt-1">
+                    You cannot remove yourself, and the final owner is protected so the organisation never loses admin control.
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${GLASS_BORDER}` }}>
+                {team.length === 0 ? (
+                  <div className="p-10 text-center text-white/40 text-sm">
+                    No team members yet.
+                  </div>
+                ) : (
+                  <table className="w-full">
+                    <thead>
+                      <tr style={{ backgroundColor: "rgba(255,255,255,0.04)", borderBottom: `1px solid ${GLASS_BORDER}` }}>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-white/50">Name</th>
+                        <th className="text-left px-4 py-3 text-xs font-medium text-white/50 hidden md:table-cell">Email</th>
+                        <th className="text-center px-4 py-3 text-xs font-medium text-white/50">Role</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-white/50">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {team.map((member, i) => {
+                        const isLastOwner = member.role === "owner" && ownerCount <= 1;
+                        const deleteDisabled = member.isSelf || isLastOwner || deleteTeamMember.isPending;
+                        return (
+                          <tr
+                            key={member.id}
+                            className="hover:bg-white/[0.02] transition-colors"
+                            style={{ borderBottom: i < team.length - 1 ? `1px solid ${GLASS_BORDER}` : "none" }}
+                          >
+                            <td className="px-4 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-white text-sm font-medium">{member.name}</span>
+                                {member.isSelf && (
+                                  <span className="px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-300 text-[10px] font-semibold border border-blue-500/25">
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3.5 hidden md:table-cell">
+                              <span className="text-white/50 text-sm">{member.email}</span>
+                            </td>
+                            <td className="px-4 py-3.5 text-center">
+                              <span
+                                className="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium capitalize"
+                                style={{
+                                  backgroundColor: member.role === "owner" ? "rgba(245,158,11,0.15)" : "rgba(255,255,255,0.06)",
+                                  color: member.role === "owner" ? "#F59E0B" : "rgba(255,255,255,0.65)",
+                                  border: `1px solid ${member.role === "owner" ? "rgba(245,158,11,0.3)" : "rgba(255,255,255,0.10)"}`,
+                                }}
+                              >
+                                {member.role}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3.5 text-right">
+                              <button
+                                onClick={() => deleteTeamMember.mutate(member.id)}
+                                disabled={deleteDisabled}
+                                title={member.isSelf ? "You cannot remove yourself" : isLastOwner ? "Cannot remove the last owner" : "Remove team member"}
+                                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/15 disabled:opacity-35 disabled:cursor-not-allowed transition-all"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Remove
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* ── Subscription ── */}
           {tab === "subscription" && (
             <div className="space-y-6">
@@ -530,6 +786,15 @@ export default function OrgDashboard() {
             queryClient.invalidateQueries({ queryKey: ["/api/org/advisors"] });
             queryClient.invalidateQueries({ queryKey: ["/api/org/stats"] });
             setTab("advisors");
+          }}
+        />
+      )}
+      {showAddTeamModal && (
+        <AddTeamMemberModal
+          onClose={() => setShowAddTeamModal(false)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["/api/org/team"] });
+            setTab("team");
           }}
         />
       )}
