@@ -1,9 +1,11 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { advisors, organisations, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { db } from "./db";
 import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
+import { and, count, eq, sql } from "drizzle-orm";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -82,12 +84,32 @@ const safeInsertAdvisorSchema = insertAdvisorSchema.extend(URL_FIELD_OVERRIDES);
 const safeInsertAdvisorProfileSchema = insertAdvisorProfileSchema.extend(URL_FIELD_OVERRIDES);
 // PATCH must never let the caller change ownership of a profile to another advisor.
 const safeUpdateAdvisorProfileSchema = safeInsertAdvisorProfileSchema.omit({ advisorId: true }).partial();
+const orgLoginSchema = z.object({
+  adminEmail: z.string().email(),
+  password: z.string().min(1),
+});
+const orgAdvisorStatusSchema = z.object({
+  isActive: z.boolean().optional(),
+  active: z.boolean().optional(),
+});
 
 const otpStore = new Map<string, { code: string; expires: number }>();
 
 function routeParam(value: string | string[] | undefined): string {
   if (value === undefined) return "";
   return Array.isArray(value) ? value[0] : value;
+}
+
+function orgSessionId(req: import("express").Request): number | null {
+  const session = req.session as any;
+  return session?.orgAuthenticated === true && typeof session?.orgId === "number"
+    ? session.orgId
+    : null;
+}
+
+function withoutAdvisorPassword<T extends { advisorPasswordHash?: string | null }>(advisor: T) {
+  const { advisorPasswordHash: _passwordHash, ...safeAdvisor } = advisor;
+  return safeAdvisor;
 }
 
 // Returns true if the request session is allowed to manage the given advisor's data.
@@ -539,6 +561,170 @@ export async function registerRoutes(
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     res.json(toPublicAdvisor(advisor));
+  });
+
+  app.post("/api/org/login", loginLimiter, async (req, res) => {
+    const parsed = orgLoginSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const [org] = await db
+      .select()
+      .from(organisations)
+      .where(sql`lower(${organisations.adminEmail}) = ${parsed.data.adminEmail.toLowerCase()}`);
+
+    if (!org) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const ok = await bcrypt.compare(parsed.data.password, org.adminPasswordHash);
+    if (!ok) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const session = req.session as any;
+    session.orgId = org.id;
+    session.orgAuthenticated = true;
+
+    res.json({
+      authenticated: true,
+      orgId: org.id,
+      orgName: org.name,
+      seatLimit: org.seatLimit,
+    });
+  });
+
+  app.get("/api/org/session", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ authenticated: false });
+
+    const [org] = await db
+      .select()
+      .from(organisations)
+      .where(eq(organisations.id, orgId));
+
+    if (!org) return res.status(401).json({ authenticated: false });
+
+    res.json({
+      authenticated: true,
+      orgId: org.id,
+      orgName: org.name,
+      seatLimit: org.seatLimit,
+    });
+  });
+
+  app.post("/api/org/logout", async (req, res) => {
+    req.session.destroy(() => {
+      res.json({ authenticated: false });
+    });
+  });
+
+  app.get("/api/org/advisors", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const rows = await db
+      .select()
+      .from(advisors)
+      .where(eq(advisors.orgId, orgId));
+
+    res.json(rows.map(withoutAdvisorPassword));
+  });
+
+  app.post("/api/org/advisors", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const [org] = await db
+      .select()
+      .from(organisations)
+      .where(eq(organisations.id, orgId));
+    if (!org) return res.status(401).json({ message: "Unauthorized" });
+
+    const [seatCount] = await db
+      .select({ value: count() })
+      .from(advisors)
+      .where(eq(advisors.orgId, orgId));
+
+    if ((seatCount?.value ?? 0) >= org.seatLimit) {
+      return res.status(403).json({ message: "Organisation seat limit reached" });
+    }
+
+    const parsed = safeInsertAdvisorSchema.safeParse({ ...req.body, orgId });
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    }
+
+    try {
+      const advisor = await storage.createAdvisor(parsed.data);
+      res.status(201).json(withoutAdvisorPassword(advisor));
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "Advisor email or profile URL is already taken." });
+      }
+      throw err;
+    }
+  });
+
+  app.patch("/api/org/advisors/:id", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const parsed = orgAdvisorStatusSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    }
+
+    const active = parsed.data.isActive ?? parsed.data.active;
+    if (typeof active !== "boolean") {
+      return res.status(400).json({ message: "isActive must be a boolean" });
+    }
+
+    const advisorId = Number(req.params.id);
+    if (!Number.isFinite(advisorId)) {
+      return res.status(400).json({ message: "Invalid advisor id" });
+    }
+
+    const [updated] = await db
+      .update(advisors)
+      .set({ active })
+      .where(and(eq(advisors.id, advisorId), eq(advisors.orgId, orgId)))
+      .returning();
+
+    if (!updated) return res.status(404).json({ message: "Advisor not found" });
+    res.json(withoutAdvisorPassword(updated));
+  });
+
+  app.get("/api/org/stats", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const [totalAdvisors] = await db
+      .select({ value: count() })
+      .from(advisors)
+      .where(eq(advisors.orgId, orgId));
+    const [activeAdvisors] = await db
+      .select({ value: count() })
+      .from(advisors)
+      .where(and(eq(advisors.orgId, orgId), eq(advisors.active, true)));
+    const [totalLeads] = await db
+      .select({ value: count() })
+      .from(emails)
+      .innerJoin(advisors, eq(emails.advisorId, advisors.id))
+      .where(eq(advisors.orgId, orgId));
+    const [totalProfileViews] = await db
+      .select({ value: count() })
+      .from(stats)
+      .innerJoin(advisors, eq(stats.advisorId, advisors.id))
+      .where(sql`${advisors.orgId} = ${orgId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%')`);
+
+    res.json({
+      totalAdvisors: totalAdvisors?.value ?? 0,
+      activeAdvisors: activeAdvisors?.value ?? 0,
+      totalLeads: totalLeads?.value ?? 0,
+      totalProfileViews: totalProfileViews?.value ?? 0,
+    });
   });
 
   app.get("/api/advisors/:id", async (req, res) => {

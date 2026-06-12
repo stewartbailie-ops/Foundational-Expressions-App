@@ -6,6 +6,9 @@ const PUBLIC_API_ROUTES = [
   "/api/advisor/login",
   "/api/advisor/session",
   "/api/advisor/logout",
+  "/api/org/login",
+  "/api/org/session",
+  "/api/org/logout",
   "/api/referral",
   "/api/callback",
   "/api/demo-emails",
@@ -64,6 +67,13 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   if ((req.session as any)?.authenticated) {
+    return next();
+  }
+
+  if (
+    req.path.startsWith("/api/org/") &&
+    (req.session as any)?.orgAuthenticated === true
+  ) {
     return next();
   }
 

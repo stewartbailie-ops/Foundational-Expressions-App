@@ -36,6 +36,10 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
   ["image_pattern_key",         "text"],
 ];
 
+const ADVISOR_ONLY_COLUMNS: [string, string][] = [
+  ["org_id", "integer REFERENCES organisations(id)"],
+];
+
 // Lead-table additive columns. Same pattern, separate list because the parent
 // table is `emails`, not advisors/advisor_profiles.
 const EMAILS_COLUMNS: [string, string][] = [
@@ -74,6 +78,22 @@ export async function runStartupMigrations() {
     );
   }
 
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS organisations (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL,
+      slug TEXT NOT NULL UNIQUE,
+      admin_email TEXT NOT NULL,
+      admin_password_hash TEXT NOT NULL,
+      logo_url TEXT,
+      primary_color TEXT,
+      seat_limit INTEGER NOT NULL DEFAULT 50,
+      features JSONB NOT NULL DEFAULT '{}',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  console.log("[migrations] organisations table verified");
+
   for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
     await db.execute(
       sql.raw(`ALTER TABLE advisor_profiles ADD COLUMN IF NOT EXISTS ${col} ${def}`)
@@ -88,6 +108,13 @@ export async function runStartupMigrations() {
     );
   }
   console.log("[migrations] advisors columns verified");
+
+  for (const [col, def] of ADVISOR_ONLY_COLUMNS) {
+    await db.execute(
+      sql.raw(`ALTER TABLE advisors ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    );
+  }
+  console.log("[migrations] advisor org columns verified");
 
   // Task #26 — Paystack subscription columns. All nullable / safely-defaulted so
   // existing advisor rows continue to behave as "trial" until a checkout completes.
