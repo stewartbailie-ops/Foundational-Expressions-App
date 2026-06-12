@@ -25,6 +25,9 @@ const AdvisorPanel = lazy(() => import("@/pages/AdvisorPanel"));
 const LegalPage = lazy(() => import("@/pages/LegalPage"));
 const BookOfLifePage = lazy(() => import("@/pages/BookOfLifePage"));
 const BookOfLifeCard = lazy(() => import("@/pages/BookOfLifeCard"));
+// Org admin
+const OrgLogin = lazy(() => import("@/pages/OrgLogin"));
+const OrgDashboard = lazy(() => import("@/pages/OrgDashboard"));
 
 function PageFallback() {
   return (
@@ -104,12 +107,14 @@ function SlugWill() {
   return <WillForm />;
 }
 
-const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor", "privacy-policy", "terms"];
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor", "privacy-policy", "terms", "org"];
 
 function Router() {
   return (
     <Suspense fallback={<PageFallback />}>
     <Switch>
+      <Route path="/org/login" component={OrgLogin} />
+      <Route path="/org/dashboard" component={OrgDashboard} />
       <Route path="/bol/:token/card" component={BookOfLifeCard} />
       <Route path="/bol/:token" component={BookOfLifePage} />
       <Route path="/privacy-policy">{() => <LegalPage section="privacy" />}</Route>
