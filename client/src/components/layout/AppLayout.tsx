@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Home, LayoutDashboard, Users, Inbox, LogOut } from "lucide-react";
+import { Home, LayoutDashboard, Users, Inbox, LogOut, Building2 } from "lucide-react";
 import { queryClient } from "@/lib/queryClient";
 import { BrandFooter, MASTER_FOOTER_THEME } from "@/components/BrandFooter";
 
@@ -14,6 +14,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { href: "/", label: "Home", icon: Home },
     { href: "/manage", label: "Manage Advisors", icon: Users },
+    { href: "/orgs", label: "Organisations", icon: Building2 },
     { href: "/civ", label: "Client Information Viewer", icon: Inbox },
     { href: "/stats", label: "Stats Tracker", icon: LayoutDashboard },
   ];

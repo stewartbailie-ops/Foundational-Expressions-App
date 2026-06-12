@@ -28,6 +28,7 @@ const BookOfLifeCard = lazy(() => import("@/pages/BookOfLifeCard"));
 // Org admin
 const OrgLogin = lazy(() => import("@/pages/OrgLogin"));
 const OrgDashboard = lazy(() => import("@/pages/OrgDashboard"));
+const ManageOrgs = lazy(() => import("@/pages/ManageOrgs"));
 
 function PageFallback() {
   return (
@@ -107,7 +108,7 @@ function SlugWill() {
   return <WillForm />;
 }
 
-const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "profile", "api", "uploads", "advisor", "privacy-policy", "terms", "org"];
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "orgs", "profile", "api", "uploads", "advisor", "privacy-policy", "terms", "org"];
 
 function Router() {
   return (
@@ -137,6 +138,7 @@ function Router() {
                     <Route path="/stats" component={Dashboard}/>
                     <Route path="/civ" component={CIV}/>
                     <Route path="/manage" component={ManageAdvisors}/>
+                    <Route path="/orgs" component={ManageOrgs}/>
                     <Route path="/create" component={CreateAdvisor}/>
                     <Route path="/edit/:id" component={EditAdvisor}/>
                     <Route component={NotFound} />
@@ -162,6 +164,7 @@ function Router() {
               <Route path="/stats" component={Dashboard}/>
               <Route path="/civ" component={CIV}/>
               <Route path="/manage" component={ManageAdvisors}/>
+              <Route path="/orgs" component={ManageOrgs}/>
               <Route path="/create" component={CreateAdvisor}/>
               <Route path="/edit/:id" component={EditAdvisor}/>
               <Route component={NotFound} />

@@ -513,6 +513,55 @@ export async function registerRoutes(
     res.json({ sendgrid: isSendGridConfigured() });
   });
 
+  // ── Master admin: Organisation management ────────────────────────────────
+  app.get("/api/admin/orgs", async (_req, res) => {
+    const result = await db.execute(sql.raw(`
+      SELECT
+        o.id, o.name, o.slug, o.seat_limit, o.created_at,
+        COUNT(DISTINCT oa.id)::int  AS admin_count,
+        COUNT(DISTINCT a.id)::int   AS advisor_count
+      FROM organisations o
+      LEFT JOIN org_admins oa ON oa.org_id = o.id
+      LEFT JOIN advisors    a  ON a.org_id  = o.id
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+    `));
+    res.json(result.rows ?? []);
+  });
+
+  app.post("/api/admin/orgs", async (req, res) => {
+    const { orgName, slug, seatLimit, adminName, adminEmail, adminPassword } = req.body;
+    if (!orgName?.trim() || !slug?.trim() || !adminName?.trim() || !adminEmail?.trim() || !adminPassword) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const cleanSlug = (slug as string).trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const cleanEmail = (adminEmail as string).trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+    try {
+      const orgResult = await db.execute(sql`
+        INSERT INTO organisations (name, slug, seat_limit, admin_email, admin_password_hash)
+        VALUES (${(orgName as string).trim()}, ${cleanSlug}, ${Number(seatLimit) || 50}, ${cleanEmail}, ${passwordHash})
+        RETURNING id
+      `);
+      const orgId = (orgResult.rows?.[0] as any)?.id;
+
+      await db.execute(sql`
+        INSERT INTO org_admins (org_id, name, email, password_hash, role)
+        VALUES (${orgId}, ${(adminName as string).trim()}, ${cleanEmail}, ${passwordHash}, 'owner')
+      `);
+
+      res.status(201).json({ message: "Organisation created", orgId });
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "That slug or email is already taken." });
+      }
+      throw err;
+    }
+  });
+  // ─────────────────────────────────────────────────────────────────────────
+
   app.get("/api/advisors", async (_req, res) => {
     const advisors = await storage.getAdvisors();
     res.json(advisors);
