@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import React, { lazy, Suspense } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider, useQuery } from "@tanstack/react-query";
@@ -35,7 +35,8 @@ function PageFallback() {
 }
 
 function AuthGate({ children }: { children: React.ReactNode }) {
-  const { data, isLoading, refetch } = useQuery<{ authenticated: boolean }>({
+  const [confirmed, setConfirmed] = React.useState(false);
+  const { data, isLoading, refetch } = useQuery<{ authenticated: boolean; adminEmail: string | null }>({
     queryKey: ["/api/auth/session"],
     staleTime: Infinity,
     retry: false,
@@ -50,7 +51,41 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   }
 
   if (!data?.authenticated) {
-    return <Login onLogin={() => refetch()} />;
+    return <Login onLogin={() => { setConfirmed(true); refetch(); }} />;
+  }
+
+  if (!confirmed) {
+    const handleSignOut = async () => {
+      await fetch("/api/auth/logout", { method: "POST" });
+      refetch();
+    };
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <div className="w-full max-w-sm text-center space-y-6">
+          <img src="/logo/icon-192.png" alt="Advisory Connect" width={56} height={56} className="mx-auto h-14 w-14" />
+          <div>
+            <h1 className="text-xl font-bold text-white">Welcome back</h1>
+            {data.adminEmail && (
+              <p className="text-white/50 text-sm mt-1">{data.adminEmail}</p>
+            )}
+          </div>
+          <div className="space-y-3">
+            <button
+              onClick={() => setConfirmed(true)}
+              className="w-full py-3 rounded-xl bg-white text-black font-semibold text-sm hover:bg-white/90 transition-all"
+            >
+              Continue to Dashboard
+            </button>
+            <button
+              onClick={handleSignOut}
+              className="w-full py-3 rounded-xl text-white/50 text-sm hover:text-white/80 transition-colors"
+            >
+              Sign in as a different user
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;

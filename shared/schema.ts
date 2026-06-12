@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, serial, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -102,6 +102,7 @@ export type AdvisorProfile = typeof advisorProfiles.$inferSelect;
 
 export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),
+  orgId: integer("org_id").references(() => organisations.id),
   name: text("name").notNull(),
   email: text("email").notNull(),
   contactNumber: text("contact_number"),
@@ -224,6 +225,21 @@ export const advisors = pgTable("advisors", {
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const organisations = pgTable("organisations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  adminEmail: text("admin_email").notNull(),
+  adminPasswordHash: text("admin_password_hash").notNull(),
+  logoUrl: text("logo_url"),
+  primaryColor: text("primary_color"),
+  seatLimit: integer("seat_limit").default(50).notNull(),
+  features: jsonb("features").default({}).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type Organisation = typeof organisations.$inferSelect;
+export type InsertOrganisation = typeof organisations.$inferInsert;
 
 // Task #26 — tier split agreed Stewart + Friday + Claude, 16 May 2026.
 // Full feature lists live in replit.md. Keep `value` stable — webhooks + DB rows reference it.

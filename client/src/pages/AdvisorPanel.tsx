@@ -912,38 +912,6 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         </div>
       )}
 
-      {/* ── Today snapshot — placeholder mini-widgets for the My Clients build.
-          UI-only for now; once the clients table lands these will pull live data
-          (birthdays today, scheduled client re-views). Two-tile layout — wider
-          tiles, smaller value, no truncation on labels. ── */}
-      <div className="space-y-2 pt-1">
-        <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Today</div>
-        <div className="grid grid-cols-2 gap-2">
-          {[
-            { key: "birthdays",  label: "Client Birthdays Today", value: "0", hint: "No clients yet",     icon: Cake, accent: "#ec4899" },
-            { key: "reviews",    label: "Client Re-views Today",  value: "0", hint: "Nothing scheduled",  icon: Bell, accent: "#f59e0b" },
-          ].map(({ key, label, value, hint, icon: Icon, accent }) => (
-            <div
-              key={key}
-              className="rounded-xl p-3 flex items-center gap-2.5"
-              style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}
-              data-testid={`widget-home-${key}`}
-            >
-              <div
-                className="h-9 w-9 rounded-lg flex items-center justify-center shrink-0"
-                style={{ backgroundColor: accent + "1f", color: accent }}
-              >
-                <Icon className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[11px] font-semibold leading-tight" style={{ color: tc.textColor }}>{label}</div>
-                <div className="text-[10px] mt-0.5" style={{ color: tc.mutedText }}>{hint}</div>
-              </div>
-              <div className="text-base font-bold shrink-0" style={{ color: accent }}>{value}</div>
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* ── My Stats ── */}
       <div className="space-y-3 pt-1">
@@ -8703,13 +8671,10 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         <div className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-secondary-profile-premium-gate">
           <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: tc.mutedText }} />
           <div className="flex-1">
-            <div className="text-sm font-semibold mb-1" style={{ color: tc.textColor }}>Secondary profile is a Premium feature</div>
-            <p className="text-xs mb-3" style={{ color: tc.mutedText }}>
-              Run a second branded profile for a different audience — corporate vs personal, English vs Afrikaans, your choice. Upgrade to unlock.
+            <div className="text-sm font-semibold mb-1" style={{ color: tc.textColor }}>Secondary profile</div>
+            <p className="text-xs" style={{ color: tc.mutedText }}>
+              Run a second branded profile for a different audience — corporate vs personal, English vs Afrikaans, your choice. Contact your administrator to enable this feature.
             </p>
-            <a href="?tab=billing" className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: tc.accentColor }} data-testid="link-upgrade-from-profiles">
-              View plans <ArrowRight className="h-3 w-3" />
-            </a>
           </div>
         </div>
       )}
@@ -8972,15 +8937,7 @@ export default function AdvisorPanel() {
   const slug = params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
-  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">(() => {
-    // Billing deep-link (?tab=billing) from trial-expiry emails and Paystack
-    // post-checkout redirects now opens Settings (billing lives inside Settings).
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get("tab") === "billing") return "settings";
-    }
-    return "home";
-  });
+  const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -9175,12 +9132,7 @@ export default function AdvisorPanel() {
           {activeTab === "registry" && <CIVTab slug={slug} advisor={advisor} tc={tc} />}
           {activeTab === "clients" && <MyClientsTab advisor={advisor} tc={tc} leads={panelLeads} />}
           {activeTab === "settings" && (
-            <>
-              <BillingTab advisor={advisor} tc={tc} />
-              <div className="mt-6">
-                <SettingsTab advisor={advisor} slug={slug} tc={tc} />
-              </div>
-            </>
+            <SettingsTab advisor={advisor} slug={slug} tc={tc} />
           )}
         </div>
       </div>
