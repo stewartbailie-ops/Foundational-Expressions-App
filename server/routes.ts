@@ -753,19 +753,25 @@ export async function registerRoutes(
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const result = await db.execute(sql.raw(`SELECT * FROM advisors WHERE org_id = ${orgId}`));
-    res.json((result.rows ?? []).map(withoutAdvisorPassword));
+    const result = await db.execute(sql`
+      SELECT id, name, email,
+             profile_slug AS "profileSlug",
+             active, created_at AS "createdAt"
+      FROM advisors WHERE org_id = ${orgId}
+      ORDER BY created_at ASC
+    `);
+    res.json(result.rows ?? []);
   });
 
   app.post("/api/org/advisors", async (req, res) => {
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const orgResult = await db.execute(sql.raw(`SELECT * FROM organisations WHERE id = ${orgId} LIMIT 1`));
+    const orgResult = await db.execute(sql`SELECT * FROM organisations WHERE id = ${orgId} LIMIT 1`);
     const org = orgResult.rows?.[0] as Organisation | undefined;
     if (!org) return res.status(401).json({ message: "Unauthorized" });
 
-    const seatResult = await db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`));
+    const seatResult = await db.execute(sql`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`);
     const seatCount = (seatResult.rows?.[0] as any)?.value ?? 0;
 
     if (seatCount >= org.seatLimit) {
@@ -808,12 +814,32 @@ export async function registerRoutes(
     }
 
     const updateResult = await db.execute(
-      sql.raw(`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING *`)
+      sql`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING *`
     );
     const updated = updateResult.rows?.[0];
 
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
     res.json(withoutAdvisorPassword(updated as any));
+  });
+
+  app.delete("/api/org/advisors/:id", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const advisorId = Number(req.params.id);
+    if (!Number.isFinite(advisorId)) {
+      return res.status(400).json({ message: "Invalid advisor id" });
+    }
+
+    const result = await db.execute(
+      sql`DELETE FROM advisors WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING id`
+    );
+
+    if (!result.rows?.length) {
+      return res.status(404).json({ message: "Advisor not found or already deleted" });
+    }
+
+    res.json({ deleted: true });
   });
 
   app.get("/api/org/stats", async (req, res) => {

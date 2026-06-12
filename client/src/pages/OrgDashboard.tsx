@@ -390,6 +390,21 @@ export default function OrgDashboard() {
     },
   });
 
+  const deleteAdvisor = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/org/advisors/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete advisor");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/org/advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/org/stats"] });
+    },
+  });
+
   const deleteTeamMember = useMutation({
     mutationFn: async (id: number) => {
       const res = await fetch(`/api/org/team/${id}`, { method: "DELETE" });
@@ -537,6 +552,7 @@ export default function OrgDashboard() {
                         <th className="text-left px-4 py-3 text-xs font-medium text-white/50 hidden md:table-cell">Email</th>
                         <th className="text-left px-4 py-3 text-xs font-medium text-white/50 hidden lg:table-cell">Profile URL</th>
                         <th className="text-center px-4 py-3 text-xs font-medium text-white/50">Status</th>
+                        <th className="text-right px-4 py-3 text-xs font-medium text-white/50">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -575,6 +591,20 @@ export default function OrgDashboard() {
                             >
                               <span className={`w-1.5 h-1.5 rounded-full ${advisor.active ? "bg-emerald-400" : "bg-white/30"}`} />
                               {advisor.active ? "Active" : "Suspended"}
+                            </button>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <button
+                              onClick={() => {
+                                if (window.confirm(`Remove ${advisor.name} from this organisation? This cannot be undone.`)) {
+                                  deleteAdvisor.mutate(advisor.id);
+                                }
+                              }}
+                              disabled={deleteAdvisor.isPending}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-red-300 bg-red-500/10 border border-red-500/20 hover:bg-red-500/15 disabled:opacity-35 disabled:cursor-not-allowed transition-all"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Remove
                             </button>
                           </td>
                         </tr>
