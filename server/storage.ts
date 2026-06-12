@@ -522,7 +522,7 @@ export class DatabaseStorage implements IStorage {
 
   async getDashboardStats() {
     const [emailCount] = await db.select({ value: count() }).from(emails);
-    const [accessCount] = await db.select({ value: count() }).from(stats).where(eq(stats.eventType, "app_access"));
+    const [accessCount] = await db.select({ value: count() }).from(stats).where(sql`${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%'`);
     const [referralCount] = await db.select({ value: count() }).from(stats).where(eq(stats.eventType, "referral_sent"));
     const [activeCount] = await db.select({ value: count() }).from(advisors).where(eq(advisors.active, true));
 
@@ -554,7 +554,7 @@ export class DatabaseStorage implements IStorage {
         cnt: count(),
       })
       .from(stats)
-      .where(sql`${stats.eventType} = 'app_access' AND ${stats.eventDate} >= ${startDate}`)
+      .where(sql`(${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%') AND ${stats.eventDate} >= ${startDate}`)
       .groupBy(sql`to_char(${stats.eventDate}, 'YYYY-MM-DD')`);
 
     const emailMap = new Map(emailsByDay.map(r => [r.dateStr, r.cnt]));

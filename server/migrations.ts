@@ -94,6 +94,21 @@ export async function runStartupMigrations() {
   `);
   console.log("[migrations] organisations table verified");
 
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS org_admins (
+      id SERIAL PRIMARY KEY,
+      org_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL UNIQUE,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'admin',
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+  await db.execute(sql.raw(`CREATE INDEX IF NOT EXISTS IDX_org_admins_org ON org_admins(org_id);`));
+  await db.execute(sql.raw(`CREATE INDEX IF NOT EXISTS IDX_org_admins_email ON org_admins(email);`));
+  console.log("[migrations] org_admins table verified");
+
   for (const [col, def] of ADVISOR_PROFILE_COLUMNS) {
     await db.execute(
       sql.raw(`ALTER TABLE advisor_profiles ADD COLUMN IF NOT EXISTS ${col} ${def}`)

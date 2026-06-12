@@ -1,11 +1,12 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { advisors, organisations, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { advisors, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import type { Organisation } from "@shared/schema";
 import { db } from "./db";
 import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
-import { and, count, eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import multer from "multer";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
@@ -92,6 +93,31 @@ const orgAdvisorStatusSchema = z.object({
   isActive: z.boolean().optional(),
   active: z.boolean().optional(),
 });
+const orgTeamMemberSchema = z.object({
+  name: z.string().trim().min(1),
+  email: z.string().email(),
+  password: z.string().min(8),
+  role: z.enum(["owner", "admin"]).default("admin"),
+});
+
+type OrgAdminRow = {
+  id: number;
+  org_id: number;
+  name: string;
+  email: string;
+  password_hash: string;
+  role: string;
+  created_at: Date | string | null;
+};
+
+type OrgTeamMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  createdAt: Date | string | null;
+  isSelf: boolean;
+};
 
 const otpStore = new Map<string, { code: string; expires: number }>();
 
@@ -107,8 +133,31 @@ function orgSessionId(req: import("express").Request): number | null {
     : null;
 }
 
-function withoutAdvisorPassword<T extends { advisorPasswordHash?: string | null }>(advisor: T) {
-  const { advisorPasswordHash: _passwordHash, ...safeAdvisor } = advisor;
+function orgSession(req: import("express").Request): { orgId: number; orgAdminId: number } | null {
+  const session = req.session as any;
+  if (
+    session?.orgAuthenticated === true &&
+    typeof session?.orgId === "number" &&
+    typeof session?.orgAdminId === "number"
+  ) {
+    return { orgId: session.orgId, orgAdminId: session.orgAdminId };
+  }
+  return null;
+}
+
+function toOrgTeamMember(row: OrgAdminRow, selfId: number): OrgTeamMember {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    role: row.role,
+    createdAt: row.created_at,
+    isSelf: row.id === selfId,
+  };
+}
+
+function withoutAdvisorPassword<T extends { advisorPasswordHash?: string | null; advisor_password_hash?: string | null }>(advisor: T) {
+  const { advisorPasswordHash: _passwordHash, advisor_password_hash: _rawPasswordHash, ...safeAdvisor } = advisor;
   return safeAdvisor;
 }
 
@@ -397,6 +446,7 @@ export async function registerRoutes(
     }
     audit("success");
     (req.session as any).authenticated = true;
+    (req.session as any).adminEmail = typeof email === "string" ? email.toLowerCase().trim() : null;
     req.session.save((err) => {
       if (err) {
         console.error("[LOGIN] Session save error:", err);
@@ -411,7 +461,8 @@ export async function registerRoutes(
     res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
     res.set("Pragma", "no-cache");
     res.set("Expires", "0");
-    res.json({ authenticated: !!(req.session as any)?.authenticated });
+    const s = req.session as any;
+    res.json({ authenticated: !!s?.authenticated, adminEmail: s?.adminEmail ?? null });
   });
 
   app.post("/api/auth/logout", async (req, res) => {
@@ -510,6 +561,55 @@ export async function registerRoutes(
     res.json({ sendgrid: isSendGridConfigured() });
   });
 
+  // ── Master admin: Organisation management ────────────────────────────────
+  app.get("/api/admin/orgs", async (_req, res) => {
+    const result = await db.execute(sql.raw(`
+      SELECT
+        o.id, o.name, o.slug, o.seat_limit, o.created_at,
+        COUNT(DISTINCT oa.id)::int  AS admin_count,
+        COUNT(DISTINCT a.id)::int   AS advisor_count
+      FROM organisations o
+      LEFT JOIN org_admins oa ON oa.org_id = o.id
+      LEFT JOIN advisors    a  ON a.org_id  = o.id
+      GROUP BY o.id
+      ORDER BY o.created_at DESC
+    `));
+    res.json(result.rows ?? []);
+  });
+
+  app.post("/api/admin/orgs", async (req, res) => {
+    const { orgName, slug, seatLimit, adminName, adminEmail, adminPassword } = req.body;
+    if (!orgName?.trim() || !slug?.trim() || !adminName?.trim() || !adminEmail?.trim() || !adminPassword) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
+    const cleanSlug = (slug as string).trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
+    const cleanEmail = (adminEmail as string).trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(adminPassword, 10);
+
+    try {
+      const orgResult = await db.execute(sql`
+        INSERT INTO organisations (name, slug, seat_limit, admin_email, admin_password_hash)
+        VALUES (${(orgName as string).trim()}, ${cleanSlug}, ${Number(seatLimit) || 50}, ${cleanEmail}, ${passwordHash})
+        RETURNING id
+      `);
+      const orgId = (orgResult.rows?.[0] as any)?.id;
+
+      await db.execute(sql`
+        INSERT INTO org_admins (org_id, name, email, password_hash, role)
+        VALUES (${orgId}, ${(adminName as string).trim()}, ${cleanEmail}, ${passwordHash}, 'owner')
+      `);
+
+      res.status(201).json({ message: "Organisation created", orgId });
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "That slug or email is already taken." });
+      }
+      throw err;
+    }
+  });
+  // ─────────────────────────────────────────────────────────────────────────
+
   app.get("/api/advisors", async (_req, res) => {
     const advisors = await storage.getAdvisors();
     res.json(advisors);
@@ -560,6 +660,7 @@ export async function registerRoutes(
     const slug = routeParam(req.params.slug);
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
+    if (!advisor.active && !advisor.isDemo) return res.status(404).json({ message: "This profile is currently offline." });
     res.json(toPublicAdvisor(advisor));
   });
 
@@ -569,22 +670,30 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(sql`lower(${organisations.adminEmail}) = ${parsed.data.adminEmail.toLowerCase()}`);
+    const emailParam = parsed.data.adminEmail.toLowerCase();
+    const adminResult = await db.execute(sql`
+      SELECT * FROM org_admins WHERE lower(email) = ${emailParam} LIMIT 1
+    `);
+    const orgAdmin = adminResult.rows?.[0] as OrgAdminRow | undefined;
 
-    if (!org) {
+    if (!orgAdmin) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const ok = await bcrypt.compare(parsed.data.password, org.adminPasswordHash);
+    const ok = await bcrypt.compare(parsed.data.password, orgAdmin.password_hash);
     if (!ok) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
+    const orgResult = await db.execute(sql`
+      SELECT * FROM organisations WHERE id = ${orgAdmin.org_id} LIMIT 1
+    `);
+    const org = orgResult.rows?.[0] as Organisation | undefined;
+    if (!org) return res.status(401).json({ message: "Invalid credentials" });
+
     const session = req.session as any;
     session.orgId = org.id;
+    session.orgAdminId = orgAdmin.id;
     session.orgAuthenticated = true;
 
     res.json({
@@ -592,25 +701,45 @@ export async function registerRoutes(
       orgId: org.id,
       orgName: org.name,
       seatLimit: org.seatLimit,
+      adminName: orgAdmin.name,
+      adminRole: orgAdmin.role,
     });
   });
 
   app.get("/api/org/session", async (req, res) => {
-    const orgId = orgSessionId(req);
-    if (!orgId) return res.status(401).json({ authenticated: false });
+    const session = orgSession(req);
+    if (!session) return res.status(401).json({ authenticated: false });
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(eq(organisations.id, orgId));
+    const result = await db.execute(sql`
+      SELECT
+        o.id,
+        o.name,
+        o.slug,
+        o.seat_limit AS "seatLimit",
+        oa.name AS "adminName",
+        oa.role AS "adminRole"
+      FROM organisations o
+      JOIN org_admins oa ON oa.org_id = o.id
+      WHERE o.id = ${session.orgId} AND oa.id = ${session.orgAdminId}
+      LIMIT 1
+    `);
+    const row = result.rows?.[0] as {
+      id: number;
+      name: string;
+      seatLimit: number;
+      adminName: string;
+      adminRole: string;
+    } | undefined;
 
-    if (!org) return res.status(401).json({ authenticated: false });
+    if (!row) return res.status(401).json({ authenticated: false });
 
     res.json({
       authenticated: true,
-      orgId: org.id,
-      orgName: org.name,
-      seatLimit: org.seatLimit,
+      orgId: row.id,
+      orgName: row.name,
+      seatLimit: row.seatLimit,
+      adminName: row.adminName,
+      adminRole: row.adminRole,
     });
   });
 
@@ -624,30 +753,22 @@ export async function registerRoutes(
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const rows = await db
-      .select()
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
-
-    res.json(rows.map(withoutAdvisorPassword));
+    const result = await db.execute(sql.raw(`SELECT * FROM advisors WHERE org_id = ${orgId}`));
+    res.json((result.rows ?? []).map(withoutAdvisorPassword));
   });
 
   app.post("/api/org/advisors", async (req, res) => {
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(eq(organisations.id, orgId));
+    const orgResult = await db.execute(sql.raw(`SELECT * FROM organisations WHERE id = ${orgId} LIMIT 1`));
+    const org = orgResult.rows?.[0] as Organisation | undefined;
     if (!org) return res.status(401).json({ message: "Unauthorized" });
 
-    const [seatCount] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
+    const seatResult = await db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`));
+    const seatCount = (seatResult.rows?.[0] as any)?.value ?? 0;
 
-    if ((seatCount?.value ?? 0) >= org.seatLimit) {
+    if (seatCount >= org.seatLimit) {
       return res.status(403).json({ message: "Organisation seat limit reached" });
     }
 
@@ -686,45 +807,110 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid advisor id" });
     }
 
-    const [updated] = await db
-      .update(advisors)
-      .set({ active })
-      .where(and(eq(advisors.id, advisorId), eq(advisors.orgId, orgId)))
-      .returning();
+    const updateResult = await db.execute(
+      sql.raw(`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING *`)
+    );
+    const updated = updateResult.rows?.[0];
 
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
-    res.json(withoutAdvisorPassword(updated));
+    res.json(withoutAdvisorPassword(updated as any));
   });
 
   app.get("/api/org/stats", async (req, res) => {
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const [totalAdvisors] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
-    const [activeAdvisors] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(and(eq(advisors.orgId, orgId), eq(advisors.active, true)));
-    const [totalLeads] = await db
-      .select({ value: count() })
-      .from(emails)
-      .innerJoin(advisors, eq(emails.advisorId, advisors.id))
-      .where(eq(advisors.orgId, orgId));
-    const [totalProfileViews] = await db
-      .select({ value: count() })
-      .from(stats)
-      .innerJoin(advisors, eq(stats.advisorId, advisors.id))
-      .where(sql`${advisors.orgId} = ${orgId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%')`);
+    const [totalRes, activeRes, leadsRes, viewsRes] = await Promise.all([
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId} AND active = true`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM emails e JOIN advisors a ON e.advisor_id = a.id WHERE a.org_id = ${orgId}`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM stats s JOIN advisors a ON s.advisor_id = a.id WHERE a.org_id = ${orgId} AND (s.event_type = 'app_access' OR s.event_type LIKE 'app_access:%')`)),
+    ]);
 
     res.json({
-      totalAdvisors: totalAdvisors?.value ?? 0,
-      activeAdvisors: activeAdvisors?.value ?? 0,
-      totalLeads: totalLeads?.value ?? 0,
-      totalProfileViews: totalProfileViews?.value ?? 0,
+      totalAdvisors: (totalRes.rows?.[0] as any)?.value ?? 0,
+      activeAdvisors: (activeRes.rows?.[0] as any)?.value ?? 0,
+      totalLeads: (leadsRes.rows?.[0] as any)?.value ?? 0,
+      totalProfileViews: (viewsRes.rows?.[0] as any)?.value ?? 0,
     });
+  });
+
+  app.get("/api/org/team", async (req, res) => {
+    const session = orgSession(req);
+    if (!session) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await db.execute(sql`
+      SELECT id, org_id, name, email, role, created_at
+      FROM org_admins
+      WHERE org_id = ${session.orgId}
+      ORDER BY created_at ASC, id ASC
+    `);
+
+    res.json((result.rows ?? []).map((row) => toOrgTeamMember(row as OrgAdminRow, session.orgAdminId)));
+  });
+
+  app.post("/api/org/team", async (req, res) => {
+    const session = orgSession(req);
+    if (!session) return res.status(401).json({ message: "Unauthorized" });
+
+    const parsed = orgTeamMemberSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
+    }
+
+    const email = parsed.data.email.trim().toLowerCase();
+    const passwordHash = await bcrypt.hash(parsed.data.password, 10);
+
+    try {
+      const result = await db.execute(sql`
+        INSERT INTO org_admins (org_id, name, email, password_hash, role)
+        VALUES (${session.orgId}, ${parsed.data.name.trim()}, ${email}, ${passwordHash}, ${parsed.data.role})
+        RETURNING id, org_id, name, email, password_hash, role, created_at
+      `);
+      const created = result.rows?.[0] as OrgAdminRow | undefined;
+      if (!created) return res.status(500).json({ message: "Failed to create team member" });
+      res.status(201).json(toOrgTeamMember(created, session.orgAdminId));
+    } catch (err: any) {
+      if (err.code === "23505") {
+        return res.status(409).json({ message: "That team member email is already in use." });
+      }
+      throw err;
+    }
+  });
+
+  app.delete("/api/org/team/:id", async (req, res) => {
+    const session = orgSession(req);
+    if (!session) return res.status(401).json({ message: "Unauthorized" });
+
+    const memberId = Number(req.params.id);
+    if (!Number.isFinite(memberId)) {
+      return res.status(400).json({ message: "Invalid team member id" });
+    }
+    if (memberId === session.orgAdminId) {
+      return res.status(400).json({ message: "You cannot remove your own access." });
+    }
+
+    const targetResult = await db.execute(sql`
+      SELECT id, role FROM org_admins WHERE id = ${memberId} AND org_id = ${session.orgId} LIMIT 1
+    `);
+    const target = targetResult.rows?.[0] as { id: number; role: string } | undefined;
+    if (!target) return res.status(404).json({ message: "Team member not found" });
+
+    if (target.role === "owner") {
+      const ownerResult = await db.execute(sql`
+        SELECT COUNT(*)::int AS value FROM org_admins WHERE org_id = ${session.orgId} AND role = 'owner'
+      `);
+      const ownerCount = (ownerResult.rows?.[0] as any)?.value ?? 0;
+      if (ownerCount <= 1) {
+        return res.status(400).json({ message: "Cannot remove the last owner." });
+      }
+    }
+
+    await db.execute(sql`
+      DELETE FROM org_admins WHERE id = ${memberId} AND org_id = ${session.orgId}
+    `);
+
+    res.json({ success: true });
   });
 
   app.get("/api/advisors/:id", async (req, res) => {
