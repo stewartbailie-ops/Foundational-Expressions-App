@@ -1,7 +1,8 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { advisors, organisations, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { advisors, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import type { Organisation } from "@shared/schema";
 import { db } from "./db";
 import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
 import { z } from "zod";
@@ -572,10 +573,9 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(sql`lower(${organisations.adminEmail}) = ${parsed.data.adminEmail.toLowerCase()}`);
+    const emailParam = parsed.data.adminEmail.toLowerCase();
+    const result = await db.execute(sql`SELECT * FROM organisations WHERE lower(admin_email) = ${emailParam} LIMIT 1`);
+    const org = result.rows?.[0] as Organisation | undefined;
 
     if (!org) {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -602,10 +602,8 @@ export async function registerRoutes(
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ authenticated: false });
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(eq(organisations.id, orgId));
+    const result = await db.execute(sql.raw(`SELECT * FROM organisations WHERE id = ${orgId} LIMIT 1`));
+    const org = result.rows?.[0] as Organisation | undefined;
 
     if (!org) return res.status(401).json({ authenticated: false });
 
@@ -627,30 +625,22 @@ export async function registerRoutes(
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const rows = await db
-      .select()
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
-
-    res.json(rows.map(withoutAdvisorPassword));
+    const result = await db.execute(sql.raw(`SELECT * FROM advisors WHERE org_id = ${orgId}`));
+    res.json((result.rows ?? []).map(withoutAdvisorPassword));
   });
 
   app.post("/api/org/advisors", async (req, res) => {
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const [org] = await db
-      .select()
-      .from(organisations)
-      .where(eq(organisations.id, orgId));
+    const orgResult = await db.execute(sql.raw(`SELECT * FROM organisations WHERE id = ${orgId} LIMIT 1`));
+    const org = orgResult.rows?.[0] as Organisation | undefined;
     if (!org) return res.status(401).json({ message: "Unauthorized" });
 
-    const [seatCount] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
+    const seatResult = await db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`));
+    const seatCount = (seatResult.rows?.[0] as any)?.value ?? 0;
 
-    if ((seatCount?.value ?? 0) >= org.seatLimit) {
+    if (seatCount >= org.seatLimit) {
       return res.status(403).json({ message: "Organisation seat limit reached" });
     }
 
@@ -689,44 +679,31 @@ export async function registerRoutes(
       return res.status(400).json({ message: "Invalid advisor id" });
     }
 
-    const [updated] = await db
-      .update(advisors)
-      .set({ active })
-      .where(and(eq(advisors.id, advisorId), eq(advisors.orgId, orgId)))
-      .returning();
+    const updateResult = await db.execute(
+      sql.raw(`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING *`)
+    );
+    const updated = updateResult.rows?.[0];
 
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
-    res.json(withoutAdvisorPassword(updated));
+    res.json(withoutAdvisorPassword(updated as any));
   });
 
   app.get("/api/org/stats", async (req, res) => {
     const orgId = orgSessionId(req);
     if (!orgId) return res.status(401).json({ message: "Unauthorized" });
 
-    const [totalAdvisors] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(eq(advisors.orgId, orgId));
-    const [activeAdvisors] = await db
-      .select({ value: count() })
-      .from(advisors)
-      .where(and(eq(advisors.orgId, orgId), eq(advisors.active, true)));
-    const [totalLeads] = await db
-      .select({ value: count() })
-      .from(emails)
-      .innerJoin(advisors, eq(emails.advisorId, advisors.id))
-      .where(eq(advisors.orgId, orgId));
-    const [totalProfileViews] = await db
-      .select({ value: count() })
-      .from(stats)
-      .innerJoin(advisors, eq(stats.advisorId, advisors.id))
-      .where(sql`${advisors.orgId} = ${orgId} AND (${stats.eventType} = 'app_access' OR ${stats.eventType} LIKE 'app_access:%')`);
+    const [totalRes, activeRes, leadsRes, viewsRes] = await Promise.all([
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId}`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM advisors WHERE org_id = ${orgId} AND active = true`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM emails e JOIN advisors a ON e.advisor_id = a.id WHERE a.org_id = ${orgId}`)),
+      db.execute(sql.raw(`SELECT COUNT(*)::int AS value FROM stats s JOIN advisors a ON s.advisor_id = a.id WHERE a.org_id = ${orgId} AND (s.event_type = 'app_access' OR s.event_type LIKE 'app_access:%')`)),
+    ]);
 
     res.json({
-      totalAdvisors: totalAdvisors?.value ?? 0,
-      activeAdvisors: activeAdvisors?.value ?? 0,
-      totalLeads: totalLeads?.value ?? 0,
-      totalProfileViews: totalProfileViews?.value ?? 0,
+      totalAdvisors: (totalRes.rows?.[0] as any)?.value ?? 0,
+      activeAdvisors: (activeRes.rows?.[0] as any)?.value ?? 0,
+      totalLeads: (leadsRes.rows?.[0] as any)?.value ?? 0,
+      totalProfileViews: (viewsRes.rows?.[0] as any)?.value ?? 0,
     });
   });
 
