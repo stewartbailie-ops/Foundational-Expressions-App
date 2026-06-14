@@ -7616,13 +7616,7 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
           >
             <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" /> Book of Life
           </button>
-          <button
-            onClick={() => setActiveSection("astute")}
-            className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-semibold"
-            style={{ backgroundColor: activeSection === "astute" ? "#2563eb22" : "#2563eb10", color: "#2563eb", border: `1px solid ${activeSection === "astute" ? "#2563eb66" : "#2563eb30"}` }}
-          >
-            <Download className="h-3.5 w-3.5" /> Astute Details
-          </button>
+          {/* Astute integration — coming soon, hidden until live */}
         </div>
         {/* Section nav — details tabs */}
         <div className="flex rounded-xl overflow-hidden" style={{ border: `1px solid ${tc.borderColor}` }}>
@@ -7760,8 +7754,8 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
           <BookOfLifeSection advisorId={advisor.id} clientName={selected.name} tc={tc} />
         )}
 
-        {/* DRAW ASTUTE ─────────────────────────── */}
-        {activeSection === "astute" && (
+        {/* DRAW ASTUTE — hidden until Astute integration is live */}
+        {false && activeSection === "astute" && (
           <div className="space-y-3">
             {/* CCP Summary card — manually entered after pulling from Astute */}
             {draft["ccp_ref"] && (
@@ -8072,7 +8066,9 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
 
   // Panel theme (separate from Contact Card)
   const [panelTheme, setPanelTheme] = useState<string>((advisor as any).panelTheme || "blue");
+  const [panelThemeColor, setPanelThemeColor] = useState<string | null>((advisor as any).panelThemeColor || null);
   const [panelBackgroundStyle, setPanelBackgroundStyle] = useState<number>((advisor as any).panelBackgroundStyle || 1);
+  const { isPremium: panelPatternPremium } = usePremium();
 
   // Password change
   const [currentPassword, setCurrentPassword] = useState("");
@@ -8371,49 +8367,47 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
       {/* Panel Theme */}
       <Section icon={Palette} title="Sub-Control Panel Theme">
         <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-          Choose the look of <strong>your control panel</strong>. This is independent of your public Contact Card theme.
+          Choose the look of <strong>your control panel</strong>. Independent of your public Contact Card theme.
         </p>
-        <div className="space-y-1.5">
-          <div style={fieldLabel}>Theme</div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {THEME_OPTIONS.map(opt => {
-              const selected = panelTheme === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    const y = window.scrollY;
-                    setPanelTheme(opt.value);
-                    requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" }));
-                  }}
-                  className="flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all"
-                  style={{
-                    backgroundColor: selected ? tc.buttonSecondaryBg : "transparent",
-                    border: `1px solid ${selected ? tc.accentColor : tc.borderColor}`,
-                    color: selected ? tc.accentColor : tc.mutedText,
-                  }}
-                  data-testid={`button-panel-theme-${opt.value}`}
-                >
-                  <div className="h-3 w-3 rounded-full flex-shrink-0" style={{ background: getThemeColors(opt.value).accentColor }} />
-                  {opt.label}
-                  {selected && <Check className="h-3 w-3 ml-auto" />}
-                </button>
-              );
-            })}
-          </div>
-        </div>
+        <div style={fieldLabel} className="mt-1">Colour</div>
+        <ColourPicker
+          value={panelTheme}
+          themeColor={panelThemeColor}
+          onChange={(name, hex) => {
+            const y = window.scrollY;
+            setPanelTheme(name);
+            setPanelThemeColor(hex);
+            requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" }));
+          }}
+          tc={tc}
+          testIdPrefix="settings-panel-theme"
+        />
+        <div style={fieldLabel} className="mt-2">Background Pattern</div>
+        <BackgroundPatternPicker
+          value={panelBackgroundStyle}
+          opacity={50}
+          onChange={(v) => setPanelBackgroundStyle(v)}
+          onOpacityChange={() => {}}
+          label=""
+          premium={panelPatternPremium}
+          colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
+        />
         <Button
           size="sm"
           onClick={() => {
             const y = window.scrollY;
             saveMutation.mutate(
-              { panelTheme, panelThemeColor: getThemeColors(panelTheme).accentColor } as any,
+              {
+                panelTheme,
+                panelThemeColor: panelThemeColor || getThemeColors(panelTheme).accentColor,
+                panelBackgroundStyle,
+              } as any,
               { onSettled: () => requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" })) }
             );
           }}
           disabled={saveMutation.isPending}
           style={{ backgroundColor: tc.buttonBg, color: tc.buttonText }}
-          className="gap-1.5 w-full"
+          className="gap-1.5 w-full mt-1"
           data-testid="button-save-panel-theme"
         >
           {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
@@ -9028,6 +9022,14 @@ export default function AdvisorPanel() {
   const panelThemeKey = (advisor as any).panelTheme || advisor.theme;
   const panelThemeColorKey = (advisor as any).panelThemeColor || advisor.themeColor;
   const tc = getThemeColors(panelThemeKey, panelThemeColorKey);
+  const panelBg = getThemeBackground(
+    panelThemeKey,
+    (advisor as any).panelBackgroundStyle || 1,
+    50,
+    panelThemeColorKey,
+    advisor.name,
+    null,
+  );
 
   if (authState === "login") {
     return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;
@@ -9051,9 +9053,9 @@ export default function AdvisorPanel() {
   ];
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: tc.bgColor }}>
+    <div className="min-h-screen" style={panelBg}>
       <div className="max-w-lg mx-auto">
-        <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor, borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
+        <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor + "e0", borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
             <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-9 w-9 shrink-0" />
             {advisor.profilePicUrl ? (
