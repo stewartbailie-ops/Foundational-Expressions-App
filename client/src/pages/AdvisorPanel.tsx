@@ -173,7 +173,7 @@ function LoginScreen({ slug, onDone, onSetup }: { slug: string; onDone: () => vo
 }
 
 // ── SCREEN 2: First-time account setup (email + create password) ──────────────
-function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVerificationSent: () => void; onBack: () => void }) {
+function SetupScreen({ slug, onVerificationSent, onDone, onBack }: { slug: string; onVerificationSent: () => void; onDone: () => void; onBack: () => void }) {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -210,6 +210,7 @@ function SetupScreen({ slug, onVerificationSent, onBack }: { slug: string; onVer
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
+      if (data.verified) { onDone(); return; }
       onVerificationSent();
     } catch (err: any) {
       toast({ title: "Setup failed", description: err.message, variant: "destructive" });
@@ -9035,7 +9036,7 @@ export default function AdvisorPanel() {
     return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;
   }
   if (authState === "setup") {
-    return <SetupScreen slug={slug} onVerificationSent={() => setAuthState("verify")} onBack={() => setAuthState("login")} />;
+    return <SetupScreen slug={slug} onVerificationSent={() => setAuthState("verify")} onDone={() => setAuthState("authenticated")} onBack={() => setAuthState("login")} />;
   }
   if (authState === "verify") {
     return <VerifyScreen slug={slug} onDone={() => setAuthState("authenticated")} onBack={() => setAuthState("setup")} />;

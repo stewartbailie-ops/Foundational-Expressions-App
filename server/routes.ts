@@ -798,6 +798,8 @@ export async function registerRoutes(
 
     try {
       const advisor = await storage.createAdvisor(parsed.data);
+      // Mark email as pre-verified — org admin vouched for it, no OTP needed on first login
+      await db.execute(sql`UPDATE advisors SET advisor_email_verified = true WHERE id = ${advisor.id}`);
       res.status(201).json(withoutAdvisorPassword(advisor));
     } catch (err: any) {
       if (err.code === "23505") {
@@ -2051,10 +2053,18 @@ export async function registerRoutes(
     if (!advisor.email || advisor.email.toLowerCase() !== email.toLowerCase()) {
       return res.status(400).json({ message: "That email address is not registered for this account." });
     }
-    if (advisor.advisorEmailVerified) {
+    // Already fully set up → direct to sign-in
+    if (advisor.advisorEmailVerified && advisor.advisorPasswordSet) {
       return res.status(400).json({ message: "Account already set up. Please sign in." });
     }
     const hash = await bcrypt.hash(password, 10);
+    // Org-admin-created advisors have advisorEmailVerified=true already — skip OTP
+    if (advisor.advisorEmailVerified) {
+      await storage.updateAdvisor(advisor.id, { advisorPasswordHash: hash, advisorPasswordSet: true });
+      (req.session as any).advisorId = advisor.id;
+      (req.session as any)[`advisor_${slug}`] = true;
+      return res.json({ success: true, verified: true });
+    }
     (req.session as any)[`setup_hash_${slug}`] = hash;
     const code = generateOtp();
     otpStore.set(slug, { code, expires: Date.now() + 10 * 60 * 1000 });
