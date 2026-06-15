@@ -798,8 +798,17 @@ export async function registerRoutes(
 
     try {
       const advisor = await storage.createAdvisor(parsed.data);
-      // Mark email as pre-verified — org admin vouched for it, no OTP needed on first login
-      await db.execute(sql`UPDATE advisors SET advisor_email_verified = true WHERE id = ${advisor.id}`);
+      // If org admin provided a temporary password, activate the account immediately —
+      // no email OTP needed. Advisor goes straight to login on first visit.
+      const initialPassword: unknown = req.body.advisorPassword ?? req.body.initialPassword;
+      if (typeof initialPassword === "string" && initialPassword.length >= 8) {
+        const hash = await bcrypt.hash(initialPassword, 10);
+        await db.execute(sql`
+          UPDATE advisors
+          SET advisor_password_hash = ${hash}, advisor_password_set = true, advisor_email_verified = true
+          WHERE id = ${advisor.id}
+        `);
+      }
       res.status(201).json(withoutAdvisorPassword(advisor));
     } catch (err: any) {
       if (err.code === "23505") {
