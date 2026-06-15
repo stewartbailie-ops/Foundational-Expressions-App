@@ -101,6 +101,7 @@ function AddAdvisorModal({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
@@ -157,7 +158,7 @@ function AddAdvisorModal({
             value={name}
             onChange={(e) => {
               setName(e.target.value);
-              if (!slug) setSlug(suggestSlug(e.target.value));
+              if (!slugEdited) setSlug(suggestSlug(e.target.value));
             }}
             required
             className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
@@ -175,7 +176,7 @@ function AddAdvisorModal({
               type="text"
               placeholder="Profile URL slug (e.g. john-smith)"
               value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+              onChange={(e) => { setSlugEdited(true); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); }}
               required
               className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
             />

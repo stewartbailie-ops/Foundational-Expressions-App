@@ -24,6 +24,7 @@ const GLASS_BORDER = "rgba(255,255,255,0.10)";
 function CreateOrgModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const [orgName, setOrgName] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugEdited, setSlugEdited] = useState(false);
   const [seatLimit, setSeatLimit] = useState("50");
   const [adminName, setAdminName] = useState("");
   const [adminEmail, setAdminEmail] = useState("");
@@ -84,7 +85,7 @@ function CreateOrgModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
               type="text"
               placeholder="Organisation name (e.g. InvestPro)"
               value={orgName}
-              onChange={(e) => { setOrgName(e.target.value); if (!slug) setSlug(suggestSlug(e.target.value)); }}
+              onChange={(e) => { setOrgName(e.target.value); if (!slugEdited) setSlug(suggestSlug(e.target.value)); }}
               required
               className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
             />
@@ -93,7 +94,7 @@ function CreateOrgModal({ onClose, onSuccess }: { onClose: () => void; onSuccess
                 type="text"
                 placeholder="URL slug (e.g. investpro)"
                 value={slug}
-                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
+                onChange={(e) => { setSlugEdited(true); setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "")); }}
                 required
                 className="w-full px-4 py-3 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/30 text-sm focus:outline-none focus:border-white/40 transition-colors"
               />
