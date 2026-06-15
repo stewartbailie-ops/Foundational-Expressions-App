@@ -973,7 +973,8 @@ export async function registerRoutes(
 
   // Public self-registration — creates a trial advisor account (no auth required)
   app.post("/api/register", registerLimiter, async (req, res) => {
-    const { name, email, title, contactNumber } = req.body;
+    const { name, email, title, contactNumber, subscriptionTier } = req.body;
+    const tier = ["trial", "pro", "enterprise"].includes(subscriptionTier) ? subscriptionTier : "trial";
     if (!name?.trim() || name.trim().length < 2) return res.status(400).json({ message: "Full name is required." });
     if (!email?.trim() || !/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ message: "Valid email address is required." });
 
@@ -997,7 +998,7 @@ export async function registerRoutes(
         ) VALUES (
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
           ${contactNumber?.trim() || null}, ${slug},
-          true, 'trial', 'individual',
+          true, ${tier}, 'individual',
           true,
           'blue', '#4a8db5', 'blue', '#4a8db5',
           'a', true, true, true, true, true, true, true

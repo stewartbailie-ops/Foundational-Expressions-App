@@ -308,7 +308,7 @@ function SetupScreen({ slug, onVerificationSent, onDone, onBack }: { slug: strin
             data-testid="button-setup-submit"
           >
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-            Create Account & Verify Email
+            Set Up My Account
           </button>
         </form>
         <p className="text-center text-sm" style={{ color: tc.mutedText }}>
@@ -1383,9 +1383,20 @@ function CIVTab({ slug, advisor, tc }: { slug: string; advisor: Advisor; tc: Ret
   );
 
   if (leads.length === 0) return (
-    <div className="text-center py-12" style={{ color: tc.mutedText }}>
-      <Inbox className="h-10 w-10 mx-auto mb-3 opacity-30" />
-      <p className="text-sm">No leads yet. Share your profile link to start receiving callbacks and referrals.</p>
+    <div className="space-y-4">
+      <button
+        onClick={() => setAddLeadOpen(true)}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-90 active:scale-[0.99]"
+        style={{ backgroundColor: tc.accentColor, color: tc.buttonText }}
+        data-testid="button-add-lead"
+      >
+        <Plus className="h-4 w-4" />
+        Add Lead Manually
+      </button>
+      <div className="text-center py-12" style={{ color: tc.mutedText }}>
+        <Inbox className="h-10 w-10 mx-auto mb-3 opacity-30" />
+        <p className="text-sm">No leads yet. Share your profile link to start receiving callbacks and referrals.</p>
+      </div>
     </div>
   );
 
@@ -8068,8 +8079,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
   // Panel theme (separate from Contact Card)
   const [panelTheme, setPanelTheme] = useState<string>((advisor as any).panelTheme || "blue");
   const [panelThemeColor, setPanelThemeColor] = useState<string | null>((advisor as any).panelThemeColor || null);
-  const [panelBackgroundStyle, setPanelBackgroundStyle] = useState<number>((advisor as any).panelBackgroundStyle || 1);
-  const { isPremium: panelPatternPremium } = usePremium();
 
   // Password change
   const [currentPassword, setCurrentPassword] = useState("");
@@ -8383,16 +8392,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
           tc={tc}
           testIdPrefix="settings-panel-theme"
         />
-        <div style={fieldLabel} className="mt-2">Background Pattern</div>
-        <BackgroundPatternPicker
-          value={panelBackgroundStyle}
-          opacity={50}
-          onChange={(v) => setPanelBackgroundStyle(v)}
-          onOpacityChange={() => {}}
-          label=""
-          premium={panelPatternPremium}
-          colors={{ border: tc.borderColor, accent: tc.accentColor, muted: tc.mutedText, selectedBg: tc.buttonSecondaryBg }}
-        />
         <Button
           size="sm"
           onClick={() => {
@@ -8401,7 +8400,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
               {
                 panelTheme,
                 panelThemeColor: panelThemeColor || getThemeColors(panelTheme).accentColor,
-                panelBackgroundStyle,
               } as any,
               { onSettled: () => requestAnimationFrame(() => window.scrollTo({ top: y, left: 0, behavior: "auto" })) }
             );
@@ -9030,7 +9028,7 @@ export default function AdvisorPanel() {
   const tc = getThemeColors(panelThemeKey, panelThemeColorKey);
   const panelBg = getThemeBackground(
     panelThemeKey,
-    (advisor as any).panelBackgroundStyle || 1,
+    1,
     50,
     panelThemeColorKey,
     advisor.name,

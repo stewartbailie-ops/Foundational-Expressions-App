@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users, Palette, Globe } from "lucide-react";
+import { Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users, Palette, Globe, ShieldCheck } from "lucide-react";
 
 const TITLE_OPTIONS = [
   "Financial Planner",
@@ -11,6 +11,30 @@ const TITLE_OPTIONS = [
   "Wealth Manager",
   "Estate Planner",
   "Independent Financial Advisor",
+];
+
+const PLANS = [
+  {
+    value: "trial",
+    label: "Free Trial",
+    price: "R0 / month",
+    desc: "Full access for 30 days. No card required.",
+    highlight: false,
+  },
+  {
+    value: "pro",
+    label: "Professional",
+    price: "R299 / month",
+    desc: "Unlimited leads, Book of Life, full branding.",
+    highlight: true,
+  },
+  {
+    value: "enterprise",
+    label: "Enterprise",
+    price: "Custom pricing",
+    desc: "Bulk licences for firms and franchises.",
+    highlight: false,
+  },
 ];
 
 const TOS_TEXT = `Welcome to Advisory Connect.
@@ -23,11 +47,17 @@ By creating an account, you agree to:
 
 3. Not use the platform to provide unauthorised financial advice outside the scope of your FAIS licence.
 
-4. Allow Advisory Connect to send transactional emails (lead notifications, OTPs, account-related communications) to your registered email address.
+4. Allow Advisory Connect to send transactional emails (lead notifications, account-related communications) to your registered email address.
 
 5. Acknowledge that your public-facing profile at app.advisoryconnect.pro/[your-slug] will be visible to anyone with the link.
 
 The full Terms of Service document is currently being finalised and will be made available shortly. By ticking the box below, you confirm you accept these interim terms and the formal Terms of Service once published.`;
+
+const STEPS = [
+  { num: 1, label: "Your Details" },
+  { num: 2, label: "Choose Plan" },
+  { num: 3, label: "Terms of Service" },
+];
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -41,10 +71,12 @@ export default function Register() {
   const [title, setTitle] = useState("Financial Planner");
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
+  const [notRobot, setNotRobot] = useState(false);
+  const [subscriptionTier, setSubscriptionTier] = useState("trial");
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const previewSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const step1Valid = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email.trim());
+  const step1Valid = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email.trim()) && notRobot;
 
   const handleCreate = async () => {
     setLoading(true);
@@ -52,12 +84,18 @@ export default function Register() {
       const res = await fetch("/api/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), email: email.trim(), title, contactNumber: contactNumber.trim() || null }),
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim(),
+          title,
+          contactNumber: contactNumber.trim() || null,
+          subscriptionTier,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
       setCreatedSlug(data.slug);
-      setStep(3);
+      setStep(4);
     } catch (err: any) {
       toast({ title: "Registration failed", description: err.message, variant: "destructive" });
     } finally {
@@ -73,10 +111,10 @@ export default function Register() {
         <p className="text-gray-500 text-sm mt-1">Your digital advisory presence, live in minutes.</p>
       </div>
 
-      {step < 3 && (
+      {step < 4 && (
         <div className="w-full max-w-md mb-6">
           <div className="flex items-center">
-            {[{ num: 1, label: "Your Details" }, { num: 2, label: "Terms of Service" }].map((s, idx) => (
+            {STEPS.map((s, idx) => (
               <div key={s.num} className="flex items-center flex-1">
                 <div className="flex flex-col items-center gap-1 flex-shrink-0">
                   <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-all ${
@@ -88,7 +126,7 @@ export default function Register() {
                   </div>
                   <span className={`text-xs font-medium whitespace-nowrap ${step === s.num ? "text-blue-600" : "text-gray-400"}`}>{s.label}</span>
                 </div>
-                {idx === 0 && <div className={`h-0.5 flex-1 mx-3 ${step > 1 ? "bg-blue-600" : "bg-gray-200"}`} />}
+                {idx < STEPS.length - 1 && <div className={`h-0.5 flex-1 mx-3 ${step > s.num ? "bg-blue-600" : "bg-gray-200"}`} />}
               </div>
             ))}
           </div>
@@ -96,6 +134,7 @@ export default function Register() {
       )}
 
       <div className="w-full max-w-md">
+        {/* Step 1 — Details */}
         {step === 1 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <div>
@@ -153,6 +192,17 @@ export default function Register() {
               />
             </div>
 
+            <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${notRobot ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
+              <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${notRobot ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
+                {notRobot && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+              </div>
+              <input type="checkbox" checked={notRobot} onChange={(e) => setNotRobot(e.target.checked)} className="sr-only" />
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="text-sm font-medium text-gray-700">I'm not a robot</span>
+              </div>
+            </label>
+
             <button
               onClick={() => setStep(2)}
               disabled={!step1Valid}
@@ -168,7 +218,67 @@ export default function Register() {
           </div>
         )}
 
+        {/* Step 2 — Choose Plan */}
         {step === 2 && (
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-gray-900">Choose Your Plan</h2>
+              <p className="text-xs text-gray-500 mt-0.5">All plans include full access. Upgrade or downgrade anytime.</p>
+            </div>
+
+            <div className="space-y-3">
+              {PLANS.map((plan) => (
+                <label
+                  key={plan.value}
+                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    subscriptionTier === plan.value
+                      ? plan.highlight ? "border-blue-600 bg-blue-50" : "border-blue-500 bg-blue-50/60"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="plan"
+                    value={plan.value}
+                    checked={subscriptionTier === plan.value}
+                    onChange={() => setSubscriptionTier(plan.value)}
+                    className="sr-only"
+                  />
+                  <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                    subscriptionTier === plan.value ? "border-blue-600 bg-blue-600" : "border-gray-300"
+                  }`}>
+                    {subscriptionTier === plan.value && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-900">{plan.label}</span>
+                      <span className="text-sm font-bold text-blue-600">{plan.price}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">{plan.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setStep(1)}
+                className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all"
+              >
+                <ArrowLeft className="h-4 w-4" /> Back
+              </button>
+              <button
+                onClick={() => setStep(3)}
+                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all"
+              >
+                Next <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3 — Terms of Service */}
+        {step === 3 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
             <div>
               <h2 className="text-base font-semibold text-gray-900">Terms of Service</h2>
@@ -191,7 +301,7 @@ export default function Register() {
 
             <div className="flex gap-3">
               <button
-                onClick={() => setStep(1)}
+                onClick={() => setStep(2)}
                 className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all"
               >
                 <ArrowLeft className="h-4 w-4" /> Back
@@ -207,7 +317,8 @@ export default function Register() {
           </div>
         )}
 
-        {step === 3 && (
+        {/* Step 4 — Success */}
+        {step === 4 && (
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center space-y-6">
             <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
               <Check className="h-8 w-8 text-green-600" />
@@ -238,9 +349,9 @@ export default function Register() {
               ))}
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
-              <p className="text-xs text-amber-800">
-                <strong>Next:</strong> Set your password on the next screen. You'll receive a 6-digit verification code by email — check your junk folder if you don't see it.
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-left">
+              <p className="text-xs text-blue-800">
+                <strong>Next:</strong> Set your password on the next screen to activate your control panel.
               </p>
             </div>
 
