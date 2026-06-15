@@ -971,10 +971,45 @@ export async function registerRoutes(
     res.json(safe);
   });
 
+  // Public registration photo upload (no auth — rate limited)
+  app.post("/api/upload/registration-pic", registerLimiter, upload.single("file"), async (req, res) => {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+    const crypto = await import("crypto");
+    const extByMime: Record<string, string> = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" };
+    const ext = extByMime[req.file.mimetype] ?? ".jpg";
+    const filename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
+    try {
+      await objectStorage.putPublic(`profile/${filename}`, req.file.buffer, req.file.mimetype);
+    } catch (err) {
+      return res.status(500).json({ message: "Failed to store image" });
+    }
+    res.json({ url: `/uploads/profile/${filename}` });
+  });
+
+  // Look up advisor slug by email — used by the login portal
+  app.post("/api/advisor-auth/find-by-email", async (req, res) => {
+    const { email } = req.body;
+    if (!email?.trim()) return res.status(400).json({ message: "Email required" });
+    const result = await db.execute(sql`SELECT profile_slug FROM advisors WHERE email = ${email.trim().toLowerCase()} LIMIT 1`);
+    if (!result.rows?.length) return res.status(404).json({ message: "No profile found for that email address." });
+    res.json({ slug: result.rows[0].profile_slug });
+  });
+
   // Public self-registration — creates a trial advisor account (no auth required)
   app.post("/api/register", registerLimiter, async (req, res) => {
-    const { name, email, title, contactNumber, subscriptionTier } = req.body;
+    const {
+      name, email, title, contactNumber, subscriptionTier,
+      profilePicUrl, theme, themeColor, panelTheme, panelThemeColor,
+      showCallbackLink, showReferralsLink, showQrCode,
+      showHeader, showProfilePic, showIntro, showSocials,
+    } = req.body;
     const tier = ["trial", "pro", "enterprise"].includes(subscriptionTier) ? subscriptionTier : "trial";
+    const safeTheme = typeof theme === "string" ? theme : "blue";
+    const safeColor = typeof themeColor === "string" && /^#[0-9a-f]{6}$/i.test(themeColor) ? themeColor : "#4a8db5";
+    const safePanelTheme = typeof panelTheme === "string" ? panelTheme : safeTheme;
+    const safePanelColor = typeof panelThemeColor === "string" && /^#[0-9a-f]{6}$/i.test(panelThemeColor) ? panelThemeColor : safeColor;
+    const boolOrTrue = (v: unknown) => v === false ? false : true;
+
     if (!name?.trim() || name.trim().length < 2) return res.status(400).json({ message: "Full name is required." });
     if (!email?.trim() || !/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ message: "Valid email address is required." });
 
@@ -986,10 +1021,12 @@ export async function registerRoutes(
       slug = `${baseSlug}-${i}`;
     }
 
+    const picUrl = typeof profilePicUrl === "string" && profilePicUrl.startsWith("/uploads/") ? profilePicUrl : null;
+
     try {
       await db.execute(sql`
         INSERT INTO advisors (
-          name, email, title, contact_number, profile_slug,
+          name, email, title, contact_number, profile_slug, profile_pic_url,
           active, subscription_tier, entity_type,
           advisor_email_verified,
           theme, theme_color, panel_theme, panel_theme_color,
@@ -997,11 +1034,14 @@ export async function registerRoutes(
           show_qr_code, show_header, show_profile_pic, show_intro, show_socials
         ) VALUES (
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
-          ${contactNumber?.trim() || null}, ${slug},
+          ${contactNumber?.trim() || null}, ${slug}, ${picUrl},
           true, ${tier}, 'individual',
           true,
-          'blue', '#4a8db5', 'blue', '#4a8db5',
-          'a', true, true, true, true, true, true, true
+          ${safeTheme}, ${safeColor}, ${safePanelTheme}, ${safePanelColor},
+          'a',
+          ${boolOrTrue(showCallbackLink)}, ${boolOrTrue(showReferralsLink)},
+          ${boolOrTrue(showQrCode)}, ${boolOrTrue(showHeader)},
+          ${boolOrTrue(showProfilePic)}, ${boolOrTrue(showIntro)}, ${boolOrTrue(showSocials)}
         )
       `);
       res.status(201).json({ slug });

@@ -1,10 +1,32 @@
 import { useState } from "react";
-import { Building2, User } from "lucide-react";
+import { Building2, User, Loader2 } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function LoginPortal() {
-  const [slug, setSlug] = useState("");
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const [, navigate] = useLocation();
+
+  const handleAdvisorLogin = async () => {
+    if (!email.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/advisor-auth/find-by-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Not found");
+      navigate(`/advisor/${data.slug}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
@@ -44,26 +66,22 @@ export default function LoginPortal() {
           </div>
           <div className="flex gap-2">
             <input
-              type="text"
-              placeholder="Your profile URL (e.g. john-smith)"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && slug) navigate(`/advisor/${slug}`);
-              }}
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter" && email) handleAdvisorLogin(); }}
               className="flex-1 px-3 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/25 text-sm focus:outline-none focus:border-white/35 transition-colors"
             />
             <button
-              onClick={() => { if (slug) navigate(`/advisor/${slug}`); }}
-              disabled={!slug}
-              className="px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-30 hover:bg-white/90 transition-all"
+              onClick={handleAdvisorLogin}
+              disabled={!email.trim() || loading}
+              className="px-4 py-2.5 rounded-xl bg-white text-black text-sm font-semibold disabled:opacity-30 hover:bg-white/90 transition-all flex items-center gap-1.5"
             >
-              Go
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Go"}
             </button>
           </div>
-          {slug && (
-            <p className="text-white/25 text-xs ml-1">advisoryconnect.pro/{slug}</p>
-          )}
+          {error && <p className="text-red-400 text-xs ml-1">{error}</p>}
         </div>
 
         <p className="text-center text-white/20 text-xs">
