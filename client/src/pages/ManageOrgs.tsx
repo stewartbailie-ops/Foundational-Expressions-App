@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Building2, Plus, Users, UserCog, Loader2, Calendar } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Building2, Plus, Users, UserCog, Loader2, Calendar, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 
 type Org = {
@@ -183,6 +183,18 @@ export default function ManageOrgs() {
     queryKey: ["/api/admin/orgs"],
   });
 
+  const deleteOrg = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await fetch(`/api/admin/orgs/${id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to delete organisation");
+      }
+      return res.json();
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["/api/admin/orgs"] }),
+  });
+
   const fmt = (iso: string) =>
     new Date(iso).toLocaleDateString("en-ZA", { day: "numeric", month: "short", year: "numeric" });
 
@@ -283,6 +295,20 @@ export default function ManageOrgs() {
                   );
                 })()}
               </div>
+
+              {/* Delete */}
+              <button
+                onClick={() => {
+                  if (window.confirm(`Delete "${org.name}"? This will remove all org admins and unlink their advisors. This cannot be undone.`)) {
+                    deleteOrg.mutate(org.id);
+                  }
+                }}
+                disabled={deleteOrg.isPending}
+                className="p-2 rounded-lg text-red-400/60 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition-all flex-shrink-0"
+                title="Delete organisation"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
             </motion.div>
           ))}
         </div>

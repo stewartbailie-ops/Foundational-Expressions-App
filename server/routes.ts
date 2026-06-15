@@ -608,6 +608,19 @@ export async function registerRoutes(
       throw err;
     }
   });
+
+  app.delete("/api/admin/orgs/:id", async (req, res) => {
+    const orgId = Number(req.params.id);
+    if (!Number.isFinite(orgId)) return res.status(400).json({ message: "Invalid id" });
+
+    // Unlink any advisors that belong to this org before deleting
+    await db.execute(sql`UPDATE advisors SET org_id = NULL WHERE org_id = ${orgId}`);
+    await db.execute(sql`DELETE FROM org_admins WHERE org_id = ${orgId}`);
+    const result = await db.execute(sql`DELETE FROM organisations WHERE id = ${orgId} RETURNING id`);
+
+    if (!result.rows?.length) return res.status(404).json({ message: "Organisation not found" });
+    res.json({ deleted: true });
+  });
   // ─────────────────────────────────────────────────────────────────────────
 
   app.get("/api/advisors", async (_req, res) => {
