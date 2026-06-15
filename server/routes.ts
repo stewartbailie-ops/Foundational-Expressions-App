@@ -990,6 +990,7 @@ export async function registerRoutes(
         INSERT INTO advisors (
           name, email, title, contact_number, profile_slug,
           active, subscription_tier, entity_type,
+          advisor_email_verified,
           theme, theme_color, panel_theme, panel_theme_color,
           bio_option, show_callback_link, show_referrals_link,
           show_qr_code, show_header, show_profile_pic, show_intro, show_socials
@@ -997,6 +998,7 @@ export async function registerRoutes(
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
           ${contactNumber?.trim() || null}, ${slug},
           true, 'trial', 'individual',
+          true,
           'blue', '#4a8db5', 'blue', '#4a8db5',
           'a', true, true, true, true, true, true, true
         )
