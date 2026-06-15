@@ -47,3 +47,9 @@ id = "xwW2r5IKSyXEYiFZh3o9U"
 uri = "file://attached_assets/generated_images/ac_logo_concept_3.png"
 type = "image"
 title = "Logo Concept 3 — AC with Integrated Green Checkmark (Registry vibe)"
+
+[[outputs]]
+id = "laGTX4xx6Tr_r96BnH_f8"
+uri = "file://attached_assets/generated_videos/advisory_connect_promo.mp4"
+type = "video"
+title = "Advisory Connect — Promo Clip (8s)"
