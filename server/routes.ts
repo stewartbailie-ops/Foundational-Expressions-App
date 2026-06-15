@@ -14,6 +14,7 @@ import rateLimit from "express-rate-limit";
 
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
 const advisorLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { message: "Too many registrations from this IP. Please try again later." } });
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many OTP attempts. Please try again in 15 minutes." } });
 const otpSendLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification emails sent. Please try again in an hour." } });
 
@@ -968,6 +969,43 @@ export async function registerRoutes(
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
     const { advisorPasswordHash: _ph, ...safe } = advisor as any;
     res.json(safe);
+  });
+
+  // Public self-registration — creates a trial advisor account (no auth required)
+  app.post("/api/register", registerLimiter, async (req, res) => {
+    const { name, email, title, contactNumber } = req.body;
+    if (!name?.trim() || name.trim().length < 2) return res.status(400).json({ message: "Full name is required." });
+    if (!email?.trim() || !/\S+@\S+\.\S+/.test(email)) return res.status(400).json({ message: "Valid email address is required." });
+
+    const baseSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    let slug = baseSlug;
+    for (let i = 2; i <= 99; i++) {
+      const existing = await db.execute(sql`SELECT id FROM advisors WHERE profile_slug = ${slug} LIMIT 1`);
+      if (!existing.rows?.length) break;
+      slug = `${baseSlug}-${i}`;
+    }
+
+    try {
+      await db.execute(sql`
+        INSERT INTO advisors (
+          name, email, title, contact_number, profile_slug,
+          active, subscription_tier, entity_type,
+          theme, theme_color, panel_theme, panel_theme_color,
+          bio_option, show_callback_link, show_referrals_link,
+          show_qr_code, show_header, show_profile_pic, show_intro, show_socials
+        ) VALUES (
+          ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
+          ${contactNumber?.trim() || null}, ${slug},
+          true, 'trial', 'individual',
+          'blue', '#4a8db5', 'blue', '#4a8db5',
+          'a', true, true, true, true, true, true, true
+        )
+      `);
+      res.status(201).json({ slug });
+    } catch (err: any) {
+      if (err.code === "23505") return res.status(409).json({ message: "An account with this email already exists." });
+      throw err;
+    }
   });
 
   app.post("/api/advisors", async (req, res) => {

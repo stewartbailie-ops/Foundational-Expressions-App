@@ -416,7 +416,7 @@ export const PLATFORMS_META = [
 ] as const;
 
 export const TITLE_OPTIONS = [
-  "Junior Financial Advisor",
+  "Junior Financial Planner",
   "Senior Financial Advisor",
   "Executive Financial Advisor",
   "CFP (Certified Financial Planner)",

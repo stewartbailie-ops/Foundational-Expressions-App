@@ -30,6 +30,7 @@ const OrgLogin = lazy(() => import("@/pages/OrgLogin"));
 const OrgDashboard = lazy(() => import("@/pages/OrgDashboard"));
 const ManageOrgs = lazy(() => import("@/pages/ManageOrgs"));
 const LoginPortal = lazy(() => import("@/pages/LoginPortal"));
+const Register = lazy(() => import("@/pages/Register"));
 
 function PageFallback() {
   return (
@@ -115,6 +116,7 @@ function Router() {
   return (
     <Suspense fallback={<PageFallback />}>
     <Switch>
+      <Route path="/register" component={Register} />
       <Route path="/portal" component={LoginPortal} />
       <Route path="/org/login" component={OrgLogin} />
       <Route path="/org/dashboard" component={OrgDashboard} />

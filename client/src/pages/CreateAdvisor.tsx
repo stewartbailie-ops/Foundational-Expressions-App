@@ -3,14 +3,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, Loader2, Mail, Upload, ChevronDown, Check, X, Shield, FileText, ScrollText, CreditCard, User, Phone, FileCheck } from "lucide-react";
+import { ArrowLeft, ArrowRight, Loader2, Mail, Upload, ChevronDown, Check, X, Shield, FileText, ScrollText, CreditCard, User, Phone } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { TITLE_OPTIONS, SUBSCRIPTION_TIERS } from "@shared/schema";
 import { AdminImageCropper } from "@/components/AdminImageCropper";
-import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
 
 function InitialsPreview({ name, size = 64 }: { name: string; size?: number }) {
   const parts = name.trim().split(" ").filter(Boolean);
@@ -36,7 +35,7 @@ function InitialsPreview({ name, size = 64 }: { name: string; size?: number }) {
 const STEPS = [
   { num: 1, label: "Personal Details", icon: User },
   { num: 2, label: "Terms of Service", icon: ScrollText },
-  { num: 3, label: "FA Details", icon: FileText },
+  { num: 3, label: "Advisor Details", icon: FileText },
   { num: 4, label: "Login Email", icon: Mail },
   { num: 5, label: "Subscription", icon: CreditCard },
 ];
@@ -61,7 +60,6 @@ export default function CreateAdvisor() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const picInputRef = useRef<HTMLInputElement>(null);
-  const faisInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
 
@@ -80,11 +78,7 @@ export default function CreateAdvisor() {
 
   // Step 3
   const [advisorCode, setAdvisorCode] = useState("");
-  const [faisAgreementUrl, setFaisAgreementUrl] = useState<string | null>(null);
-  const [faisFilename, setFaisFilename] = useState<string | null>(null);
-  const [faisUploading, setFaisUploading] = useState(false);
-  const [backgroundStyle, setBackgroundStyle] = useState<number>(1);
-  const [patternOpacity, setPatternOpacity] = useState<number>(50);
+  const [entityType, setEntityType] = useState<"individual" | "corporate">("individual");
 
   // Step 4
   const [email, setEmail] = useState("");
@@ -130,29 +124,6 @@ export default function CreateAdvisor() {
     }
   };
 
-  const handleFaisUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== "application/pdf") {
-      toast({ title: "PDF only", description: "Please upload a PDF file.", variant: "destructive" });
-      return;
-    }
-    setFaisUploading(true);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/upload/fais", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
-      const data = await res.json();
-      setFaisAgreementUrl(data.url);
-      setFaisFilename(data.filename || file.name);
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload PDF.", variant: "destructive" });
-    } finally {
-      setFaisUploading(false);
-    }
-  };
-
   const createMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("POST", "/api/advisors", {
@@ -168,7 +139,6 @@ export default function CreateAdvisor() {
         panelThemeColor: "#4a8db5",
         bioOption: "a",
         active: true,
-        entityType: "individual",
         showCallbackLink: true,
         showReferralsLink: true,
         showQrCode: true,
@@ -177,11 +147,9 @@ export default function CreateAdvisor() {
         showIntro: true,
         showSocials: true,
         advisorCode: advisorCode || null,
-        faisAgreementUrl: faisAgreementUrl || null,
+        entityType,
         tosAcceptedAt: tosAccepted ? new Date().toISOString() : null,
         subscriptionTier,
-        backgroundStyle,
-        patternOpacity,
       });
       return res.json();
     },
@@ -202,7 +170,7 @@ export default function CreateAdvisor() {
   // Per-step validation
   const step1Valid = name.trim() !== "" && ageConfirmed && notRobot;
   const step2Valid = tosAccepted;
-  const step3Valid = advisorCode.trim() !== "";
+  const step3Valid = true;
   const step4Valid = email.trim() !== "" && /\S+@\S+\.\S+/.test(email);
   const step5Valid = !!subscriptionTier;
 
@@ -400,16 +368,34 @@ export default function CreateAdvisor() {
                 </div>
               )}
 
-              {/* STEP 3 — FA Details */}
+              {/* STEP 3 — Advisor Details */}
               {step === 3 && (
                 <div className="space-y-5" data-testid="step-3-content">
                   <div>
-                    <h3 className="text-lg font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Step 3 — Financial Advisor Details</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Their advisor code and signed FAIS agreement.</p>
+                    <h3 className="text-lg font-semibold flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /> Step 3 — Advisor Details</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Profile type and optional advisor code.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Profile Type</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {(["individual", "corporate"] as const).map((type) => (
+                        <label
+                          key={type}
+                          className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${entityType === type ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                        >
+                          <input type="radio" name="entityType" value={type} checked={entityType === type} onChange={() => setEntityType(type)} className="h-4 w-4 accent-primary" />
+                          <div>
+                            <p className="text-sm font-semibold capitalize">{type}</p>
+                            <p className="text-xs text-muted-foreground">{type === "individual" ? "Single advisor" : "Corporate / firm"}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label>Advisor Code <span className="text-red-500">*</span></Label>
+                    <Label>Advisor Code <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
                     <Input
                       value={advisorCode}
                       onChange={(e) => setAdvisorCode(e.target.value)}
@@ -417,47 +403,6 @@ export default function CreateAdvisor() {
                       data-testid="input-advisor-code"
                     />
                     <p className="text-xs text-muted-foreground">The advisor's unique code from your FSP / brokerage.</p>
-                  </div>
-
-                  <div className="space-y-2 pt-1">
-                    <BackgroundPatternPicker
-                      value={backgroundStyle}
-                      opacity={patternOpacity}
-                      onChange={setBackgroundStyle}
-                      onOpacityChange={setPatternOpacity}
-                      label="Starting Background Pattern"
-                    />
-                    <p className="text-xs text-muted-foreground">The advisor can change this anytime from their panel.</p>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label>FAIS Agreement (PDF only) <span className="text-xs text-muted-foreground font-normal">(optional)</span></Label>
-                    <input type="file" ref={faisInputRef} accept="application/pdf" className="hidden" onChange={handleFaisUpload} />
-                    {faisAgreementUrl ? (
-                      <div className="flex items-center gap-3 p-3 rounded-lg border border-emerald-200 bg-emerald-50">
-                        <FileCheck className="h-5 w-5 text-emerald-700 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-emerald-900 truncate">{faisFilename || "FAIS Agreement.pdf"}</p>
-                          <p className="text-xs text-emerald-700">Uploaded successfully</p>
-                        </div>
-                        <Button variant="outline" size="sm" type="button" onClick={() => faisInputRef.current?.click()} disabled={faisUploading}>
-                          Replace
-                        </Button>
-                        <Button variant="ghost" size="sm" type="button" onClick={() => { setFaisAgreementUrl(null); setFaisFilename(null); }}>
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => faisInputRef.current?.click()}
-                        className="flex flex-col items-center justify-center gap-2 py-8 rounded-xl cursor-pointer border-2 border-dashed border-border hover:border-primary/40 transition-colors"
-                        data-testid="upload-fais"
-                      >
-                        {faisUploading ? <Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /> : <Upload className="h-7 w-7 text-muted-foreground" />}
-                        <span className="text-sm text-muted-foreground">{faisUploading ? "Uploading..." : "Click to upload FAIS PDF"}</span>
-                        <span className="text-xs text-muted-foreground/60">PDF only — max 10MB</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               )}
@@ -600,7 +545,7 @@ export default function CreateAdvisor() {
                 <Row label="Contact Number" value={contactNumber || "—"} />
                 <Row label="Login Email" value={email || "—"} />
                 <Row label="Advisor Code" value={advisorCode || "—"} />
-                <Row label="FAIS Agreement" value={faisAgreementUrl ? "Uploaded" : "—"} highlight={!!faisAgreementUrl} />
+                <Row label="Profile Type" value={entityType === "corporate" ? "Corporate / Firm" : "Individual"} />
                 <Row label="Subscription" value={SUBSCRIPTION_TIERS.find(t => t.value === subscriptionTier)?.label || "—"} />
                 <Row label="Terms of Service" value={tosAccepted ? "Accepted" : "—"} highlight={tosAccepted} />
               </div>

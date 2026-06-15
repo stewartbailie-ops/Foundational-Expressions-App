@@ -8933,6 +8933,7 @@ export default function AdvisorPanel() {
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
   const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
@@ -8959,7 +8960,11 @@ export default function AdvisorPanel() {
         ]);
         const session = await sessionRes.json();
         const status = await statusRes.json();
-        if (session.authenticated) { setAuthState("authenticated"); return; }
+        if (session.authenticated) {
+          setAuthState("authenticated");
+          if (!localStorage.getItem(`ac_onboarding_${slug}`)) setShowOnboarding(true);
+          return;
+        }
         // First-time advisor: no password set yet — go straight to setup
         if (!status.passwordSet) { setAuthState("setup"); return; }
         setAuthState("login");
@@ -9036,10 +9041,10 @@ export default function AdvisorPanel() {
     return <LoginScreen slug={slug} onDone={() => setAuthState("authenticated")} onSetup={() => setAuthState("setup")} />;
   }
   if (authState === "setup") {
-    return <SetupScreen slug={slug} onVerificationSent={() => setAuthState("verify")} onDone={() => setAuthState("authenticated")} onBack={() => setAuthState("login")} />;
+    return <SetupScreen slug={slug} onVerificationSent={() => setAuthState("verify")} onDone={() => { setAuthState("authenticated"); if (!localStorage.getItem(`ac_onboarding_${slug}`)) setShowOnboarding(true); }} onBack={() => setAuthState("login")} />;
   }
   if (authState === "verify") {
-    return <VerifyScreen slug={slug} onDone={() => setAuthState("authenticated")} onBack={() => setAuthState("setup")} />;
+    return <VerifyScreen slug={slug} onDone={() => { setAuthState("authenticated"); if (!localStorage.getItem(`ac_onboarding_${slug}`)) setShowOnboarding(true); }} onBack={() => setAuthState("setup")} />;
   }
 
   const initials = getInitials(advisor.name);
@@ -9053,8 +9058,45 @@ export default function AdvisorPanel() {
     { key: "clients" as const,  label: "My Clients", icon: Users },
   ];
 
+  const dismissOnboarding = () => {
+    localStorage.setItem(`ac_onboarding_${slug}`, "1");
+    setShowOnboarding(false);
+  };
+
   return (
     <div className="min-h-screen" style={panelBg}>
+      {/* First-login onboarding overlay */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
+            <div className="text-center space-y-1">
+              <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-10 w-10 rounded-lg mx-auto mb-2" />
+              <h2 className="text-xl font-bold text-gray-900">Welcome, {advisor.name.split(" ")[0]}!</h2>
+              <p className="text-sm text-gray-500">Your Advisory Connect profile is live. Here's what's waiting for you.</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { emoji: "🌐", title: "Public Profile", desc: "Your digital business card is live. Share your link with any client." },
+                { emoji: "📋", title: "Book of Life", desc: "Emergency QR card for clients. Scan in any crisis for instant access to vital info.", highlight: true },
+                { emoji: "📥", title: "Lead Registry", desc: "Client enquiries land here automatically. Manage and follow up with ease." },
+                { emoji: "🎨", title: "Make It Yours", desc: "Add your photo, bio, services and custom colours from the Settings tab." },
+              ].map(({ emoji, title, desc, highlight }) => (
+                <div key={title} className={`rounded-xl p-3 space-y-1 ${highlight ? "bg-blue-50 border border-blue-200" : "bg-gray-50"}`}>
+                  <div className="text-lg">{emoji}</div>
+                  <p className={`text-xs font-semibold ${highlight ? "text-blue-800" : "text-gray-800"}`}>{title}</p>
+                  <p className="text-xs text-gray-500 leading-snug">{desc}</p>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={dismissOnboarding}
+              className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+            >
+              Let's build my profile →
+            </button>
+          </div>
+        </div>
+      )}
       <div className="max-w-lg mx-auto">
         <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor + "e0", borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
