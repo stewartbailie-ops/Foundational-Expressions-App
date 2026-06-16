@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { Fragment, useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { AdminImageCropper } from "@/components/AdminImageCropper";
@@ -12,36 +12,42 @@ const TITLE_OPTIONS = [
   "Junior Financial Planner",
   "Senior Financial Advisor",
   "CFP (Certified Financial Planner)",
-  "Wealth Manager",
-  "Estate Planner",
-  "Independent Financial Advisor",
 ];
 
+// Theme names MUST match the keys in themeUtils.ts getThemeColors / getInitialsBadgeColors.
+// Mismatches caused the "always blue" registration bug.
 const THEMES = [
-  { name: "blue",       color: "#4a8db5", label: "Blue"       },
-  { name: "dark-blue",  color: "#1e3a5f", label: "Dark Blue"  },
-  { name: "teal",       color: "#0d9488", label: "Teal"       },
-  { name: "green",      color: "#059669", label: "Green"      },
-  { name: "purple",     color: "#7c3aed", label: "Purple"     },
-  { name: "pink",       color: "#ec4899", label: "Pink"       },
-  { name: "black",      color: "#111827", label: "Black"      },
-  { name: "silver",     color: "#6b7280", label: "Silver"     },
+  { name: "light-blue",        color: "#0ea5e9", label: "Blue"       },
+  { name: "navy",              color: "#1d4ed8", label: "Dark Blue"  },
+  { name: "teal",              color: "#0d9488", label: "Teal"       },
+  { name: "dark-green",        color: "#22c55e", label: "Green"      },
+  { name: "dark-royal-purple", color: "#a855f7", label: "Purple"     },
+  { name: "pink",              color: "#be185d", label: "Pink"       },
+  { name: "dark",              color: "#111827", label: "Black"      },
+  { name: "silver",            color: "#6b7280", label: "Silver"     },
 ];
 
 const PLANS = [
-  { value: "trial",      label: "Free Trial",    price: "R0 / month",     desc: "Full access for 30 days. No card required.", highlight: false },
-  { value: "pro",        label: "Professional",  price: "R299 / month",   desc: "Unlimited leads, Book of Life, full branding.", highlight: true },
-  { value: "enterprise", label: "Enterprise",    price: "Custom pricing", desc: "Bulk licences for firms and franchises.", highlight: false },
+  {
+    value: "standard",
+    label: "Standard",
+    price: "R299 / month",
+    desc: "Core lead generation — everything an advisor needs to go live.",
+  },
+  {
+    value: "premium",
+    label: "Premium",
+    price: "R499 / month",
+    desc: "Full practice management & client engagement.",
+  },
 ];
 
-const FEATURES = [
-  { key: "showProfilePic",    label: "Profile Picture",    desc: "Your photo on your public profile" },
-  { key: "showIntro",         label: "Introduction",       desc: "Bio and services section" },
-  { key: "showCallbackLink",  label: "Callback Request",   desc: "Clients can request a call" },
-  { key: "showReferralsLink", label: "Referrals",          desc: "Accept referrals through your profile" },
-  { key: "showQrCode",        label: "QR Code",            desc: "Easy profile sharing via QR" },
-  { key: "showSocials",       label: "Social Links",       desc: "LinkedIn, Twitter and more" },
-  { key: "showHeader",        label: "Header Banner",      desc: "Banner image at the top of your profile" },
+const DISPLAYS = [
+  { key: "showMoneywebFeed", label: "Live Market News",            desc: "Real-time finance headlines on your home screen" },
+  { key: "showSecondNews",   label: "More Finance News",           desc: "Additional news feed for broader coverage" },
+  { key: "showForex",        label: "Live Exchange Rates",         desc: "USD, EUR & GBP vs ZAR, updated daily" },
+  { key: "showFunFacts",     label: "Financial Facts of the Day",  desc: "Daily rotating financial education infographic" },
+  { key: "showDailyQuotes",  label: "Quote of the Day",           desc: "Motivational daily finance quote" },
 ];
 
 const TOS_TEXT = `Welcome to Advisory Connect.
@@ -61,13 +67,16 @@ By creating an account, you agree to:
 The full Terms of Service document is currently being finalised and will be made available shortly. By ticking the box below, you confirm you accept these interim terms and the formal Terms of Service once published.`;
 
 const STEPS = [
-  { num: 1, label: "Details"     },
-  { num: 2, label: "Photo"       },
-  { num: 3, label: "Colours"     },
-  { num: 4, label: "Features"    },
-  { num: 5, label: "Plan"        },
-  { num: 6, label: "Terms"       },
+  { num: 1, label: "Details"  },
+  { num: 2, label: "Photo"    },
+  { num: 3, label: "Colours"  },
+  { num: 4, label: "Displays" },
+  { num: 5, label: "Plan"     },
+  { num: 6, label: "Terms"    },
 ];
+
+const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/40 transition-colors";
+const labelCls = "block text-sm font-medium text-white/70 mb-1.5";
 
 export default function Register() {
   const [, navigate] = useLocation();
@@ -77,6 +86,7 @@ export default function Register() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [createdSlug, setCreatedSlug] = useState("");
+  const [createdFirstName, setCreatedFirstName] = useState("");
 
   // Step 1
   const [name, setName] = useState("");
@@ -91,18 +101,18 @@ export default function Register() {
   const [uploading, setUploading] = useState(false);
 
   // Step 3
-  const [theme, setTheme] = useState("blue");
-  const [themeColor, setThemeColor] = useState("#4a8db5");
-  const [customColor, setCustomColor] = useState("#4a8db5");
+  const [theme, setTheme] = useState("light-blue");
+  const [themeColor, setThemeColor] = useState("#0ea5e9");
+  const [customColor, setCustomColor] = useState("#0ea5e9");
   const [useCustom, setUseCustom] = useState(false);
 
-  // Step 4
-  const [features, setFeatures] = useState<Record<string, boolean>>(
-    Object.fromEntries(FEATURES.map(f => [f.key, true]))
+  // Step 4 — home display toggles
+  const [displays, setDisplays] = useState<Record<string, boolean>>(
+    Object.fromEntries(DISPLAYS.map(d => [d.key, true]))
   );
 
   // Step 5
-  const [subscriptionTier, setSubscriptionTier] = useState("trial");
+  const [subscriptionTier, setSubscriptionTier] = useState("standard");
 
   // Step 6
   const [tosAccepted, setTosAccepted] = useState(false);
@@ -166,12 +176,13 @@ export default function Register() {
           panelTheme: useCustom ? "custom" : theme,
           panelThemeColor: finalColor,
           subscriptionTier,
-          ...features,
+          ...displays,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "Registration failed");
       setCreatedSlug(data.slug);
+      setCreatedFirstName(name.trim().split(" ")[0]);
       setStep(7);
     } catch (err: any) {
       toast({ title: "Registration failed", description: err.message, variant: "destructive" });
@@ -182,318 +193,313 @@ export default function Register() {
 
   const activeThemeColor = useCustom ? customColor : themeColor;
 
+  const cardCls = "w-full max-w-md bg-white/5 rounded-2xl border border-white/10 p-6 space-y-4";
+  const btnBack = "flex-1 py-3 rounded-xl border border-white/15 text-white/60 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-white/5 transition-all";
+  const btnNext = "flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all";
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6">
-      {/* AdminImageCropper overlay */}
+    <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
+      {/* Cropper overlay */}
       {cropperSrc && (
-        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-4">
-            <AdminImageCropper
-              src={cropperSrc}
-              onConfirm={handleCropConfirm}
-              onCancel={() => setCropperSrc(null)}
-            />
-          </div>
-        </div>
+        <AdminImageCropper
+          src={cropperSrc}
+          onConfirm={handleCropConfirm}
+          onCancel={() => setCropperSrc(null)}
+        />
       )}
 
-      <div className="mb-8 text-center">
-        <img src="/logo/icon-192.png" alt="Advisory Connect" className="w-12 h-12 rounded-xl mx-auto mb-3 shadow-sm" />
-        <h1 className="text-2xl font-bold text-gray-900">Create Your Profile</h1>
-        <p className="text-gray-500 text-sm mt-1">Your digital advisory presence, live in minutes.</p>
+      {/* Logo */}
+      <div className="text-center space-y-2 mb-8">
+        <img src="/logo/icon-192.png" alt="Advisory Connect" className="w-12 h-12 rounded-xl mx-auto shadow-sm" />
+        <h1 className="text-2xl font-bold text-white">Create Your Profile</h1>
+        <p className="text-white/40 text-sm">Your digital advisory presence, live in minutes.</p>
       </div>
 
+      {/* Progress bar — flex-1 connectors so it never overflows or clips */}
       {step < 7 && (
-        <div className="w-full max-w-lg mb-6 overflow-x-auto pb-1">
-          <div className="flex items-center min-w-max mx-auto">
+        <div className="w-full max-w-md mb-6 px-2">
+          <div className="flex items-start w-full">
             {STEPS.map((s, idx) => (
-              <div key={s.num} className="flex items-center">
-                <div className="flex flex-col items-center gap-1 flex-shrink-0">
+              <Fragment key={s.num}>
+                <div className="flex flex-col items-center flex-shrink-0">
                   <div className={`h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold border-2 transition-all ${
-                    step > s.num ? "bg-blue-600 border-blue-600 text-white"
-                    : step === s.num ? "bg-white border-blue-600 text-blue-600"
-                    : "bg-white border-gray-200 text-gray-400"
+                    step > s.num  ? "bg-blue-600 border-blue-600 text-white"
+                    : step === s.num ? "bg-transparent border-blue-500 text-blue-400"
+                    : "bg-transparent border-white/20 text-white/30"
                   }`}>
                     {step > s.num ? <Check className="h-3.5 w-3.5" /> : s.num}
                   </div>
-                  <span className={`text-[10px] font-medium whitespace-nowrap ${step === s.num ? "text-blue-600" : "text-gray-400"}`}>{s.label}</span>
+                  <span className={`text-[9px] font-medium whitespace-nowrap mt-1 ${step === s.num ? "text-blue-400" : "text-white/25"}`}>
+                    {s.label}
+                  </span>
                 </div>
-                {idx < STEPS.length - 1 && <div className={`h-0.5 w-8 mx-1 mb-4 ${step > s.num ? "bg-blue-600" : "bg-gray-200"}`} />}
-              </div>
+                {idx < STEPS.length - 1 && (
+                  <div className={`flex-1 h-0.5 mt-3.5 mx-1 transition-colors ${step > s.num ? "bg-blue-600" : "bg-white/10"}`} />
+                )}
+              </Fragment>
             ))}
           </div>
         </div>
       )}
 
-      <div className="w-full max-w-md">
+      {/* ── STEP 1: Details ── */}
+      {step === 1 && (
+        <div className={cardCls}>
+          <div>
+            <label className={labelCls}>Full Name <span className="text-red-400">*</span></label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Smith"
+              className={inputCls} />
+            {previewSlug && (
+              <p className="text-xs text-white/25 mt-1 ml-0.5">
+                Profile URL: <span className="text-white/50">advisoryconnect.pro/{previewSlug}</span>
+              </p>
+            )}
+          </div>
+          <div>
+            <label className={labelCls}>Title</label>
+            <select value={title} onChange={(e) => setTitle(e.target.value)}
+              className={inputCls + " bg-black/30"}>
+              {TITLE_OPTIONS.map(t => (
+                <option key={t} value={t} className="bg-gray-900 text-white">{t}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={labelCls}>Email Address <span className="text-red-400">*</span></label>
+            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
+              className={inputCls} />
+          </div>
+          <div>
+            <label className={labelCls}>Contact Number <span className="text-xs text-white/30 font-normal">(optional)</span></label>
+            <input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="+27 82 123 4567"
+              className={inputCls} />
+          </div>
+          <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${notRobot ? "border-blue-500 bg-blue-500/10" : "border-white/15 hover:border-white/25"}`}>
+            <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${notRobot ? "bg-blue-600 border-blue-600" : "border-white/30"}`}>
+              {notRobot && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+            </div>
+            <input type="checkbox" checked={notRobot} onChange={(e) => setNotRobot(e.target.checked)} className="sr-only" />
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-white/40 flex-shrink-0" />
+              <span className="text-sm font-medium text-white/70">I'm not a robot</span>
+            </div>
+          </label>
+          <button onClick={() => setStep(2)} disabled={!step1Valid}
+            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            Next <ArrowRight className="h-4 w-4" />
+          </button>
+          <p className="text-center text-xs text-white/25">Already have a profile?{" "}
+            <a href="/portal" className="text-blue-400 hover:underline font-medium">Sign in</a>
+          </p>
+        </div>
+      )}
 
-        {/* ── STEP 1: Details ────────────────────────────────── */}
-        {step === 1 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name <span className="text-red-500">*</span></label>
-              <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. John Smith"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors" />
-              {previewSlug && (
-                <p className="text-xs text-gray-400 mt-1 ml-0.5">Profile URL: <span className="text-gray-600">advisoryconnect.pro/{previewSlug}</span></p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Title</label>
-              <select value={title} onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 bg-white transition-colors">
-                {TITLE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address <span className="text-red-500">*</span></label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">Contact Number <span className="text-xs text-gray-400 font-normal">(optional)</span></label>
-              <input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="+27 82 123 4567"
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-colors" />
-            </div>
-            <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${notRobot ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}>
-              <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${notRobot ? "bg-blue-600 border-blue-600" : "border-gray-300"}`}>
-                {notRobot && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+      {/* ── STEP 2: Profile Photo ── */}
+      {step === 2 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Profile Photo</h2>
+            <p className="text-xs text-white/40 mt-0.5">Optional — you can add or change this anytime.</p>
+          </div>
+          <input ref={picInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePicSelect} />
+          <div className="flex flex-col items-center gap-4">
+            {profilePicUrl ? (
+              <img src={profilePicUrl} alt="Profile preview" className="h-28 w-28 rounded-full object-cover border-4 border-blue-500/30 shadow-lg" />
+            ) : (
+              <div className="h-28 w-28 rounded-full bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
+                <Camera className="h-8 w-8 text-white/20" />
               </div>
-              <input type="checkbox" checked={notRobot} onChange={(e) => setNotRobot(e.target.checked)} className="sr-only" />
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                <span className="text-sm font-medium text-gray-700">I'm not a robot</span>
-              </div>
-            </label>
-            <button onClick={() => setStep(2)} disabled={!step1Valid}
-              className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-              Next <ArrowRight className="h-4 w-4" />
+            )}
+            <button onClick={() => picInputRef.current?.click()} disabled={uploading}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/20 text-sm font-medium text-white/70 hover:bg-white/5 transition-all">
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+              {profilePicUrl ? "Change Photo" : "Upload Photo"}
             </button>
-            <p className="text-center text-xs text-gray-400">Already have a profile?{" "}
-              <a href="/portal" className="text-blue-600 hover:underline font-medium">Sign in</a>
+            {profilePicUrl && (
+              <button onClick={() => setProfilePicUrl(null)} className="text-xs text-white/30 hover:text-white/50 transition-colors">
+                Remove photo
+              </button>
+            )}
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setStep(1)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(3)} className={btnNext}>
+              {profilePicUrl ? "Next" : "Skip"} <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 3: Colours ── */}
+      {step === 3 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Choose Your Colours</h2>
+            <p className="text-xs text-white/40 mt-0.5">Sets the look of both your public profile and control panel.</p>
+          </div>
+          <div className="grid grid-cols-4 gap-3">
+            {THEMES.map(t => (
+              <button key={t.name} onClick={() => handleThemeSelect(t)} title={t.label}
+                className={`h-12 rounded-xl transition-all border-2 relative ${!useCustom && theme === t.name ? "border-white scale-105 shadow-md" : "border-transparent hover:scale-105"}`}
+                style={{ backgroundColor: t.color }}>
+                {!useCustom && theme === t.name && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Check className="h-4 w-4 text-white drop-shadow" strokeWidth={3} />
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-white/60 mb-2 cursor-pointer">
+              <input type="checkbox" checked={useCustom} onChange={(e) => setUseCustom(e.target.checked)} className="h-3.5 w-3.5 accent-blue-500" />
+              Use a custom colour
+            </label>
+            {useCustom && (
+              <div className="flex items-center gap-3">
+                <input type="color" value={customColor} onChange={(e) => setCustomColor(e.target.value)}
+                  className="h-10 w-16 rounded-lg border border-white/20 cursor-pointer p-0.5 bg-transparent" />
+                <span className="text-sm text-white/40 font-mono">{customColor.toUpperCase()}</span>
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-3 p-3 rounded-xl border"
+            style={{ backgroundColor: activeThemeColor + "18", borderColor: activeThemeColor + "40" }}>
+            <div className="h-8 w-8 rounded-lg flex-shrink-0" style={{ backgroundColor: activeThemeColor }} />
+            <p className="text-xs text-white/50">Preview: your profile accent and panel header will use this colour.</p>
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setStep(2)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(4)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 4: Home Displays ── */}
+      {step === 4 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Your Home Displays</h2>
+            <p className="text-xs text-white/40 mt-0.5">Choose what appears on your control panel home screen. You can change these anytime.</p>
+          </div>
+          <div className="space-y-2">
+            {DISPLAYS.map(d => (
+              <div key={d.key}
+                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${displays[d.key] ? "border-blue-500/40 bg-blue-500/8" : "border-white/10 hover:border-white/20"}`}
+                onClick={() => setDisplays(prev => ({ ...prev, [d.key]: !prev[d.key] }))}>
+                <div className="flex-1 min-w-0 mr-3">
+                  <p className="text-sm font-medium text-white/90">{d.label}</p>
+                  <p className="text-xs text-white/35">{d.desc}</p>
+                </div>
+                <div className={`relative h-5 w-9 rounded-full flex-shrink-0 transition-colors ${displays[d.key] ? "bg-blue-600" : "bg-white/15"}`}>
+                  <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${displays[d.key] ? "translate-x-4" : "translate-x-0.5"}`} />
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3">
+            <button onClick={() => setStep(3)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(5)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 5: Choose Plan ── */}
+      {step === 5 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Choose Your Plan</h2>
+          </div>
+          <div className="space-y-3">
+            {PLANS.map(plan => (
+              <div key={plan.value} onClick={() => setSubscriptionTier(plan.value)}
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${subscriptionTier === plan.value ? "border-blue-500 bg-blue-500/10" : "border-white/15 hover:border-white/25"}`}>
+                <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${subscriptionTier === plan.value ? "border-blue-500 bg-blue-500" : "border-white/30"}`}>
+                  {subscriptionTier === plan.value && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-white">{plan.label}</span>
+                    <span className="text-sm font-bold text-blue-400">{plan.price}</span>
+                  </div>
+                  <p className="text-xs text-white/40 mt-0.5">{plan.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-3 pt-1">
+            <button onClick={() => setStep(4)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(6)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 6: Terms of Service ── */}
+      {step === 6 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Terms of Service</h2>
+            <p className="text-xs text-white/40 mt-0.5">Please read and accept before continuing.</p>
+          </div>
+          <div className="border border-white/10 rounded-lg bg-white/3 p-4 max-h-56 overflow-y-auto">
+            <p className="text-xs text-white/50 leading-relaxed whitespace-pre-line">{TOS_TEXT}</p>
+          </div>
+          <label className="flex items-start gap-3 p-3 rounded-lg border border-blue-500/40 bg-blue-500/8 cursor-pointer">
+            <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-blue-600 flex-shrink-0" />
+            <span className="text-sm text-blue-300 font-medium">I accept the Terms of Service</span>
+          </label>
+          <div className="flex gap-3">
+            <button onClick={() => setStep(5)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={handleCreate} disabled={!tosAccepted || loading}
+              className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create My Profile"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── STEP 7: Welcome + Onboarding ── */}
+      {step === 7 && (
+        <div className="w-full max-w-md bg-white/5 rounded-2xl border border-white/10 p-8 space-y-6 text-center">
+          <div className="h-16 w-16 rounded-full bg-green-500/15 border border-green-500/30 flex items-center justify-center mx-auto">
+            <Check className="h-8 w-8 text-green-400" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white">Welcome, {createdFirstName || "Advisor"}!</h2>
+            <p className="text-sm text-white/40 mt-1.5">
+              Your profile is live at{" "}
+              <span className="font-medium text-white/70">advisoryconnect.pro/{createdSlug}</span>
             </p>
           </div>
-        )}
-
-        {/* ── STEP 2: Profile Photo ───────────────────────────── */}
-        {step === 2 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Profile Photo</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Optional — you can add or change this anytime.</p>
-            </div>
-            <input ref={picInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePicSelect} />
-            <div className="flex flex-col items-center gap-4">
-              {profilePicUrl ? (
-                <img src={profilePicUrl} alt="Profile preview" className="h-28 w-28 rounded-full object-cover border-4 border-blue-100 shadow" />
-              ) : (
-                <div className="h-28 w-28 rounded-full bg-gray-100 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                  <Camera className="h-8 w-8 text-gray-300" />
+          <div className="grid grid-cols-2 gap-3 text-left">
+            {[
+              { icon: Globe,    label: "Public Profile", desc: "Your digital business card — share your link with any client" },
+              { icon: BookOpen, label: "Book of Life",   desc: "Emergency QR card for clients — vital info in a crisis" },
+              { icon: Users,    label: "Lead Registry",  desc: "Client enquiries land here automatically" },
+              { icon: Palette,  label: "Make It Yours",  desc: "Add your bio, services, branding and more" },
+            ].map(({ icon: Icon, label, desc }) => (
+              <div key={label} className="bg-white/5 rounded-xl p-3 space-y-1 border border-white/8">
+                <div className="flex items-center gap-1.5">
+                  <Icon className="h-3.5 w-3.5 text-blue-400" />
+                  <span className="text-xs font-semibold text-white">{label}</span>
                 </div>
-              )}
-              <button onClick={() => picInputRef.current?.click()} disabled={uploading}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all">
-                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                {profilePicUrl ? "Change Photo" : "Upload Photo"}
-              </button>
-              {profilePicUrl && (
-                <button onClick={() => setProfilePicUrl(null)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">Remove photo</button>
-              )}
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={() => setStep(1)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all">
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-              <button onClick={() => setStep(3)} className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
-                {profilePicUrl ? "Next" : "Skip"} <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+                <p className="text-xs text-white/40">{desc}</p>
+              </div>
+            ))}
           </div>
-        )}
-
-        {/* ── STEP 3: Colours ────────────────────────────────── */}
-        {step === 3 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Choose Your Colours</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Sets the look of both your public profile and control panel.</p>
-            </div>
-            <div className="grid grid-cols-4 gap-3">
-              {THEMES.map(t => (
-                <button key={t.name} onClick={() => handleThemeSelect(t)} title={t.label}
-                  className={`h-12 rounded-xl transition-all border-2 relative ${!useCustom && theme === t.name ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105"}`}
-                  style={{ backgroundColor: t.color }}>
-                  {!useCustom && theme === t.name && (
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <Check className="h-4 w-4 text-white drop-shadow" strokeWidth={3} />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-            <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2 cursor-pointer">
-                <input type="checkbox" checked={useCustom} onChange={(e) => setUseCustom(e.target.checked)} className="h-3.5 w-3.5 accent-blue-600" />
-                Use a custom colour
-              </label>
-              {useCustom && (
-                <div className="flex items-center gap-3">
-                  <input type="color" value={customColor} onChange={(e) => setCustomColor(e.target.value)}
-                    className="h-10 w-16 rounded-lg border border-gray-200 cursor-pointer p-0.5" />
-                  <span className="text-sm text-gray-500 font-mono">{customColor.toUpperCase()}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center gap-3 p-3 rounded-xl" style={{ backgroundColor: activeThemeColor + "18", border: `1px solid ${activeThemeColor}40` }}>
-              <div className="h-8 w-8 rounded-lg flex-shrink-0" style={{ backgroundColor: activeThemeColor }} />
-              <p className="text-xs text-gray-600">Preview: your profile accent and panel header will use this colour.</p>
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setStep(2)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all">
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-              <button onClick={() => setStep(4)} className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
-                Next <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+          <div className="bg-blue-500/10 border border-blue-500/25 rounded-xl p-3 text-left">
+            <p className="text-xs text-blue-300">
+              <strong>Next:</strong> Set your password to activate your control panel.
+            </p>
           </div>
-        )}
+          <button onClick={() => navigate(`/advisor/${createdSlug}`)}
+            className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all">
+            Set Up My Panel <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
-        {/* ── STEP 4: Profile Features ────────────────────────── */}
-        {step === 4 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-5">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Your Profile Features</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Choose what appears on your public profile and control panel home. You can change these anytime.</p>
-            </div>
-            <div className="space-y-2">
-              {FEATURES.map(f => (
-                <label key={f.key} className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition-all ${features[f.key] ? "border-blue-200 bg-blue-50/50" : "border-gray-100 hover:border-gray-200"}`}>
-                  <div className="flex-1 min-w-0 mr-3">
-                    <p className="text-sm font-medium text-gray-800">{f.label}</p>
-                    <p className="text-xs text-gray-400">{f.desc}</p>
-                  </div>
-                  <div onClick={() => setFeatures(prev => ({ ...prev, [f.key]: !prev[f.key] }))}
-                    className={`relative h-5 w-9 rounded-full flex-shrink-0 transition-colors cursor-pointer ${features[f.key] ? "bg-blue-600" : "bg-gray-200"}`}>
-                    <div className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform ${features[f.key] ? "translate-x-4" : "translate-x-0.5"}`} />
-                  </div>
-                  <input type="checkbox" checked={features[f.key]} onChange={() => {}} className="sr-only" />
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-3">
-              <button onClick={() => setStep(3)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all">
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-              <button onClick={() => setStep(5)} className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
-                Next <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 5: Choose Plan ─────────────────────────────── */}
-        {step === 5 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Choose Your Plan</h2>
-              <p className="text-xs text-gray-500 mt-0.5">All plans include full access. Upgrade or downgrade anytime.</p>
-            </div>
-            <div className="space-y-3">
-              {PLANS.map(plan => (
-                <label key={plan.value} onClick={() => setSubscriptionTier(plan.value)}
-                  className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${subscriptionTier === plan.value ? "border-blue-500 bg-blue-50/60" : "border-gray-200 hover:border-gray-300"}`}>
-                  <div className={`mt-0.5 h-4 w-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${subscriptionTier === plan.value ? "border-blue-600 bg-blue-600" : "border-gray-300"}`}>
-                    {subscriptionTier === plan.value && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold text-gray-900">{plan.label}</span>
-                      <span className="text-sm font-bold text-blue-600">{plan.price}</span>
-                    </div>
-                    <p className="text-xs text-gray-500 mt-0.5">{plan.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setStep(4)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all">
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-              <button onClick={() => setStep(6)} className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
-                Next <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 6: Terms of Service ────────────────────────── */}
-        {step === 6 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Terms of Service</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Please read and accept before continuing.</p>
-            </div>
-            <div className="border border-gray-100 rounded-lg bg-gray-50 p-4 max-h-56 overflow-y-auto">
-              <p className="text-xs text-gray-600 leading-relaxed whitespace-pre-line">{TOS_TEXT}</p>
-            </div>
-            <label className="flex items-start gap-3 p-3 rounded-lg border border-blue-200 bg-blue-50 cursor-pointer">
-              <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)} className="mt-0.5 h-4 w-4 accent-blue-600 flex-shrink-0" />
-              <span className="text-sm text-blue-900 font-medium">I accept the Terms of Service</span>
-            </label>
-            <div className="flex gap-3">
-              <button onClick={() => setStep(5)} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-gray-50 transition-all">
-                <ArrowLeft className="h-4 w-4" /> Back
-              </button>
-              <button onClick={handleCreate} disabled={!tosAccepted || loading}
-                className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create My Profile"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 7: Success ─────────────────────────────────── */}
-        {step === 7 && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 text-center space-y-6">
-            <div className="h-16 w-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-              <Check className="h-8 w-8 text-green-600" />
-            </div>
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">You're in!</h2>
-              <p className="text-sm text-gray-500 mt-1.5">Your profile is live at{" "}
-                <span className="font-medium text-gray-700">advisoryconnect.pro/{createdSlug}</span>
-              </p>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-left">
-              {[
-                { icon: Globe, label: "Public Profile", desc: "Your digital business card is live" },
-                { icon: BookOpen, label: "Book of Life", desc: "Emergency QR access for clients" },
-                { icon: Users, label: "Lead Registry", desc: "Client enquiries land here" },
-                { icon: Palette, label: "Make It Yours", desc: "Add bio, services and more" },
-              ].map(({ icon: Icon, label, desc }) => (
-                <div key={label} className="bg-gray-50 rounded-xl p-3 space-y-1">
-                  <div className="flex items-center gap-1.5">
-                    <Icon className="h-3.5 w-3.5 text-blue-600" />
-                    <span className="text-xs font-semibold text-gray-800">{label}</span>
-                  </div>
-                  <p className="text-xs text-gray-500">{desc}</p>
-                </div>
-              ))}
-            </div>
-            <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-left">
-              <p className="text-xs text-blue-800">
-                <strong>Next:</strong> Set your password to activate your control panel.
-              </p>
-            </div>
-            <button onClick={() => navigate(`/advisor/${createdSlug}`)}
-              className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-700 transition-all">
-              Set Up My Panel <ArrowRight className="h-4 w-4" />
-            </button>
-          </div>
-        )}
-
-      </div>
     </div>
   );
 }

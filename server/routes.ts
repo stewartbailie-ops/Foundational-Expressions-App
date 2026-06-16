@@ -1000,12 +1000,16 @@ export async function registerRoutes(
     const {
       name, email, title, contactNumber, subscriptionTier,
       profilePicUrl, theme, themeColor, panelTheme, panelThemeColor,
-      showCallbackLink, showReferralsLink, showQrCode,
-      showHeader, showProfilePic, showIntro, showSocials,
+      showMoneywebFeed, showSecondNews, showForex, showFunFacts, showDailyQuotes,
     } = req.body;
-    const tier = ["trial", "pro", "enterprise"].includes(subscriptionTier) ? subscriptionTier : "trial";
-    const safeTheme = typeof theme === "string" ? theme : "blue";
-    const safeColor = typeof themeColor === "string" && /^#[0-9a-f]{6}$/i.test(themeColor) ? themeColor : "#4a8db5";
+    // "standard" maps to "basic" in the DB schema; "premium" maps to "premium".
+    const TIER_MAP: Record<string, string> = {
+      trial: "trial", standard: "basic", basic: "basic",
+      premium: "premium", pro: "basic", enterprise: "basic",
+    };
+    const tier = TIER_MAP[subscriptionTier as string] ?? "trial";
+    const safeTheme = typeof theme === "string" ? theme : "light-blue";
+    const safeColor = typeof themeColor === "string" && /^#[0-9a-f]{6}$/i.test(themeColor) ? themeColor : "#0ea5e9";
     const safePanelTheme = typeof panelTheme === "string" ? panelTheme : safeTheme;
     const safePanelColor = typeof panelThemeColor === "string" && /^#[0-9a-f]{6}$/i.test(panelThemeColor) ? panelThemeColor : safeColor;
     const boolOrTrue = (v: unknown) => v === false ? false : true;
@@ -1030,8 +1034,8 @@ export async function registerRoutes(
           active, subscription_tier, entity_type,
           advisor_email_verified,
           theme, theme_color, panel_theme, panel_theme_color,
-          bio_option, show_callback_link, show_referrals_link,
-          show_qr_code, show_header, show_profile_pic, show_intro, show_socials
+          bio_option,
+          show_moneyweb_feed, show_second_news, show_forex, show_fun_facts, show_daily_quotes
         ) VALUES (
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
           ${contactNumber?.trim() || null}, ${slug}, ${picUrl},
@@ -1039,9 +1043,8 @@ export async function registerRoutes(
           true,
           ${safeTheme}, ${safeColor}, ${safePanelTheme}, ${safePanelColor},
           'a',
-          ${boolOrTrue(showCallbackLink)}, ${boolOrTrue(showReferralsLink)},
-          ${boolOrTrue(showQrCode)}, ${boolOrTrue(showHeader)},
-          ${boolOrTrue(showProfilePic)}, ${boolOrTrue(showIntro)}, ${boolOrTrue(showSocials)}
+          ${boolOrTrue(showMoneywebFeed)}, ${boolOrTrue(showSecondNews)},
+          ${boolOrTrue(showForex)}, ${boolOrTrue(showFunFacts)}, ${boolOrTrue(showDailyQuotes)}
         )
       `);
       res.status(201).json({ slug });
