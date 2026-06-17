@@ -1,0 +1,1 @@
+- [Public endpoint allowlist](auth-public-allowlist.md) — new public/unauth API routes 401 unless added to PUBLIC_API_ROUTES in server/auth.ts, even with no handler auth gate.

@@ -3,6 +3,11 @@ import type { Request, Response, NextFunction } from "express";
 const PUBLIC_API_ROUTES = [
   "/api/advisors/slug/",
   "/api/advisor-auth/",
+  // Public self-service onboarding ("Get Started" flow) — the prospective
+  // advisor has no session yet, so registration + its photo upload must be
+  // reachable before auth. Per-route rate limiting still applies.
+  "/api/register",
+  "/api/upload/registration-pic",
   "/api/advisor/login",
   "/api/advisor/session",
   "/api/advisor/logout",
