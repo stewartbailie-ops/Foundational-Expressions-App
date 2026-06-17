@@ -1042,7 +1042,7 @@ export async function registerRoutes(
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
           ${contactNumber?.trim() || null}, ${slug}, ${picUrl},
           true, ${tier}, 'individual',
-          true,
+          false,
           ${safeTheme}, ${safeColor}, ${safePanelTheme}, ${safePanelColor},
           'a',
           ${boolOrTrue(showMoneywebFeed)}, ${boolOrTrue(showSecondNews)},
