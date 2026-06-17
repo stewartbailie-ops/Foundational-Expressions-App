@@ -15,6 +15,7 @@ import rateLimit from "express-rate-limit";
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
 const advisorLoginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many login attempts. Please try again in 15 minutes." } });
 const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 8, standardHeaders: true, legacyHeaders: false, message: { message: "Too many registrations from this IP. Please try again later." } });
+const uploadLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false, message: { message: "Too many uploads. Please try again later." } });
 const otpLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10, standardHeaders: true, legacyHeaders: false, message: { message: "Too many OTP attempts. Please try again in 15 minutes." } });
 const otpSendLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5, standardHeaders: true, legacyHeaders: false, message: { message: "Too many verification emails sent. Please try again in an hour." } });
 
@@ -972,7 +973,7 @@ export async function registerRoutes(
   });
 
   // Public registration photo upload (no auth — rate limited)
-  app.post("/api/upload/registration-pic", registerLimiter, upload.single("file"), async (req, res) => {
+  app.post("/api/upload/registration-pic", uploadLimiter, upload.single("file"), async (req, res) => {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
     const crypto = await import("crypto");
     const extByMime: Record<string, string> = { "image/jpeg": ".jpg", "image/png": ".png", "image/webp": ".webp" };
