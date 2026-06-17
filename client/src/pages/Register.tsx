@@ -1,10 +1,9 @@
-import { Fragment, useState, useRef } from "react";
+import { Fragment, useState } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { AdminImageCropper } from "@/components/AdminImageCropper";
 import {
   Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users,
-  Palette, Globe, ShieldCheck, Upload, Camera,
+  Palette, Globe, ShieldCheck, Camera,
 } from "lucide-react";
 
 const TITLE_OPTIONS = [
@@ -81,7 +80,6 @@ const labelCls = "block text-sm font-medium text-white/70 mb-1.5";
 export default function Register() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
-  const picInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -94,11 +92,6 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
   const [notRobot, setNotRobot] = useState(false);
-
-  // Step 2
-  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
-  const [cropperSrc, setCropperSrc] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   // Step 3
   const [theme, setTheme] = useState("light-blue");
@@ -120,42 +113,6 @@ export default function Register() {
   const previewSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   const step1Valid = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email.trim()) && notRobot;
 
-  const handlePicSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => { if (typeof reader.result === "string") setCropperSrc(reader.result); };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
-  const handleCropConfirm = async (dataUrl: string) => {
-    setCropperSrc(null);
-    setUploading(true);
-    try {
-      const [header, b64] = dataUrl.split(",");
-      const mime = header.match(/:(.*?);/)?.[1] ?? "image/jpeg";
-      const bytes = atob(b64);
-      const arr = new Uint8Array(bytes.length);
-      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
-      const blob = new Blob([arr], { type: mime });
-      const fd = new FormData();
-      fd.append("file", blob, "profile.jpg");
-      const res = await fetch("/api/upload/registration-pic", { method: "POST", body: fd });
-      if (!res.ok) {
-        let msg = "Could not upload photo.";
-        try { const d = await res.json(); if (d.message) msg = d.message; } catch {}
-        throw new Error(msg);
-      }
-      const data = await res.json();
-      setProfilePicUrl(data.url);
-    } catch (err: any) {
-      toast({ title: "Upload Failed", description: err.message || "Could not upload photo.", variant: "destructive" });
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleThemeSelect = (t: typeof THEMES[0]) => {
     setTheme(t.name);
     setThemeColor(t.color);
@@ -174,7 +131,7 @@ export default function Register() {
           email: email.trim(),
           title,
           contactNumber: contactNumber.trim() || null,
-          profilePicUrl: profilePicUrl || null,
+          profilePicUrl: null,
           theme: useCustom ? "custom" : theme,
           themeColor: finalColor,
           panelTheme: useCustom ? "custom" : theme,
@@ -203,15 +160,6 @@ export default function Register() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
-      {/* Cropper overlay */}
-      {cropperSrc && (
-        <AdminImageCropper
-          src={cropperSrc}
-          onConfirm={handleCropConfirm}
-          onCancel={() => setCropperSrc(null)}
-        />
-      )}
-
       {/* Logo */}
       <div className="text-center space-y-2 mb-8">
         <img src="/logo/icon-192.png" alt="Advisory Connect" className="w-12 h-12 rounded-xl mx-auto shadow-sm" />
@@ -303,32 +251,20 @@ export default function Register() {
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Profile Photo</h2>
-            <p className="text-xs text-white/40 mt-0.5">Optional — you can add or change this anytime.</p>
+            <p className="text-xs text-white/40 mt-0.5">Add your photo after you've set up your account.</p>
           </div>
-          <input ref={picInputRef} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePicSelect} />
-          <div className="flex flex-col items-center gap-4">
-            {profilePicUrl ? (
-              <img src={profilePicUrl} alt="Profile preview" className="h-28 w-28 rounded-full object-cover border-4 border-blue-500/30 shadow-lg" />
-            ) : (
-              <div className="h-28 w-28 rounded-full bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
-                <Camera className="h-8 w-8 text-white/20" />
-              </div>
-            )}
-            <button onClick={() => picInputRef.current?.click()} disabled={uploading}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-white/20 text-sm font-medium text-white/70 hover:bg-white/5 transition-all">
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-              {profilePicUrl ? "Change Photo" : "Upload Photo"}
-            </button>
-            {profilePicUrl && (
-              <button onClick={() => setProfilePicUrl(null)} className="text-xs text-white/30 hover:text-white/50 transition-colors">
-                Remove photo
-              </button>
-            )}
+          <div className="flex flex-col items-center gap-4 py-4">
+            <div className="h-28 w-28 rounded-full bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
+              <Camera className="h-8 w-8 text-white/20" />
+            </div>
+            <p className="text-xs text-white/35 text-center max-w-[220px]">
+              You'll be able to upload and crop your profile picture from your control panel once you've logged in.
+            </p>
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setStep(1)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
             <button onClick={() => setStep(3)} className={btnNext}>
-              {profilePicUrl ? "Next" : "Skip"} <ArrowRight className="h-4 w-4" />
+              Next <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
