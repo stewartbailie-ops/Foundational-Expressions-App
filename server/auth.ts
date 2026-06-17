@@ -113,6 +113,24 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // Advisor sessions may edit their OWN primary profile — the sub-panel profile
+  // editor PATCHes /api/advisors/:id. Ownership is enforced HERE: the numeric id
+  // in the path must equal session.advisorId. Only PATCH is opened up (GET of the
+  // public profile uses /api/advisors/slug/:slug; DELETE/toggle stay admin-only).
+  // The route handler additionally strips billing/identity fields for non-admins
+  // so an advisor cannot self-grant a paid tier or flip verification flags.
+  {
+    const ownAdvisorMatch = req.path.match(/^\/api\/advisors\/(\d+)$/);
+    if (
+      ownAdvisorMatch &&
+      req.method === "PATCH" &&
+      typeof (req.session as any)?.advisorId === "number" &&
+      Number(ownAdvisorMatch[1]) === (req.session as any).advisorId
+    ) {
+      return next();
+    }
+  }
+
   return res.status(401).json({ message: "Unauthorized" });
 }
 

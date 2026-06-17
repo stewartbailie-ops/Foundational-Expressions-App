@@ -1072,6 +1072,21 @@ export async function registerRoutes(
     }
     // Never allow a caller to overwrite the advisor password hash via this endpoint.
     const { advisorPasswordHash: _ph, ...safeData } = partial.data as any;
+    // Advisor sessions may edit their OWN primary profile (auth.ts enforces id
+    // ownership), but must NOT be able to grant themselves a paid tier, flip
+    // verification/identity flags, reassign their org, or touch Paystack billing
+    // state — the Paystack webhook is the only writer for subscription tier.
+    // Admin sessions (session.authenticated) retain full control.
+    const isAdmin = !!(req.session as any)?.authenticated;
+    if (!isAdmin) {
+      const PROTECTED_ADVISOR_FIELDS = [
+        "subscriptionTier", "subscriptionStatus", "trialEndsAt",
+        "paystackCustomerCode", "paystackSubscriptionCode", "paystackEmailToken",
+        "trialExpiryEmailSentAt", "advisorCode",
+        "advisorEmailVerified", "advisorPasswordSet", "isDemo", "orgId",
+      ];
+      for (const k of PROTECTED_ADVISOR_FIELDS) delete safeData[k];
+    }
     const updated = await storage.updateAdvisor(Number(req.params.id), safeData);
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
     const { advisorPasswordHash: _rph, ...safeUpdated } = updated as any;
