@@ -35,14 +35,22 @@ export default function ManageAdvisors() {
     },
   });
 
+  const [showArchived, setShowArchived] = useState(false);
+
+  const { data: archivedAdvisors = [] } = useQuery<Advisor[]>({
+    queryKey: ["/api/advisors/archived"],
+    enabled: showArchived,
+  });
+
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
       await apiRequest("DELETE", `/api/advisors/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/advisors"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/advisors/archived"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
-      toast({ title: "Advisor Deleted", description: "The advisor profile has been permanently removed." });
+      toast({ title: "Advisor Archived", description: "The advisor has been deactivated and archived. Their leads and clients are preserved." });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -50,7 +58,7 @@ export default function ManageAdvisors() {
   });
 
   const handleDelete = (advisor: Advisor) => {
-    if (window.confirm(`Are you sure you want to permanently delete ${advisor.name}'s profile? This action cannot be undone.`)) {
+    if (window.confirm(`Archive ${advisor.name}? Their profile will be deactivated and hidden, but their leads and clients will be preserved.`)) {
       deleteMutation.mutate(advisor.id);
     }
   };
@@ -244,6 +252,64 @@ export default function ManageAdvisors() {
           </Table>
         </div>
       </Card>
+
+      {/* Archived Advisors */}
+      <div className="mt-8">
+        <button
+          onClick={() => setShowArchived(v => !v)}
+          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-white transition-colors"
+          data-testid="button-toggle-archived"
+        >
+          <Trash2 className="h-4 w-4" />
+          {showArchived ? "Hide" : "Show"} Archived Advisors
+          {archivedAdvisors.length > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 rounded-full text-xs bg-white/10">{archivedAdvisors.length}</span>
+          )}
+        </button>
+
+        {showArchived && (
+          <Card className="border-border overflow-hidden mt-3 opacity-70">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead>Advisor Profile</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Archived</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {archivedAdvisors.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-16 text-center text-muted-foreground text-sm">No archived advisors.</TableCell>
+                    </TableRow>
+                  ) : (
+                    archivedAdvisors.map((advisor) => (
+                      <TableRow key={advisor.id} className="border-border" data-testid={`row-archived-${advisor.id}`}>
+                        <TableCell>
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-muted border border-border flex items-center justify-center font-bold text-xs shrink-0 opacity-50">
+                              {advisor.name.split(" ").map((n) => n[0]).join("")}
+                            </div>
+                            <div>
+                              <div className="font-medium text-sm text-muted-foreground">{advisor.name}</div>
+                              <Badge variant="outline" className="text-[10px] mt-0.5 bg-red-500/10 text-red-400 border-red-500/20">Archived</Badge>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-muted-foreground text-sm">{advisor.email}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {advisor.archivedAt ? new Date(advisor.archivedAt).toLocaleDateString("en-ZA") : "—"}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }

@@ -38,6 +38,7 @@ const ADVISOR_PROFILE_COLUMNS: [string, string][] = [
 
 const ADVISOR_ONLY_COLUMNS: [string, string][] = [
   ["org_id", "integer REFERENCES organisations(id)"],
+  ["archived_at", "timestamp"],
 ];
 
 // Lead-table additive columns. Same pattern, separate list because the parent

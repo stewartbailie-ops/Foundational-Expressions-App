@@ -223,6 +223,7 @@ export const advisors = pgTable("advisors", {
   showEmergencyContacts: boolean("show_emergency_contacts").default(false),
   bookingUrl: text("booking_url"),
   active: boolean("active").notNull().default(true),
+  archivedAt: timestamp("archived_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

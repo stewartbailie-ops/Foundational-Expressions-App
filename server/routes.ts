@@ -630,6 +630,12 @@ export async function registerRoutes(
     res.json(advisors);
   });
 
+  app.get("/api/advisors/archived", async (req, res) => {
+    if (!(req.session as any)?.authenticated) return res.status(401).json({ message: "Unauthorized" });
+    const archived = await storage.getArchivedAdvisors();
+    res.json(archived);
+  });
+
   app.get("/api/advisors/profile-counts", async (_req, res) => {
     const counts = await storage.getAdvisorProfileCounts();
     res.json(counts);
@@ -858,11 +864,11 @@ export async function registerRoutes(
     }
 
     const result = await db.execute(
-      sql`DELETE FROM advisors WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING id`
+      sql`UPDATE advisors SET active = false, archived_at = now() WHERE id = ${advisorId} AND org_id = ${orgId} AND archived_at IS NULL RETURNING id`
     );
 
     if (!result.rows?.length) {
-      return res.status(404).json({ message: "Advisor not found or already deleted" });
+      return res.status(404).json({ message: "Advisor not found or already archived" });
     }
 
     res.json({ deleted: true });

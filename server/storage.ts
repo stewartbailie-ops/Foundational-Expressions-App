@@ -5,6 +5,7 @@ import { encryptString, decryptString } from "./encryption";
 
 export interface IStorage {
   getAdvisors(): Promise<Advisor[]>;
+  getArchivedAdvisors(): Promise<Advisor[]>;
   getAdvisor(id: number): Promise<Advisor | undefined>;
   getAdvisorBySlug(slug: string): Promise<Advisor | undefined>;
   createAdvisor(advisor: InsertAdvisor): Promise<Advisor>;
@@ -128,7 +129,11 @@ function toPlaintext(row: Client): ClientWithPlaintext {
 
 export class DatabaseStorage implements IStorage {
   async getAdvisors(): Promise<Advisor[]> {
-    return db.select().from(advisors).orderBy(desc(advisors.createdAt));
+    return db.select().from(advisors).where(isNull(advisors.archivedAt)).orderBy(desc(advisors.createdAt));
+  }
+
+  async getArchivedAdvisors(): Promise<Advisor[]> {
+    return db.select().from(advisors).where(sql`archived_at IS NOT NULL`).orderBy(desc(advisors.archivedAt));
   }
 
   async getAdvisor(id: number): Promise<Advisor | undefined> {
@@ -275,9 +280,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAdvisor(id: number): Promise<boolean> {
-    await db.delete(advisorProfiles).where(eq(advisorProfiles.advisorId, id));
-    const result = await db.delete(advisors).where(eq(advisors.id, id)).returning();
-    return result.length > 0;
+    const [result] = await db
+      .update(advisors)
+      .set({ active: false, archivedAt: new Date() })
+      .where(and(eq(advisors.id, id), isNull(advisors.archivedAt)))
+      .returning();
+    return !!result;
   }
 
   async getAdvisorProfiles(advisorId: number): Promise<AdvisorProfile[]> {
