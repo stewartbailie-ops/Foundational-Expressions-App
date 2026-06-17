@@ -142,11 +142,15 @@ export default function Register() {
       const fd = new FormData();
       fd.append("file", blob, "profile.jpg");
       const res = await fetch("/api/upload/registration-pic", { method: "POST", body: fd });
-      if (!res.ok) throw new Error("Upload failed");
+      if (!res.ok) {
+        let msg = "Could not upload photo.";
+        try { const d = await res.json(); if (d.message) msg = d.message; } catch {}
+        throw new Error(msg);
+      }
       const data = await res.json();
       setProfilePicUrl(data.url);
-    } catch {
-      toast({ title: "Upload Failed", description: "Could not upload photo.", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Upload Failed", description: err.message || "Could not upload photo.", variant: "destructive" });
     } finally {
       setUploading(false);
     }

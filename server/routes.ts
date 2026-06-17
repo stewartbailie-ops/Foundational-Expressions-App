@@ -981,8 +981,9 @@ export async function registerRoutes(
     const filename = `${crypto.randomBytes(16).toString("hex")}${ext}`;
     try {
       await objectStorage.putPublic(`profile/${filename}`, req.file.buffer, req.file.mimetype);
-    } catch (err) {
-      return res.status(500).json({ message: "Failed to store image" });
+    } catch (err: any) {
+      console.error("[registration-pic] objectStorage error:", err?.message || err);
+      return res.status(500).json({ message: err?.message || "Failed to store image" });
     }
     res.json({ url: `/uploads/profile/${filename}` });
   });
