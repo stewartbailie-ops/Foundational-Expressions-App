@@ -1,9 +1,9 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users,
-  Palette, Globe, ShieldCheck, Camera,
+  Palette, Globe, ShieldCheck, Camera, X,
 } from "lucide-react";
 
 const TITLE_OPTIONS = [
@@ -93,6 +93,10 @@ export default function Register() {
   const [contactNumber, setContactNumber] = useState("");
   const [notRobot, setNotRobot] = useState(false);
 
+  // Step 2 — profile photo (optional; uploads immediately to object storage)
+  const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
+  const [uploadingPic, setUploadingPic] = useState(false);
+
   // Step 3
   const [theme, setTheme] = useState("light-blue");
   const [themeColor, setThemeColor] = useState("#0ea5e9");
@@ -119,6 +123,35 @@ export default function Register() {
     setUseCustom(false);
   };
 
+  const handlePhotoUpload = async (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast({ title: "Unsupported format", description: "Please use a JPG, PNG or WebP image.", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Please choose an image under 5 MB.", variant: "destructive" });
+      e.target.value = "";
+      return;
+    }
+    setUploadingPic(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/upload/registration-pic", { method: "POST", body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Upload failed");
+      setProfilePicUrl(data.url);
+    } catch (err: any) {
+      toast({ title: "Upload failed", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingPic(false);
+      e.target.value = "";
+    }
+  };
+
   const handleCreate = async () => {
     setLoading(true);
     try {
@@ -131,7 +164,7 @@ export default function Register() {
           email: email.trim(),
           title,
           contactNumber: contactNumber.trim() || null,
-          profilePicUrl: null,
+          profilePicUrl: profilePicUrl || null,
           theme: useCustom ? "custom" : theme,
           themeColor: finalColor,
           panelTheme: useCustom ? "custom" : theme,
@@ -251,20 +284,43 @@ export default function Register() {
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Profile Photo</h2>
-            <p className="text-xs text-white/40 mt-0.5">Add your photo after you've set up your account.</p>
+            <p className="text-xs text-white/40 mt-0.5">Add a photo now, or skip and add it later from your control panel.</p>
           </div>
           <div className="flex flex-col items-center gap-4 py-4">
-            <div className="h-28 w-28 rounded-full bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
-              <Camera className="h-8 w-8 text-white/20" />
-            </div>
-            <p className="text-xs text-white/35 text-center max-w-[220px]">
-              You'll be able to upload and crop your profile picture from your control panel once you've logged in.
+            {profilePicUrl ? (
+              <img src={profilePicUrl} alt="Profile preview" data-testid="img-profile-preview"
+                className="h-28 w-28 rounded-full object-cover border-4 border-blue-500/30 shadow-lg" />
+            ) : (
+              <div className="h-28 w-28 rounded-full bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
+                {uploadingPic ? <Loader2 className="h-8 w-8 text-white/40 animate-spin" /> : <Camera className="h-8 w-8 text-white/20" />}
+              </div>
+            )}
+
+            <input id="reg-photo" type="file" accept="image/jpeg,image/png,image/webp"
+              className="hidden" onChange={handlePhotoUpload} disabled={uploadingPic} data-testid="input-profile-photo" />
+            <label htmlFor="reg-photo"
+              className={`px-4 py-2 rounded-xl border border-white/15 text-sm font-medium text-white/80 flex items-center gap-2 transition-all ${uploadingPic ? "opacity-50 cursor-not-allowed" : "cursor-pointer hover:bg-white/5"}`}
+              data-testid="button-upload-photo">
+              {uploadingPic
+                ? (<><Loader2 className="h-4 w-4 animate-spin" /> Uploading…</>)
+                : (<><Camera className="h-4 w-4" /> {profilePicUrl ? "Change Photo" : "Upload Photo"}</>)}
+            </label>
+
+            {profilePicUrl && !uploadingPic && (
+              <button onClick={() => setProfilePicUrl(null)} data-testid="button-remove-photo"
+                className="text-xs text-white/40 hover:text-white/70 flex items-center gap-1 transition-colors">
+                <X className="h-3 w-3" /> Remove photo
+              </button>
+            )}
+
+            <p className="text-xs text-white/35 text-center max-w-[240px]">
+              JPG, PNG or WebP, up to 5 MB. You can change or crop it anytime from your control panel.
             </p>
           </div>
           <div className="flex gap-3 pt-2">
             <button onClick={() => setStep(1)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={() => setStep(3)} className={btnNext}>
-              Next <ArrowRight className="h-4 w-4" />
+            <button onClick={() => setStep(3)} disabled={uploadingPic} className={btnNext} data-testid="button-photo-next">
+              {profilePicUrl ? "Next" : "Skip"} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
