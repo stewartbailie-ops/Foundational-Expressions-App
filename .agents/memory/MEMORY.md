@@ -1,1 +1,2 @@
 - [Public endpoint allowlist](auth-public-allowlist.md) — new public/unauth API routes 401 unless added to PUBLIC_API_ROUTES in server/auth.ts, even with no handler auth gate.
+- [reCAPTCHA keys](recaptcha-keys.md) — keys are 40 chars/6L; validate secret via siteverify dummy-token; site key is VITE_ build-time (republish to apply); pair must share one site.
