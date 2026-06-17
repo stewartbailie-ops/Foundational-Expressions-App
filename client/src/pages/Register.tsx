@@ -5,13 +5,7 @@ import {
   Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users,
   Palette, Globe, ShieldCheck, Camera,
 } from "lucide-react";
-
-const TITLE_OPTIONS = [
-  "Financial Planner",
-  "Junior Financial Planner",
-  "Senior Financial Advisor",
-  "CFP (Certified Financial Planner)",
-];
+import { TITLE_OPTIONS } from "@shared/schema";
 
 // Theme names MUST match the keys in themeUtils.ts getThemeColors / getInitialsBadgeColors.
 // Mismatches caused the "always blue" registration bug.

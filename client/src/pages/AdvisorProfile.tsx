@@ -1652,7 +1652,26 @@ export default function AdvisorProfile() {
     );
   }
 
-  if (error || !advisor) {
+  if (error) {
+    const isOffline = (error as Error).message?.includes("410");
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
+        <div className="text-center space-y-4 max-w-sm">
+          <AlertCircle className={`h-12 w-12 mx-auto ${isOffline ? "text-amber-500" : "text-red-500"}`} />
+          <h2 className="text-xl font-bold" data-testid={isOffline ? "text-unavailable" : "text-not-found"}>
+            {isOffline ? "Profile Temporarily Unavailable" : "Advisor Not Found"}
+          </h2>
+          <p className="text-muted-foreground text-sm" data-testid={isOffline ? "text-unavailable-message" : "text-not-found-message"}>
+            {isOffline
+              ? "This advisor's profile is temporarily offline. Please check back later or contact them directly."
+              : "The advisor profile you're looking for doesn't exist or is no longer available."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!advisor) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
         <div className="text-center space-y-4">
@@ -1660,20 +1679,6 @@ export default function AdvisorProfile() {
           <h2 className="text-xl font-bold" data-testid="text-not-found">Advisor Not Found</h2>
           <p className="text-muted-foreground text-sm" data-testid="text-not-found-message">
             The advisor profile you're looking for doesn't exist or is no longer available.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!advisor.active) {
-    return (
-      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6">
-        <div className="text-center space-y-4">
-          <AlertCircle className="h-12 w-12 text-amber-500 mx-auto" />
-          <h2 className="text-xl font-bold" data-testid="text-unavailable">Advisor Unavailable</h2>
-          <p className="text-muted-foreground text-sm" data-testid="text-unavailable-message">
-            This advisor's profile is not currently active.
           </p>
         </div>
       </div>

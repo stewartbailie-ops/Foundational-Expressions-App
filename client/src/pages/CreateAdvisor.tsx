@@ -65,7 +65,7 @@ export default function CreateAdvisor() {
 
   // Step 1
   const [name, setName] = useState("");
-  const [title, setTitle] = useState<string>(TITLE_OPTIONS[3]);
+  const [title, setTitle] = useState<string>("Senior Financial Advisor");
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [cropperSrc, setCropperSrc] = useState<string | null>(null);
   const [contactNumber, setContactNumber] = useState("");

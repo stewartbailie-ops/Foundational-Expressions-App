@@ -7504,22 +7504,33 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
 
   const promoteMutation = useMutation({
     mutationFn: async (lead: Email) => {
+      const autoNotes: Record<string, string> = {};
+      if (lead.clientIncome) autoNotes.monthly_income = lead.clientIncome;
+      if (lead.clientIndustry) autoNotes.occupation = lead.clientIndustry;
+      if (lead.clientMarried !== null && lead.clientMarried !== undefined) {
+        autoNotes.marital = lead.clientMarried ? "Married" : "Single";
+      }
       const r = await apiRequest("POST", "/api/clients", {
         advisorId: advisor.id,
         name: lead.senderName || lead.senderEmail || "Unknown",
         email: lead.senderEmail || null,
-        phone: (lead as any).clientPhone || null,
+        phone: lead.clientPhone || null,
         sourceLeadId: lead.id,
+        notes: Object.keys(autoNotes).length > 0 ? JSON.stringify(autoNotes) : undefined,
         consentText: "Promoted from lead registry by advisor",
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.message || "Promote failed"); }
-      return r.json() as Promise<RealClient>;
+      const created = await r.json() as RealClient;
+      // Non-fatal: if delete fails the client is still created; lead stays in Registry until refreshed
+      await apiRequest("DELETE", `/api/emails/${lead.id}`).catch(() => {});
+      return created;
     },
     onSuccess: (c) => {
       qc.invalidateQueries({ queryKey: ["/api/clients", advisor.id] });
+      qc.invalidateQueries({ queryKey: [`/api/advisors/${advisor.profileSlug}/emails`] });
       setPromoteOpen(false);
       setSelectedId(c.id);
-      toast({ title: "Lead promoted!", description: `${c.name} added to your clients.` });
+      toast({ title: "Lead promoted!", description: `${c.name} moved to My Clients.` });
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });

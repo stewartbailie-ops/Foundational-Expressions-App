@@ -675,7 +675,7 @@ export async function registerRoutes(
     const slug = routeParam(req.params.slug);
     const advisor = await storage.getAdvisorBySlug(slug);
     if (!advisor) return res.status(404).json({ message: "Advisor not found" });
-    if (!advisor.active && !advisor.isDemo) return res.status(404).json({ message: "This profile is currently offline." });
+    if (!advisor.active && !advisor.isDemo) return res.status(410).json({ message: "This profile is currently offline." });
     res.json(toPublicAdvisor(advisor));
   });
 
