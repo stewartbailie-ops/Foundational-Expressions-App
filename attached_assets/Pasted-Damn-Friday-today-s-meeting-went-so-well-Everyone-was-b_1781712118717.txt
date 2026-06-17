@@ -1,0 +1,41 @@
+Damn Friday, today's meeting went so well. Everyone was blown away, everything worked perfectly. It's looking incredibly good and then both Chris and I got hit by something neither of us saw coming. A compliance due diligence pack is needed. I'm going to post it below. No cooking needed tonight. I just wanted to get you in the loop.
+
+The meeting went very well today. Andrew was helpful and seems positive about supporting the project, but there are still a few compliance, due diligence, product, and launch-readiness items that need to be prepared before the next meeting.
+
+The main request is to prepare a proper due diligence / compliance pack that can be sent to Garth, together with the two videos and NDA/legal documents, so they can review everything before the next meeting in roughly 2–3 weeks.
+
+They are supportive and see potential, but the message is clear: Advisory Connect is not launch-ready yet. There are still concerns to address before going live.
+
+Key-takeaway:  The meeting was positive, but the next step is not “launch immediately.” The next step is to professionalise the compliance pack, tighten the legal wording, document the data/security position, and build the remaining trust/growth features.
+The strongest message to take forward: They are willing to help grow Advisory Connect, but they first need to see that the platform is compliant, secure, clearly positioned, and ready for advisors and clients.
+
+Compliance & Due diligence pack - (Documents/assets list)
+Prepare and include:
+	• The two videos 
+	• NDA documents 
+	• Privacy Policy 
+	• Terms & Conditions 
+	• POPIA compliance summary 
+	• Due diligence pack 
+	• Security/encryption overview 
+	• FAIS/advice disclaimer 
+	• Advisor onboarding process 
+	• Client journey overview 
+	• Referral/callback process 
+	• Lucky draw concept and rules 
+	• Product roadmap / launch readiness list 
+	• Elevator pitch for advisors 
+	• Elevator pitch for users 
+	• Any screenshots or app walkthrough links 
+	• Company / platform overview 
+	• What Advisory Connect does 
+	• Who it is for: advisors and clients/users 
+	• How data flows through the platform 
+	• What client information is collected 
+	• Scalability and Moore’s Law 
+	• What advisor information is displayed 
+	• How referrals/callbacks are handled 
+	• Who has access to submitted data 
+	• How data is stored, protected, and deleted 
+	• Risk areas and how they are controlled 
+Compliance position and disclaimers
