@@ -1003,7 +1003,18 @@ export async function registerRoutes(
       name, email, title, contactNumber, subscriptionTier,
       profilePicUrl, theme, themeColor, panelTheme, panelThemeColor,
       showMoneywebFeed, showSecondNews, showForex, showFunFacts, showDailyQuotes,
+      recaptchaToken,
     } = req.body;
+    // Bot protection — verify the reCAPTCHA token when one is supplied, same
+    // soft-gate pattern as the public lead forms (advisory, not a hard gate:
+    // if the widget itself failed to load no token is sent and we still allow
+    // the registration through).
+    if (recaptchaToken) {
+      const valid = await verifyRecaptcha(recaptchaToken);
+      if (!valid) {
+        return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
+      }
+    }
     // "standard" maps to "basic" in the DB schema; "premium" maps to "premium".
     const TIER_MAP: Record<string, string> = {
       trial: "trial", standard: "basic", basic: "basic",
@@ -1042,7 +1053,7 @@ export async function registerRoutes(
           ${name.trim()}, ${email.trim().toLowerCase()}, ${title || "Financial Planner"},
           ${contactNumber?.trim() || null}, ${slug}, ${picUrl},
           true, ${tier}, 'individual',
-          true,
+          false,
           ${safeTheme}, ${safeColor}, ${safePanelTheme}, ${safePanelColor},
           'a',
           ${boolOrTrue(showMoneywebFeed)}, ${boolOrTrue(showSecondNews)},
@@ -1072,6 +1083,21 @@ export async function registerRoutes(
     }
     // Never allow a caller to overwrite the advisor password hash via this endpoint.
     const { advisorPasswordHash: _ph, ...safeData } = partial.data as any;
+    // Advisor sessions may edit their OWN primary profile (auth.ts enforces id
+    // ownership), but must NOT be able to grant themselves a paid tier, flip
+    // verification/identity flags, reassign their org, or touch Paystack billing
+    // state — the Paystack webhook is the only writer for subscription tier.
+    // Admin sessions (session.authenticated) retain full control.
+    const isAdmin = !!(req.session as any)?.authenticated;
+    if (!isAdmin) {
+      const PROTECTED_ADVISOR_FIELDS = [
+        "subscriptionTier", "subscriptionStatus", "trialEndsAt", "subscriptionEndsAt",
+        "paystackCustomerCode", "paystackSubscriptionCode", "paystackEmailToken",
+        "trialExpiryEmailSentAt", "advisorCode",
+        "advisorEmailVerified", "advisorPasswordSet", "isDemo", "orgId",
+      ];
+      for (const k of PROTECTED_ADVISOR_FIELDS) delete safeData[k];
+    }
     const updated = await storage.updateAdvisor(Number(req.params.id), safeData);
     if (!updated) return res.status(404).json({ message: "Advisor not found" });
     const { advisorPasswordHash: _rph, ...safeUpdated } = updated as any;
