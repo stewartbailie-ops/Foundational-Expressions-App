@@ -35,3 +35,14 @@ route to advisor sessions, the handler MUST strip privileged fields for non-admi
 (subscriptionTier/status, paystack*, trialEndsAt, advisorCode, advisorEmailVerified,
 advisorPasswordSet, isDemo, orgId) — `insertAdvisorSchema` only omits id/createdAt,
 so everything else is writable and an advisor could otherwise self-grant Premium.
+
+## Entitlement fields are easy to miss when stripping privileged PATCH fields
+When denylisting billing/identity fields for non-admin advisor self-PATCH, the
+subscription *period* field (subscriptionEndsAt) is as dangerous as
+subscriptionTier: access gating grants paid features while status is
+cancelled/non-renewing AND subscriptionEndsAt is in the future, so a cancelled
+advisor could extend their own paid window by writing it. Strip ALL
+webhook-owned billing/lifecycle fields, not just the tier/status pair.
+**Why:** caught in code review — the first strip list omitted subscriptionEndsAt.
+**How to apply:** the Paystack webhook is the only legitimate writer for any
+subscription* / paystack* / trial* field; treat the whole family as admin/webhook-only.

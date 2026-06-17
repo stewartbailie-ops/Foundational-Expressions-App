@@ -1003,7 +1003,18 @@ export async function registerRoutes(
       name, email, title, contactNumber, subscriptionTier,
       profilePicUrl, theme, themeColor, panelTheme, panelThemeColor,
       showMoneywebFeed, showSecondNews, showForex, showFunFacts, showDailyQuotes,
+      recaptchaToken,
     } = req.body;
+    // Bot protection — verify the reCAPTCHA token when one is supplied, same
+    // soft-gate pattern as the public lead forms (advisory, not a hard gate:
+    // if the widget itself failed to load no token is sent and we still allow
+    // the registration through).
+    if (recaptchaToken) {
+      const valid = await verifyRecaptcha(recaptchaToken);
+      if (!valid) {
+        return res.status(400).json({ message: "reCAPTCHA verification failed. Please try again." });
+      }
+    }
     // "standard" maps to "basic" in the DB schema; "premium" maps to "premium".
     const TIER_MAP: Record<string, string> = {
       trial: "trial", standard: "basic", basic: "basic",
@@ -1080,7 +1091,7 @@ export async function registerRoutes(
     const isAdmin = !!(req.session as any)?.authenticated;
     if (!isAdmin) {
       const PROTECTED_ADVISOR_FIELDS = [
-        "subscriptionTier", "subscriptionStatus", "trialEndsAt",
+        "subscriptionTier", "subscriptionStatus", "trialEndsAt", "subscriptionEndsAt",
         "paystackCustomerCode", "paystackSubscriptionCode", "paystackEmailToken",
         "trialExpiryEmailSentAt", "advisorCode",
         "advisorEmailVerified", "advisorPasswordSet", "isDemo", "orgId",

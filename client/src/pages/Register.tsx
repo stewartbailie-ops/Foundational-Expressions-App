@@ -1,9 +1,10 @@
-import { Fragment, useState, type ChangeEvent } from "react";
+import { Fragment, useState, useRef, type ChangeEvent } from "react";
 import { useLocation } from "wouter";
+import ReCAPTCHA from "react-google-recaptcha";
 import { useToast } from "@/hooks/use-toast";
 import {
   Loader2, Check, ArrowRight, ArrowLeft, BookOpen, Users,
-  Palette, Globe, ShieldCheck, Camera, X,
+  Palette, Globe, Camera, X,
 } from "lucide-react";
 
 const TITLE_OPTIONS = [
@@ -91,7 +92,9 @@ export default function Register() {
   const [title, setTitle] = useState("Financial Planner");
   const [email, setEmail] = useState("");
   const [contactNumber, setContactNumber] = useState("");
-  const [notRobot, setNotRobot] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
+  const [recaptchaFailed, setRecaptchaFailed] = useState(false);
+  const recaptchaRef = useRef<ReCAPTCHA>(null);
 
   // Step 2 — profile photo (optional; uploads immediately to object storage)
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
@@ -115,7 +118,10 @@ export default function Register() {
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const previewSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const step1Valid = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email.trim()) && notRobot;
+  // reCAPTCHA is satisfied if a token was solved, OR if the widget couldn't load
+  // / isn't configured (soft gate — same advisory stance as the lead forms).
+  const recaptchaOk = !!recaptchaToken || recaptchaFailed || !import.meta.env.VITE_RECAPTCHA_SITE_KEY;
+  const step1Valid = name.trim().length >= 2 && /\S+@\S+\.\S+/.test(email.trim()) && recaptchaOk;
 
   const handleThemeSelect = (t: typeof THEMES[0]) => {
     setTheme(t.name);
@@ -170,6 +176,7 @@ export default function Register() {
           panelTheme: useCustom ? "custom" : theme,
           panelThemeColor: finalColor,
           subscriptionTier,
+          recaptchaToken: recaptchaToken ?? undefined,
           ...displays,
         }),
       });
@@ -259,16 +266,18 @@ export default function Register() {
             <input type="tel" value={contactNumber} onChange={(e) => setContactNumber(e.target.value)} placeholder="+27 82 123 4567"
               className={inputCls} />
           </div>
-          <label className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${notRobot ? "border-blue-500 bg-blue-500/10" : "border-white/15 hover:border-white/25"}`}>
-            <div className={`h-5 w-5 rounded flex items-center justify-center flex-shrink-0 border-2 transition-all ${notRobot ? "bg-blue-600 border-blue-600" : "border-white/30"}`}>
-              {notRobot && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
+          {!recaptchaFailed && import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+            <div className="flex justify-center" data-testid="recaptcha-register">
+              <ReCAPTCHA
+                ref={recaptchaRef}
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                theme="dark"
+                onChange={(token) => setRecaptchaToken(token)}
+                onExpired={() => setRecaptchaToken(null)}
+                onErrored={() => setRecaptchaFailed(true)}
+              />
             </div>
-            <input type="checkbox" checked={notRobot} onChange={(e) => setNotRobot(e.target.checked)} className="sr-only" />
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-white/40 flex-shrink-0" />
-              <span className="text-sm font-medium text-white/70">I'm not a robot</span>
-            </div>
-          </label>
+          )}
           <button onClick={() => setStep(2)} disabled={!step1Valid}
             className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
             Next <ArrowRight className="h-4 w-4" />
