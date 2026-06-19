@@ -110,7 +110,7 @@ function SlugWill() {
   return <WillForm />;
 }
 
-const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "orgs", "profile", "api", "uploads", "advisor", "privacy-policy", "terms", "org"];
+const RESERVED_PATHS = ["stats", "civ", "manage", "create", "edit", "orgs", "profile", "api", "uploads", "advisor", "privacy-policy", "terms", "data-rights", "org"];
 
 function Router() {
   return (
@@ -124,6 +124,7 @@ function Router() {
       <Route path="/bol/:token" component={BookOfLifePage} />
       <Route path="/privacy-policy">{() => <LegalPage section="privacy" />}</Route>
       <Route path="/terms">{() => <LegalPage section="terms" />}</Route>
+      <Route path="/data-rights">{() => <LegalPage section="data-rights" />}</Route>
       <Route path="/advisor/:slug" component={AdvisorPanel} />
       <Route path="/profile/:slug/request-callback" component={CallbackForm} />
       <Route path="/profile/:slug/referrals" component={ReferralForm} />

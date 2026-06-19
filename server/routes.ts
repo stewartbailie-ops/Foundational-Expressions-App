@@ -3507,5 +3507,43 @@ export async function registerRoutes(
     res.json(updated.rows[0]);
   });
 
+  // ── POPIA Data Rights Request ──────────────────────────────────────────────
+  app.post("/api/data-rights-request", async (req, res) => {
+    const { name, email, requestType, details } = req.body ?? {};
+    if (!name || typeof name !== "string" || !email || typeof email !== "string") {
+      return res.status(400).json({ message: "Name and email are required." });
+    }
+    const emailLower = email.toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLower)) {
+      return res.status(400).json({ message: "Invalid email address." });
+    }
+    const safeType = typeof requestType === "string" ? requestType : "erasure";
+    const safeDetails = typeof details === "string" ? details.slice(0, 2000) : "";
+    const adminEmail = process.env.ADMIN_EMAIL || "info@advisoryconnect.pro";
+    if (isSendGridConfigured()) {
+      const body = [
+        `<p>New POPIA data rights request received.</p>`,
+        `<table>`,
+        `<tr><td><strong>Name</strong></td><td>${name.trim().slice(0, 200)}</td></tr>`,
+        `<tr><td><strong>Email</strong></td><td>${emailLower}</td></tr>`,
+        `<tr><td><strong>Type</strong></td><td>${safeType}</td></tr>`,
+        `<tr><td><strong>Details</strong></td><td>${safeDetails || "(none)"}</td></tr>`,
+        `<tr><td><strong>Submitted</strong></td><td>${new Date().toISOString()}</td></tr>`,
+        `<tr><td><strong>IP</strong></td><td>${req.ip || "unknown"}</td></tr>`,
+        `</table>`,
+      ].join("\n");
+      await sendEmail(
+        adminEmail,
+        `POPIA Data Rights Request — ${safeType}`,
+        body,
+        "no-reply@advisoryconnect.pro",
+        { wrap: false },
+      ).catch(err => console.error("[data-rights] email send failed:", err));
+    } else {
+      console.log(`[data-rights] request from ${emailLower}: ${safeType}`);
+    }
+    res.json({ message: "Request received." });
+  });
+
   return httpServer;
 }

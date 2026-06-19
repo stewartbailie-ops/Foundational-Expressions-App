@@ -1,4 +1,6 @@
-export default function LegalPage({ section }: { section?: "privacy" | "terms" }) {
+import { useState } from "react";
+
+export default function LegalPage({ section }: { section?: "privacy" | "terms" | "data-rights" }) {
   const activeSection = section ?? "privacy";
 
   return (
@@ -35,10 +37,21 @@ export default function LegalPage({ section }: { section?: "privacy" | "terms" }
           >
             Terms of Service
           </a>
+          <a
+            href="/data-rights"
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              activeSection === "data-rights"
+                ? "bg-white text-black"
+                : "bg-white/10 text-white/60 hover:bg-white/15"
+            }`}
+          >
+            Data Rights (POPIA)
+          </a>
         </div>
 
         {activeSection === "privacy" && <PrivacyPolicy />}
         {activeSection === "terms" && <TermsOfService />}
+        {activeSection === "data-rights" && <DataRightsForm />}
       </div>
     </div>
   );
@@ -403,6 +416,118 @@ function TermsOfService() {
           Website: advisoryconnect.pro
         </p>
       </Section>
+    </div>
+  );
+}
+
+function DataRightsForm() {
+  const [form, setForm] = useState({ name: "", email: "", requestType: "erasure", details: "" });
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim()) return;
+    setStatus("sending");
+    try {
+      const r = await fetch("/api/data-rights-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (!r.ok) { const d = await r.json().catch(() => ({})); throw new Error(d.message || "Request failed"); }
+      setStatus("done");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Something went wrong");
+      setStatus("error");
+    }
+  }
+
+  return (
+    <div>
+      <h1 className="text-3xl font-bold text-white mb-1">Data Rights Request</h1>
+      <p className="text-white/40 text-sm mb-8">Advisory Connect (Pty) Ltd — POPIA Section 23–24</p>
+
+      <div className="space-y-6 text-white/70 text-sm leading-relaxed mb-10">
+        <p>
+          Under the <strong className="text-white">Protection of Personal Information Act (POPIA)</strong> you have the right to request access to, correction of, or erasure of personal information we hold about you. Complete the form below and we will respond within <strong className="text-white">10 business days</strong> as required by law.
+        </p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li><strong className="text-white">Erasure</strong> — request that we delete your personal data.</li>
+          <li><strong className="text-white">Access</strong> — request a copy of the personal data we hold.</li>
+          <li><strong className="text-white">Correction</strong> — request that we correct inaccurate data.</li>
+          <li><strong className="text-white">Portability</strong> — request your data in a machine-readable format.</li>
+          <li><strong className="text-white">Objection</strong> — object to the processing of your personal data.</li>
+        </ul>
+      </div>
+
+      {status === "done" ? (
+        <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-6 text-center">
+          <div className="text-green-400 font-semibold text-lg mb-1">Request Received</div>
+          <p className="text-white/60 text-sm">We will respond to your request within 10 business days at the email address you provided.</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1">Full Name *</label>
+              <input
+                type="text"
+                required
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-white/30"
+                placeholder="Your full name"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-white/60 mb-1">Email Address *</label>
+              <input
+                type="email"
+                required
+                value={form.email}
+                onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-white/30"
+                placeholder="you@example.com"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1">Request Type *</label>
+            <select
+              value={form.requestType}
+              onChange={e => setForm(f => ({ ...f, requestType: e.target.value }))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-white/30"
+            >
+              <option value="erasure">Erasure — delete my personal data</option>
+              <option value="access">Access — provide a copy of my data</option>
+              <option value="correction">Correction — fix inaccurate data</option>
+              <option value="portability">Portability — export my data</option>
+              <option value="objection">Objection — object to processing</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-white/60 mb-1">Additional Details</label>
+            <textarea
+              value={form.details}
+              onChange={e => setForm(f => ({ ...f, details: e.target.value }))}
+              rows={4}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-white/30 outline-none focus:border-white/30 resize-none"
+              placeholder="Any additional context to help us process your request..."
+            />
+          </div>
+          {status === "error" && (
+            <p className="text-red-400 text-sm">{errorMsg}</p>
+          )}
+          <button
+            type="submit"
+            disabled={status === "sending"}
+            className="px-6 py-2.5 rounded-lg bg-white text-black text-sm font-semibold hover:bg-white/90 transition-colors disabled:opacity-50"
+          >
+            {status === "sending" ? "Submitting…" : "Submit Request"}
+          </button>
+        </form>
+      )}
     </div>
   );
 }
