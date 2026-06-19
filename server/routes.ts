@@ -2842,6 +2842,14 @@ export async function registerRoutes(
     };
   }
 
+  app.get("/api/clients/upcoming", async (req, res) => {
+    const advisorId = await advisorIdFromSession(req);
+    if (!advisorId) return res.status(400).json({ message: "advisorId required" });
+    if (!(await canAccessAdvisor(req, advisorId))) return res.status(401).json({ message: "Unauthorized" });
+    const reminders = await storage.getUpcomingReminders(advisorId);
+    res.json(reminders);
+  });
+
   // List clients for the calling advisor (admin must scope with ?advisorId=).
   app.get("/api/clients", async (req, res) => {
     const advisorId = await advisorIdFromSession(req);

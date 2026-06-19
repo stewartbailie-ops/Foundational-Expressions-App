@@ -749,6 +749,11 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
     queryKey: [`/api/advisors/${advisor.profileSlug}/emails`],
   });
 
+  const { data: upcomingReminders = [] } = useQuery<{ name: string; email: string | null; phone: string | null; birthday: string | null; followUpDate: string | null }[]>({
+    queryKey: ["/api/clients/upcoming", advisor.id],
+    queryFn: async () => { const r = await apiRequest("GET", `/api/clients/upcoming?advisorId=${advisor.id}`); return r.ok ? r.json() : []; },
+  });
+
   // Profile count for header badge — uses same queryKey as ProfilesTab so React Query dedupes
   const { data: additionalProfiles = [] } = useQuery<AdvisorProfile[]>({
     queryKey: [`/api/advisors/${advisor.id}/profiles`],
@@ -850,6 +855,51 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
           );
         })}
       </div>
+
+      {/* ── Upcoming Reminders ── */}
+      {upcomingReminders.length > 0 && (
+        <div className="rounded-xl p-4 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
+          <div className="flex items-center gap-2">
+            <Bell className="h-4 w-4" style={{ color: tc.accentColor }} />
+            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Upcoming</div>
+            <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded-full font-semibold" style={{ backgroundColor: `${tc.accentColor}22`, color: tc.accentColor }}>
+              {upcomingReminders.length}
+            </span>
+          </div>
+          <div className="space-y-2">
+            {upcomingReminders.map((r, i) => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const items: { icon: "bell" | "cake"; label: string; daysUntil: number }[] = [];
+              if (r.followUpDate) {
+                const d = new Date(r.followUpDate);
+                const days = Math.round((d.getTime() - today.getTime()) / 86400000);
+                items.push({ icon: "bell", label: days === 0 ? "Follow-up today" : days === 1 ? "Follow-up tomorrow" : `Follow-up in ${days} days`, daysUntil: days });
+              }
+              if (r.birthday) {
+                const bd = new Date(r.birthday);
+                const thisYear = new Date(today.getFullYear(), bd.getMonth(), bd.getDate());
+                const nextYear = new Date(today.getFullYear() + 1, bd.getMonth(), bd.getDate());
+                const target = thisYear >= today ? thisYear : nextYear;
+                const days = Math.round((target.getTime() - today.getTime()) / 86400000);
+                items.push({ icon: "cake", label: days === 0 ? "Birthday today!" : days === 1 ? "Birthday tomorrow!" : `Birthday in ${days} days`, daysUntil: days });
+              }
+              return items.map((item, j) => (
+                <div key={`${i}-${j}`} className="flex items-center gap-3 rounded-lg px-3 py-2" style={{ backgroundColor: tc.isDark ? "rgba(255,255,255,0.04)" : "rgba(0,0,0,0.03)", border: `1px solid ${tc.borderColor}` }}>
+                  {item.icon === "cake"
+                    ? <Cake className="h-3.5 w-3.5 shrink-0" style={{ color: "#f59e0b" }} />
+                    : <Bell className="h-3.5 w-3.5 shrink-0" style={{ color: tc.accentColor }} />
+                  }
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-medium truncate" style={{ color: tc.textColor }}>{r.name}</div>
+                    <div className="text-[11px]" style={{ color: item.daysUntil <= 1 ? "#ef4444" : tc.mutedText }}>{item.label}</div>
+                  </div>
+                </div>
+              ));
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Live News (mirrors the public contact card) ── */}
       <div className="space-y-2 pt-1">
@@ -7554,7 +7604,7 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
     enabled: !!selectedId,
   });
 
-  // Pre-populate draft from stored notes JSON + encrypted fields
+  // Pre-populate draft from stored notes JSON + encrypted fields + date columns
   useEffect(() => {
     if (!clientDetail) return;
     try {
@@ -7565,6 +7615,8 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
         tax_number: clientDetail.taxNumber || stored.tax_number || "",
         bank_account: clientDetail.bankAccount || stored.bank_account || "",
         bank_branch: clientDetail.bankBranch || stored.bank_branch || "",
+        birthday: (clientDetail as any).birthday || stored.birthday || "",
+        follow_up_date: (clientDetail as any).followUpDate || stored.follow_up_date || "",
       });
     } catch {
       setDraft({
@@ -7572,6 +7624,8 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
         tax_number: clientDetail.taxNumber || "",
         bank_account: clientDetail.bankAccount || "",
         bank_branch: clientDetail.bankBranch || "",
+        birthday: (clientDetail as any).birthday || "",
+        follow_up_date: (clientDetail as any).followUpDate || "",
       });
     }
   }, [clientDetail]);
@@ -7585,6 +7639,8 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
         taxNumber: draft.tax_number || null,
         bankAccount: draft.bank_account || null,
         bankBranch: draft.bank_branch || null,
+        birthday: draft.birthday || null,
+        followUpDate: draft.follow_up_date || null,
         notes: JSON.stringify(draft),
       });
       if (!r.ok) { const d = await r.json(); throw new Error(d.message || "Save failed"); }
@@ -7677,6 +7733,18 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
               <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.textColor }}>Personal Details</div>
               <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full" style={{ backgroundColor: "#f59e0b22", color: "#d97706" }}>Sensitive</span>
             </div>
+            {/* Follow-up date — top of personal for visibility */}
+            <div>
+              <label className="text-[11px] font-medium block mb-1" style={{ color: tc.mutedText }}>Follow-up Date</label>
+              <input
+                type="date"
+                value={draft.follow_up_date ?? ""}
+                onChange={e => setField("follow_up_date", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="input-personal-follow_up_date"
+              />
+            </div>
             {[
               { k: "id_number",       label: "SA ID Number",        placeholder: "13-digit ID number" },
               { k: "marital",         label: "Marital Status",      placeholder: "Single / Married / Divorced / Widowed" },
@@ -7699,6 +7767,18 @@ function MyClientsTab({ advisor, tc, leads }: { advisor: Advisor; tc: ReturnType
                 />
               </div>
             ))}
+            {/* Birthday */}
+            <div>
+              <label className="text-[11px] font-medium block mb-1" style={{ color: tc.mutedText }}>Date of Birth</label>
+              <input
+                type="date"
+                value={draft.birthday ?? ""}
+                onChange={e => setField("birthday", e.target.value)}
+                className="w-full px-3 py-2 rounded-lg text-xs outline-none"
+                style={{ backgroundColor: tc.inputBg, color: tc.textColor, border: `1px solid ${tc.borderColor}` }}
+                data-testid="input-personal-birthday"
+              />
+            </div>
             <button
               onClick={() => saveClientMutation.mutate()}
               disabled={saveClientMutation.isPending}

@@ -43,6 +43,11 @@ const ADVISOR_ONLY_COLUMNS: [string, string][] = [
 
 // Lead-table additive columns. Same pattern, separate list because the parent
 // table is `emails`, not advisors/advisor_profiles.
+const CLIENTS_COLUMNS: [string, string][] = [
+  ["birthday",       "date"],
+  ["follow_up_date", "date"],
+];
+
 const EMAILS_COLUMNS: [string, string][] = [
   // W1 T9: soft-warn duplicate lead detection. Nullable; points at prior lead id.
   ["duplicate_of_id", "integer"],
@@ -181,6 +186,13 @@ export async function runStartupMigrations() {
     );
   }
   console.log("[migrations] emails columns verified");
+
+  for (const [col, def] of CLIENTS_COLUMNS) {
+    await db.execute(
+      sql.raw(`ALTER TABLE clients ADD COLUMN IF NOT EXISTS ${col} ${def}`)
+    );
+  }
+  console.log("[migrations] clients columns verified");
 
   // Session table for connect-pg-simple. We create it here (instead of
   // relying on connect-pg-simple's createTableIfMissing) because that

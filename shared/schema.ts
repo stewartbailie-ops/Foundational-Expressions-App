@@ -1,4 +1,4 @@
-import { pgTable, text, integer, boolean, timestamp, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, serial, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -830,6 +830,8 @@ export const clients = pgTable("clients", {
   bankBranchEnc: text("bank_branch_enc"),
   taxNumberEnc: text("tax_number_enc"),
   notes: text("notes"),
+  birthday: date("birthday"),
+  followUpDate: date("follow_up_date"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   // Right-to-erasure: set when erased; preserved as a tombstone for audit.
   erasedAt: timestamp("erased_at"),
