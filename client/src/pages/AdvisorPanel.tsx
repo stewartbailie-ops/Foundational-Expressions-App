@@ -9024,9 +9024,10 @@ export default function AdvisorPanel() {
   const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
   const [showOnboarding, setShowOnboarding] = useState(false);
 
-  const { data: advisor, isLoading: advisorLoading } = useQuery<Advisor>({
+  const { data: advisor, isLoading: advisorLoading, error: advisorError } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
     enabled: !!slug,
+    gcTime: 0,
   });
 
   // Shares cache with CIVTab — no extra network request.
@@ -9103,11 +9104,24 @@ export default function AdvisorPanel() {
   }
 
   if (!advisor) {
+    const isDeactivated = (advisorError as Error | null)?.message?.includes("410");
     return (
       <div className="min-h-screen bg-neutral-950 flex items-center justify-center p-6">
-        <div className="text-center text-white">
-          <h2 className="text-xl font-bold">Advisor Not Found</h2>
-          <p className="text-white/50 text-sm mt-2">No advisor exists at this URL.</p>
+        <div className="text-center text-white space-y-3 max-w-sm">
+          <h2 className="text-xl font-bold">{isDeactivated ? "Profile Deactivated" : "Advisor Not Found"}</h2>
+          <p className="text-white/50 text-sm">
+            {isDeactivated
+              ? "This advisor account is currently inactive. If you believe this is an error, please contact your administrator."
+              : "No advisor exists at this URL."}
+          </p>
+          {isDeactivated && (
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-2 px-4 py-2 rounded-lg text-sm font-medium bg-white/10 hover:bg-white/20 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     );
