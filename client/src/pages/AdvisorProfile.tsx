@@ -1411,9 +1411,10 @@ export default function AdvisorProfile() {
   const [, navigate] = useLocation();
   const slug = profileParams?.slug || directParams?.slug || "";
 
-  const { data: advisor, isLoading, error } = useQuery<Advisor>({
+  const { data: advisor, isLoading, error, refetch } = useQuery<Advisor>({
     queryKey: [`/api/advisors/slug/${slug}`],
     enabled: !!slug,
+    gcTime: 0,
   });
 
   // S7: profileStats query removed — views counter no longer rendered on the
@@ -1666,6 +1667,14 @@ export default function AdvisorProfile() {
               ? "This advisor's profile is temporarily offline. Please check back later or contact them directly."
               : "The advisor profile you're looking for doesn't exist or is no longer available."}
           </p>
+          {isOffline && (
+            <button
+              onClick={() => refetch()}
+              className="mt-2 px-4 py-2 rounded-lg text-sm font-medium bg-neutral-200 hover:bg-neutral-300 transition-colors"
+            >
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     );

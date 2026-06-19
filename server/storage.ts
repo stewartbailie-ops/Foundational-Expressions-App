@@ -69,8 +69,9 @@ export interface IStorage {
   listClients(advisorId: number): Promise<ClientWithPlaintext[]>;
   getClient(advisorId: number, id: number): Promise<ClientWithPlaintext | undefined>;
   createClient(advisorId: number, data: InsertClient & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null }): Promise<ClientWithPlaintext>;
-  updateClient(advisorId: number, id: number, data: Partial<InsertClient> & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null }): Promise<ClientWithPlaintext | undefined>;
+  updateClient(advisorId: number, id: number, data: Partial<InsertClient> & { idNumber?: string | null; bankAccount?: string | null; bankBranch?: string | null; taxNumber?: string | null; birthday?: string | null; followUpDate?: string | null }): Promise<ClientWithPlaintext | undefined>;
   eraseClient(advisorId: number, id: number, erasedBy: string): Promise<boolean>;
+  getUpcomingReminders(advisorId: number): Promise<{ name: string; email: string | null; phone: string | null; birthday: string | null; followUpDate: string | null }[]>;
 
   // Task #26 — Paystack subscription lookups.
   findAdvisorByPaystackCustomerCode(code: string): Promise<Advisor | undefined>;
@@ -761,12 +762,38 @@ export class DatabaseStorage implements IStorage {
     if (data.bankAccount !== undefined) patch.bankAccountEnc = data.bankAccount ? encryptString(data.bankAccount) : null;
     if (data.bankBranch !== undefined) patch.bankBranchEnc = data.bankBranch ? encryptString(data.bankBranch) : null;
     if (data.taxNumber !== undefined) patch.taxNumberEnc = data.taxNumber ? encryptString(data.taxNumber) : null;
+    if (data.birthday !== undefined) patch.birthday = data.birthday || null;
+    if (data.followUpDate !== undefined) patch.followUpDate = data.followUpDate || null;
     const [updated] = await db
       .update(clients)
       .set(patch)
       .where(and(eq(clients.id, id), eq(clients.advisorId, advisorId)))
       .returning();
     return updated ? toPlaintext(updated) : undefined;
+  }
+
+  async getUpcomingReminders(advisorId: number): Promise<{ name: string; email: string | null; phone: string | null; birthday: string | null; followUpDate: string | null }[]> {
+    const result = await db.execute(sql`
+      SELECT name, email, phone, birthday::text, follow_up_date::text AS "followUpDate"
+      FROM clients
+      WHERE advisor_id = ${advisorId}
+        AND erased_at IS NULL
+        AND (
+          (follow_up_date IS NOT NULL AND follow_up_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '14 days')
+          OR (
+            birthday IS NOT NULL AND (
+              TO_DATE(TO_CHAR(birthday, 'YYYY') || '-' || TO_CHAR(birthday, 'MM-DD'), 'YYYY-MM-DD')
+                BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+              OR TO_DATE((EXTRACT(YEAR FROM CURRENT_DATE)::int + 1)::text || '-' || TO_CHAR(birthday, 'MM-DD'), 'YYYY-MM-DD')
+                BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '30 days'
+            )
+          )
+        )
+      ORDER BY
+        COALESCE(follow_up_date, '9999-12-31'::date),
+        TO_DATE(TO_CHAR(birthday, 'YYYY') || '-' || TO_CHAR(birthday, 'MM-DD'), 'YYYY-MM-DD')
+    `);
+    return (result.rows || []) as any[];
   }
 
   // Right-to-erasure: nukes encrypted PII columns, marks the row as erased,
