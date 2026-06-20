@@ -778,7 +778,7 @@ export async function registerRoutes(
       SELECT id, name, email,
              profile_slug AS "profileSlug",
              active, created_at AS "createdAt"
-      FROM advisors WHERE org_id = ${orgId}
+      FROM advisors WHERE org_id = ${orgId} AND archived_at IS NULL
       ORDER BY created_at ASC
     `);
     res.json(result.rows ?? []);
@@ -846,7 +846,7 @@ export async function registerRoutes(
     }
 
     const updateResult = await db.execute(
-      sql`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} RETURNING *`
+      sql`UPDATE advisors SET active = ${active} WHERE id = ${advisorId} AND org_id = ${orgId} AND archived_at IS NULL RETURNING *`
     );
     const updated = updateResult.rows?.[0];
 
@@ -969,6 +969,92 @@ export async function registerRoutes(
     `);
 
     res.json({ success: true });
+  });
+
+  // Org lead registry — all leads for advisors in this org
+  app.get("/api/org/registry", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await db.execute(sql`
+      SELECT
+        e.id, e.type, e.sender_name AS "senderName", e.sender_email AS "senderEmail",
+        e.phone, e.received_at AS "receivedAt", e.grade, e.status, e.temperature,
+        e.score, e.services_requested AS "servicesRequested", e.subject, e.message,
+        a.id AS "advisorId", a.name AS "advisorName"
+      FROM emails e
+      JOIN advisors a ON e.advisor_id = a.id
+      WHERE a.org_id = ${orgId}
+      ORDER BY e.received_at DESC
+      LIMIT 500
+    `);
+    res.json(result.rows ?? []);
+  });
+
+  // Org branding settings — get
+  app.get("/api/org/settings", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const result = await db.execute(sql`
+      SELECT name, logo_url AS "logoUrl", primary_color AS "primaryColor", seat_limit AS "seatLimit"
+      FROM organisations WHERE id = ${orgId} LIMIT 1
+    `);
+    const org = result.rows?.[0];
+    if (!org) return res.status(404).json({ message: "Organisation not found" });
+    res.json(org);
+  });
+
+  // Org branding settings — update logo and primary colour
+  app.patch("/api/org/settings", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const rawLogo = req.body.logoUrl;
+    const rawColor = req.body.primaryColor;
+
+    const logoUrl: string | null =
+      typeof rawLogo === "string" && rawLogo.trim().startsWith("http") ? rawLogo.trim() : null;
+    const primaryColor: string | null =
+      typeof rawColor === "string" && /^#[0-9a-fA-F]{6}$/.test(rawColor.trim()) ? rawColor.trim() : null;
+
+    await db.execute(sql`
+      UPDATE organisations SET logo_url = ${logoUrl}, primary_color = ${primaryColor}
+      WHERE id = ${orgId}
+    `);
+
+    res.json({ success: true, logoUrl, primaryColor });
+  });
+
+  // Reassign all leads and clients from one advisor to another (within the same org)
+  app.post("/api/org/advisors/:id/reassign", async (req, res) => {
+    const orgId = orgSessionId(req);
+    if (!orgId) return res.status(401).json({ message: "Unauthorized" });
+
+    const fromId = Number(req.params.id);
+    const toId = Number(req.body.toAdvisorId);
+    if (!Number.isFinite(fromId) || !Number.isFinite(toId)) {
+      return res.status(400).json({ message: "Invalid advisor IDs" });
+    }
+    if (fromId === toId) {
+      return res.status(400).json({ message: "Source and destination advisor are the same" });
+    }
+
+    const checkResult = await db.execute(sql`
+      SELECT id FROM advisors WHERE id IN (${fromId}, ${toId}) AND org_id = ${orgId}
+    `);
+    if ((checkResult.rows?.length ?? 0) < 2) {
+      return res.status(403).json({ message: "Both advisors must belong to this organisation" });
+    }
+
+    const [leadsResult, clientsResult] = await Promise.all([
+      db.execute(sql`UPDATE emails SET advisor_id = ${toId} WHERE advisor_id = ${fromId}`),
+      db.execute(sql`UPDATE clients SET advisor_id = ${toId} WHERE advisor_id = ${fromId}`),
+    ]);
+
+    const leadsCount = (leadsResult as any).rowCount ?? 0;
+    const clientsCount = (clientsResult as any).rowCount ?? 0;
+    res.json({ success: true, leadsReassigned: leadsCount, clientsReassigned: clientsCount });
   });
 
   app.get("/api/advisors/:id", async (req, res) => {
