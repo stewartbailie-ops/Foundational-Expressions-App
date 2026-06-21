@@ -979,8 +979,9 @@ export async function registerRoutes(
     const result = await db.execute(sql`
       SELECT
         e.id, e.type, e.sender_name AS "senderName", e.sender_email AS "senderEmail",
-        e.phone, e.received_at AS "receivedAt", e.grade, e.status, e.temperature,
-        e.score, e.services_requested AS "servicesRequested", e.subject, e.message,
+        e.client_phone AS "phone", e.received_at AS "receivedAt",
+        e.grade, e.lead_status AS "status", e.lead_temperature AS "temperature",
+        e.lead_score AS "score", e.services_requested AS "servicesRequested",
         a.id AS "advisorId", a.name AS "advisorName"
       FROM emails e
       JOIN advisors a ON e.advisor_id = a.id
