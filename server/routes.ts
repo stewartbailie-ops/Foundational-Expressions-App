@@ -3406,11 +3406,17 @@ export async function registerRoutes(
     if (req.body?.confirm !== "WIPE EVERYTHING") {
       return res.status(400).json({ message: "Missing confirm phrase" });
     }
+    // Scope: "full" (default) also wipes advisor accounts + secondary profiles.
+    // "leads-clients" keeps advisors + advisor_profiles intact and clears only
+    // leads/referrals, page-view/analytics stats, and the client PII vault.
+    const keepAdvisors = req.body?.scope === "leads-clients";
     const fs = await import("fs/promises");
     const path = await import("path");
     const { pool } = await import("./db");
 
-    const TABLES = ["advisors","advisor_profiles","emails","stats","clients","client_consent","client_documents","audit_pii"];
+    const TABLES = keepAdvisors
+      ? ["emails","stats","clients","client_consent","client_documents","audit_pii"]
+      : ["advisors","advisor_profiles","emails","stats","clients","client_consent","client_documents","audit_pii"];
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const dir = path.resolve(".local", "backups", `fresh-start-${stamp}`);
     await fs.mkdir(dir, { recursive: true });
@@ -3428,7 +3434,14 @@ export async function registerRoutes(
       await client.query("BEGIN");
       await client.query(`DROP RULE IF EXISTS audit_pii_no_update ON audit_pii`);
       await client.query(`DROP RULE IF EXISTS audit_pii_no_delete ON audit_pii`);
-      const order = [
+      const order = keepAdvisors ? [
+        `DELETE FROM client_documents`,
+        `DELETE FROM client_consent`,
+        `DELETE FROM audit_pii`,
+        `DELETE FROM clients`,
+        `DELETE FROM emails`,
+        `DELETE FROM stats`,
+      ] : [
         `DELETE FROM client_documents`,
         `DELETE FROM client_consent`,
         `DELETE FROM audit_pii`,
