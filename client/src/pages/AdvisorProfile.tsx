@@ -10,6 +10,7 @@ import type { Advisor } from "@shared/schema";
 import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BrandFooter } from "@/components/BrandFooter";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
+import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
@@ -3419,6 +3420,10 @@ export default function AdvisorProfile() {
           />
         </div>
       </div>
+
+      {/* Smart "Add to Home Screen" prompt — public card variant (auto-detects
+          Android / iPhone Safari / in-app browser and shows the right guidance) */}
+      <AddToHomeScreen variant="banner" accent={tc.accentColor} />
     </main>
   );
 }

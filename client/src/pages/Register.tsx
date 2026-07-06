@@ -7,6 +7,7 @@ import {
   Palette, Globe, Camera, X,
 } from "lucide-react";
 import { TITLE_OPTIONS } from "@shared/schema";
+import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 
 // Theme names MUST match the keys in themeUtils.ts getThemeColors / getInitialsBadgeColors.
 // Mismatches caused the "always blue" registration bug.
@@ -496,6 +497,10 @@ export default function Register() {
               <strong>Next:</strong> Set your password to activate your control panel.
             </p>
           </div>
+
+          {/* Offer to install the app to the home screen (skippable — just don't tap it) */}
+          <AddToHomeScreen variant="card" accent={useCustom ? customColor : themeColor} />
+
           <button onClick={() => navigate(`/advisor/${createdSlug}`)}
             className="w-full py-3.5 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all">
             Set Up My Panel <ArrowRight className="h-4 w-4" />
