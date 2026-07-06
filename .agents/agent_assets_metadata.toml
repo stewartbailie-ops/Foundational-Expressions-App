@@ -53,3 +53,9 @@ id = "laGTX4xx6Tr_r96BnH_f8"
 uri = "file://attached_assets/generated_videos/advisory_connect_promo.mp4"
 type = "video"
 title = "Advisory Connect — Promo Clip (8s)"
+
+[[outputs]]
+id = "zLivU492ZAzC6CHrZXTWH"
+uri = "file://exports/advisory_connect_promo.mp4"
+type = "video"
+title = "Advisory Connect — 60s Elevator Pitch (Advisors)"

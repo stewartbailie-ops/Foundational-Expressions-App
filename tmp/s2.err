@@ -1,0 +1,48 @@
+ffmpeg version 6.1.2 Copyright (c) 2000-2024 the FFmpeg developers
+  built with gcc 14.3.0 (GCC)
+  configuration: --disable-static --prefix=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2 --target_os=linux --arch=x86_64 --pkg-config=pkg-config --enable-gpl --enable-version3 --disable-nonfree --disable-static --enable-shared --enable-pic --disable-thumb --disable-small --enable-runtime-cpudetect --enable-gray --enable-swscale-alpha --enable-hardcoded-tables --enable-safe-bitstream-reader --enable-pthreads --disable-w32threads --disable-os2threads --enable-network --enable-pixelutils --datadir=/nix/store/d7n6dq6npac4j0x7my10nnaf3qjcih3n-ffmpeg-full-6.1.2-data/share/ffmpeg --enable-ffmpeg --enable-ffplay --enable-ffprobe --bindir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2-bin/bin --enable-avcodec --enable-avdevice --enable-avfilter --enable-avformat --enable-avutil --enable-postproc --enable-swresample --enable-swscale --libdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2-lib/lib --incdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2-dev/include --enable-doc --enable-htmlpages --enable-manpages --mandir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2-man/share/man --enable-podpages --enable-txtpages --docdir=/nix/store/eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee-ffmpeg-full-6.1.2-doc/share/doc/ffmpeg --enable-alsa --enable-amf --enable-libaom --enable-libaribb24 --enable-libaribcaption --enable-libass --enable-avisynth --enable-libbluray --enable-libbs2b --enable-bzlib --enable-libcaca --enable-libcdio --enable-libcelt --enable-chromaprint --enable-libcodec2 --enable-cuda --enable-cuda-llvm --disable-cuda-nvcc --enable-cuvid --enable-libdav1d --enable-libdc1394 --enable-libdrm --disable-libfdk-aac --enable-ffnvcodec --enable-libflite --enable-fontconfig --enable-libfontconfig --enable-libfreetype --enable-frei0r --enable-libfribidi --enable-libgme --enable-gnutls --enable-libgsm --enable-libharfbuzz --enable-iconv --enable-libilbc --enable-libjack --enable-libjxl --enable-libkvazaar --enable-ladspa --enable-lcms2 --enable-lzma --disable-metal --enable-libmfx --enable-libmodplug --enable-libmp3lame --enable-libmysofa --disable-libnpp --enable-nvdec --enable-nvenc --enable-openal --enable-opencl --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-opengl --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-libopus --enable-libplacebo --enable-libpulse --enable-librav1e --enable-librist --enable-librtmp --enable-librubberband --enable-libsmbclient --enable-sdl2 --enable-libshaderc --enable-libshine --enable-libsnappy --enable-libsoxr --enable-libspeex --enable-libsrt --enable-libssh --enable-librsvg --enable-libsvtav1 --disable-libtensorflow --enable-libtheora --enable-libtwolame --enable-libv4l2 --enable-v4l2-m2m --enable-vaapi --enable-vdpau --disable-libvpl --enable-libvidstab --enable-libvmaf --enable-libvo-amrwbenc --enable-libvorbis --enable-libvpx --enable-vulkan --enable-libwebp --enable-libx264 --enable-libx265 --enable-libxavs --enable-libxcb --enable-libxcb-shape --enable-libxcb-shm --enable-libxcb-xfixes --enable-xlib --enable-libxml2 --enable-libxvid --enable-libzimg --enable-zlib --enable-libzmq --enable-libzvbi --disable-debug --enable-optimizations --disable-extra-warnings --disable-stripping
+  libavutil      58. 29.100 / 58. 29.100
+  libavcodec     60. 31.102 / 60. 31.102
+  libavformat    60. 16.100 / 60. 16.100
+  libavdevice    60.  3.100 / 60.  3.100
+  libavfilter     9. 12.100 /  9. 12.100
+  libswscale      7.  5.100 /  7.  5.100
+  libswresample   4. 12.100 /  4. 12.100
+  libpostproc    57.  3.100 / 57.  3.100
+Input #0, image2, from 'exports/promo_frames/register.jpg':
+  Duration: 00:00:00.04, start: 0.000000, bitrate: 7913 kb/s
+  Stream #0:0: Video: mjpeg (Baseline), yuvj420p(pc, bt470bg/unknown/unknown), 1280x720 [SAR 1:1 DAR 16:9], 25 fps, 25 tbr, 25 tbn
+Stream mapping:
+  Stream #0:0 -> #0:0 (mjpeg (native) -> h264 (libx264))
+Press [q] to stop, [?] for help
+[swscaler @ 0x26413040] deprecated pixel format used, make sure you did set range correctly
+    Last message repeated 3 times
+[libx264 @ 0x25b431c0] using SAR=1/1
+[libx264 @ 0x25b431c0] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2 AVX512
+[libx264 @ 0x25b431c0] profile High, level 4.0, 4:2:0, 8-bit
+[libx264 @ 0x25b431c0] 264 - core 164 - H.264/MPEG-4 AVC codec - Copyleft 2003-2025 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x3:0x113 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=1 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=3 lookahead_threads=1 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=250 keyint_min=25 scenecut=40 intra_refresh=0 rc_lookahead=10 rc=crf mbtree=1 crf=18.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 ip_ratio=1.40 aq=1:1.00
+Output #0, mp4, to 'tmp/test_s2.mp4':
+  Metadata:
+    encoder         : Lavf60.16.100
+  Stream #0:0: Video: h264 (avc1 / 0x31637661), yuv420p(progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 30 fps, 15360 tbn
+    Metadata:
+      encoder         : Lavc60.31.102 libx264
+    Side data:
+      cpb: bitrate max/min/avg: 0/0/0 buffer size: 0 vbv_delay: N/A
+frame=    0 fps=0.0 q=0.0 size=       0kB time=N/A bitrate=N/A speed=N/A    frame=   12 fps=0.0 q=24.0 size=       0kB time=00:00:00.30 bitrate=   1.3kbits/s speed=0.589x    frame=   50 fps= 49 q=24.0 size=       0kB time=00:00:01.60 bitrate=   0.2kbits/s speed=1.58x    frame=   95 fps= 62 q=24.0 size=     256kB time=00:00:03.10 bitrate= 676.6kbits/s speed=2.02x    frame=  129 fps= 63 q=24.0 size=     512kB time=00:00:04.23 bitrate= 990.9kbits/s speed=2.08x    [out#0/mp4 @ 0x25b5a040] video:729kB audio:0kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 0.404705%
+frame=  180 fps= 68 q=-1.0 Lsize=     732kB time=00:00:05.90 bitrate=1016.3kbits/s speed=2.23x    
+[libx264 @ 0x25b431c0] frame I:1     Avg QP: 7.82  size: 46863
+[libx264 @ 0x25b431c0] frame P:50    Avg QP:15.62  size:  9504
+[libx264 @ 0x25b431c0] frame B:129   Avg QP:20.08  size:  1734
+[libx264 @ 0x25b431c0] consecutive B-frames:  4.4%  0.0%  0.0% 95.6%
+[libx264 @ 0x25b431c0] mb I  I16..4: 89.4%  0.6% 10.0%
+[libx264 @ 0x25b431c0] mb P  I16..4:  7.0%  0.1%  0.0%  P16..4:  9.6%  1.8%  0.7%  0.0%  0.0%    skip:80.8%
+[libx264 @ 0x25b431c0] mb B  I16..4:  1.6%  0.0%  0.0%  B16..8:  5.4%  0.9%  0.0%  direct: 1.4%  skip:90.7%  L0:46.9% L1:37.4% BI:15.7%
+[libx264 @ 0x25b431c0] 8x8 transform intra:1.1% inter:26.0%
+[libx264 @ 0x25b431c0] coded y,uvDC,uvAC intra: 5.1% 12.7% 10.4% inter: 1.8% 1.8% 0.6%
+[libx264 @ 0x25b431c0] i16 v,h,dc,p: 67% 32%  1%  0%
+[libx264 @ 0x25b431c0] i8 v,h,dc,ddl,ddr,vr,hd,vl,hu: 31% 25% 40%  0%  1%  0%  1%  0%  1%
+[libx264 @ 0x25b431c0] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 24% 23% 22%  4%  6%  5%  6%  4%  7%
+[libx264 @ 0x25b431c0] i8c dc,h,v,p: 72% 24%  4%  0%
+[libx264 @ 0x25b431c0] Weighted P-Frames: Y:0.0% UV:0.0%
+[libx264 @ 0x25b431c0] kb/s:994.39
