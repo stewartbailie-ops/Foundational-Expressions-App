@@ -60,13 +60,14 @@ By creating an account, you agree to:
 
 The full Terms of Service document is currently being finalised and will be made available shortly. By ticking the box below, you confirm you accept these interim terms and the formal Terms of Service once published.`;
 
+// Consent-first: Terms is step 1, so acceptance is captured before any details are entered.
 const STEPS = [
-  { num: 1, label: "Details"  },
-  { num: 2, label: "Photo"    },
-  { num: 3, label: "Colours"  },
-  { num: 4, label: "Displays" },
-  { num: 5, label: "Plan"     },
-  { num: 6, label: "Terms"    },
+  { num: 1, label: "Terms"    },
+  { num: 2, label: "Details"  },
+  { num: 3, label: "Photo"    },
+  { num: 4, label: "Colours"  },
+  { num: 5, label: "Displays" },
+  { num: 6, label: "Plan"     },
 ];
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white placeholder-white/20 text-sm focus:outline-none focus:border-white/40 transition-colors";
@@ -81,7 +82,7 @@ export default function Register() {
   const [createdSlug, setCreatedSlug] = useState("");
   const [createdFirstName, setCreatedFirstName] = useState("");
 
-  // Step 1
+  // Step 2 — details
   const [name, setName] = useState("");
   const [title, setTitle] = useState("Financial Planner");
   const [email, setEmail] = useState("");
@@ -90,25 +91,25 @@ export default function Register() {
   const [recaptchaFailed, setRecaptchaFailed] = useState(false);
   const recaptchaRef = useRef<ReCAPTCHA>(null);
 
-  // Step 2 — profile photo (optional; uploads immediately to object storage)
+  // Step 3 — profile photo (optional; uploads immediately to object storage)
   const [profilePicUrl, setProfilePicUrl] = useState<string | null>(null);
   const [uploadingPic, setUploadingPic] = useState(false);
 
-  // Step 3
+  // Step 4
   const [theme, setTheme] = useState("light-blue");
   const [themeColor, setThemeColor] = useState("#0ea5e9");
   const [customColor, setCustomColor] = useState("#0ea5e9");
   const [useCustom, setUseCustom] = useState(false);
 
-  // Step 4 — home display toggles
+  // Step 5 — home display toggles
   const [displays, setDisplays] = useState<Record<string, boolean>>(
     Object.fromEntries(DISPLAYS.map(d => [d.key, true]))
   );
 
-  // Step 5
+  // Step 6
   const [subscriptionTier, setSubscriptionTier] = useState("standard");
 
-  // Step 6
+  // Step 1 — consent captured up front
   const [tosAccepted, setTosAccepted] = useState(false);
 
   const previewSlug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -191,6 +192,7 @@ export default function Register() {
   const cardCls = "w-full max-w-md bg-white/5 rounded-2xl border border-white/10 p-6 space-y-4";
   const btnBack = "flex-1 py-3 rounded-xl border border-white/15 text-white/60 text-sm font-medium flex items-center justify-center gap-1.5 hover:bg-white/5 transition-all";
   const btnNext = "flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 transition-all";
+  const btnNextGated = "flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all";
 
   return (
     <div className="min-h-screen bg-black flex flex-col items-center justify-center p-6">
@@ -228,8 +230,33 @@ export default function Register() {
         </div>
       )}
 
-      {/* ── STEP 1: Details ── */}
+      {/* ── STEP 1: Terms of Service (consent-first) ── */}
       {step === 1 && (
+        <div className={cardCls}>
+          <div>
+            <h2 className="text-base font-semibold text-white">Terms of Service</h2>
+            <p className="text-xs text-white/40 mt-0.5">Please read and accept before creating your profile.</p>
+          </div>
+          <div className="border border-white/10 rounded-lg bg-white/3 p-4 max-h-56 overflow-y-auto">
+            <p className="text-xs text-white/50 leading-relaxed whitespace-pre-line">{TOS_TEXT}</p>
+          </div>
+          <label className="flex items-start gap-3 p-3 rounded-lg border border-blue-500/40 bg-blue-500/8 cursor-pointer">
+            <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
+              className="mt-0.5 h-4 w-4 accent-blue-600 flex-shrink-0" data-testid="check-tos" />
+            <span className="text-sm text-blue-300 font-medium">I accept the Terms of Service</span>
+          </label>
+          <button onClick={() => setStep(2)} disabled={!tosAccepted} data-testid="button-tos-continue"
+            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+            Continue <ArrowRight className="h-4 w-4" />
+          </button>
+          <p className="text-center text-xs text-white/25">Already have a profile?{" "}
+            <a href="/portal" className="text-blue-400 hover:underline font-medium">Sign in</a>
+          </p>
+        </div>
+      )}
+
+      {/* ── STEP 2: Details ── */}
+      {step === 2 && (
         <div className={cardCls}>
           <div>
             <label className={labelCls}>Full Name <span className="text-red-400">*</span></label>
@@ -272,18 +299,17 @@ export default function Register() {
               />
             </div>
           )}
-          <button onClick={() => setStep(2)} disabled={!step1Valid}
-            className="w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
-            Next <ArrowRight className="h-4 w-4" />
-          </button>
-          <p className="text-center text-xs text-white/25">Already have a profile?{" "}
-            <a href="/portal" className="text-blue-400 hover:underline font-medium">Sign in</a>
-          </p>
+          <div className="flex gap-3">
+            <button onClick={() => setStep(1)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(3)} disabled={!step1Valid} className={btnNextGated} data-testid="button-details-next">
+              Next <ArrowRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 
-      {/* ── STEP 2: Profile Photo ── */}
-      {step === 2 && (
+      {/* ── STEP 3: Profile Photo ── */}
+      {step === 3 && (
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Profile Photo</h2>
@@ -321,16 +347,16 @@ export default function Register() {
             </p>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setStep(1)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={() => setStep(3)} disabled={uploadingPic} className={btnNext} data-testid="button-photo-next">
+            <button onClick={() => setStep(2)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(4)} disabled={uploadingPic} className={btnNext} data-testid="button-photo-next">
               {profilePicUrl ? "Next" : "Skip"} <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── STEP 3: Colours ── */}
-      {step === 3 && (
+      {/* ── STEP 4: Colours ── */}
+      {step === 4 && (
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Choose Your Colours</h2>
@@ -368,14 +394,14 @@ export default function Register() {
             <p className="text-xs text-white/50">Preview: your profile accent and panel header will use this colour.</p>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setStep(2)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={() => setStep(4)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
+            <button onClick={() => setStep(3)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(5)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
           </div>
         </div>
       )}
 
-      {/* ── STEP 4: Home Displays ── */}
-      {step === 4 && (
+      {/* ── STEP 5: Home Displays ── */}
+      {step === 5 && (
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Your Home Displays</h2>
@@ -397,14 +423,14 @@ export default function Register() {
             ))}
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setStep(3)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={() => setStep(5)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
+            <button onClick={() => setStep(4)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
+            <button onClick={() => setStep(6)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
           </div>
         </div>
       )}
 
-      {/* ── STEP 5: Choose Plan ── */}
-      {step === 5 && (
+      {/* ── STEP 6: Choose Plan (final step) ── */}
+      {step === 6 && (
         <div className={cardCls}>
           <div>
             <h2 className="text-base font-semibold text-white">Choose Your Plan</h2>
@@ -427,30 +453,8 @@ export default function Register() {
             ))}
           </div>
           <div className="flex gap-3 pt-1">
-            <button onClick={() => setStep(4)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={() => setStep(6)} className={btnNext}>Next <ArrowRight className="h-4 w-4" /></button>
-          </div>
-        </div>
-      )}
-
-      {/* ── STEP 6: Terms of Service ── */}
-      {step === 6 && (
-        <div className={cardCls}>
-          <div>
-            <h2 className="text-base font-semibold text-white">Terms of Service</h2>
-            <p className="text-xs text-white/40 mt-0.5">Please read and accept before continuing.</p>
-          </div>
-          <div className="border border-white/10 rounded-lg bg-white/3 p-4 max-h-56 overflow-y-auto">
-            <p className="text-xs text-white/50 leading-relaxed whitespace-pre-line">{TOS_TEXT}</p>
-          </div>
-          <label className="flex items-start gap-3 p-3 rounded-lg border border-blue-500/40 bg-blue-500/8 cursor-pointer">
-            <input type="checkbox" checked={tosAccepted} onChange={(e) => setTosAccepted(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-blue-600 flex-shrink-0" />
-            <span className="text-sm text-blue-300 font-medium">I accept the Terms of Service</span>
-          </label>
-          <div className="flex gap-3">
             <button onClick={() => setStep(5)} className={btnBack}><ArrowLeft className="h-4 w-4" /> Back</button>
-            <button onClick={handleCreate} disabled={!tosAccepted || loading}
+            <button onClick={handleCreate} disabled={!tosAccepted || loading} data-testid="button-create-profile"
               className="flex-1 py-3 rounded-xl bg-blue-600 text-white font-semibold text-sm flex items-center justify-center gap-2 hover:bg-blue-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all">
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create My Profile"}
             </button>
