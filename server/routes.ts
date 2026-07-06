@@ -3403,13 +3403,15 @@ export async function registerRoutes(
   // exact confirm phrase in the body so a stray click can't fire it.
   app.post("/api/admin/fresh-start", async (req, res) => {
     if (sessionRole(req) !== "admin") return res.status(401).json({ message: "Admin only" });
-    if (req.body?.confirm !== "WIPE EVERYTHING") {
-      return res.status(400).json({ message: "Missing confirm phrase" });
-    }
     // Scope: "full" (default) also wipes advisor accounts + secondary profiles.
     // "leads-clients" keeps advisors + advisor_profiles intact and clears only
     // leads/referrals, page-view/analytics stats, and the client PII vault.
+    // Each scope has its own confirm phrase so a full wipe can't fire by accident.
     const keepAdvisors = req.body?.scope === "leads-clients";
+    const requiredPhrase = keepAdvisors ? "CLEAR LEADS AND CLIENTS" : "WIPE EVERYTHING";
+    if (req.body?.confirm !== requiredPhrase) {
+      return res.status(400).json({ message: "Missing confirm phrase" });
+    }
     const fs = await import("fs/promises");
     const path = await import("path");
     const { pool } = await import("./db");

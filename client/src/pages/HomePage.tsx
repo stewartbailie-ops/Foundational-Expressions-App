@@ -97,9 +97,11 @@ export default function HomePage() {
   const [wipeConfirm, setWipeConfirm] = useState("");
   const [wiping, setWiping] = useState(false);
   const [wipeResult, setWipeResult] = useState<null | { ok: boolean; message: string; details?: any }>(null);
+  const [wipeScope, setWipeScope] = useState<"full" | "leads-clients">("full");
   const qc = useQueryClient();
+  const requiredPhrase = wipeScope === "leads-clients" ? "CLEAR LEADS AND CLIENTS" : "WIPE EVERYTHING";
 
-  async function runWipe() {
+  async function runWipe(scope: "full" | "leads-clients") {
     setWiping(true);
     setWipeResult(null);
     try {
@@ -107,13 +109,20 @@ export default function HomePage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ confirm: "WIPE EVERYTHING" }),
+        body: JSON.stringify({
+          confirm: scope === "leads-clients" ? "CLEAR LEADS AND CLIENTS" : "WIPE EVERYTHING",
+          scope,
+        }),
       });
       const data = await r.json();
       if (!r.ok) {
-        setWipeResult({ ok: false, message: data.message || "Wipe failed" });
+        setWipeResult({ ok: false, message: data.message || "Reset failed" });
       } else {
-        setWipeResult({ ok: true, message: "Fresh start complete.", details: data });
+        setWipeResult({
+          ok: true,
+          message: scope === "leads-clients" ? "Leads & clients cleared." : "Fresh start complete.",
+          details: data,
+        });
         await qc.invalidateQueries();
       }
     } catch (err) {
@@ -340,15 +349,33 @@ export default function HomePage() {
         ))}
       </motion.div>
 
-      {/* Danger zone — fresh-start wipe (admin only, this whole page is admin-gated) */}
+      {/* Danger zone — data resets (admin only, this whole page is admin-gated) */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.62, duration: 0.4 }}
-        className="rounded-xl p-5"
+        className="rounded-xl p-5 space-y-4"
         style={{ backgroundColor: "rgba(220,38,38,0.06)", border: "1px solid rgba(220,38,38,0.25)", color: "#fff" }}
       >
         <div className="flex items-start gap-3">
+          <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: "#fca5a5" }} />
+          <div className="flex-1">
+            <div className="text-base font-semibold">Clear Leads &amp; Clients</div>
+            <p className="text-xs mt-1 leading-relaxed" style={{ color: "rgba(255,255,255,0.65)" }}>
+              Permanently removes every lead, referral, callback, will request, client record, consent, PII audit entry and analytics stat. Advisor accounts and profiles are kept. A backup snapshot is saved on the server before anything is deleted.
+            </p>
+          </div>
+          <button
+            onClick={() => { setWipeScope("leads-clients"); setWipeOpen(true); setWipeConfirm(""); setWipeResult(null); }}
+            data-testid="button-open-clear-leads"
+            className="shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
+            style={{ backgroundColor: "rgba(220,38,38,0.85)", color: "#fff" }}
+          >
+            Clear Leads &amp; Clients
+          </button>
+        </div>
+
+        <div className="flex items-start gap-3 pt-4" style={{ borderTop: "1px solid rgba(220,38,38,0.2)" }}>
           <AlertTriangle className="h-5 w-5 mt-0.5 shrink-0" style={{ color: "#fca5a5" }} />
           <div className="flex-1">
             <div className="text-base font-semibold">Fresh Start</div>
@@ -357,7 +384,7 @@ export default function HomePage() {
             </p>
           </div>
           <button
-            onClick={() => { setWipeOpen(true); setWipeConfirm(""); setWipeResult(null); }}
+            onClick={() => { setWipeScope("full"); setWipeOpen(true); setWipeConfirm(""); setWipeResult(null); }}
             data-testid="button-open-fresh-start"
             className="shrink-0 px-4 py-2 rounded-lg text-xs font-semibold transition-all hover:opacity-90"
             style={{ backgroundColor: "rgba(220,38,38,0.85)", color: "#fff" }}
@@ -380,16 +407,18 @@ export default function HomePage() {
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5" style={{ color: "#fca5a5" }} />
-              <h3 className="text-lg font-semibold">Confirm Fresh Start</h3>
+              <h3 className="text-lg font-semibold">{wipeScope === "leads-clients" ? "Confirm Clear Leads & Clients" : "Confirm Fresh Start"}</h3>
             </div>
 
             {!wipeResult && (
               <>
                 <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>
-                  This deletes <span className="font-semibold text-white">every</span> advisor, profile, lead, referral, callback, will request and stat. This cannot be undone from the UI (a server-side backup is created automatically).
+                  {wipeScope === "leads-clients"
+                    ? "This permanently clears every lead, referral, callback, will request, client record, consent, PII audit entry and analytics stat. Your advisor accounts and profiles are kept. This cannot be undone from the UI (a server-side backup is created automatically)."
+                    : "This deletes every advisor, profile, lead, referral, callback, will request and stat. This cannot be undone from the UI (a server-side backup is created automatically)."}
                 </p>
                 <p className="text-xs" style={{ color: "rgba(255,255,255,0.55)" }}>
-                  Type <code className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>WIPE EVERYTHING</code> to confirm:
+                  Type <code className="px-1.5 py-0.5 rounded" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>{requiredPhrase}</code> to confirm:
                 </p>
                 <input
                   type="text"
@@ -412,14 +441,14 @@ export default function HomePage() {
                     Cancel
                   </button>
                   <button
-                    onClick={runWipe}
-                    disabled={wiping || wipeConfirm !== "WIPE EVERYTHING"}
+                    onClick={() => runWipe(wipeScope)}
+                    disabled={wiping || wipeConfirm !== requiredPhrase}
                     data-testid="button-confirm-fresh-start"
                     className="px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
                     style={{ backgroundColor: "rgba(220,38,38,0.85)", color: "#fff" }}
                   >
                     {wiping && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                    {wiping ? "Wiping…" : "Wipe Now"}
+                    {wiping ? "Working…" : (wipeScope === "leads-clients" ? "Clear Now" : "Wipe Now")}
                   </button>
                 </div>
               </>
