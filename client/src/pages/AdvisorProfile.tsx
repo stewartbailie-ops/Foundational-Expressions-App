@@ -7,10 +7,11 @@ import { Loader2, AlertCircle, AlertTriangle, ChevronDown, ChevronUp, Linkedin, 
 import { getQuoteForToday, shareQuoteAsPng, type QuoteSet } from "@/lib/dailyQuotes";
 import { getUpcomingEvents, getCategoryColor, SA_FINANCIAL_EVENTS_2026, TRADINGVIEW_SYMBOLS } from "@/lib/financialCalendar";
 import type { Advisor } from "@shared/schema";
-import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
+import { BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
 import { BrandFooter } from "@/components/BrandFooter";
 import { getThemeColors, getThemeBackground, getInitialsBadgeColors } from "@/lib/themeUtils";
 import { AddToHomeScreen } from "@/components/AddToHomeScreen";
+import { ProfileDeclutter } from "@/components/ProfileDeclutter";
 import { shareOrDownloadCard, canShareCardNatively, type CardVariant } from "@/lib/businessCard";
 import { NewsHero } from "@/components/NewsHero";
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
@@ -1645,6 +1646,33 @@ export default function AdvisorProfile() {
     const missing = DEFAULT_PROFILE_SECTION_ORDER.filter(k => !saved.includes(k));
     return [...saved, ...missing];
   }, [(advisor as any)?.profileSectionOrder]);
+
+  // Viewer-side declutter: the visitor can hide sections they aren't interested
+  // in. Remembered per-advisor in this browser only (no login, no backend).
+  const declutterSlug = (advisor as any)?.profileSlug ?? "";
+  const [hiddenSections, setHiddenSections] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    if (!declutterSlug) return;
+    try {
+      const raw = localStorage.getItem(`ac-profile-hidden:${declutterSlug}`);
+      setHiddenSections(new Set<string>(raw ? JSON.parse(raw) : []));
+    } catch { /* ignore */ }
+  }, [declutterSlug]);
+  const persistHidden = (next: Set<string>) => {
+    try {
+      if (next.size) localStorage.setItem(`ac-profile-hidden:${declutterSlug}`, JSON.stringify([...next]));
+      else localStorage.removeItem(`ac-profile-hidden:${declutterSlug}`);
+    } catch { /* ignore */ }
+  };
+  const toggleSection = (key: string) => setHiddenSections(prev => {
+    const next = new Set(prev);
+    if (next.has(key)) next.delete(key); else next.add(key);
+    persistHidden(next);
+    return next;
+  });
+  const resetSections = () => { setHiddenSections(new Set()); persistHidden(new Set()); };
+  // Populated during the section render pass below; consumed by the declutter cog.
+  const availableSectionKeys: string[] = [];
 
   if (isLoading) {
     return (
@@ -3290,8 +3318,13 @@ export default function AdvisorProfile() {
             </CollapsibleTool>
           ) : null,
           };
-          return profileSectionOrder.map((key, i) =>
-            sectionMap[key] ? (
+          return profileSectionOrder.map((key, i) => {
+            if (!sectionMap[key]) return null;
+            // Record every section the advisor exposes, so the declutter cog
+            // can offer it — even if the visitor has currently hidden it.
+            availableSectionKeys.push(key);
+            if (hiddenSections.has(key)) return null;
+            return (
               <motion.div
                 key={key}
                 initial={{ opacity: 0, y: 16 }}
@@ -3300,8 +3333,8 @@ export default function AdvisorProfile() {
               >
                 {sectionMap[key]}
               </motion.div>
-            ) : null
-          );
+            );
+          });
         })()}
 
         {/* Emergency Contacts — fixed position, not in section ordering */}
@@ -3424,6 +3457,16 @@ export default function AdvisorProfile() {
       {/* Smart "Add to Home Screen" prompt — public card variant (auto-detects
           Android / iPhone Safari / in-app browser and shows the right guidance) */}
       <AddToHomeScreen variant="banner" accent={tc.accentColor} />
+
+      {/* Visitor-side declutter cog — hide/show sections for this viewer only */}
+      <ProfileDeclutter
+        sections={availableSectionKeys}
+        labels={PROFILE_SECTION_LABELS}
+        hidden={hiddenSections}
+        onToggle={toggleSection}
+        onReset={resetSections}
+        accent={tc.accentColor}
+      />
     </main>
   );
 }
