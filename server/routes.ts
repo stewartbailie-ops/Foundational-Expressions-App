@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { advisors, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS } from "@shared/schema";
+import { advisors, emails, stats, insertAdvisorSchema, insertAdvisorProfileSchema, insertEmailSchema, autoGradeClient, calculateLeadGrade, GRADE_OPTIONS, LEAD_STATUS_OPTIONS, SECONDARY_PROFILES_ENABLED } from "@shared/schema";
 import type { Organisation } from "@shared/schema";
 import { db } from "./db";
 import { sendEmail, isSendGridConfigured, buildRecipients } from "./sendgrid";
@@ -1226,6 +1226,10 @@ export async function registerRoutes(
     const advisorId = Number(req.params.id);
     if (!(await canAccessAdvisor(req, advisorId))) {
       return res.status(401).json({ message: "Unauthorized" });
+    }
+    // Secondary profiles temporarily disabled app-wide while we fine-tune.
+    if (!SECONDARY_PROFILES_ENABLED) {
+      return res.status(403).json({ message: "Secondary profiles are temporarily disabled." });
     }
     // Premium gate: secondary profiles are a Premium-only feature per the
     // agreed tier-split (Stewart + Friday + Claude, 16 May 2026). Admin

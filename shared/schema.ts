@@ -100,6 +100,15 @@ export const insertAdvisorProfileSchema = createInsertSchema(advisorProfiles).om
 export type InsertAdvisorProfile = z.infer<typeof insertAdvisorProfileSchema>;
 export type AdvisorProfile = typeof advisorProfiles.$inferSelect;
 
+// TEMPORARY kill-switch (Jul 2026): secondary profiles are disabled while the
+// app is being fine-tuned — they drifted out of sync with the primary. Flip to
+// `true` to re-enable the whole feature. Referenced by:
+//   - client AdvisorPanel ProfilesTab  (hides the create/manage UI)
+//   - server POST /api/advisors/:id/profiles  (blocks creation)
+//   - server storage.getAdvisorBySlug  (secondary slugs 404 → public pages offline)
+// No data is deleted; existing advisor_profiles rows are simply not served.
+export const SECONDARY_PROFILES_ENABLED: boolean = false;
+
 export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),
   orgId: integer("org_id"),

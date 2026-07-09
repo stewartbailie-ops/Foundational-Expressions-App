@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { advisors, advisorProfiles, emails, stats, loginAudit, clients, auditPii, clientConsent, clientDocuments, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat, type InsertLoginAudit, type Client, type InsertClient, type AuditPii, type InsertAuditPii, type ClientConsent, type InsertClientConsent, type ClientDocument, type InsertClientDocument } from "@shared/schema";
+import { advisors, advisorProfiles, emails, stats, loginAudit, clients, auditPii, clientConsent, clientDocuments, SECONDARY_PROFILES_ENABLED, type Advisor, type InsertAdvisor, type AdvisorProfile, type InsertAdvisorProfile, type Email, type InsertEmail, type Stat, type InsertStat, type InsertLoginAudit, type Client, type InsertClient, type AuditPii, type InsertAuditPii, type ClientConsent, type InsertClientConsent, type ClientDocument, type InsertClientDocument } from "@shared/schema";
 import { eq, desc, sql, count, and, isNull } from "drizzle-orm";
 import { encryptString, decryptString } from "./encryption";
 
@@ -145,6 +145,9 @@ export class DatabaseStorage implements IStorage {
   async getAdvisorBySlug(slug: string): Promise<Advisor | undefined> {
     const [advisor] = await db.select().from(advisors).where(eq(advisors.profileSlug, slug));
     if (advisor) return advisor;
+    // Secondary profiles temporarily disabled: don't resolve secondary slugs,
+    // so their public pages 404. Primary lookup above is unaffected.
+    if (!SECONDARY_PROFILES_ENABLED) return undefined;
     const [profile] = await db
       .select({ profile: advisorProfiles, advisor: advisors })
       .from(advisorProfiles)

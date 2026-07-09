@@ -35,7 +35,7 @@ import { BackgroundPatternPicker } from "@/components/BackgroundPatternPicker";
 import { shareOrDownloadCard, shareOrDownloadBolCard, canShareCardNatively, type CardVariant, type BolCardData } from "@/lib/businessCard";
 import { useDuplicateLeadCheck, DuplicateLeadNotice } from "@/lib/useDuplicateLeadCheck";
 import type { Advisor, Email, AdvisorProfile } from "@shared/schema";
-import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META } from "@shared/schema";
+import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DEFAULT_PROFILE_SECTION_ORDER, PROFILE_SECTION_LABELS, EMERGENCY_CONTACTS, PLATFORMS_META, SECONDARY_PROFILES_ENABLED } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { QRCodeSVG } from "qrcode.react";
@@ -825,7 +825,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <div className="text-sm font-semibold" style={{ color: tc.textColor }}>{s.label}</div>
-                    {s.key === "profiles" && (
+                    {SECONDARY_PROFILES_ENABLED && s.key === "profiles" && (
                       <span
                         className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold whitespace-nowrap"
                         style={{ backgroundColor: `${s.accent}22`, color: s.accent, border: `1px solid ${s.accent}55` }}
@@ -1085,7 +1085,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         {/* Profile Attribution — only shown when there's at least one secondary profile,
             otherwise the breakdown is meaningless (everything came from the primary).
             Sorted by count desc on the server. */}
-        {(advisorStats?.profileBreakdown?.length ?? 0) > 1 && (
+        {SECONDARY_PROFILES_ENABLED && (advisorStats?.profileBreakdown?.length ?? 0) > 1 && (
           <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-profile-attribution">
             <div className="flex items-center gap-2 mb-3">
               <Users className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
@@ -8633,19 +8633,23 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
-  const totalProfiles = 1 + additionalProfiles.length;
-  const canAddMore = totalProfiles < 2 && !showNewForm && isPremiumActive;
+  // Secondary profiles temporarily disabled — treat as if the advisor has none.
+  const shownProfiles = SECONDARY_PROFILES_ENABLED ? additionalProfiles : [];
+  const totalProfiles = 1 + shownProfiles.length;
+  const canAddMore = SECONDARY_PROFILES_ENABLED && totalProfiles < 2 && !showNewForm && isPremiumActive;
 
   return (
     <div className="space-y-4">
       <div className="rounded-xl p-4" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
         <div className="flex items-center justify-between mb-1">
-          <span className="text-sm font-semibold" style={{ color: tc.textColor }}>My Profiles</span>
-          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 2</span>
+          <span className="text-sm font-semibold" style={{ color: tc.textColor }}>{SECONDARY_PROFILES_ENABLED ? "My Profiles" : "Your Profile"}</span>
+          {SECONDARY_PROFILES_ENABLED && (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 2</span>
+          )}
         </div>
-        <p className="text-xs" style={{ color: tc.mutedText }}>Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 2 profiles per advisor.</p>
+        <p className="text-xs" style={{ color: tc.mutedText }}>{SECONDARY_PROFILES_ENABLED ? "Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 2 profiles per advisor." : "Your public profile — its link, theme, bio and services."}</p>
         {/* S7(b): inline split-views badge near the heading. Green dot = Primary, blue = Secondary. */}
-        {viewSplit && (
+        {SECONDARY_PROFILES_ENABLED && viewSplit && (
           <div className="flex items-center gap-3 mt-2 text-[11px]" data-testid="badge-views-split">
             <span style={{ color: tc.mutedText }}>Views:</span>
             <span className="flex items-center gap-1">
@@ -8690,7 +8694,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         </div>
       )}
 
-      {additionalProfiles.map((profile) =>
+      {shownProfiles.map((profile) =>
         editingProfileId === profile.id ? (
           <AdditionalProfileForm
             key={profile.id}
@@ -8751,7 +8755,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         </div>
       )}
 
-      {!isPremiumActive && totalProfiles < 2 && !showNewForm && (
+      {SECONDARY_PROFILES_ENABLED && !isPremiumActive && totalProfiles < 2 && !showNewForm && (
         <div className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-secondary-profile-premium-gate">
           <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: tc.mutedText }} />
           <div className="flex-1">
