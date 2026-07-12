@@ -159,3 +159,101 @@ option {
   background-color: #ffffff !important;
   color: #1a1a1a !important;
 }
+
+
+
+/* Foundational Expressions profile-card layer */
+.fe-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 12%, rgba(179, 77, 204, 0.18), transparent 28rem),
+    radial-gradient(circle at 84% 18%, rgba(255, 255, 255, 0.08), transparent 22rem),
+    radial-gradient(circle at 50% 100%, rgba(179, 77, 204, 0.14), transparent 30rem),
+    #050506;
+}
+
+.fe-ambient::before,
+.fe-ambient::after {
+  content: "";
+  position: absolute;
+  border: 1px solid rgba(211, 104, 231, 0.22);
+  border-radius: 999px;
+  opacity: 0.55;
+}
+
+.fe-ambient::before {
+  width: 42rem;
+  height: 42rem;
+  right: -18rem;
+  top: 5rem;
+  animation: fe-drift 18s ease-in-out infinite alternate;
+}
+
+.fe-ambient::after {
+  width: 28rem;
+  height: 28rem;
+  left: -12rem;
+  bottom: -8rem;
+  animation: fe-drift 22s ease-in-out infinite alternate-reverse;
+}
+
+.fe-card {
+  backdrop-filter: blur(22px);
+}
+
+.fe-action {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 999px;
+  padding: 0.875rem 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  transition: background-color 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.fe-action:hover {
+  transform: translateY(-1px);
+}
+
+.fe-field {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.fe-field span {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.fe-field input,
+.fe-field select,
+.fe-field textarea {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+  color: #fff;
+  outline: none;
+  padding: 0.875rem 1rem;
+}
+
+.fe-field textarea {
+  resize: vertical;
+}
+
+@keyframes fe-drift {
+  from {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(1.25rem, -1rem, 0) rotate(8deg);
+  }
+}
