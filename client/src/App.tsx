@@ -6,8 +6,8 @@ function App() {
   return (
     <Switch>
       <Route path="/request-callback" component={FoundationalCallback} />
-      <Route path="/erika/request-callback" component={FoundationalCallback} />
-      <Route path="/erika" component={FoundationalProfile} />
+      <Route path="/erica/request-callback" component={FoundationalCallback} />
+      <Route path="/erica" component={FoundationalProfile} />
       <Route path="/" component={FoundationalProfile} />
       <Route component={FoundationalProfile} />
     </Switch>

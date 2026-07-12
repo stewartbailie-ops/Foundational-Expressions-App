@@ -31,7 +31,7 @@ export default function FoundationalCallback() {
       form.message,
     ].join("\n"),
   );
-  const canSend = form.name.trim() && form.phone.trim();
+  const canSend = Boolean(foundationalProfile.email && form.name.trim() && form.phone.trim());
 
   return (
     <main className="min-h-screen bg-[#050506] px-5 py-6 text-white sm:px-8">
@@ -47,10 +47,10 @@ export default function FoundationalCallback() {
             Request Callback
           </p>
           <h1 className="mt-4 font-serif text-4xl leading-tight sm:text-5xl">
-            Let Erika know where to start.
+            Let Erica know where to start.
           </h1>
           <p className="mt-4 text-sm leading-6 text-white/62">
-            This first version opens an email draft so the profile works without database or mail-provider setup. We can wire it to SendGrid later.
+            Share a few details and open a ready-to-send email request. Your information stays on your device until you choose to send it.
           </p>
 
           <form className="mt-8 grid gap-4" onSubmit={(event) => event.preventDefault()}>
@@ -101,16 +101,16 @@ export default function FoundationalCallback() {
               className={`fe-action justify-center ${
                 canSend ? "bg-[#b34dcc] text-white hover:bg-[#c767df]" : "pointer-events-none bg-white/10 text-white/35"
               }`}
-              href={`mailto:${foundationalProfile.email}?subject=${subject}&body=${body}`}
+              href={foundationalProfile.email ? `mailto:${foundationalProfile.email}?subject=${subject}&body=${body}` : undefined}
             >
               <Send className="h-4 w-4" />
               Send request
             </a>
 
-            <a className="inline-flex items-center justify-center gap-2 text-sm text-white/55 hover:text-white" href={`mailto:${foundationalProfile.email}`}>
+            {foundationalProfile.email && <a className="inline-flex items-center justify-center gap-2 text-sm text-white/55 hover:text-white" href={`mailto:${foundationalProfile.email}`}>
               <Mail className="h-4 w-4" />
               Or email directly
-            </a>
+            </a>}
           </form>
         </section>
       </div>

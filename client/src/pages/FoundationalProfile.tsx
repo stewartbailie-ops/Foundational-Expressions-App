@@ -25,7 +25,7 @@ function downloadContact() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "foundational-expressions-erika.vcf";
+  link.download = "foundational-expressions-erica.vcf";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -108,7 +108,7 @@ export default function FoundationalProfile() {
         <header className="flex items-center justify-between gap-4">
           <a className="flex items-center gap-3" href="/">
             <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#b34dcc]/35 bg-[#b34dcc]/12 font-serif text-2xl text-[#d979ef] shadow-[0_0_34px_rgba(179,77,204,0.25)]">
-              J
+              {foundationalProfile.initials}
             </span>
             <span>
               <span className="block text-sm font-semibold tracking-[0.18em] text-white">
@@ -139,9 +139,9 @@ export default function FoundationalProfile() {
               {foundationalProfile.intro}
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
-              <PrimaryAction href={`tel:${foundationalProfile.phoneHref}`} icon={<Phone className="h-4 w-4" />} label="Call Erika" />
-              <PrimaryAction href={foundationalProfile.whatsappHref} icon={<MessageCircle className="h-4 w-4" />} label="WhatsApp" variant="secondary" />
-              <PrimaryAction href={`mailto:${foundationalProfile.email}`} icon={<Mail className="h-4 w-4" />} label="Email" variant="secondary" />
+              {foundationalProfile.phoneHref && <PrimaryAction href={`tel:${foundationalProfile.phoneHref}`} icon={<Phone className="h-4 w-4" />} label="Call Erica" />}
+              {foundationalProfile.whatsappHref && <PrimaryAction href={foundationalProfile.whatsappHref} icon={<MessageCircle className="h-4 w-4" />} label="WhatsApp" variant="secondary" />}
+              {foundationalProfile.email && <PrimaryAction href={`mailto:${foundationalProfile.email}`} icon={<Mail className="h-4 w-4" />} label="Email" variant="secondary" />}
               <PrimaryAction onClick={downloadContact} icon={<Download className="h-4 w-4" />} label="Save Contact" variant="secondary" />
             </div>
           </div>
@@ -155,23 +155,23 @@ export default function FoundationalProfile() {
                   <p className="mt-2 text-sm leading-5 text-white/58">{foundationalProfile.title}</p>
                 </div>
                 <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#b34dcc]/16 font-serif text-4xl text-[#d979ef]">
-                  J
+                  {foundationalProfile.initials}
                 </div>
               </div>
 
               <div className="mt-6 grid gap-3 text-sm text-white/68">
-                <a className="flex items-center gap-3" href={`tel:${foundationalProfile.phoneHref}`}>
+                {foundationalProfile.phoneHref && <a className="flex items-center gap-3" href={`tel:${foundationalProfile.phoneHref}`}>
                   <Phone className="h-4 w-4 text-[#d979ef]" />
                   {foundationalProfile.phoneDisplay}
-                </a>
-                <a className="flex items-center gap-3" href={`mailto:${foundationalProfile.email}`}>
+                </a>}
+                {foundationalProfile.email && <a className="flex items-center gap-3" href={`mailto:${foundationalProfile.email}`}>
                   <Mail className="h-4 w-4 text-[#d979ef]" />
                   {foundationalProfile.email}
-                </a>
-                <a className="flex items-center gap-3" href={foundationalProfile.website}>
+                </a>}
+                {foundationalProfile.website && <a className="flex items-center gap-3" href={foundationalProfile.website}>
                   <Globe className="h-4 w-4 text-[#d979ef]" />
-                  foundationalexpressions.com
-                </a>
+                  {foundationalProfile.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                </a>}
                 <span className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-[#d979ef]" />
                   {foundationalProfile.location}

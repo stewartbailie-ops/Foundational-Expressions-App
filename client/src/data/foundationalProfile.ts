@@ -8,19 +8,20 @@ export type ServiceGroup = {
 };
 
 export const foundationalProfile = {
-  name: "Erika",
+  name: "Erica",
+  initials: "FE",
   brand: "Foundational Expressions",
   title: "Financial Planning, Coaching and Wellness Guidance",
   tagline: "Building your financial foundation",
   intro:
     "A calm, human-first profile for people who want practical support with money decisions, personal growth, financial habits and long-term planning.",
-  phoneDisplay: "+27 82 123 4567",
-  phoneHref: "+27821234567",
-  email: "hello@foundationalexpressions.com",
+  phoneDisplay: import.meta.env.VITE_PROFILE_PHONE_DISPLAY?.trim() ?? "",
+  phoneHref: import.meta.env.VITE_PROFILE_PHONE?.replace(/[^+\d]/g, "") ?? "",
+  email: import.meta.env.VITE_PROFILE_EMAIL?.trim() ?? "",
   location: "South Africa",
-  website: "https://foundationalexpressions.com",
-  profileUrl: "https://foundationalexpressions.com/erika",
-  whatsappHref: "https://wa.me/27821234567",
+  website: import.meta.env.VITE_PROFILE_WEBSITE?.trim() ?? "",
+  profileUrl: import.meta.env.VITE_PROFILE_URL?.trim() || window.location.origin,
+  whatsappHref: import.meta.env.VITE_PROFILE_WHATSAPP?.trim() ?? "",
   socials: {
     linkedin: "",
     facebook: "",
@@ -167,10 +168,10 @@ export function buildVCard() {
     `FN:${foundationalProfile.name} - ${foundationalProfile.brand}`,
     `ORG:${foundationalProfile.brand}`,
     `TITLE:${foundationalProfile.title}`,
-    `TEL;TYPE=CELL:${foundationalProfile.phoneHref}`,
-    `EMAIL:${foundationalProfile.email}`,
-    `URL:${foundationalProfile.website}`,
+    foundationalProfile.phoneHref && `TEL;TYPE=CELL:${foundationalProfile.phoneHref}`,
+    foundationalProfile.email && `EMAIL:${foundationalProfile.email}`,
+    foundationalProfile.website && `URL:${foundationalProfile.website}`,
     `ADR;TYPE=WORK:;;;;;${foundationalProfile.location}`,
     "END:VCARD",
-  ].join("\n");
+  ].filter(Boolean).join("\r\n");
 }
