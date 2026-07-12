@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { QRCodeSVG } from "qrcode.react";
 import {
   ArrowRight,
@@ -19,13 +20,14 @@ import {
   serviceGroups,
   type ServiceGroup,
 } from "@/data/foundationalProfile";
+import type { Advisor } from "@shared/schema";
 
-function downloadContact() {
-  const blob = new Blob([buildVCard()], { type: "text/vcard;charset=utf-8" });
+function downloadContact(vcard: string) {
+  const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "foundational-expressions-erica.vcf";
+  link.download = "foundational-expressions-erika.vcf";
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -96,6 +98,42 @@ function ServicePanel({ group }: { group: ServiceGroup }) {
 
 export default function FoundationalProfile() {
   const [activeGroup, setActiveGroup] = useState(serviceGroups[0].title);
+  const { data: savedAdvisor } = useQuery<Advisor | null>({
+    queryKey: ["public-foundational-advisor"],
+    queryFn: async () => {
+      const response = await fetch("/api/advisors/slug/erika", { cache: "no-store" });
+      if (response.status === 404 || response.status === 410) return null;
+      if (!response.ok) throw new Error("Unable to load saved profile");
+      return response.json();
+    },
+    retry: false,
+  });
+  const phone = savedAdvisor?.contactNumber?.trim() || foundationalProfile.phoneDisplay;
+  const phoneHref = phone.replace(/[^+\d]/g, "") || foundationalProfile.phoneHref;
+  const email = savedAdvisor?.email || foundationalProfile.email;
+  const website = savedAdvisor?.websiteUrl || foundationalProfile.website;
+  const location = savedAdvisor?.location || foundationalProfile.location;
+  const profile = {
+    ...foundationalProfile,
+    name: savedAdvisor?.name || foundationalProfile.name,
+    title: savedAdvisor?.title || foundationalProfile.title,
+    intro: savedAdvisor?.customBio || savedAdvisor?.bio || foundationalProfile.intro,
+    phoneDisplay: phone,
+    phoneHref,
+    email,
+    location,
+    website,
+    whatsappHref: phoneHref ? `https://wa.me/${phoneHref.replace(/^\+/, "")}` : foundationalProfile.whatsappHref,
+    socials: {
+      linkedin: savedAdvisor?.linkedinUrl || foundationalProfile.socials.linkedin,
+      facebook: savedAdvisor?.facebookUrl || foundationalProfile.socials.facebook,
+      instagram: savedAdvisor?.instagramUrl || foundationalProfile.socials.instagram,
+      youtube: savedAdvisor?.youtubeUrl || foundationalProfile.socials.youtube,
+    },
+  };
+  const vcard = savedAdvisor
+    ? ["BEGIN:VCARD", "VERSION:3.0", `FN:${profile.name} - ${profile.brand}`, `ORG:${profile.brand}`, `TITLE:${profile.title}`, `TEL;TYPE=CELL:${profile.phoneHref}`, `EMAIL:${profile.email}`, `URL:${profile.website}`, `ADR;TYPE=WORK:;;;;;${profile.location}`, "END:VCARD"].join("\n")
+    : buildVCard();
   const selectedGroup = useMemo(
     () => serviceGroups.find((group) => group.title === activeGroup) ?? serviceGroups[0],
     [activeGroup],
@@ -108,7 +146,7 @@ export default function FoundationalProfile() {
         <header className="flex items-center justify-between gap-4">
           <a className="flex items-center gap-3" href="/">
             <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#b34dcc]/35 bg-[#b34dcc]/12 font-serif text-2xl text-[#d979ef] shadow-[0_0_34px_rgba(179,77,204,0.25)]">
-              {foundationalProfile.initials}
+              J
             </span>
             <span>
               <span className="block text-sm font-semibold tracking-[0.18em] text-white">
@@ -130,19 +168,19 @@ export default function FoundationalProfile() {
         <section className="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-center">
           <div className="pt-6 sm:pt-10">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#c368d7]">
-              {foundationalProfile.tagline}
+              {profile.tagline}
             </p>
             <h1 className="mt-5 max-w-3xl font-serif text-5xl leading-[0.98] tracking-normal text-white sm:text-7xl">
-              {foundationalProfile.brand}
+              {profile.brand}
             </h1>
             <p className="mt-6 max-w-2xl text-base leading-7 text-white/66 sm:text-lg">
-              {foundationalProfile.intro}
+              {profile.intro}
             </p>
             <div className="mt-8 grid gap-3 sm:grid-cols-2 lg:max-w-2xl">
-              {foundationalProfile.phoneHref && <PrimaryAction href={`tel:${foundationalProfile.phoneHref}`} icon={<Phone className="h-4 w-4" />} label="Call Erica" />}
-              {foundationalProfile.whatsappHref && <PrimaryAction href={foundationalProfile.whatsappHref} icon={<MessageCircle className="h-4 w-4" />} label="WhatsApp" variant="secondary" />}
-              {foundationalProfile.email && <PrimaryAction href={`mailto:${foundationalProfile.email}`} icon={<Mail className="h-4 w-4" />} label="Email" variant="secondary" />}
-              <PrimaryAction onClick={downloadContact} icon={<Download className="h-4 w-4" />} label="Save Contact" variant="secondary" />
+              <PrimaryAction href={`tel:${profile.phoneHref}`} icon={<Phone className="h-4 w-4" />} label={`Call ${profile.name.split(" ")[0]}`} />
+              <PrimaryAction href={profile.whatsappHref} icon={<MessageCircle className="h-4 w-4" />} label="WhatsApp" variant="secondary" />
+              <PrimaryAction href={`mailto:${profile.email}`} icon={<Mail className="h-4 w-4" />} label="Email" variant="secondary" />
+              <PrimaryAction onClick={() => downloadContact(vcard)} icon={<Download className="h-4 w-4" />} label="Save Contact" variant="secondary" />
             </div>
           </div>
 
@@ -151,30 +189,30 @@ export default function FoundationalProfile() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.24em] text-[#d979ef]">Advisor Card</p>
-                  <h2 className="mt-3 text-2xl font-semibold">{foundationalProfile.name}</h2>
-                  <p className="mt-2 text-sm leading-5 text-white/58">{foundationalProfile.title}</p>
+                  <h2 className="mt-3 text-2xl font-semibold">{profile.name}</h2>
+                  <p className="mt-2 text-sm leading-5 text-white/58">{profile.title}</p>
                 </div>
                 <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#b34dcc]/16 font-serif text-4xl text-[#d979ef]">
-                  {foundationalProfile.initials}
+                  J
                 </div>
               </div>
 
               <div className="mt-6 grid gap-3 text-sm text-white/68">
-                {foundationalProfile.phoneHref && <a className="flex items-center gap-3" href={`tel:${foundationalProfile.phoneHref}`}>
+                <a className="flex items-center gap-3" href={`tel:${profile.phoneHref}`}>
                   <Phone className="h-4 w-4 text-[#d979ef]" />
-                  {foundationalProfile.phoneDisplay}
-                </a>}
-                {foundationalProfile.email && <a className="flex items-center gap-3" href={`mailto:${foundationalProfile.email}`}>
+                  {profile.phoneDisplay}
+                </a>
+                <a className="flex items-center gap-3" href={`mailto:${profile.email}`}>
                   <Mail className="h-4 w-4 text-[#d979ef]" />
-                  {foundationalProfile.email}
-                </a>}
-                {foundationalProfile.website && <a className="flex items-center gap-3" href={foundationalProfile.website}>
+                  {profile.email}
+                </a>
+                <a className="flex items-center gap-3" href={profile.website}>
                   <Globe className="h-4 w-4 text-[#d979ef]" />
-                  {foundationalProfile.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
-                </a>}
+                  foundationalexpressions.com
+                </a>
                 <span className="flex items-center gap-3">
                   <MapPin className="h-4 w-4 text-[#d979ef]" />
-                  {foundationalProfile.location}
+                  {profile.location}
                 </span>
               </div>
 
