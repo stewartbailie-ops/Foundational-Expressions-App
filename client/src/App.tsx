@@ -4,7 +4,6 @@ import { queryClient } from "@/lib/queryClient";
 import FoundationalCallback from "@/pages/FoundationalCallback";
 import FoundationalProfile from "@/pages/FoundationalProfile";
 import AdvisorPanel from "@/pages/AdvisorPanel";
-import AdvisorProfile from "@/pages/AdvisorProfile";
 import CallbackForm from "@/pages/CallbackForm";
 import ReferralForm from "@/pages/ReferralForm";
 import { Toaster } from "@/components/ui/toaster";
@@ -21,7 +20,7 @@ function App() {
           <Route path="/erika" component={FoundationalProfile} />
           <Route path="/:slug/request-callback" component={CallbackForm} />
           <Route path="/:slug/referrals" component={ReferralForm} />
-          <Route path="/:slug" component={AdvisorProfile} />
+          <Route path="/:slug" component={FoundationalProfile} />
           <Route path="/" component={FoundationalProfile} />
           <Route component={FoundationalProfile} />
         </Switch>

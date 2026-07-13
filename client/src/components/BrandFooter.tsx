@@ -40,7 +40,7 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
   const logo = (
     <img
       src="/logo/icon-64.png"
-      alt="Advisory Connect"
+      alt="Foundational Expressions"
       className={compact ? "h-8 w-8 shrink-0" : "h-9 w-9 shrink-0"}
       data-testid="img-footer-logo"
     />
@@ -48,7 +48,7 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
   const center = (
     <div className="text-center leading-tight">
       <div className="text-[11px] font-medium" style={{ color: t.textColor }}>
-        {poweredByLabel || "Powered by Advisory Connect"}
+        {poweredByLabel || "Powered by Foundational Expressions"}
       </div>
       <div className="text-[10px] font-semibold" style={{ color: t.mutedText }}>
         Made with pride by Advisors for Advisors
@@ -83,7 +83,7 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
   const pills = (
     <div className="flex items-center gap-2 shrink-0">
       <a
-        href="https://www.advisoryconnect.pro"
+        href="https://www.foundationalexpressions.com"
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
@@ -91,10 +91,10 @@ export function BrandFooter({ theme = MASTER_FOOTER_THEME, compact = false, powe
         data-testid="link-footer-website"
       >
         <Globe className="h-3 w-3" />
-        advisoryconnect.pro
+        foundationalexpressions.com
       </a>
       <a
-        href="mailto:support@advisoryconnect.pro"
+        href="mailto:admin@foundationalexpressions.com"
         className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full transition-opacity hover:opacity-80"
         style={{ backgroundColor: t.buttonSecondaryBg, color: t.textColor, border: `1px solid ${t.borderColor}` }}
         data-testid="link-footer-support"

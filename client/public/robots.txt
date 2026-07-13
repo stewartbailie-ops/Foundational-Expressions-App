@@ -7,4 +7,4 @@ Disallow: /create
 Disallow: /edit/
 Disallow: /stats
 
-Sitemap: https://app.advisoryconnect.pro/sitemap.xml
+Sitemap: https://card.foundationalexpressions.com/sitemap.xml

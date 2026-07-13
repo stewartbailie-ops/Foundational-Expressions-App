@@ -10,7 +10,7 @@ const REPLY_TO_EMAIL = "admin@foundationalexpressions.com";
 const MASTER_INBOX = "admin@foundationalexpressions.com";
 
 // F3 — branded email shell. Wraps any plain inner HTML body in a consistent
-// dark Advisory Connect header (icon + wordmark, hosted on prod) and a small
+// dark Foundational Expressions header (icon + wordmark, hosted on prod) and a small
 // footer. Email clients are conservative about CSS so this is all inline
 // styles + table-friendly markup. Absolute https URLs are used for the logos
 // because mail clients don't load relative paths.
@@ -109,7 +109,7 @@ export async function sendTrialExpiryEmail(args: {
     <h2 style="margin:0 0 12px;font-size:20px;color:#0a0e1a;">Your trial ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}</h2>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#374151;">Hi ${args.name},</p>
     <p style="margin:0 0 16px;font-size:15px;line-height:1.55;color:#374151;">
-      Just a heads-up: your 14-day free trial of Advisory Connect ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}.
+      Just a heads-up: your 14-day free trial of Foundational Expressions ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}.
       No card on file, so nothing will be charged automatically — but your profile will switch to read-only and new lead forms will stop accepting submissions when the trial lapses.
     </p>
     <p style="margin:0 0 24px;font-size:15px;line-height:1.55;color:#374151;">
@@ -122,7 +122,7 @@ export async function sendTrialExpiryEmail(args: {
       Questions? Just reply to this email — it goes straight to ${REPLY_TO_EMAIL}.
     </p>
   `;
-  await sendEmail(args.to, `Your Advisory Connect trial ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}`, inner, undefined, {
+  await sendEmail(args.to, `Your Foundational Expressions trial ends in ${args.daysLeft} day${args.daysLeft === 1 ? "" : "s"}`, inner, undefined, {
     previewText: `Pick a plan to keep your profile live — Basic R299/mo or Premium R499/mo.`,
   });
 }

@@ -110,7 +110,7 @@ export function RiskProfileQuiz({ tc }: RiskProfileQuizProps) {
     pdf.rect(0, 0, 210, 38, "F");
     pdf.setTextColor(255, 255, 255);
     pdf.setFontSize(20);
-    pdf.text("Advisory Connect", 16, 22);
+    pdf.text("Foundational Expressions", 16, 22);
     pdf.setFontSize(11);
     pdf.text("Risk Profile Quiz", 16, 31);
     pdf.setTextColor(24, 35, 48);
@@ -141,7 +141,7 @@ export function RiskProfileQuiz({ tc }: RiskProfileQuizProps) {
     pdf.setTextColor(90, 103, 117);
     pdf.setFontSize(9);
     pdf.text("Educational screening only. Discuss suitability and advice with a licensed financial advisor.", 16, 287);
-    pdf.save("advisory-connect-risk-profile.pdf");
+    pdf.save("foundational-expressions-risk-profile.pdf");
   };
 
   return (

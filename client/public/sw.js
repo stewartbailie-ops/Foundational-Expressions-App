@@ -1,4 +1,4 @@
-// Advisory Connect — minimal service worker.
+// Foundational Expressions — minimal service worker.
 //
 // Sole purpose: satisfy PWA installability so Chrome/Android can fire the
 // native "Install app" prompt. It is DELIBERATELY non-caching — every request

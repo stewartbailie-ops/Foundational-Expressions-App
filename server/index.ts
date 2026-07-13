@@ -18,12 +18,12 @@ const httpServer = createServer(app);
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
   // 301 redirect: bare domain and www → app subdomain (SEO consolidation).
-  // Both advisoryconnect.pro and www.advisoryconnect.pro must point to this
+  // Both foundationalexpressions.com and www.foundationalexpressions.com must point to this
   // server via DNS (A/CNAME records) for this middleware to fire.
   app.use((req, res, next) => {
     const host = req.hostname;
-    if (host === "advisoryconnect.pro" || host === "www.advisoryconnect.pro") {
-      return res.redirect(301, `https://app.advisoryconnect.pro${req.originalUrl}`);
+    if (host === "foundationalexpressions.com" || host === "www.foundationalexpressions.com") {
+      return res.redirect(301, `https://card.foundationalexpressions.com${req.originalUrl}`);
     }
     next();
   });
@@ -239,7 +239,7 @@ process.on("uncaughtException", (err) => {
     const host = req.headers.host || "";
     if (host.includes(".replit.app")) {
       const qs = req.url.startsWith(req.path) ? req.url.slice(req.path.length) : "";
-      return res.redirect(301, `https://app.advisoryconnect.pro${req.path}${qs}`);
+      return res.redirect(301, `https://card.foundationalexpressions.com${req.path}${qs}`);
     }
     next();
   });
@@ -251,11 +251,11 @@ process.on("uncaughtException", (err) => {
   // bare-root branch (sole-advisor fallback) and the per-slug branch.
   const esc = (s: string) => s.replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
   const renderAdvisorOg = (advisor: any): string => {
-    const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`);
+    const title = esc(`${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Foundational Expressions`);
     const description = esc(`Connect with ${advisor.name} for personalised financial guidance on tax, investments, retirement, and more.`);
-    const siteUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
+    const siteUrl = `https://card.foundationalexpressions.com/${advisor.profileSlug}`;
     const hasPic = !!advisor.profilePicUrl;
-    const imageUrl = hasPic ? `https://app.advisoryconnect.pro/api/og-image/${advisor.profileSlug}` : "";
+    const imageUrl = hasPic ? `https://card.foundationalexpressions.com/api/og-image/${advisor.profileSlug}` : "";
     const imageTag = hasPic
       ? `<meta property="og:image" content="${imageUrl}" />
 <meta property="og:image:width" content="600" />
@@ -377,7 +377,7 @@ ${imageTag}
                 to: advisor.email,
                 name: advisor.name,
                 daysLeft,
-                upgradeUrl: `https://app.advisoryconnect.pro/advisor/${advisor.profileSlug}?tab=billing`,
+                upgradeUrl: `https://card.foundationalexpressions.com/advisor/${advisor.profileSlug}?tab=billing`,
               });
               await storage.updateAdvisor(advisor.id, { trialExpiryEmailSentAt: new Date() } as any);
               console.log(`[trial-cron] sent trial-expiry email to ${advisor.email}`);

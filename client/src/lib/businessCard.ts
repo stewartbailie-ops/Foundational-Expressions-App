@@ -141,7 +141,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, W: number, H: number, logoImg
   ctx.fillStyle = "#3a3a3a";
   ctx.font = `bold ${fontSize}px Arial, sans-serif`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  const label = "Powered by Advisory Connect";
+  const label = "Powered by Foundational Expressions";
   const labelW = ctx.measureText(label).width;
   const GAP = Math.round(FOOTER_H * 0.18);
   const totalW = (logoImg ? ICON + GAP : 0) + labelW;
@@ -157,7 +157,7 @@ function drawFooter(ctx: CanvasRenderingContext2D, W: number, H: number, logoImg
   ctx.fillStyle = "#5a5a5a";
   ctx.font = `${linkSize}px Arial, sans-serif`;
   ctx.textAlign = "center";
-  ctx.fillText("advisoryconnect.pro/privacy-policy", W / 2, H - FOOTER_H + FOOTER_H * 0.72);
+  ctx.fillText("foundationalexpressions.com/privacy-policy", W / 2, H - FOOTER_H + FOOTER_H * 0.72);
 }
 
 type DrawCtx = {
@@ -324,7 +324,7 @@ function drawPortrait(ctx: CanvasRenderingContext2D, W: number, H: number, c: Dr
     ctx.font = `500 22px Arial, sans-serif`;
     ctx.fillText("Scan to view full profile", W / 2, qrY + QR + 32);
     ctx.fillStyle = "#999"; ctx.font = `18px Arial, sans-serif`;
-    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR + 60);
+    ctx.fillText(`foundationalexpressions.com/${advisor.profileSlug}`, W / 2, qrY + QR + 60);
   }
 
   drawFooter(ctx, W, H, logoImg);
@@ -416,7 +416,7 @@ function drawSquare(ctx: CanvasRenderingContext2D, W: number, H: number, c: Draw
     ctx.textAlign = "center";
     ctx.fillText("Scan to view profile", qrX + QR / 2, qrY + QR + 30);
     ctx.fillStyle = "#aaa"; ctx.font = `16px Arial, sans-serif`;
-    ctx.fillText(`advisoryconnect.pro/${advisor.profileSlug}`, qrX + QR / 2, qrY + QR + 54);
+    ctx.fillText(`foundationalexpressions.com/${advisor.profileSlug}`, qrX + QR / 2, qrY + QR + 54);
   }
 
   drawFooter(ctx, W, H, logoImg);
@@ -429,7 +429,7 @@ export async function renderBusinessCard(opts: { advisor: Advisor; variant: Card
 
   const qrSvg = renderToStaticMarkup(
     createElement(QRCodeSVG as any, {
-      value: `https://app.advisoryconnect.pro/${advisor.profileSlug}`,
+      value: `https://card.foundationalexpressions.com/${advisor.profileSlug}`,
       size: 320,
       level: "M",
       includeMargin: false,
@@ -555,7 +555,7 @@ export async function renderBolCard(opts: { data: BolCardData; variant: CardVari
   // Header title
   ctx.font = `bold ${Math.round(HEADER_H * 0.30)}px Arial`;
   ctx.textBaseline = "middle";
-  ctx.fillText("ADVISORY CONNECT — BOOK OF LIFE", PAD + Math.round(HEADER_H * 0.6), HEADER_H / 2);
+  ctx.fillText("FOUNDATIONAL EXPRESSIONS — BOOK OF LIFE", PAD + Math.round(HEADER_H * 0.6), HEADER_H / 2);
 
   // QR code centred block
   const QR_SIZE = Math.round(w * 0.52);
@@ -626,7 +626,7 @@ export async function renderBolCard(opts: { data: BolCardData; variant: CardVari
   ctx.fillStyle = "rgba(255,255,255,0.35)";
   ctx.font = `${Math.round(FOOT_H * 0.25)}px Arial`;
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText("Advisory Connect · advisoryconnect.pro", w / 2, h - FOOT_H / 2);
+  ctx.fillText("Foundational Expressions · foundationalexpressions.com", w / 2, h - FOOT_H / 2);
 
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(b => b ? resolve(b) : reject(new Error("Failed to encode BoL card PNG")), "image/png", 0.95);

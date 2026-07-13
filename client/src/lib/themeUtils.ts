@@ -126,10 +126,10 @@ function applyPatternOverlay(
     overlaySize = "88px 88px, 88px 88px";
   } else if (style === 7) {
     // Tiled angled name watermark — advisor's full name repeated at -25°.
-    // Falls back to "Advisory Connect" if no name provided. The accent RGBA is
+    // Falls back to "Foundational Expressions" if no name provided. The accent RGBA is
     // already opacity-scaled by the patternOpacity slider above, so the SVG
     // fill inherits that intensity directly.
-    const rawName = (advisorName || "Advisory Connect").trim() || "Advisory Connect";
+    const rawName = (advisorName || "Foundational Expressions").trim() || "Foundational Expressions";
     const safe = rawName.replace(/[<>&"']/g, "").slice(0, 40);
     // Bigger + bolder per partner feedback (May 2026): font-size 22 → 44 (~100%
     // larger) and weight 600 → 900. Tile width/height grow proportionally so

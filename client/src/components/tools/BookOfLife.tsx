@@ -36,7 +36,7 @@ function buildDemoPdf(slot: DocumentSlot, advisorName?: string) {
   pdf.rect(0, 0, 210, 34, "F");
   pdf.setTextColor(255, 255, 255);
   pdf.setFontSize(18);
-  pdf.text("Advisory Connect", 16, 21);
+  pdf.text("Foundational Expressions", 16, 21);
   pdf.setTextColor(20, 31, 44);
   pdf.setFontSize(15);
   pdf.text(slot.title, 16, 55);

@@ -93,6 +93,14 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  if (
+    typeof (req.session as any)?.advisorId === "number" &&
+    req.method === "POST" &&
+    req.path === "/api/upload/profile-pic"
+  ) {
+    return next();
+  }
+
   // Task #25 — advisor sessions reach /api/clients*. Accept both the canonical
   // session.advisorId form AND the legacy advisor_${slug} form so that old
   // session cookies continue to work without forcing a re-login.

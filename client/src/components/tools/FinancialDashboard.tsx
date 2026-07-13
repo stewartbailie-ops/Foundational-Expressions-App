@@ -468,7 +468,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
       pdf.setFontSize(8);
       pdf.setTextColor(100, 116, 139);
       pdf.text(advisorLabel, margin, pageHeight - 12);
-      pdf.text("Advisory Connect | app.advisoryconnect.pro", pageWidth - margin, pageHeight - 12, { align: "right" });
+      pdf.text("Foundational Expressions | card.foundationalexpressions.com", pageWidth - margin, pageHeight - 12, { align: "right" });
       pdf.text(`Educational estimate only. Not personalised financial advice. Page ${pageNumber}`, margin, pageHeight - 7);
     };
 
@@ -548,7 +548,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
     pdf.setTextColor(255, 255, 255);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(26);
-    pdf.text("Advisory Connect", margin, 30);
+    pdf.text("Foundational Expressions", margin, 30);
     setRgb(accentRgb, "text");
     pdf.setFontSize(14);
     pdf.text(advisorLabel, margin, 41);
@@ -625,7 +625,7 @@ export function FinancialDashboard({ tc, advisorName, collapsible = false }: Fin
 
 
     addFooter();
-    pdf.save("advisory-connect-financial-dashboard.pdf");
+    pdf.save("foundational-expressions-financial-dashboard.pdf");
   };
 
   return (

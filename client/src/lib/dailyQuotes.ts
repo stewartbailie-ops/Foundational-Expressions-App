@@ -152,7 +152,7 @@ export function getQuoteForToday(set: QuoteSet, date: Date = new Date()): Quote 
 
 // Render the Quote-of-the-Day to a PNG and share via Web Share API (or fall back
 // to download). Mirrors the Daily Financial Facts share UX — square card, brand
-// footer baked with advisoryconnect.pro/privacy-policy.
+// footer baked with foundationalexpressions.com/privacy-policy.
 export async function shareQuoteAsPng(opts: {
   quote: Quote;
   set: QuoteSet;
@@ -232,11 +232,11 @@ export async function shareQuoteAsPng(opts: {
   ctx.font = "bold 22px Inter, Arial, sans-serif";
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
-  ctx.fillText("Powered by Advisory Connect", 64, H - 56);
+  ctx.fillText("Powered by Foundational Expressions", 64, H - 56);
   ctx.fillStyle = "rgba(255,255,255,0.55)";
   ctx.font = "500 18px Inter, Arial, sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText("advisoryconnect.pro/privacy-policy", W - 64, H - 56);
+  ctx.fillText("foundationalexpressions.com/privacy-policy", W - 64, H - 56);
   ctx.textAlign = "left";
 
   const blob = await new Promise<Blob>((resolve, reject) => {

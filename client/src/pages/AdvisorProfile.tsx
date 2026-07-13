@@ -502,7 +502,7 @@ const TRANSLATIONS: Record<Lang, {
     instagram: "Follow on Instagram", youtube: "Subscribe on YouTube", website: "Visit Website",
     financialMedia: "General Financial Media", latestNews: "Latest Financial News",
     funfacts: "Daily Financial Fun-facts", tutorials: "Financial Tutorial Videos",
-    poweredBy: "Powered by Advisory Connect",
+    poweredBy: "Powered by Foundational Expressions",
     bioOptions: {
       a: "Your single point of contact for all your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services provided.\n\nShould you wish to explore how our advisory services may add value, you are welcome to arrange a consultation at your convenience.",
       b: "Your single point of contact for your financial needs and wealth planning. Please see the drop-down sections below for a concise overview of services and solutions available. Should you, or anyone within your network, wish to discuss your requirements further, you are welcome to request a call-back or consultation at a convenient time.",
@@ -540,7 +540,7 @@ const TRANSLATIONS: Record<Lang, {
     instagram: "Volg op Instagram", youtube: "Teken In op YouTube", website: "Besoek Webwerf",
     financialMedia: "Finansiële Media", latestNews: "Nuutste Finansiële Nuus",
     funfacts: "Daaglikse Finansiële Feite", tutorials: "Finansiële Tutoriaalvideo's",
-    poweredBy: "Aangedryf deur Advisory Connect",
+    poweredBy: "Aangedryf deur Foundational Expressions",
     bioOptions: {
       a: "U enkel kontakpunt vir al u finansiële behoeftes en rykdomsbeplanning. Sien asseblief die afrolafdelings hieronder vir 'n bondige oorsig van dienste wat gelewer word.\n\nSkuld u dit aan uself om te ondersoek hoe ons adviesdienste waarde kan toevoeg, is u welkom om 'n konsultasie na u gerief te reël.",
       b: "U enkel kontakpunt vir u finansiële behoeftes en rykdomsbeplanning. Sien asseblief die afrolafdelings hieronder vir 'n bondige oorsig van beskikbare dienste en oplossings. Indien u, of enigiemand in u netwerk, u vereistes verder wil bespreek, is u welkom om 'n terugbel of konsultasie op 'n geskikte tyd te versoek.",
@@ -578,7 +578,7 @@ const TRANSLATIONS: Record<Lang, {
     instagram: "Landelela ku-Instagram", youtube: "Bhalisela ku-YouTube", website: "Vakashela Iwebhusayithi",
     financialMedia: "Imidiya Yezezimali", latestNews: "Izindaba Zakamuva Zezezimali",
     funfacts: "Izinto Ezinomdlandla Zezezimali Nsuku Zonke", tutorials: "Amavidiyo Okufundisa Ngezezimali",
-    poweredBy: "Inikwa Amandla ngu-Advisory Connect",
+    poweredBy: "Inikwa Amandla ngu-Foundational Expressions",
     bioOptions: {
       a: "Uxhumano lwakho olulodwa lwazo zonke izidingo zakho zezimali kanye nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza ezinikezwa.\n\nUma ufisa ukuhlola ukuthi izinsiza zethu zokweluleka zingengeza kanjani inani, wamukelekile ukuhlela ukubonana ngesikhathi esikufanele.",
       b: "Uxhumano lwakho olulodwa lwezidingo zakho zezimali nohlelo lwengcebo. Sicela ubheke izigaba ezishushumbayo ngezansi ukuze uthole uhlolojikelele olufushane lwezinsiza nezixazululo ezikhona. Uma wena, noma noma ubani emphakathini wakho, efisa ukuxoxa izidingo zakho ukwengeziwe, wamukelekile ukucela ukubizwa noma ukubonana ngesikhathi esihambisana nawe.",
@@ -865,7 +865,7 @@ export function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColo
           const fmt = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
           doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
-          doc.text("Advisory Connect", 14, 16);
+          doc.text("Foundational Expressions", 14, 16);
           doc.setFontSize(11); doc.setFont("helvetica","normal");
           doc.text("Compound Interest Summary", 14, 26);
           doc.setFontSize(9); doc.setTextColor(148,163,184);
@@ -903,7 +903,7 @@ export function CompoundCalcSection({ tc }: { tc: ReturnType<typeof getThemeColo
           doc.text("Educational only — fees, tax and inflation are not modelled. Consult a qualified financial advisor.", 14, y, { maxWidth: 182 });
           doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(8);
-          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.text("Foundational Expressions · foundationalexpressions.com", 105, 290, { align: "center" });
           doc.save("compound-interest-summary.pdf");
         }}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
@@ -990,7 +990,7 @@ export function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeCo
           const fmtR = (v: number) => `R ${Math.round(v).toLocaleString("en-ZA")}`;
           doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
-          doc.text("Advisory Connect", 14, 16);
+          doc.text("Foundational Expressions", 14, 16);
           doc.setFontSize(11); doc.setFont("helvetica","normal");
           doc.text("Retirement Savings Summary", 14, 26);
           doc.setFontSize(9); doc.setTextColor(148,163,184);
@@ -1030,7 +1030,7 @@ export function RetirementCalcSection({ tc }: { tc: ReturnType<typeof getThemeCo
           doc.text("Educational only — does not model inflation, tax, or fees. Consult a qualified financial advisor.", 14, y, { maxWidth: 182 });
           doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(8);
-          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.text("Foundational Expressions · foundationalexpressions.com", 105, 290, { align: "center" });
           doc.save("retirement-savings-summary.pdf");
         }}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
@@ -1108,7 +1108,7 @@ export function CapitalGainsCalcSection({ tc }: { tc: ReturnType<typeof getTheme
           const doc = new jsPDF();
           doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
-          doc.text("Advisory Connect", 14, 16);
+          doc.text("Foundational Expressions", 14, 16);
           doc.setFontSize(11); doc.setFont("helvetica","normal");
           doc.text("Capital Gains Tax Summary", 14, 26);
           doc.setFontSize(9); doc.setTextColor(148,163,184);
@@ -1146,7 +1146,7 @@ export function CapitalGainsCalcSection({ tc }: { tc: ReturnType<typeof getTheme
           doc.text("Indicative estimate only. Excludes primary residence exclusion, rollover relief and other adjustments.", 14, y, { maxWidth: 182 });
           doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(8);
-          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.text("Foundational Expressions · foundationalexpressions.com", 105, 290, { align: "center" });
           doc.save("capital-gains-tax-summary.pdf");
         }}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
@@ -1230,7 +1230,7 @@ export function PensionCalcSection({ tc }: { tc: ReturnType<typeof getThemeColor
           const doc = new jsPDF();
           doc.setFillColor(15, 23, 42); doc.rect(0, 0, 210, 38, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(18); doc.setFont("helvetica","bold");
-          doc.text("Advisory Connect", 14, 16);
+          doc.text("Foundational Expressions", 14, 16);
           doc.setFontSize(11); doc.setFont("helvetica","normal");
           doc.text("Pension / Provident Fund Summary", 14, 26);
           doc.setFontSize(9); doc.setTextColor(148,163,184);
@@ -1268,7 +1268,7 @@ export function PensionCalcSection({ tc }: { tc: ReturnType<typeof getThemeColor
           doc.text("Educational estimate only. Excludes inflation, fees, and tax on withdrawal. Consult a registered financial planner.", 14, y, { maxWidth: 182 });
           doc.setFillColor(15,23,42); doc.rect(0, 282, 210, 15, "F");
           doc.setTextColor(255,255,255); doc.setFontSize(8);
-          doc.text("Advisory Connect · advisoryconnect.pro", 105, 290, { align: "center" });
+          doc.text("Foundational Expressions · foundationalexpressions.com", 105, 290, { align: "center" });
           doc.save("pension-fund-summary.pdf");
         }}
         className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold"
@@ -1483,7 +1483,7 @@ export default function AdvisorProfile() {
   ].filter(Boolean).length : 0;
   const rotateInteractiveTools = !!(advisor as any)?.rotateInteractiveTools;
   const interactiveRotationIndex = useInteractiveToolRotation(
-    `advisory-connect:interactive-tool:${slug}`,
+    `foundational-expressions:interactive-tool:${slug}`,
     interactiveToolCount,
     rotateInteractiveTools,
   );
@@ -1579,9 +1579,9 @@ export default function AdvisorProfile() {
 
   useEffect(() => {
     if (advisor) {
-      document.title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Advisory Connect`;
+      document.title = `${advisor.name}${advisor.title ? " — " + advisor.title : ""} | Foundational Expressions`;
     }
-    return () => { document.title = "Advisory Connect"; };
+    return () => { document.title = "Foundational Expressions"; };
   }, [advisor]);
 
   // Per-advisor PWA manifest (S4). When a client uses Add to Home Screen on a
@@ -1593,7 +1593,7 @@ export default function AdvisorProfile() {
     const titleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]') as HTMLMetaElement | null;
     const origLinkHref = link?.getAttribute("href") ?? null;
     const origTitle = titleMeta?.getAttribute("content") ?? null;
-    const displayName = advisor.name || "Advisory Connect";
+    const displayName = advisor.name || "Foundational Expressions";
     if (link) {
       const params = new URLSearchParams({
         start: `/${advisor.profileSlug}`,
@@ -1746,7 +1746,7 @@ export default function AdvisorProfile() {
     advisor.corporateServices?.includes(s.key)
   ).map((s) => ({ ...s, ...(t.corpServices[s.key] || {}) }));
 
-  const profileUrl = `app.advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileUrl = `card.foundationalexpressions.com/${advisor.profileSlug}`;
   const initials = getInitials(advisor.name);
 
   const hasContactDetails = advisor.showContactDetails !== false && (
@@ -1758,7 +1758,7 @@ export default function AdvisorProfile() {
   // Falls back to advisor.name for primary profiles or secondaries without a nickname.
   const themeBg = getThemeBackground(advisor.theme, (advisor as any).backgroundStyle, (advisor as any).patternOpacity, (advisor as any).themeColor, (advisor as any).nickname || advisor.name, (advisor as any).imagePatternKey);
 
-  const profileShareUrl = `https://app.advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileShareUrl = `https://card.foundationalexpressions.com/${advisor.profileSlug}`;
   const hasWhatsApp = !!(advisor as any).contactNumber;
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
 
@@ -1925,7 +1925,7 @@ export default function AdvisorProfile() {
       const qrEl = document.getElementById("hidden-qr-card") as SVGElement | null;
 
       // F3 — branded footer watermark. Draws the AC icon on the left of the
-      // "Powered by Advisory Connect" text. Logo is preloaded first; if it
+      // "Powered by Foundational Expressions" text. Logo is preloaded first; if it
       // can't load (offline / 404) we just fall through to the text-only
       // footer so the download never breaks.
       const drawFooterWithLogo = (logoImg?: HTMLImageElement) => {
@@ -1933,7 +1933,7 @@ export default function AdvisorProfile() {
         ctx.fillRect(0, H - 36, W, 36);
         ctx.fillStyle = "#444"; ctx.font = `bold 9px Arial, sans-serif`;
         ctx.textAlign = "center"; ctx.textBaseline = "middle";
-        const label = "Powered by Advisory Connect";
+        const label = "Powered by Foundational Expressions";
         const labelMetrics = ctx.measureText(label);
         const ICON = 14;
         const GAP = 5;
@@ -1948,7 +1948,7 @@ export default function AdvisorProfile() {
         }
         ctx.fillStyle = "#555"; ctx.font = `8.5px Arial, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText("app.advisoryconnect.pro/privacy-policy", W / 2, H - 11);
+        ctx.fillText("card.foundationalexpressions.com/privacy-policy", W / 2, H - 11);
         const link = document.createElement("a");
         link.href = canvas.toDataURL("image/png");
         link.download = `${advisor.name.replace(/\s+/g, "-").toLowerCase()}-card.png`;
@@ -1976,7 +1976,7 @@ export default function AdvisorProfile() {
           ctx.textAlign = "center";
           ctx.fillText("Scan to view full profile", W / 2, qrY + QR_SIZE + 14);
           ctx.fillStyle = "#bbb"; ctx.font = `9px Arial, sans-serif`;
-          ctx.fillText(`app.advisoryconnect.pro/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 28);
+          ctx.fillText(`card.foundationalexpressions.com/${advisor.profileSlug}`, W / 2, qrY + QR_SIZE + 28);
           afterQr();
         };
         qrImg.onerror = () => { URL.revokeObjectURL(url); afterQr(); };
@@ -2422,7 +2422,7 @@ export default function AdvisorProfile() {
 
         {/* Hidden QR for business card PDF generation */}
         <div style={{ position: "absolute", left: "-9999px", top: "-9999px", width: 0, height: 0, overflow: "hidden" }} aria-hidden="true">
-          <QRCodeSVG id="hidden-qr-card" value={`https://app.advisoryconnect.pro/${advisor.profileSlug}`} size={120} level="M" />
+          <QRCodeSVG id="hidden-qr-card" value={`https://card.foundationalexpressions.com/${advisor.profileSlug}`} size={120} level="M" />
         </div>
 
         {/* Ordered Sections */}

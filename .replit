@@ -60,8 +60,8 @@ integrations = ["javascript_object_storage:2.0.0"]
 
 [userenv.shared]
 VITE_RECAPTCHA_SITE_KEY = "6LdzfJwsAAAAAL0uwyOf4Z9zMDhH4x8O4-encYT7"
-ADMIN_EMAIL = "info@advisoryconnect.pro"
-TWA_PACKAGE_NAME = "pro.advisoryconnect.app"
+ADMIN_EMAIL = "admin@foundationalexpressions.com"
+TWA_PACKAGE_NAME = "com.foundationalexpressions.card"
 TWA_SHA256_FINGERPRINT = "DA:A4:46:EC:93:F4:F4:F7:CC:47:50:B0:9A:7D:FD:2A:61:45:B1:36:C2:99:E3:08:44:2C:83:5E:84:6E:0E:36"
 
 [postMerge]

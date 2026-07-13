@@ -11,7 +11,6 @@ import Cropper, { type Area as CropArea } from "react-easy-crop";
 import { TradingViewSection, DailyQuoteSection, CompoundCalcSection, RetirementCalcSection, FinancialCalendarSection } from "./AdvisorProfile";
 // Brand-mark and badge now live inside <BrandFooter />; importing here is no
 // longer needed because the footer pulls assets from /public directly.
-import { BrandFooter } from "@/components/BrandFooter";
 import { TRADINGVIEW_SYMBOLS as TRADINGVIEW_SYMBOLS_PANEL, SA_FINANCIAL_EVENTS_2026, getCategoryColor } from "@/lib/financialCalendar";
 // May 2026: needed so the "Interactive Tools" drop-down in InteractiveToolsTab
 // can render the actual widgets as a live preview (was crashing because the
@@ -39,6 +38,7 @@ import { TITLE_OPTIONS, BIO_OPTIONS, INDIVIDUAL_SERVICES, CORPORATE_SERVICES, DE
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, Legend } from "recharts";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { QRCodeSVG } from "qrcode.react";
+import { FoundationalProfileEditor } from "@/components/FoundationalProfileEditor";
 
 type EmailRow = Email & { advisorName?: string };
 
@@ -794,10 +794,6 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
 
   const sections = [
     { key: "profiles" as const,    label: "Profiles",                    desc: "Edit your contact card & additional profiles",           icon: Layers,     accent: "#3B82F6" },
-    { key: "toolbox" as const,     label: "Toolbox",                     desc: "All financial calculators",                              icon: Calculator, accent: "#10B981" },
-    { key: "platforms" as const,   label: "My Platforms",                desc: "Platforms, documents, media & email",                   icon: Globe,      accent: "#8B5CF6" },
-    { key: "displays" as const,    label: "My Displays",                 desc: "Live markets, daily quotes & financial calendar",        icon: Eye,        accent: "#EC4899" },
-    { key: "interactive" as const, label: "Interactive Financial Tools", desc: "Squeeze, Tax Bite, Inflation, Waiting, Reality, Latte", icon: Zap,        accent: "#F59E0B" },
   ];
 
   return (
@@ -831,7 +827,7 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
                         style={{ backgroundColor: `${s.accent}22`, color: s.accent, border: `1px solid ${s.accent}55` }}
                         data-testid="badge-profile-count"
                       >
-                        {profileCount} / 2
+                        {profileCount} / 5
                       </span>
                     )}
                   </div>
@@ -845,10 +841,6 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
               {isOpen && (
                 <div className="p-4 pt-2" style={{ borderTop: `1px solid ${tc.borderColor}` }}>
                   {s.key === "profiles" && <ProfilesTab advisor={advisor} tc={tc} />}
-                  {s.key === "toolbox" && <ToolboxTab advisor={advisor} tc={tc} />}
-                  {s.key === "platforms" && <PlatformsTab advisor={advisor} tc={tc} />}
-                  {s.key === "displays" && <DisplaysTab advisor={advisor} tc={tc} />}
-                  {s.key === "interactive" && <InteractiveToolsTab advisor={advisor} tc={tc} />}
                 </div>
               )}
             </div>
@@ -901,67 +893,6 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         </div>
       )}
 
-      {/* ── Live News (mirrors the public contact card) ── */}
-      <div className="space-y-2 pt-1">
-        <div className="flex items-center gap-2">
-          <Rss className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
-          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Market News</div>
-        </div>
-        <NewsHero accentColor={tc.accentColor} borderColor={tc.borderColor} cardBg={tc.cardBg} height={170} />
-      </div>
-
-      {/* ── Optional content widgets — only render in the panel when the advisor has
-            the matching public-card toggle ON, so what they see here is exactly what
-            the client sees. Order mirrors the public contact card:
-            secondary news → forex → fun facts (W2.1 / W2.2 / W2.3). ── */}
-      {(advisor as any).showSecondNews && (
-        <div className="space-y-2 pt-1" data-testid="panel-preview-secondnews">
-          <div className="flex items-center gap-2">
-            <Rss className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
-            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>More Finance News</div>
-          </div>
-          <NewsHero
-            accentColor={tc.accentColor}
-            borderColor={tc.borderColor}
-            cardBg={tc.cardBg}
-            height={170}
-            category={"secondary" as any}
-            labelOverride="More Finance News · Live"
-            testIdSuffix="secondary"
-          />
-        </div>
-      )}
-      {(advisor as any).showForex && (
-        <div className="space-y-2 pt-1" data-testid="panel-preview-forex">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
-            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Live Exchange Rates</div>
-          </div>
-          <ForexWidget
-            accentColor={tc.accentColor}
-            borderColor={tc.borderColor}
-            cardBg={tc.cardBg}
-            textColor={tc.textColor}
-            mutedText={tc.mutedText}
-          />
-        </div>
-      )}
-      {(advisor as any).showFunFacts && (
-        <div className="space-y-2 pt-1" data-testid="panel-preview-funfacts">
-          <div className="flex items-center gap-2">
-            <Heart className="h-3.5 w-3.5" style={{ color: tc.mutedText }} />
-            <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: tc.mutedText }}>Financial Facts of the Day</div>
-          </div>
-          <FunFactsCarousel
-            accentColor={tc.accentColor}
-            borderColor={tc.borderColor}
-            cardBg={tc.cardBg}
-            textColor={tc.textColor}
-            mutedText={tc.mutedText}
-            advisorName={advisor.name}
-          />
-        </div>
-      )}
 
 
       {/* ── My Stats ── */}
@@ -1170,27 +1101,6 @@ function HomeTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getT
         )}
       </div>
 
-      {/* ── Emergency Contacts (always available to advisors) ── */}
-      <div className="pt-4">
-        <EmergencyContactsCard tc={tc} />
-      </div>
-
-      {/* F4 — unified BrandFooter. forceStack=true because the panel container
-          is narrower than viewport breakpoints can detect; without this the
-          centered "Powered by Advisory Connect" text overlaps the pills. */}
-      <div className="pt-6 pb-2">
-        <BrandFooter
-          forceStack
-          theme={{
-            cardBg: tc.cardBg,
-            borderColor: tc.borderColor,
-            textColor: tc.textColor,
-            mutedText: tc.mutedText,
-            accentColor: tc.accentColor,
-            buttonSecondaryBg: tc.buttonSecondaryBg,
-          }}
-        />
-      </div>
     </div>
   );
 }
@@ -2684,7 +2594,7 @@ function ShareAssetsCard({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typ
         <h3 className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Share Assets — Digital Business Card</h3>
       </div>
       <p className="text-xs leading-relaxed" style={{ color: tc.mutedText }}>
-        Auto-generated PNG with your photo, theme, contact details, QR code and profile link. Use it on WhatsApp, Instagram, LinkedIn or in email signatures. Footer carries <span className="font-medium">advisoryconnect.pro/privacy-policy</span> baked into the image.
+        Auto-generated PNG with your photo, theme, contact details, QR code and profile link. Use it on WhatsApp, Instagram, LinkedIn or in email signatures.
       </p>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -8685,24 +8595,15 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
             <span className="text-sm font-semibold" style={{ color: tc.sectionTitle }}>Editing Primary Profile</span>
             <button onClick={() => setEditingPrimary(false)} className="text-xs px-2 py-1 rounded" style={{ color: tc.mutedText, backgroundColor: tc.inputBg }}>Done</button>
           </div>
-          <div style={{ backgroundColor: tc.bgColor }}>
-            <ProfileTab slug={advisor.profileSlug} advisor={advisor} tc={tc} />
+          <div className="p-3" style={{ backgroundColor: tc.bgColor }}>
+            <FoundationalProfileEditor advisor={advisor} isPrimary onDone={() => setEditingPrimary(false)} />
           </div>
         </div>
       )}
 
       {shownProfiles.map((profile) =>
         editingProfileId === profile.id ? (
-          <AdditionalProfileForm
-            key={profile.id}
-            advisorId={advisor.id}
-            baseSlug={advisor.profileSlug}
-            tc={tc}
-            existingProfile={profile}
-            label="Secondary"
-            advisor={advisor}
-            onDone={() => setEditingProfileId(null)}
-          />
+          <FoundationalProfileEditor key={profile.id} advisor={advisor} profile={profile} onDone={() => setEditingProfileId(null)} />
         ) : (
           <ProfileCard
             key={profile.id}
@@ -8726,14 +8627,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
       )}
 
       {showNewForm && (
-        <AdditionalProfileForm
-          advisorId={advisor.id}
-          baseSlug={advisor.profileSlug}
-          tc={tc}
-          label="Secondary"
-          advisor={advisor}
-          onDone={() => setShowNewForm(false)}
-        />
+        <FoundationalProfileEditor advisor={advisor} onDone={() => setShowNewForm(false)} />
       )}
 
       {canAddMore && (
@@ -8761,255 +8655,6 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
               Run a second branded profile for a different audience — corporate vs personal, English vs Afrikaans, your choice. Contact your administrator to enable this feature.
             </p>
           </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Task #26 — Billing tab. Shows current tier, trial countdown, and Basic /
-// Premium cards with Paystack hosted-checkout CTAs. Cancel + Manage flows
-// surface only when there's an active Paystack subscription. Themed via tc.*
-// so it matches the advisor's panel theme.
-type BillingStatus = {
-  tier: "trial" | "basic" | "premium";
-  status: "trialing" | "active" | "cancelled" | "past_due";
-  trialEndsAt: string | null;
-  hasSubscription: boolean;
-  premiumActive: boolean;
-  basicOrBetter: boolean;
-  paystackConfigured: boolean;
-};
-
-function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  const { toast } = useToast();
-  const qc = useQueryClient();
-  const { data: rawStatus, isLoading, error, refetch } = useQuery<BillingStatus>({
-    queryKey: ["/api/billing/status"],
-    retry: 1,
-  });
-
-  const [busyTier, setBusyTier] = useState<"basic" | "premium" | null>(null);
-  const [cancelling, setCancelling] = useState(false);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("billing") === "success") {
-      toast({ title: "Welcome to Advisory Connect", description: "Your subscription is being activated — this usually takes a few seconds." });
-      // Strip the query param so a refresh doesn't re-fire the toast.
-      const url = new URL(window.location.href);
-      url.searchParams.delete("billing");
-      window.history.replaceState({}, "", url.toString());
-      // Refetch a few times to catch the webhook landing.
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 2000);
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 8000);
-    }
-  }, [toast, qc]);
-
-  const startCheckout = async (tier: "basic" | "premium") => {
-    setBusyTier(tier);
-    try {
-      const res = await apiRequest("POST", "/api/billing/checkout", { tier });
-      const json = await res.json();
-      if (json.authorizationUrl) {
-        window.location.href = json.authorizationUrl;
-      } else {
-        toast({ title: "Could not start checkout", description: json.message || "Please try again.", variant: "destructive" });
-      }
-    } catch (err: any) {
-      toast({ title: "Could not start checkout", description: err?.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setBusyTier(null);
-    }
-  };
-
-  const cancelSubscription = async () => {
-    if (!confirm("Cancel your subscription? You'll keep access until the end of the current billing period.")) return;
-    setCancelling(true);
-    try {
-      await apiRequest("POST", "/api/billing/cancel", {});
-      toast({ title: "Cancellation submitted", description: "Your subscription will not renew." });
-      setTimeout(() => qc.invalidateQueries({ queryKey: ["/api/billing/status"] }), 1500);
-    } catch (err: any) {
-      toast({ title: "Could not cancel", description: err?.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setCancelling(false);
-    }
-  };
-
-  const openManageLink = async () => {
-    try {
-      const res = await apiRequest("GET", "/api/billing/manage-link");
-      const json = await res.json();
-      if (json.link) window.open(json.link, "_blank", "noopener");
-    } catch (err: any) {
-      toast({ title: "Could not open management link", description: err?.message || "Please try again.", variant: "destructive" });
-    }
-  };
-
-  if (isLoading) {
-    return <div className="py-12 flex justify-center"><Loader2 className="h-5 w-5 animate-spin" style={{ color: tc.accentColor }} /></div>;
-  }
-  if (error || !rawStatus) {
-    return (
-      <div className="rounded-xl p-5 text-sm space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}`, color: tc.textColor }} data-testid="billing-error">
-        <div className="flex items-start gap-2"><AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: "#dc2626" }} /><span>Could not load your billing status. Your session may have expired.</span></div>
-        <button onClick={() => refetch()} className="px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ backgroundColor: tc.accentColor, color: tc.bgColor }}>Try again</button>
-      </div>
-    );
-  }
-
-  // Safe defaults — legacy advisors created before Task #26 may have null/missing
-  // billing columns. Coalesce to a fresh-trial shape so the plan tiles always
-  // render rather than crashing on a partial payload.
-  const status: BillingStatus = {
-    tier: (rawStatus.tier ?? "trial") as BillingStatus["tier"],
-    status: (rawStatus.status ?? "trialing") as BillingStatus["status"],
-    trialEndsAt: rawStatus.trialEndsAt ?? null,
-    hasSubscription: !!rawStatus.hasSubscription,
-    premiumActive: !!rawStatus.premiumActive,
-    basicOrBetter: !!rawStatus.basicOrBetter,
-    paystackConfigured: !!rawStatus.paystackConfigured,
-  };
-
-  const daysLeftInTrial = status.trialEndsAt
-    ? Math.max(0, Math.ceil((new Date(status.trialEndsAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))
-    : null;
-
-  const tierLabel = status.tier === "premium" ? "Premium" : status.tier === "basic" ? "Basic" : "Free Trial";
-  const statusLabel = status.status === "active" ? "Active"
-    : status.status === "trialing" ? "Trial"
-    : status.status === "past_due" ? "Payment failed"
-    : status.status === "cancelled" ? "Cancelled" : status.status;
-
-  const PlanCard = ({ tier, price, blurb, features }: { tier: "basic" | "premium"; price: string; blurb: string; features: string[] }) => {
-    const current = status.tier === tier && (status.status === "active" || status.status === "trialing");
-    const label = tier === "premium" ? "Premium" : "Basic";
-    return (
-      <div className="rounded-2xl p-5 border" style={{ backgroundColor: tc.cardBg, borderColor: current ? tc.accentColor + "88" : tc.borderColor }}>
-        <div className="flex items-baseline justify-between mb-2">
-          <div className="text-lg font-semibold" style={{ color: tc.textColor }}>{label}</div>
-          <div className="text-xl font-bold" style={{ color: tc.accentColor }}>{price}</div>
-        </div>
-        <div className="text-xs mb-3" style={{ color: tc.mutedText }}>{blurb}</div>
-        <ul className="text-xs space-y-1.5 mb-4" style={{ color: tc.textColor }}>
-          {features.map((f, i) => (
-            <li key={i} className="flex gap-2"><Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: tc.accentColor }} /><span>{f}</span></li>
-          ))}
-        </ul>
-        <button
-          onClick={() => startCheckout(tier)}
-          disabled={busyTier !== null || current || !status.paystackConfigured}
-          className="w-full py-2.5 rounded-lg text-sm font-semibold transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: tc.accentColor, color: tc.bgColor }}
-          data-testid={`button-billing-upgrade-${tier}`}
-        >
-          {busyTier === tier ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : current ? "Current plan" : status.hasSubscription ? `Switch to ${label}` : `Choose ${label}`}
-        </button>
-      </div>
-    );
-  };
-
-  return (
-    <div className="space-y-5" data-testid="tab-billing">
-      <div className="rounded-2xl p-5" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-        <div className="flex items-center justify-between mb-2">
-          <div className="text-xs uppercase tracking-wider" style={{ color: tc.mutedText }}>Current plan</div>
-          <div className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: tc.accentColor + "22", color: tc.accentColor }}>{statusLabel}</div>
-        </div>
-        <div className="text-2xl font-bold" style={{ color: tc.textColor }}>{tierLabel}</div>
-        {status.tier === "trial" && daysLeftInTrial !== null && (
-          <div className="mt-2 text-sm" style={{ color: tc.mutedText }}>
-            {daysLeftInTrial > 0
-              ? <>You have <span style={{ color: tc.accentColor, fontWeight: 600 }}>{daysLeftInTrial} day{daysLeftInTrial === 1 ? "" : "s"}</span> left on your free trial.</>
-              : <>Your trial has ended — pick a plan below to keep your profile live.</>}
-          </div>
-        )}
-        {status.status === "past_due" && (
-          <div className="mt-2 text-sm flex gap-2 items-start" style={{ color: "#dc2626" }}>
-            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-            <span>Your last payment failed. Visit the billing portal to update your card and restore access.</span>
-          </div>
-        )}
-      </div>
-
-      {!status.paystackConfigured && (
-        <div className="rounded-xl p-4 text-sm" style={{ backgroundColor: tc.cardBg, border: `1px dashed ${tc.borderColor}`, color: tc.mutedText }}>
-          <div className="flex gap-2 items-start"><AlertCircle className="h-4 w-4 mt-0.5 shrink-0" style={{ color: tc.accentColor }} /><span>Billing isn't fully configured yet. You can browse the plans below; checkout will go live once payment keys are in place.</span></div>
-        </div>
-      )}
-
-      <div className="grid gap-4">
-        <PlanCard
-          tier="basic"
-          price="R299/mo"
-          blurb="Your digital practice, live and ready to capture leads."
-          features={[
-            "One public profile with your own personalised link",
-            "All four lead capture forms (email, callback, referral & will)",
-            "Basic lead registry — view and sort",
-            "QR code + share link",
-            "Standard background & theme selections",
-            "My Platforms (basic selection)",
-            "TradingView chart (basic selection)",
-            "Financial calculators (basic selection)",
-            "Daily Quotes widget",
-            "Daily Financial Facts",
-            "Single live news feed",
-            "Basic analytics (lead count, profile views)",
-            "14-day free trial, no card required",
-          ]}
-        />
-        <PlanCard
-          tier="premium"
-          price="R499/mo"
-          blurb="Full practice management — from first contact to client onboarding."
-          features={[
-            "Everything in Basic, plus:",
-            "Secondary profile (separate slug, settings and toggles)",
-            "All CSS backgrounds & custom hex theme selection",
-            "Advanced lead analytics (grader, temperature, quality score)",
-            "Enhanced grader fields (callback, referral & will forms)",
-            "Financial calculators (advanced calculators)",
-            "Financial showpiece displays",
-            "Financial calendar (SA events)",
-            "Live Markets & exchange rates",
-            "Additional live news feed",
-            "Risk profile analysis",
-            "Game of the Day (Sudoku)",
-            "Financial Health Dashboard",
-            "TradingView chart (multiple instruments, advisor's choice)",
-            "My Platforms (advanced selection)",
-            "My Clients — POPIA-compliant encrypted client vault",
-            "Priority support (24hr response, Mon–Fri)",
-          ]}
-        />
-      </div>
-
-      {status.hasSubscription && (
-        <div className="rounded-2xl p-5 space-y-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          <div className="text-sm font-semibold" style={{ color: tc.textColor }}>Manage your subscription</div>
-          <div className="flex gap-2">
-            <button
-              onClick={openManageLink}
-              className="flex-1 py-2 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80"
-              style={{ borderColor: tc.borderColor, color: tc.textColor }}
-              data-testid="button-billing-manage"
-            >
-              <ExternalLink className="h-3.5 w-3.5 inline mr-1.5" />
-              Billing portal
-            </button>
-            <button
-              onClick={cancelSubscription}
-              disabled={cancelling || status.status === "cancelled"}
-              className="flex-1 py-2 rounded-lg text-sm font-medium border transition-opacity hover:opacity-80 disabled:opacity-50"
-              style={{ borderColor: tc.borderColor, color: tc.textColor }}
-              data-testid="button-billing-cancel"
-            >
-              {cancelling ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : status.status === "cancelled" ? "Cancelled" : "Cancel subscription"}
-            </button>
-          </div>
-          <div className="text-xs" style={{ color: tc.mutedText }}>Card details and invoice history are available in your billing portal. Cancelling keeps your access through the end of the current billing period.</div>
         </div>
       )}
     </div>
@@ -9174,7 +8819,7 @@ export default function AdvisorPanel({ forcedSlug }: { forcedSlug?: string } = {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
             <div className="text-center space-y-1">
-              <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-10 w-10 rounded-lg mx-auto mb-2" />
+              <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-lg bg-[#b34dcc] text-xs font-bold text-white">FE</div>
               <h2 className="text-xl font-bold text-gray-900">Welcome, {advisor.name.split(" ")[0]}!</h2>
               <p className="text-sm text-gray-500">Your Foundational Expressions profile is live. Here's what's waiting for you.</p>
             </div>
@@ -9204,7 +8849,7 @@ export default function AdvisorPanel({ forcedSlug }: { forcedSlug?: string } = {
       <div className="max-w-lg mx-auto">
         <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor + "e0", borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
-            <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-9 w-9 shrink-0" />
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#b34dcc] text-[11px] font-bold text-white">FE</div>
             {advisor.profilePicUrl ? (
               <img src={advisor.profilePicUrl} alt={advisor.name} className="h-9 w-9 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
             ) : (

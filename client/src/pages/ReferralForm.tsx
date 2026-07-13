@@ -744,7 +744,7 @@ export default function ReferralForm() {
         )}
 
         <p className="text-center text-xs pt-4 pb-2" style={{ color: mutedText }}>
-          Powered by Advisory Connect
+          Powered by Foundational Expressions
         </p>
       </div>
     </main>

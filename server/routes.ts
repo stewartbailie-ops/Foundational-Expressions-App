@@ -377,14 +377,14 @@ export async function registerRoutes(
       const active = allAdvisors.filter((a) => a.active && a.profileSlug);
 
       const urls: { loc: string; priority: string; changefreq: string }[] = [
-        { loc: "https://app.advisoryconnect.pro/", priority: "1.0", changefreq: "weekly" },
-        { loc: "https://app.advisoryconnect.pro/privacy-policy", priority: "0.3", changefreq: "monthly" },
-        { loc: "https://app.advisoryconnect.pro/terms", priority: "0.3", changefreq: "monthly" },
+        { loc: "https://card.foundationalexpressions.com/", priority: "1.0", changefreq: "weekly" },
+        { loc: "https://card.foundationalexpressions.com/privacy-policy", priority: "0.3", changefreq: "monthly" },
+        { loc: "https://card.foundationalexpressions.com/terms", priority: "0.3", changefreq: "monthly" },
       ];
 
       for (const a of active) {
         urls.push({
-          loc: `https://app.advisoryconnect.pro/${encodeURIComponent(a.profileSlug)}`,
+          loc: `https://card.foundationalexpressions.com/${encodeURIComponent(a.profileSlug)}`,
           priority: "0.8",
           changefreq: "weekly",
         });
@@ -392,7 +392,7 @@ export async function registerRoutes(
         for (const sp of secondaries) {
           if (!sp.profileSlug) continue;
           urls.push({
-            loc: `https://app.advisoryconnect.pro/${encodeURIComponent(sp.profileSlug)}`,
+            loc: `https://card.foundationalexpressions.com/${encodeURIComponent(sp.profileSlug)}`,
             priority: "0.6",
             changefreq: "weekly",
           });
@@ -437,7 +437,7 @@ export async function registerRoutes(
     if (!adminPassword) {
       return res.status(500).json({ message: "Admin password not configured" });
     }
-    const adminEmail = (process.env.ADMIN_EMAIL || "info@advisoryconnect.pro").toLowerCase().trim();
+    const adminEmail = (process.env.ADMIN_EMAIL || "admin@foundationalexpressions.com").toLowerCase().trim();
     if (!email || email.toLowerCase().trim() !== adminEmail) {
       audit("invalid_email");
       return res.status(401).json({ message: "Invalid email or password" });
@@ -1232,7 +1232,7 @@ export async function registerRoutes(
       return res.status(403).json({ message: "Secondary profiles are temporarily disabled." });
     }
     // Foundational Expressions is a single-advisor workspace. Erika can create
-    // additional public profiles without the old Advisory Connect billing gate.
+    // additional public profiles without the old Foundational Expressions billing gate.
     const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId });
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });
@@ -1392,7 +1392,7 @@ export async function registerRoutes(
 
     const csv = [headers.join(","), ...rows].join("\r\n");
     const bom = "\uFEFF"; // UTF-8 BOM so Excel reads accents correctly
-    const filename = `advisory-connect-leads-${new Date().toISOString().split("T")[0]}.csv`;
+    const filename = `foundational-expressions-leads-${new Date().toISOString().split("T")[0]}.csv`;
 
     res.set("Content-Type", "text/csv; charset=utf-8");
     res.set("Content-Disposition", `attachment; filename="${filename}"`);
@@ -1679,7 +1679,7 @@ export async function registerRoutes(
             ${referrerText}
             <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
             <hr/>
-            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+            <p style="color: #888; font-size: 12px;">This notification was sent via Foundational Expressions.</p>`
           );
         } catch (emailErr) {
           console.error("Failed to send referral notification email:", emailErr);
@@ -1807,7 +1807,7 @@ export async function registerRoutes(
             ${servicesText}
             <p><strong>Preferred Contact:</strong> ${data.preferredContactTime || "Not specified"}</p>
             <hr/>
-            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+            <p style="color: #888; font-size: 12px;">This notification was sent via Foundational Expressions.</p>`
           );
         } catch (emailErr) {
           console.error("Failed to send callback notification email:", emailErr);
@@ -1938,7 +1938,7 @@ export async function registerRoutes(
             <p><strong>Children Details:</strong> ${data.childrenDetails || "N/A"}</p>
             <p><strong>Address:</strong> ${data.address || "Not provided"}</p>
             <hr/>
-            <p style="color: #888; font-size: 12px;">This notification was sent via Advisory Connect.</p>`
+            <p style="color: #888; font-size: 12px;">This notification was sent via Foundational Expressions.</p>`
           );
         } catch (emailErr) {
           console.error("Failed to send will request notification email:", emailErr);
@@ -2038,12 +2038,12 @@ export async function registerRoutes(
           const inner = `
             <h2 style="margin:0 0 12px;font-size:18px;color:#0a0e1a;">New document scan from your public profile</h2>
             <p style="margin:0 0 12px;font-size:14px;line-height:1.55;color:#374151;">
-              ${senderName ? `<strong>${esc(senderName)}</strong>` : "An anonymous visitor"}${senderEmail ? ` &lt;${esc(senderEmail)}&gt;` : ""} sent ${files.length} document${files.length === 1 ? "" : "s"} via the Scan Documents tool on your Advisory Connect profile.
+              ${senderName ? `<strong>${esc(senderName)}</strong>` : "An anonymous visitor"}${senderEmail ? ` &lt;${esc(senderEmail)}&gt;` : ""} sent ${files.length} document${files.length === 1 ? "" : "s"} via the Scan Documents tool on your Foundational Expressions profile.
             </p>
             ${note ? `<div style="margin:0 0 12px;padding:10px 12px;background:#f3f4f6;border-radius:8px;font-size:13px;line-height:1.5;color:#374151;white-space:pre-wrap;"><strong style="display:block;margin-bottom:4px;color:#111827;">Note:</strong>${esc(note)}</div>` : ""}
             <ul style="margin:0 0 16px 18px;padding:0;font-size:13px;color:#374151;line-height:1.6;">${fileList}</ul>
             <p style="margin:0;font-size:12px;line-height:1.5;color:#6b7280;">
-              Files are attached to this email${stored.length > 0 ? " and a copy is stored encrypted at rest on Advisory Connect" : ""}. Treat any personal information per POPIA.
+              Files are attached to this email${stored.length > 0 ? " and a copy is stored encrypted at rest on Foundational Expressions" : ""}. Treat any personal information per POPIA.
             </p>`;
           await sendEmail(
             buildRecipients(advisor.email),
@@ -2657,11 +2657,11 @@ export async function registerRoutes(
   // panel or a client viewing a public card — pins an icon that opens the master
   // landing page instead of the page they were on. iOS uses the current page URL
   // as start_url so it usually works there, but the title still defaults to
-  // "Advisory Connect" for everyone. This endpoint returns a per-context manifest
+  // "Foundational Expressions" for everyone. This endpoint returns a per-context manifest
   // so the icon and title both reflect what the user actually pinned.
   app.get("/api/manifest", (req, res) => {
     const startQ = String(req.query.start || "/");
-    const nameQ = String(req.query.name || "Advisory Connect").slice(0, 100);
+    const nameQ = String(req.query.name || "Foundational Expressions").slice(0, 100);
     const shortQ = String(req.query.short || nameQ).slice(0, 24);
     // Only accept same-origin pathnames so we can't be turned into a PWA pointer
     // at an arbitrary external URL.
@@ -2671,7 +2671,7 @@ export async function registerRoutes(
     res.json({
       name: nameQ,
       short_name: shortQ,
-      description: "Advisory Connect",
+      description: "Foundational Expressions",
       start_url: start,
       scope: "/",
       display: "standalone",
@@ -3616,7 +3616,7 @@ export async function registerRoutes(
     }
     const safeType = typeof requestType === "string" ? requestType : "erasure";
     const safeDetails = typeof details === "string" ? details.slice(0, 2000) : "";
-    const adminEmail = process.env.ADMIN_EMAIL || "info@advisoryconnect.pro";
+    const adminEmail = process.env.ADMIN_EMAIL || "admin@foundationalexpressions.com";
     if (isSendGridConfigured()) {
       const body = [
         `<p>New POPIA data rights request received.</p>`,
@@ -3633,7 +3633,7 @@ export async function registerRoutes(
         adminEmail,
         `POPIA Data Rights Request — ${safeType}`,
         body,
-        "no-reply@advisoryconnect.pro",
+        "admin@foundationalexpressions.com",
         { wrap: false },
       ).catch(err => console.error("[data-rights] email send failed:", err));
     } else {
