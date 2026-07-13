@@ -525,7 +525,12 @@ export async function registerRoutes(
       await objectStorage.putPublic(`profile/${filename}`, req.file.buffer, req.file.mimetype);
     } catch (err) {
       console.error("[upload] profile-pic put failed:", err);
-      return res.status(500).json({ message: "Failed to store image" });
+      // Replit Object Storage is optional for this single-advisor app. Fall
+      // back to a compact data URL persisted with the advisor/profile record.
+      // The client downsizes new uploads first, keeping this comfortably under
+      // the existing JSON and database limits.
+      const dataUrl = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+      return res.json({ url: dataUrl, storage: "database" });
     }
     res.json({ url: `/uploads/profile/${filename}` });
   });

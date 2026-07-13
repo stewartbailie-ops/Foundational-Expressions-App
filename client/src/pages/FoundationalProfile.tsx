@@ -75,7 +75,7 @@ function PrimaryAction({
 
 function ServicePanel({ group }: { group: ServiceGroup }) {
   return (
-    <section className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
+    <section className="grid gap-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#c368d7]">
           Service Focus
@@ -85,7 +85,7 @@ function ServicePanel({ group }: { group: ServiceGroup }) {
         </h2>
         <p className="mt-4 max-w-xl text-sm leading-6 text-white/62">{group.intro}</p>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 min-[520px]:grid-cols-2">
         {group.services.map((service) => (
           <article className="rounded-2xl border border-white/10 bg-white/[0.045] p-4" key={service.name}>
             <h3 className="text-sm font-semibold text-white">{service.name}</h3>
@@ -159,12 +159,10 @@ export default function FoundationalProfile() {
   return (
     <main className="min-h-screen overflow-hidden bg-[#050506] text-white">
       <div className="fe-ambient" aria-hidden="true" />
-      <div className="relative mx-auto flex w-full max-w-6xl flex-col gap-7 px-4 py-4 sm:gap-10 sm:px-8 sm:py-6 lg:py-10">
+      <div className="relative mx-auto flex w-full max-w-3xl flex-col gap-7 px-4 py-4 sm:gap-9 sm:px-6 sm:py-6">
         <header className="flex items-center justify-between gap-4">
           <a className="flex items-center gap-3" href="/">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#b34dcc]/35 bg-[#b34dcc]/12 font-serif text-2xl text-[#d979ef] shadow-[0_0_34px_rgba(179,77,204,0.25)]">
-              FE
-            </span>
+            <img src="/branding/foundational-expressions-logo.png" alt="Foundational Expressions" className="h-14 w-14 rounded-2xl border border-white/10 object-cover shadow-[0_0_34px_rgba(179,77,204,0.2)]" />
             <span>
               <span className="block text-sm font-semibold tracking-[0.18em] text-white">
                 FOUNDATIONAL
@@ -182,8 +180,8 @@ export default function FoundationalProfile() {
           </a>
         </header>
 
-        <section className="grid gap-5 sm:gap-8 xl:grid-cols-[1fr_380px] xl:items-center">
-          <div className="pt-2 sm:pt-6 xl:pt-10">
+        <section className="grid gap-5 sm:gap-7">
+          <div className="pt-2 sm:pt-4">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#c368d7]">
               {profile.tagline}
             </p>
@@ -201,7 +199,7 @@ export default function FoundationalProfile() {
             </div>
           </div>
 
-          <aside className="fe-card order-first rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-3 shadow-2xl sm:rounded-[2rem] sm:p-5 xl:order-last">
+          <aside className="fe-card order-first rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-3 shadow-2xl sm:rounded-[2rem] sm:p-5">
             <div className="rounded-[1.25rem] border border-white/10 bg-black/45 p-4 sm:rounded-[1.5rem] sm:p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>

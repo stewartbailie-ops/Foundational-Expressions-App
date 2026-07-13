@@ -1,4 +1,4 @@
-import { Route, Switch } from "wouter";
+import { Redirect, Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import FoundationalCallback from "@/pages/FoundationalCallback";
@@ -21,7 +21,7 @@ function App() {
           <Route path="/:slug/request-callback" component={CallbackForm} />
           <Route path="/:slug/referrals" component={ReferralForm} />
           <Route path="/:slug" component={FoundationalProfile} />
-          <Route path="/" component={FoundationalProfile} />
+          <Route path="/">{() => <Redirect to="/erika" />}</Route>
           <Route component={FoundationalProfile} />
         </Switch>
     </QueryClientProvider>

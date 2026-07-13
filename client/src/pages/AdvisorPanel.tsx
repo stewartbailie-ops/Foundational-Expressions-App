@@ -8819,7 +8819,7 @@ export default function AdvisorPanel({ forcedSlug }: { forcedSlug?: string } = {
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5">
             <div className="text-center space-y-1">
-              <div className="mx-auto mb-2 grid h-10 w-10 place-items-center rounded-lg bg-[#b34dcc] text-xs font-bold text-white">FE</div>
+              <img src="/branding/foundational-expressions-logo.png" alt="Foundational Expressions" className="mx-auto mb-2 h-14 w-14 rounded-xl object-cover" />
               <h2 className="text-xl font-bold text-gray-900">Welcome, {advisor.name.split(" ")[0]}!</h2>
               <p className="text-sm text-gray-500">Your Foundational Expressions profile is live. Here's what's waiting for you.</p>
             </div>
@@ -8849,7 +8849,7 @@ export default function AdvisorPanel({ forcedSlug }: { forcedSlug?: string } = {
       <div className="max-w-lg mx-auto">
         <div className="sticky top-0 z-10 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: tc.bgColor + "e0", borderBottom: `1px solid ${tc.borderColor}`, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)" }}>
           <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-[#b34dcc] text-[11px] font-bold text-white">FE</div>
+            <img src="/branding/foundational-expressions-logo.png" alt="Foundational Expressions" className="h-10 w-10 shrink-0 rounded-lg object-cover" />
             {advisor.profilePicUrl ? (
               <img src={advisor.profilePicUrl} alt={advisor.name} className="h-9 w-9 rounded-full object-cover border" style={{ borderColor: tc.initialsCircleBorder }} />
             ) : (
