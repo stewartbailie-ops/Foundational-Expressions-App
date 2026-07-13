@@ -387,4 +387,25 @@ export async function runStartupMigrations() {
     `CREATE INDEX IF NOT EXISTS "IDX_bol_token" ON "book_of_life" ("bol_token");`
   ));
   console.log("[migrations] book_of_life table verified");
+
+  // Foundational Expressions' initial advisor account. This is deliberately
+  // idempotent and never sets a password: Erika completes the existing secure
+  // first-time password + email verification flow from /control.
+  await db.execute(sql.raw(`
+    INSERT INTO "advisors" (
+      "name", "email", "profile_slug", "title", "entity_type", "active",
+      "advisor_email_verified", "advisor_password_set", "theme",
+      "theme_color", "panel_theme", "panel_theme_color"
+    )
+    SELECT
+      'Erika', 'admin@foundationalexpressions.com', 'erika',
+      'Financial Planning, Coaching and Wellness Guidance', 'individual', true,
+      false, false, 'purple', '#b34dcc', 'purple', '#b34dcc'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM "advisors"
+      WHERE lower("email") = 'admin@foundationalexpressions.com'
+         OR "profile_slug" = 'erika'
+    );
+  `));
+  console.log("[migrations] Foundational Expressions advisor verified");
 }

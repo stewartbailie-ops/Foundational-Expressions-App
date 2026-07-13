@@ -2,17 +2,24 @@ import { Route, Switch } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import FoundationalCallback from "@/pages/FoundationalCallback";
-import FoundationalControl from "@/pages/FoundationalControl";
 import FoundationalProfile from "@/pages/FoundationalProfile";
+import AdvisorPanel from "@/pages/AdvisorPanel";
+import AdvisorProfile from "@/pages/AdvisorProfile";
+import CallbackForm from "@/pages/CallbackForm";
+import ReferralForm from "@/pages/ReferralForm";
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Switch>
-        <Route path="/control/:section?" component={FoundationalControl} />
+        <Route path="/control">{() => <AdvisorPanel forcedSlug="erika" />}</Route>
+        <Route path="/advisor/:slug">{() => <AdvisorPanel />}</Route>
         <Route path="/request-callback" component={FoundationalCallback} />
         <Route path="/erika/request-callback" component={FoundationalCallback} />
         <Route path="/erika" component={FoundationalProfile} />
+        <Route path="/:slug/request-callback" component={CallbackForm} />
+        <Route path="/:slug/referrals" component={ReferralForm} />
+        <Route path="/:slug" component={AdvisorProfile} />
         <Route path="/" component={FoundationalProfile} />
         <Route component={FoundationalProfile} />
       </Switch>

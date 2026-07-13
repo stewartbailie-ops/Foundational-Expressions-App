@@ -1231,17 +1231,8 @@ export async function registerRoutes(
     if (!SECONDARY_PROFILES_ENABLED) {
       return res.status(403).json({ message: "Secondary profiles are temporarily disabled." });
     }
-    // Premium gate: secondary profiles are a Premium-only feature per the
-    // agreed tier-split (Stewart + Friday + Claude, 16 May 2026). Admin
-    // sessions bypass the gate so support can still provision profiles.
-    const isAdmin = !!(req.session as any)?.authenticated;
-    if (!isAdmin) {
-      const { isPremiumActive } = await import("@shared/schema");
-      const gateAdvisor = await storage.getAdvisor(advisorId);
-      if (!gateAdvisor || !isPremiumActive(gateAdvisor)) {
-        return res.status(402).json({ message: "Secondary profiles require a Premium subscription", tier: gateAdvisor?.subscriptionTier ?? "trial" });
-      }
-    }
+    // Foundational Expressions is a single-advisor workspace. Erika can create
+    // additional public profiles without the old Advisory Connect billing gate.
     const parsed = safeInsertAdvisorProfileSchema.safeParse({ ...req.body, advisorId });
     if (!parsed.success) {
       return res.status(400).json({ message: "Invalid data", errors: parsed.error.flatten() });

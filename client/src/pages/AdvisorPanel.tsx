@@ -3743,7 +3743,7 @@ function ProfileCard({
 }) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
-  const url = `app.advisoryconnect.pro/${profileSlug}`;
+  const url = `card.foundationalexpressions.com/${profileSlug}`;
   // M3: pass themeColor through so when the advisor picks a custom hex via the
   // ColourPicker, the dropdown overview card gradient + accent border reflect
   // it immediately (previously stuck on the legacy theme→hex map and ignored).
@@ -4087,7 +4087,7 @@ function AdditionalProfileForm({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/advisors/${advisorId}/profiles`] });
-      toast({ title: isEditing ? "Profile Updated" : "Profile Created", description: isEditing ? "Changes saved." : `Profile live at app.advisoryconnect.pro/${profileSlug}` });
+      toast({ title: isEditing ? "Profile Updated" : "Profile Created", description: isEditing ? "Changes saved." : `Profile live at card.foundationalexpressions.com/${profileSlug}` });
       onDone();
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
@@ -4147,7 +4147,7 @@ function AdditionalProfileForm({
         <div className="space-y-1.5">
           <label className="text-xs font-medium" style={{ color: tc.mutedText }}>Profile URL</label>
           <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid ${profileSlug && !slugValid ? "#ef4444" : tc.inputBorder}`, backgroundColor: tc.inputBg }}>
-            <span className="px-2 py-2 text-xs flex-shrink-0" style={{ color: tc.mutedText, borderRight: `1px solid ${tc.inputBorder}` }}>app.advisoryconnect.pro/</span>
+            <span className="px-2 py-2 text-xs flex-shrink-0" style={{ color: tc.mutedText, borderRight: `1px solid ${tc.inputBorder}` }}>card.foundationalexpressions.com/</span>
             <input value={profileSlug} onChange={e => setProfileSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""))}
               placeholder={`${baseSlug}-2`} className="flex-1 px-2 py-2 text-xs bg-transparent outline-none" style={{ color: tc.textColor }} data-testid="input-profile-slug" />
           </div>
@@ -7341,7 +7341,7 @@ function BookOfLifeSection({ advisorId, clientName, tc }: { advisorId: number; c
                       <Share2 className="h-3.5 w-3.5 text-white" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="text-white text-[11px] font-semibold">Order NFC Sticker — Advisory Connect</div>
+                      <div className="text-white text-[11px] font-semibold">Order NFC Sticker — Foundational Expressions</div>
                       <div className="mt-1.5 flex flex-wrap gap-1.5">
                         {["NFC Tag", "NFC Sticker", "Key-chain", "Wrist-band", "Fridge Magnet", "Wallet Card", "Phone Case"].map((option) => (
                           <span
@@ -8603,9 +8603,6 @@ function SettingsTab({ advisor, slug, tc }: { advisor: Advisor; slug: string; tc
 }
 
 function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof getThemeColors> }) {
-  // Premium gate (Task #26): secondary profiles are Premium-only per the
-  // agreed tier-split. Trial advisors get full access until trialEndsAt.
-  const { isPremium: isPremiumActive } = usePremium();
   const { toast } = useToast();
   const [showNewForm, setShowNewForm] = useState(false);
   const [editingProfileId, setEditingProfileId] = useState<number | null>(null);
@@ -8636,7 +8633,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
   // Secondary profiles temporarily disabled — treat as if the advisor has none.
   const shownProfiles = SECONDARY_PROFILES_ENABLED ? additionalProfiles : [];
   const totalProfiles = 1 + shownProfiles.length;
-  const canAddMore = SECONDARY_PROFILES_ENABLED && totalProfiles < 2 && !showNewForm && isPremiumActive;
+  const canAddMore = SECONDARY_PROFILES_ENABLED && totalProfiles < 5 && !showNewForm;
 
   return (
     <div className="space-y-4">
@@ -8644,7 +8641,7 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         <div className="flex items-center justify-between mb-1">
           <span className="text-sm font-semibold" style={{ color: tc.textColor }}>{SECONDARY_PROFILES_ENABLED ? "My Profiles" : "Your Profile"}</span>
           {SECONDARY_PROFILES_ENABLED && (
-            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 2</span>
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: tc.buttonSecondaryBg, color: tc.accentColor }}>{totalProfiles} / 5</span>
           )}
         </div>
         <p className="text-xs" style={{ color: tc.mutedText }}>{SECONDARY_PROFILES_ENABLED ? "Each profile has its own unique link, theme, bio and services — ideal for targeting different audiences. Maximum 2 profiles per advisor." : "Your public profile — its link, theme, bio and services."}</p>
@@ -8749,13 +8746,13 @@ function ProfilesTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof 
         </button>
       )}
 
-      {!canAddMore && !showNewForm && totalProfiles >= 2 && (
+      {!canAddMore && !showNewForm && totalProfiles >= 5 && (
         <div className="text-center py-3 text-xs rounded-xl" style={{ color: tc.mutedText, backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }}>
-          Maximum 2 profiles reached. Delete one to add a new profile.
+          Maximum 5 profiles reached.
         </div>
       )}
 
-      {SECONDARY_PROFILES_ENABLED && !isPremiumActive && totalProfiles < 2 && !showNewForm && (
+      {false && (
         <div className="rounded-xl p-4 flex items-start gap-3" style={{ backgroundColor: tc.cardBg, border: `1px solid ${tc.borderColor}` }} data-testid="card-secondary-profile-premium-gate">
           <Lock className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: tc.mutedText }} />
           <div className="flex-1">
@@ -9019,10 +9016,10 @@ function BillingTab({ advisor, tc }: { advisor: Advisor; tc: ReturnType<typeof g
   );
 }
 
-export default function AdvisorPanel() {
+export default function AdvisorPanel({ forcedSlug }: { forcedSlug?: string } = {}) {
   const [, params] = useRoute("/advisor/:slug");
   const [, navigate] = useLocation();
-  const slug = params?.slug || "";
+  const slug = forcedSlug || params?.slug || "";
 
   const [authState, setAuthState] = useState<"loading" | "login" | "setup" | "verify" | "authenticated">("loading");
   const [activeTab, setActiveTab] = useState<"home" | "registry" | "clients" | "settings">("home");
@@ -9155,7 +9152,7 @@ export default function AdvisorPanel() {
   }
 
   const initials = getInitials(advisor.name);
-  const profileUrl = `app.advisoryconnect.pro/${advisor.profileSlug}`;
+  const profileUrl = `card.foundationalexpressions.com/${advisor.profileSlug}`;
 
   // Settings moved out of the bottom tab strip — now a cog in the top-right
   // header next to Sign-out. Only Home + Registry remain as primary tabs.
@@ -9179,7 +9176,7 @@ export default function AdvisorPanel() {
             <div className="text-center space-y-1">
               <img src="/logo/icon-64.png" alt="Advisory Connect" className="h-10 w-10 rounded-lg mx-auto mb-2" />
               <h2 className="text-xl font-bold text-gray-900">Welcome, {advisor.name.split(" ")[0]}!</h2>
-              <p className="text-sm text-gray-500">Your Advisory Connect profile is live. Here's what's waiting for you.</p>
+              <p className="text-sm text-gray-500">Your Foundational Expressions profile is live. Here's what's waiting for you.</p>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {[
