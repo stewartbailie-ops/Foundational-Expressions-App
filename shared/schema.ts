@@ -107,7 +107,7 @@ export type AdvisorProfile = typeof advisorProfiles.$inferSelect;
 //   - server POST /api/advisors/:id/profiles  (blocks creation)
 //   - server storage.getAdvisorBySlug  (secondary slugs 404 → public pages offline)
 // No data is deleted; existing advisor_profiles rows are simply not served.
-export const SECONDARY_PROFILES_ENABLED: boolean = true;
+export const SECONDARY_PROFILES_ENABLED: boolean = false;
 
 export const advisors = pgTable("advisors", {
   id: serial("id").primaryKey(),

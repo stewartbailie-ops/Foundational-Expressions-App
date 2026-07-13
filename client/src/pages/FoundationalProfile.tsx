@@ -174,7 +174,7 @@ export default function FoundationalProfile() {
           </a>
           <a
             className="rounded-full border border-white/12 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 transition hover:bg-white/[0.06] sm:px-4 sm:text-xs sm:tracking-[0.16em]"
-            href="/request-callback"
+            href={`/${slug}/request-callback`}
           >
             Request Callback
           </a>
@@ -295,7 +295,7 @@ export default function FoundationalProfile() {
           </div>
         </section>
 
-        <section className="grid gap-5 rounded-[2rem] border border-[#b34dcc]/25 bg-[#b34dcc]/10 p-6 sm:grid-cols-[1fr_auto] sm:items-center">
+        <section className="grid gap-5 rounded-[2rem] border border-[#b34dcc]/25 bg-[#b34dcc]/10 p-5 sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d979ef]">
               Start with a conversation
@@ -307,11 +307,17 @@ export default function FoundationalProfile() {
               The first step can simply be a callback to understand where you are and what kind of support would help most.
             </p>
           </div>
-          <a className="fe-action bg-white text-black hover:bg-white/90" href="/request-callback">
-            <CalendarClock className="h-4 w-4" />
-            <span>Request Callback</span>
-            <ArrowRight className="h-4 w-4" />
-          </a>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <a className="fe-action bg-white text-black hover:bg-white/90" href={`/${slug}/request-callback`}>
+              <CalendarClock className="h-4 w-4" />
+              <span>Request Callback</span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
+            <a className="fe-action border border-white/15 bg-black/20 text-white hover:bg-white/[0.07]" href={`/${slug}/referrals`}>
+              <span>Refer Someone</span>
+              <ArrowRight className="h-4 w-4" />
+            </a>
+          </div>
         </section>
       </div>
     </main>
