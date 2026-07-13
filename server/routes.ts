@@ -2280,10 +2280,10 @@ export async function registerRoutes(
     try {
       await sendEmail(
         advisor.email,
-        "Verify your Advisory Connect account",
+        "Verify your Foundational Expressions account",
         `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
           <h2 style="color:#4a8db5;margin-bottom:8px;">Verify Your Email</h2>
-          <p style="color:#555;margin-bottom:8px;">Welcome to Advisory Connect, ${advisor.name}!</p>
+          <p style="color:#555;margin-bottom:8px;">Welcome to Foundational Expressions, ${advisor.name}!</p>
           <p style="color:#555;margin-bottom:24px;">Enter the code below to verify your email address and activate your control panel. This is a one-time step — you won't need to do this again.</p>
           <div style="background:#f5f7fa;border-radius:12px;padding:24px;text-align:center;letter-spacing:8px;font-size:36px;font-weight:bold;color:#1a1a1a;">${code}</div>
           <p style="color:#999;font-size:12px;margin-top:24px;">Code expires in 10 minutes. If you didn't request this, you can safely ignore this email.</p>
@@ -2342,7 +2342,7 @@ export async function registerRoutes(
     try {
       await sendEmail(
         advisor.email!,
-        "Your Advisory Connect verification code",
+        "Your Foundational Expressions verification code",
         `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px;">
           <h2 style="color:#4a8db5;margin-bottom:8px;">New Verification Code</h2>
           <p style="color:#555;margin-bottom:24px;">Here is your new verification code:</p>
