@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRoute } from "wouter";
 import { QRCodeSVG } from "qrcode.react";
@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Sparkles,
   WalletCards,
+  Clock,
 } from "lucide-react";
 import {
   buildVCard,
@@ -22,6 +23,13 @@ import {
   type ServiceGroup,
 } from "@/data/foundationalProfile";
 import type { Advisor } from "@shared/schema";
+import { NewsHero } from "@/components/NewsHero";
+import { ForexWidget } from "@/components/ForexWidget";
+import { FunFactsCarousel } from "@/components/FunFactsCarousel";
+import { FinancialDashboard } from "@/components/tools/FinancialDashboard";
+import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
+import { TradingViewSection } from "@/pages/AdvisorProfile";
+import { getThemeColors } from "@/lib/themeUtils";
 
 function downloadContact(vcard: string) {
   const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
@@ -111,6 +119,10 @@ export default function FoundationalProfile() {
     },
     retry: false,
   });
+  useEffect(() => {
+    if (!savedAdvisor?.id) return;
+    fetch("/api/stats/access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ advisorId: savedAdvisor.id, slug }) }).catch(() => {});
+  }, [savedAdvisor?.id, slug]);
   const phone = savedAdvisor?.contactNumber?.trim() || foundationalProfile.phoneDisplay;
   const phoneHref = phone.replace(/[^+\d]/g, "") || foundationalProfile.phoneHref;
   const email = savedAdvisor?.email || foundationalProfile.email;
@@ -128,23 +140,22 @@ export default function FoundationalProfile() {
     website,
     profilePicUrl: savedAdvisor?.profilePicUrl || "",
     whatsappHref: phoneHref ? `https://wa.me/${phoneHref.replace(/^\+/, "")}` : foundationalProfile.whatsappHref,
-    socials: {
-      linkedin: savedAdvisor?.linkedinUrl || foundationalProfile.socials.linkedin,
-      facebook: savedAdvisor?.facebookUrl || foundationalProfile.socials.facebook,
-      instagram: savedAdvisor?.instagramUrl || foundationalProfile.socials.instagram,
-      youtube: savedAdvisor?.youtubeUrl || foundationalProfile.socials.youtube,
-    },
   };
   const configuredServices = savedAdvisor?.individualServices ?? [];
   const visibleServiceGroups = configuredServices.length
     ? serviceGroups.filter((group) => configuredServices.includes(group.title))
     : serviceGroups;
-  const socialLinks = [
-    ["LinkedIn", profile.socials.linkedin],
-    ["Facebook", profile.socials.facebook],
-    ["Instagram", profile.socials.instagram],
-    ["YouTube", profile.socials.youtube],
-  ].filter((entry): entry is [string, string] => Boolean(entry[1]));
+  const tc = getThemeColors("dark", "#b34dcc");
+  const toolTheme = { accentColor: "#c368d7", borderColor: "rgba(255,255,255,.1)", cardBg: "rgba(255,255,255,.035)", textColor: "#fff", mutedText: "rgba(255,255,255,.58)", inputBg: "rgba(0,0,0,.3)" };
+  const enabledTools = [
+    savedAdvisor?.showShowpieceSqueeze !== false && <RealMoneySqueeze key="squeeze" {...toolTheme} />,
+    savedAdvisor?.showShowpieceTaxBite !== false && <TaxBite key="tax" {...toolTheme} />,
+    savedAdvisor?.showShowpieceInflation !== false && <InflationMillion key="inflation" {...toolTheme} />,
+    savedAdvisor?.showShowpieceWaiting !== false && <CostOfWaiting key="waiting" {...toolTheme} />,
+    savedAdvisor?.showToolReality !== false && <RealityCheck key="reality" {...toolTheme} />,
+    savedAdvisor?.showToolLatte !== false && <LatteMillionaire key="latte" {...toolTheme} />,
+  ].filter(Boolean);
+  const displayedTools = savedAdvisor?.rotateInteractiveTools && enabledTools.length ? [enabledTools[Math.floor(Date.now() / 14_400_000) % enabledTools.length]] : enabledTools;
   const activeServiceGroup = visibleServiceGroups.some((group) => group.title === activeGroup)
     ? activeGroup
     : visibleServiceGroups[0]?.title ?? serviceGroups[0].title;
@@ -172,12 +183,12 @@ export default function FoundationalProfile() {
               </span>
             </span>
           </a>
-          <a
+          {savedAdvisor?.showCallbackLink !== false && <a
             className="rounded-full border border-white/12 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/70 transition hover:bg-white/[0.06] sm:px-4 sm:text-xs sm:tracking-[0.16em]"
             href={`/${slug}/request-callback`}
           >
             Request Callback
-          </a>
+          </a>}
         </header>
 
         <section className="grid gap-5 sm:gap-7">
@@ -208,7 +219,7 @@ export default function FoundationalProfile() {
                   <p className="mt-2 text-sm leading-5 text-white/58">{profile.title}</p>
                 </div>
                 {profile.profilePicUrl ? (
-                  <img className="h-20 w-20 rounded-2xl border border-white/10 object-cover" src={profile.profilePicUrl} alt={profile.name} />
+                  <img className="h-28 w-28 rounded-2xl border border-white/10 object-cover sm:h-32 sm:w-32" src={profile.profilePicUrl} alt={profile.name} />
                 ) : (
                   <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#b34dcc]/16 font-serif text-4xl text-[#d979ef]">
                     {profile.name.slice(0, 1)}
@@ -216,7 +227,7 @@ export default function FoundationalProfile() {
                 )}
               </div>
 
-              <div className="mt-6 grid gap-3 text-sm text-white/68">
+              {savedAdvisor?.showContactDetails !== false && <div className="mt-6 grid gap-3 text-sm text-white/68">
                 <a className="flex items-center gap-3" href={`tel:${profile.phoneHref}`}>
                   <Phone className="h-4 w-4 text-[#d979ef]" />
                   {profile.phoneDisplay}
@@ -233,21 +244,12 @@ export default function FoundationalProfile() {
                   <MapPin className="h-4 w-4 text-[#d979ef]" />
                   {profile.location}
                 </span>
-              </div>
+                {savedAdvisor?.workingHours && <span className="flex items-center gap-3"><Clock className="h-4 w-4 text-[#d979ef]" />{savedAdvisor.workingHours}</span>}
+              </div>}
 
-              {socialLinks.length > 0 && (
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {socialLinks.map(([label, url]) => (
-                    <a key={label} href={url} target="_blank" rel="noreferrer" className="rounded-full border border-white/10 px-3 py-1.5 text-xs text-white/55 transition hover:bg-white/[0.06] hover:text-white">
-                      {label}
-                    </a>
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-col items-start gap-4 rounded-2xl border border-white/10 bg-white/[0.04] p-4 min-[380px]:flex-row min-[380px]:items-center">
+              {savedAdvisor?.showQrCode !== false && <div className="mt-6 flex flex-col items-start gap-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4 min-[400px]:flex-row min-[400px]:items-center">
                 <div className="rounded-xl bg-white p-2">
-                  <QRCodeSVG value={`${window.location.origin}/${slug}`} size={92} />
+                  <QRCodeSVG value={`${window.location.origin}/${slug}`} size={132} />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-white">Scan to connect</p>
@@ -255,10 +257,23 @@ export default function FoundationalProfile() {
                     NFC, QR and save-contact ready.
                   </p>
                 </div>
-              </div>
+              </div>}
             </div>
           </aside>
         </section>
+
+        {savedAdvisor?.showFinancialDashboard && <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.035]"><FinancialDashboard tc={tc} advisorName={profile.name} collapsible /></section>}
+
+        {(savedAdvisor?.showMoneywebFeed || savedAdvisor?.showSecondNews || savedAdvisor?.showForex || savedAdvisor?.showFunFacts || savedAdvisor?.showEmergencyContacts || savedAdvisor?.showTradingView) && <section className="grid gap-5">
+          {savedAdvisor.showMoneywebFeed && <NewsHero {...toolTheme} labelOverride="Live Financial News" />}
+          {savedAdvisor.showSecondNews && <NewsHero {...toolTheme} category="personal-finance" labelOverride="More Finance News" testIdSuffix="second" />}
+          {savedAdvisor.showForex && <ForexWidget {...toolTheme} />}
+          {savedAdvisor.showFunFacts && <FunFactsCarousel {...toolTheme} advisorName={profile.name} />}
+          {savedAdvisor.showTradingView && <TradingViewSection tc={tc} advisor={savedAdvisor} />}
+          {savedAdvisor.showEmergencyContacts && <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-5"><h2 className="font-semibold">Emergency Contacts</h2><div className="mt-3 grid gap-2 text-sm text-white/70"><a href="tel:112">Emergency from mobile: 112</a><a href="tel:10111">Police: 10111</a><a href="tel:10177">Ambulance: 10177</a></div></div>}
+        </section>}
+
+        {savedAdvisor?.showInteractive && displayedTools.length > 0 && <section className="grid gap-5"><div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d979ef]">Interactive Financial Tools</p><h2 className="mt-2 text-2xl font-semibold">Explore your numbers</h2></div>{displayedTools}</section>}
 
         <section className="grid gap-3 min-[420px]:grid-cols-3 sm:gap-4">
           {[
@@ -308,15 +323,15 @@ export default function FoundationalProfile() {
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <a className="fe-action bg-white text-black hover:bg-white/90" href={`/${slug}/request-callback`}>
+            {savedAdvisor?.showCallbackLink !== false && <a className="fe-action bg-white text-black hover:bg-white/90" href={`/${slug}/request-callback`}>
               <CalendarClock className="h-4 w-4" />
               <span>Request Callback</span>
               <ArrowRight className="h-4 w-4" />
-            </a>
-            <a className="fe-action border border-white/15 bg-black/20 text-white hover:bg-white/[0.07]" href={`/${slug}/referrals`}>
+            </a>}
+            {savedAdvisor?.showReferralsLink !== false && <a className="fe-action border border-white/15 bg-black/20 text-white hover:bg-white/[0.07]" href={`/${slug}/referrals`}>
               <span>Refer Someone</span>
               <ArrowRight className="h-4 w-4" />
-            </a>
+            </a>}
           </div>
         </section>
       </div>
