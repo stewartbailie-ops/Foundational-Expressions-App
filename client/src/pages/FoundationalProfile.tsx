@@ -15,6 +15,9 @@ import {
   Sparkles,
   WalletCards,
   Clock,
+  AlertCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import {
   buildVCard,
@@ -22,7 +25,7 @@ import {
   serviceGroups,
   type ServiceGroup,
 } from "@/data/foundationalProfile";
-import type { Advisor } from "@shared/schema";
+import { EMERGENCY_CONTACTS, type Advisor } from "@shared/schema";
 import { NewsHero } from "@/components/NewsHero";
 import { ForexWidget } from "@/components/ForexWidget";
 import { FunFactsCarousel } from "@/components/FunFactsCarousel";
@@ -30,6 +33,7 @@ import { FinancialDashboard } from "@/components/tools/FinancialDashboard";
 import { RealMoneySqueeze, TaxBite, InflationMillion, CostOfWaiting, RealityCheck, LatteMillionaire } from "@/components/MoneyShowpieces";
 import { TradingViewSection } from "@/pages/AdvisorProfile";
 import { getThemeColors } from "@/lib/themeUtils";
+import { AddToHomeScreen } from "@/components/AddToHomeScreen";
 
 function downloadContact(vcard: string) {
   const blob = new Blob([vcard], { type: "text/vcard;charset=utf-8" });
@@ -105,6 +109,23 @@ function ServicePanel({ group }: { group: ServiceGroup }) {
   );
 }
 
+function EmergencyContacts() {
+  const [open, setOpen] = useState(false);
+  return <section data-testid="section-emergency-contacts">
+    <button type="button" onClick={() => setOpen((value) => !value)} aria-expanded={open} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-4 py-3.5 text-sm font-semibold text-white transition hover:bg-red-500">
+      <AlertCircle className="h-4 w-4" /> Emergency Contacts {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+    </button>
+    {open && <div className="mt-2 space-y-2 rounded-2xl border border-white/12 bg-white/[0.045] p-3">
+      <p className="px-1 pb-1 text-xs text-white/55">Tap a service to dial directly from your phone.</p>
+      {EMERGENCY_CONTACTS.map((contact) => <a key={contact.key} href={`tel:${contact.number}`} className="flex items-center gap-3 rounded-xl border border-red-500/35 bg-red-500/10 p-3 transition hover:bg-red-500/15">
+        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-red-600"><Phone className="h-4 w-4" /></span>
+        <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold">{contact.label}</span><span className="mt-0.5 block text-xs text-white/55">{contact.number}</span></span>
+        <span className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold">Call</span>
+      </a>)}
+    </div>}
+  </section>;
+}
+
 export default function FoundationalProfile() {
   const [, routeParams] = useRoute<{ slug: string }>("/:slug");
   const slug = routeParams?.slug || "erika";
@@ -123,6 +144,14 @@ export default function FoundationalProfile() {
     if (!savedAdvisor?.id) return;
     fetch("/api/stats/access", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ advisorId: savedAdvisor.id, slug }) }).catch(() => {});
   }, [savedAdvisor?.id, slug]);
+  useEffect(() => {
+    const link = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    if (!link) return;
+    const originalHref = link.getAttribute("href") || "/manifest.json";
+    const displayName = savedAdvisor?.nickname || savedAdvisor?.name || "Erika";
+    link.href = `/api/manifest?${new URLSearchParams({ start: `/${slug}`, name: `${displayName} | Foundational Expressions`, short: displayName }).toString()}`;
+    return () => { link.href = originalHref; };
+  }, [savedAdvisor?.name, savedAdvisor?.nickname, slug]);
   const phone = savedAdvisor?.contactNumber?.trim() || foundationalProfile.phoneDisplay;
   const phoneHref = phone.replace(/[^+\d]/g, "") || foundationalProfile.phoneHref;
   const email = savedAdvisor?.email || foundationalProfile.email;
@@ -219,7 +248,7 @@ export default function FoundationalProfile() {
                   <p className="mt-2 text-sm leading-5 text-white/58">{profile.title}</p>
                 </div>
                 {profile.profilePicUrl ? (
-                  <img className="h-28 w-28 rounded-2xl border border-white/10 object-cover sm:h-32 sm:w-32" src={profile.profilePicUrl} alt={profile.name} />
+                  <img className="h-40 w-32 rounded-2xl border border-white/10 object-cover min-[400px]:h-48 min-[400px]:w-40 sm:h-56 sm:w-48" src={profile.profilePicUrl} alt={profile.name} />
                 ) : (
                   <div className="grid h-16 w-16 place-items-center rounded-2xl bg-[#b34dcc]/16 font-serif text-4xl text-[#d979ef]">
                     {profile.name.slice(0, 1)}
@@ -270,10 +299,12 @@ export default function FoundationalProfile() {
           {savedAdvisor.showForex && <ForexWidget {...toolTheme} />}
           {savedAdvisor.showFunFacts && <FunFactsCarousel {...toolTheme} advisorName={profile.name} />}
           {savedAdvisor.showTradingView && <TradingViewSection tc={tc} advisor={savedAdvisor} />}
-          {savedAdvisor.showEmergencyContacts && <div className="rounded-2xl border border-red-500/25 bg-red-500/10 p-5"><h2 className="font-semibold">Emergency Contacts</h2><div className="mt-3 grid gap-2 text-sm text-white/70"><a href="tel:112">Emergency from mobile: 112</a><a href="tel:10111">Police: 10111</a><a href="tel:10177">Ambulance: 10177</a></div></div>}
+          {savedAdvisor.showEmergencyContacts && <EmergencyContacts />}
         </section>}
 
         {savedAdvisor?.showInteractive && displayedTools.length > 0 && <section className="grid gap-5"><div><p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#d979ef]">Interactive Financial Tools</p><h2 className="mt-2 text-2xl font-semibold">Explore your numbers</h2></div>{displayedTools}</section>}
+
+        <AddToHomeScreen variant="card" accent="#b34dcc" />
 
         <section className="grid gap-3 min-[420px]:grid-cols-3 sm:gap-4">
           {[

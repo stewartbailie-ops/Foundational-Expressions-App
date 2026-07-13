@@ -115,7 +115,7 @@ export function AddToHomeScreen({
   const primaryBtn = (
     <button
       onClick={canInstallNow ? install : iosGuide ? () => setShowIosHelp(true) : copyLink}
-      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110"
+      className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 ${variant === "card" ? "w-full min-[480px]:w-auto" : ""}`}
       style={{ backgroundColor: accent }}
       data-testid="button-a2hs-primary"
     >
@@ -141,15 +141,17 @@ export function AddToHomeScreen({
     <>
       {variant === "card" ? (
         <div
-          className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center gap-4"
+          className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col items-stretch gap-4 min-[480px]:flex-row min-[480px]:items-center"
           data-testid="a2hs-card"
         >
-          <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent + "22" }}>
-            <Smartphone className="h-5 w-5" style={{ color: accent }} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">Add to your home screen</p>
-            <p className="text-xs text-white/50">{helper}</p>
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: accent + "22" }}>
+              <Smartphone className="h-5 w-5" style={{ color: accent }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">Add to your home screen</p>
+              <p className="text-xs text-white/50">{helper}</p>
+            </div>
           </div>
           {primaryBtn}
         </div>
