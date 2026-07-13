@@ -2,3 +2,4 @@
 - [reCAPTCHA keys](recaptcha-keys.md) — keys are 40 chars/6L; validate secret via siteverify dummy-token; site key is VITE_ build-time (republish to apply); pair must share one site.
 - [Onboarding OTP flow](onboarding-otp-flow.md) — register→setup→verify chain; OTP only fires when advisor_email_verified=false; /api/register must insert false or the whole OTP step is silently skipped.
 - [Shell pkill self-match](shell-pkill-self-match.md) — `pkill -f <pat>` kills its own bash shell (exit 143) if the pattern appears in the command line; use `pkill -x <name>` or kill by PID.
+- [SendGrid config](sendgrid-config.md) — email reads raw SENDGRID_API_KEY env var (server/sendgrid.ts); the Replit SendGrid connector does NOT feed it; restart after setting the key.
