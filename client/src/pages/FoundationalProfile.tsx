@@ -163,7 +163,7 @@ export default function FoundationalProfile() {
         <header className="flex items-center justify-between gap-4">
           <a className="flex items-center gap-3" href="/">
             <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#b34dcc]/35 bg-[#b34dcc]/12 font-serif text-2xl text-[#d979ef] shadow-[0_0_34px_rgba(179,77,204,0.25)]">
-              J
+              FE
             </span>
             <span>
               <span className="block text-sm font-semibold tracking-[0.18em] text-white">
@@ -182,8 +182,8 @@ export default function FoundationalProfile() {
           </a>
         </header>
 
-        <section className="grid gap-8 lg:grid-cols-[1fr_380px] lg:items-center">
-          <div className="pt-6 sm:pt-10">
+        <section className="grid gap-5 sm:gap-8 xl:grid-cols-[1fr_380px] xl:items-center">
+          <div className="pt-2 sm:pt-6 xl:pt-10">
             <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#c368d7]">
               {profile.tagline}
             </p>
@@ -201,7 +201,7 @@ export default function FoundationalProfile() {
             </div>
           </div>
 
-          <aside className="fe-card rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-3 shadow-2xl sm:rounded-[2rem] sm:p-5">
+          <aside className="fe-card order-first rounded-[1.5rem] border border-white/12 bg-white/[0.055] p-3 shadow-2xl sm:rounded-[2rem] sm:p-5 xl:order-last">
             <div className="rounded-[1.25rem] border border-white/10 bg-black/45 p-4 sm:rounded-[1.5rem] sm:p-5">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -262,7 +262,7 @@ export default function FoundationalProfile() {
           </aside>
         </section>
 
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid gap-3 min-[420px]:grid-cols-3 sm:gap-4">
           {[
             ["Protection", ShieldCheck],
             ["Financial Growth", WalletCards],
