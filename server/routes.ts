@@ -2686,10 +2686,10 @@ export async function registerRoutes(
       lang: "en-ZA",
       dir: "ltr",
       icons: [
-        { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-        { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-        { src: "/icon-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
-        { src: "/icon-maskable-1024.png", sizes: "1024x1024", type: "image/png", purpose: "maskable" },
+        { src: "/icon-192.png?v=fe-20260720", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icon-512.png?v=fe-20260720", sizes: "512x512", type: "image/png", purpose: "any" },
+        { src: "/icon-maskable-512.png?v=fe-20260720", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        { src: "/icon-maskable-1024.png?v=fe-20260720", sizes: "1024x1024", type: "image/png", purpose: "maskable" },
       ],
     });
   });

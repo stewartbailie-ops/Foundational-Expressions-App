@@ -23,11 +23,12 @@ function detectPlatform() {
     /iphone|ipad|ipod/i.test(ua) ||
     (navigator.platform === "MacIntel" && (navigator as any).maxTouchPoints > 1);
   const isAndroid = /android/i.test(ua);
+  const isSamsung = /SamsungBrowser/i.test(ua);
   // In-app webviews (WhatsApp, Instagram, Facebook, etc.) can't Add to Home Screen.
   const isInApp =
     /FBAN|FBAV|Instagram|Line\/|Twitter|Snapchat|Pinterest|WhatsApp|GSA\//i.test(ua) ||
     (isAndroid && /; wv\)/i.test(ua));
-  return { isIOS, isAndroid, isInApp };
+  return { isIOS, isAndroid, isSamsung, isInApp };
 }
 
 function recentlyDismissed(): boolean {
@@ -54,8 +55,9 @@ export function AddToHomeScreen({
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [showIosHelp, setShowIosHelp] = useState(false);
+  const [showSamsungHelp, setShowSamsungHelp] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [plat, setPlat] = useState({ isIOS: false, isAndroid: false, isInApp: false });
+  const [plat, setPlat] = useState({ isIOS: false, isAndroid: false, isSamsung: false, isInApp: false });
 
   useEffect(() => {
     if (isStandalone()) return; // already installed — nothing to do
@@ -108,20 +110,24 @@ export function AddToHomeScreen({
   };
 
   // Decide the primary action for the current situation.
-  const canInstallNow = !!deferred; // Android/Chrome
+  // Samsung Internet's install event can hand off to an outdated generated
+  // Android package and trigger Play Protect. Use Samsung's safe built-in
+  // "Add page to > Home screen" shortcut flow instead.
+  const samsungGuide = plat.isSamsung && !plat.isInApp;
+  const canInstallNow = !!deferred && !samsungGuide; // Chrome/Android native PWA prompt
   const iosGuide = plat.isIOS && !plat.isInApp && !canInstallNow;
   const inAppBlocked = plat.isInApp && !canInstallNow;
 
   const primaryBtn = (
     <button
-      onClick={canInstallNow ? install : iosGuide ? () => setShowIosHelp(true) : copyLink}
+      onClick={canInstallNow ? install : iosGuide ? () => setShowIosHelp(true) : samsungGuide ? () => setShowSamsungHelp(true) : copyLink}
       className={`inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all hover:brightness-110 ${variant === "card" ? "w-full min-[480px]:w-auto" : ""}`}
       style={{ backgroundColor: accent }}
       data-testid="button-a2hs-primary"
     >
       {canInstallNow ? (
         <><Download className="h-4 w-4" /> Add to Home Screen</>
-      ) : iosGuide ? (
+      ) : iosGuide || samsungGuide ? (
         <><Share className="h-4 w-4" /> Add to Home Screen</>
       ) : inAppBlocked ? (
         copied ? <><Check className="h-4 w-4" /> Link copied</> : <><ExternalLink className="h-4 w-4" /> Copy link to open in browser</>
@@ -133,7 +139,7 @@ export function AddToHomeScreen({
 
   const helper = inAppBlocked
     ? "Open this link in Safari or Chrome, then tap Add to Home Screen."
-    : iosGuide
+    : iosGuide || samsungGuide
     ? "One tap to keep this card on your home screen."
     : "Keep this card one tap away on your phone.";
 
@@ -201,6 +207,20 @@ export function AddToHomeScreen({
             <button onClick={() => setShowIosHelp(false)} className="w-full py-2.5 rounded-xl text-white text-sm font-semibold" style={{ backgroundColor: accent }}>
               Got it
             </button>
+          </div>
+        </div>
+      )}
+
+      {showSamsungHelp && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4" onClick={() => setShowSamsungHelp(false)}>
+          <div className="w-full max-w-sm space-y-4 rounded-2xl bg-white p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between"><h3 className="text-base font-bold text-gray-900">Add to Home Screen</h3><button onClick={() => setShowSamsungHelp(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="h-5 w-5" /></button></div>
+            <ol className="space-y-3 text-sm text-gray-700">
+              <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold">1</span><span>Tap the <strong>menu (☰)</strong> at the bottom of Samsung Internet.</span></li>
+              <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold">2</span><span>Tap <strong>Add page to</strong>, then choose <strong>Home screen</strong>.</span></li>
+              <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xs font-bold">3</span><span>Confirm <strong>Add</strong>. Do not choose an option that downloads or installs an app.</span></li>
+            </ol>
+            <button onClick={() => setShowSamsungHelp(false)} className="w-full rounded-xl py-2.5 text-sm font-semibold text-white" style={{ backgroundColor: accent }}>Got it</button>
           </div>
         </div>
       )}
